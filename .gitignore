@@ -1,0 +1,36 @@
+# .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+env/
+venv/
+ENV/
+*.log
+
+# Django
+*.sqlite3
+local_settings.py
+media/
+staticfiles/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Next.js
+.next/
+out/
+*.next
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
