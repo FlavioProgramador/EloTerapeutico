@@ -56,11 +56,11 @@ export function Sidebar({ className }: SidebarProps) {
       <div>
         <div className={cn("p-5 flex items-center justify-between", isCollapsed && "justify-center")}>
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 shrink-0 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/20">
-              <Activity className="h-5 w-5 text-white" />
+            <div className="h-9 w-9 shrink-0 rounded-md bg-primary flex items-center justify-center">
+              <Activity className="h-4.5 w-4.5 text-white" />
             </div>
             {!isCollapsed && (
-              <span className="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground via-foreground/90 to-foreground/75">
+              <span className="font-bold text-base tracking-tight text-foreground">
                 Elo Terapêutico
               </span>
             )}
@@ -71,7 +71,7 @@ export function Sidebar({ className }: SidebarProps) {
               onClick={() => setIsCollapsed(true)}
               className="text-muted-foreground hover:text-foreground hover:bg-secondary/80 rounded-md p-1 transition-all cursor-pointer"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-4.5 w-4.5" />
             </button>
           )}
         </div>
@@ -87,18 +87,18 @@ export function Sidebar({ className }: SidebarProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-3 rounded-lg text-base font-medium transition-all duration-200 group relative",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-150 group relative",
                   isActive
-                    ? "bg-primary text-primary-foreground shadow-sm shadow-primary/10"
+                    ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                 )}
               >
-                <Icon className={cn("h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-105", isActive ? "text-white" : "text-muted-foreground group-hover:text-foreground")} />
+                <Icon className={cn("h-4.5 w-4.5 shrink-0", isActive ? "text-white" : "text-muted-foreground group-hover:text-foreground")} />
                 {!isCollapsed && <span>{item.name}</span>}
                 
                 {/* Tooltip quando colapsado */}
                 {isCollapsed && (
-                  <div className="absolute left-full ml-4 px-2 py-1 bg-slate-900 text-white text-xs font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap shadow-md">
+                  <div className="absolute left-full ml-4 px-2 py-1 bg-card border border-border text-foreground text-xs font-medium rounded-sm opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap shadow-xs z-50">
                     {item.name}
                   </div>
                 )}
@@ -114,23 +114,23 @@ export function Sidebar({ className }: SidebarProps) {
         {isCollapsed && (
           <button
             onClick={() => setIsCollapsed(false)}
-            className="w-full flex items-center justify-center p-3 text-muted-foreground hover:text-foreground hover:bg-secondary/60 rounded-lg transition-all cursor-pointer"
+            className="w-full flex items-center justify-center p-2.5 text-muted-foreground hover:text-foreground hover:bg-secondary/60 rounded-md transition-all cursor-pointer"
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-4.5 w-4.5" />
           </button>
         )}
 
         <button
           onClick={logout}
           className={cn(
-            "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-base font-medium text-destructive/80 hover:text-destructive hover:bg-destructive/5 transition-all cursor-pointer group relative"
+            "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-destructive/80 hover:text-destructive hover:bg-destructive/5 transition-all cursor-pointer group relative"
           )}
         >
-          <LogOut className="h-5 w-5 shrink-0 group-hover:translate-x-[-2px] transition-transform duration-200" />
+          <LogOut className="h-4.5 w-4.5 shrink-0 group-hover:translate-x-[-1px] transition-transform duration-150" />
           {!isCollapsed && <span>Sair</span>}
           
           {isCollapsed && (
-            <div className="absolute left-full ml-4 px-2 py-1 bg-destructive text-white text-xs font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap shadow-md">
+            <div className="absolute left-full ml-4 px-2 py-1 bg-destructive text-destructive-foreground text-xs font-medium rounded-sm opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap shadow-xs z-50">
               Sair
             </div>
           )}

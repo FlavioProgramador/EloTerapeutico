@@ -42,7 +42,7 @@ export function Header({ className }: HeaderProps) {
   return (
     <header
       className={cn(
-        "h-16 border-b border-border/40 bg-card/85 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between px-6 transition-all duration-300",
+        "h-16 border-b border-border/40 bg-card sticky top-0 z-20 flex items-center justify-between px-6 transition-colors duration-150",
         className
       )}
     >
@@ -52,7 +52,7 @@ export function Header({ className }: HeaderProps) {
         <input
           type="text"
           placeholder="Buscar pacientes, consultas, prontuários..."
-          className="w-full h-10 bg-secondary/40 border border-border/50 rounded-lg pl-11 pr-4 text-sm transition-all focus:outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-muted-foreground/50"
+          className="w-full h-9 bg-secondary border border-border/60 rounded-md pl-10 pr-4 text-sm transition-all focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 placeholder:text-muted-foreground/50"
         />
       </div>
 
