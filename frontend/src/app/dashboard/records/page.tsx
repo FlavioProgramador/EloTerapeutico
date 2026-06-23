@@ -37,9 +37,10 @@ export default function RecordsListPage() {
   const fetchPatients = async () => {
     setIsLoading(true);
     try {
-      const response = await api.get<Patient[]>("patients/");
+      const response = await api.get("patients/");
+      const data = Array.isArray(response.data) ? response.data : (response.data as any).results || [];
       // Filtra apenas pacientes ativos por padrão para prontuário clínico
-      const activePatients = response.data.filter((p) => p.status === "active");
+      const activePatients = data.filter((p: any) => p.status === "active");
       setPatients(activePatients);
     } catch (error) {
       console.error(error);

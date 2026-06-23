@@ -78,8 +78,9 @@ export default function PatientsListPage() {
   const fetchPatients = async () => {
     setIsLoading(true);
     try {
-      const response = await api.get<Patient[]>("patients/");
-      setPatients(response.data);
+      const response = await api.get("patients/");
+      const data = Array.isArray(response.data) ? response.data : (response.data as any).results || [];
+      setPatients(data);
     } catch (error) {
       console.error(error);
       toast({
