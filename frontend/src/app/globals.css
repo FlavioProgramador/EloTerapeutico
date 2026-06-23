@@ -1,67 +1,67 @@
 @import "tailwindcss";
 
 :root {
-  /* Cores base do Light Mode - Paleta Violeta/Slate Premium */
-  --background: 210 20% 98%;
-  --foreground: 224 71.4% 4.1%;
+  /* Cores base do Light Mode - Paleta Sálvia/Obsidian Premium */
+  --background: 140 12% 98%;
+  --foreground: 140 24% 12%;
   
   --card: 0 0% 100%;
-  --card-foreground: 224 71.4% 4.1%;
+  --card-foreground: 140 24% 12%;
   
   --popover: 0 0% 100%;
-  --popover-foreground: 224 71.4% 4.1%;
+  --popover-foreground: 140 24% 12%;
   
-  --primary: 160 84% 39%; /* Verde Esmeralda Clínico */
-  --primary-foreground: 210 20% 98%;
+  --primary: 154 50% 35%; /* Verde Sálvia Clínico */
+  --primary-foreground: 0 0% 100%;
   
-  --secondary: 220 14.3% 95.9%;
-  --secondary-foreground: 220.9 39.3% 11%;
+  --secondary: 140 10% 93%;
+  --secondary-foreground: 140 24% 12%;
   
-  --muted: 220 14.3% 95.9%;
-  --muted-foreground: 220 8.9% 46.1%;
+  --muted: 140 10% 93%;
+  --muted-foreground: 140 10% 45%;
   
-  --accent: 220 14.3% 95.9%;
-  --accent-foreground: 220.9 39.3% 11%;
+  --accent: 195 40% 40%; /* Azul Securitário */
+  --accent-foreground: 0 0% 100%;
   
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 20% 98%;
+  --destructive: 0 65% 45%; /* Vermelho Sóbrio */
+  --destructive-foreground: 0 0% 100%;
 
-  --border: 220 13% 91%;
-  --input: 220 13% 91%;
-  --ring: 160 84% 39%;
+  --border: 140 8% 90%;
+  --input: 140 8% 90%;
+  --ring: 154 50% 35%;
 
-  --radius: 0.75rem;
+  --radius: 0.5rem; /* Cantos arredondados mais discretos e profissionais */
 }
 
 .dark {
-  /* Cores base do Dark Mode - Deep Navy / Charcoal Premium */
-  --background: 224 71.4% 4.1%;
-  --foreground: 210 20% 98%;
+  /* Cores base do Dark Mode - Obsidian Green */
+  --background: 140 15% 6%;
+  --foreground: 140 10% 92%;
   
-  --card: 224 71.4% 4.1%;
-  --card-foreground: 210 20% 98%;
+  --card: 140 12% 9%;
+  --card-foreground: 140 10% 92%;
   
-  --popover: 224 71.4% 4.1%;
-  --popover-foreground: 210 20% 98%;
+  --popover: 140 12% 9%;
+  --popover-foreground: 140 10% 92%;
   
-  --primary: 158 64% 52%; /* Verde Jade Brilhante */
-  --primary-foreground: 224 71.4% 4.1%;
+  --primary: 154 52% 48%; /* Verde Jade/Sálvia */
+  --primary-foreground: 140 15% 6%;
   
-  --secondary: 215 27.9% 16.9%;
-  --secondary-foreground: 210 20% 98%;
+  --secondary: 140 10% 13%;
+  --secondary-foreground: 140 10% 92%;
   
-  --muted: 215 27.9% 16.9%;
-  --muted-foreground: 217.9 10.6% 64.9%;
+  --muted: 140 10% 13%;
+  --muted-foreground: 140 8% 60%;
   
-  --accent: 215 27.9% 16.9%;
-  --accent-foreground: 210 20% 98%;
+  --accent: 195 45% 55%;
+  --accent-foreground: 140 15% 6%;
   
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 20% 98%;
+  --destructive: 0 70% 55%;
+  --destructive-foreground: 140 10% 92%;
 
-  --border: 215 27.9% 16.9%;
-  --input: 215 27.9% 16.9%;
-  --ring: 158 64% 52%;
+  --border: 140 10% 15%;
+  --input: 140 10% 15%;
+  --ring: 154 52% 48%;
 }
 
 @theme {
