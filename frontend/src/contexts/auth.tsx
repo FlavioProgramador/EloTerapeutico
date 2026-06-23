@@ -95,6 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await fetchUserProfile();
       }
 
+      setIsLoading(false);
       router.push("/dashboard");
     } catch (error) {
       setIsLoading(false);
