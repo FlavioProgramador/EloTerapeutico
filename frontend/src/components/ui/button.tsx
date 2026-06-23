@@ -33,20 +33,20 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      "inline-flex items-center justify-center font-medium rounded-lg transition-all duration-300 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-97 cursor-pointer";
+      "inline-flex items-center justify-center font-medium rounded-md transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 cursor-pointer select-none";
 
     const variants = {
       primary:
-        "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20",
+        "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
       secondary:
         "bg-secondary text-secondary-foreground hover:bg-secondary/80",
       outline:
         "border border-border bg-transparent hover:bg-secondary hover:text-secondary-foreground",
       destructive:
-        "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-md hover:shadow-destructive/20",
-      ghost: "hover:bg-secondary hover:text-secondary-foreground",
+        "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-xs",
+      ghost: "hover:bg-secondary/60 hover:text-secondary-foreground",
       glass:
-        "glass-effect border border-white/20 dark:border-white/10 text-foreground shadow-xs hover:bg-white/30 dark:hover:bg-white/5",
+        "border border-border bg-card hover:bg-secondary hover:text-secondary-foreground",
     };
 
     const sizes = {

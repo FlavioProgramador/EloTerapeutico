@@ -33,8 +33,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type={type}
             id={inputId}
             className={cn(
-              "w-full h-11 bg-card border border-border rounded-lg px-3.5 text-base transition-all duration-300",
-              "focus:outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20",
+              "w-full h-11 bg-card border border-border rounded-md px-3.5 text-base transition-colors",
+              "focus:outline-hidden focus:border-primary focus:ring-1 focus:ring-ring",
               "placeholder:text-muted-foreground/60 disabled:cursor-not-allowed disabled:opacity-50",
               leftIcon && "pl-10.5",
               rightIcon && "pr-10.5",
@@ -85,8 +85,8 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         <textarea
           id={inputId}
           className={cn(
-            "w-full min-h-[100px] bg-card border border-border rounded-lg p-3.5 text-base transition-all duration-300",
-            "focus:outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20",
+            "w-full min-h-[100px] bg-card border border-border rounded-md p-3.5 text-base transition-colors",
+            "focus:outline-hidden focus:border-primary focus:ring-1 focus:ring-ring",
             "placeholder:text-muted-foreground/60 disabled:cursor-not-allowed disabled:opacity-50 resize-y",
             error && "border-destructive focus:border-destructive focus:ring-destructive/20",
             className
