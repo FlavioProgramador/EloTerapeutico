@@ -34,3 +34,14 @@ out/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Configurações de ambiente e secrets
+.env
+.env.*
+!.env.example
+
+# Testes e cobertura
+.pytest_cache/
+.coverage
+htmlcov/
+
