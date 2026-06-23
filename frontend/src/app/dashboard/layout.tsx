@@ -54,7 +54,7 @@ export default function DashboardLayout({
       <div className="flex-1 flex flex-col overflow-hidden relative">
         {/* Elemento decorativo de fundo */}
         <div className="absolute top-[10%] right-[5%] w-96 h-96 rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-[10%] left-[5%] w-96 h-96 rounded-full bg-violet-600/5 blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[10%] left-[5%] w-96 h-96 rounded-full bg-emerald-600/5 blur-[120px] pointer-events-none" />
 
         {/* Header Superior */}
         <Header />

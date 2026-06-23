@@ -218,13 +218,13 @@ export default function DashboardPage() {
         </Card>
 
         <Card className="hover-glow bg-card/65 backdrop-blur-md relative overflow-hidden border-border/30">
-          <div className="absolute top-0 left-0 h-full w-[4px] bg-indigo-500" />
+          <div className="absolute top-0 left-0 h-full w-[4px] bg-teal-500" />
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                 Consultas Hoje
               </p>
-              <div className="h-9 w-9 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+              <div className="h-9 w-9 rounded-lg bg-teal-500/10 flex items-center justify-center text-teal-500">
                 <Calendar className="h-5 w-5" />
               </div>
             </div>
@@ -233,7 +233,7 @@ export default function DashboardPage() {
                 {isLoadingData ? "..." : appointments.length}
               </h3>
               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5 text-indigo-500" />
+                <Clock className="h-3.5 w-3.5 text-teal-500" />
                 <span>Horários agendados</span>
               </p>
             </div>
@@ -458,7 +458,7 @@ export default function DashboardPage() {
                   className="w-full flex items-center justify-between p-3.5 rounded-lg border border-border/30 bg-card hover:bg-secondary/40 text-left transition-all group cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <Activity className="h-5 w-5 text-indigo-500" />
+                    <Activity className="h-5 w-5 text-teal-500" />
                     <div className="text-sm font-semibold">Prontuário Eletrônico</div>
                   </div>
                   <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />

@@ -23,7 +23,7 @@ export default function LandingPage() {
         "Fichas completas, histórico de sessões, evolução de diagnósticos e contatos unificados.",
     },
     {
-      icon: <Lock className="h-6 w-6 text-indigo-500" />,
+      icon: <Lock className="h-6 w-6 text-teal-500" />,
       title: "Prontuário Criptografado",
       description:
         "Evoluções de sessão com segurança avançada, em estrita conformidade com as regras da LGPD.",
@@ -46,8 +46,8 @@ export default function LandingPage() {
     <div className="min-h-screen bg-slate-950 text-white selection:bg-primary selection:text-white overflow-x-hidden relative">
       {/* Luzes difusas de fundo decorativas */}
       <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/10 blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-violet-600/10 blur-[150px] pointer-events-none" />
-      <div className="absolute top-[40%] left-[25%] w-[30vw] h-[30vw] rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-emerald-600/10 blur-[150px] pointer-events-none" />
+      <div className="absolute top-[40%] left-[25%] w-[30vw] h-[30vw] rounded-full bg-teal-500/5 blur-[120px] pointer-events-none" />
 
       {/* Navegação de Topo */}
       <header className="sticky top-0 z-50 border-b border-white/5 bg-slate-950/75 backdrop-blur-md">
@@ -93,7 +93,7 @@ export default function LandingPage() {
         
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight max-w-4xl mx-auto leading-tight md:leading-none">
           A evolução na gestão de{" "}
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-violet-400 to-indigo-400">
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-emerald-400 to-teal-400">
             Consultórios de Psicologia
           </span>
         </h1>
@@ -121,7 +121,7 @@ export default function LandingPage() {
 
         {/* Mockup da Interface */}
         <div className="mt-20 relative max-w-5xl mx-auto rounded-2xl border border-white/10 bg-slate-900/50 p-3 backdrop-blur-md shadow-2xl animate-fade-in">
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-primary/5 via-violet-500/5 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-primary/5 via-emerald-500/5 to-transparent pointer-events-none" />
           <div className="bg-slate-950 rounded-xl overflow-hidden border border-white/5 aspect-video flex flex-col">
             {/* Topbar do Mockup */}
             <div className="h-10 bg-slate-900/80 border-b border-white/5 flex items-center px-4 gap-1.5 shrink-0">
@@ -148,7 +148,7 @@ export default function LandingPage() {
                   </div>
                   <div className="h-16 bg-white/5 rounded-xl border border-white/5 p-2 flex flex-col justify-between">
                     <span className="text-[10px] text-slate-400">Consultas Hoje</span>
-                    <span className="font-bold text-sm text-indigo-400">8</span>
+                    <span className="font-bold text-sm text-teal-400">8</span>
                   </div>
                   <div className="h-16 bg-white/5 rounded-xl border border-white/5 p-2 flex flex-col justify-between">
                     <span className="text-[10px] text-slate-400">Faturamento Mês</span>

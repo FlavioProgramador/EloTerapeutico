@@ -158,7 +158,7 @@ export default function RegisterPage() {
     <div className="relative min-h-screen flex items-center justify-center p-4 bg-radial from-slate-900 via-slate-950 to-black overflow-hidden">
       {/* Elementos de design de fundo */}
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-violet-600/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-600/10 blur-[120px] pointer-events-none" />
 
       <div className="w-full max-w-lg z-10 animate-fade-in">
         {/* Branding */}
@@ -176,7 +176,7 @@ export default function RegisterPage() {
 
         {/* Card de Registro */}
         <Card className="glass-effect border-white/10 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-primary via-violet-500 to-primary" />
+          <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-primary via-emerald-500 to-primary" />
           
           <CardHeader className="space-y-2">
             {/* Indicador de Passos */}
