@@ -4,6 +4,7 @@ Views e ViewSets para o app de Agenda.
 """
 
 from datetime import datetime
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action
