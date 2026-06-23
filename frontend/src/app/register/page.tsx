@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, User, Briefcase, FileText, Phone, ArrowRight, ArrowLeft, UserPlus, Activity, Check } from "lucide-react";
+import { Mail, Lock, User, Briefcase, FileText, Phone, ArrowRight, ArrowLeft, UserPlus, Check, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/contexts/toast";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -159,57 +161,53 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-4 bg-radial from-slate-900 via-slate-950 to-black overflow-hidden">
-      {/* Elementos de design de fundo */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-600/10 blur-[120px] pointer-events-none" />
-
-      <div className="w-full max-w-lg z-10 animate-fade-in">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background text-foreground font-sans">
+      <div className="w-full max-w-md space-y-6">
+        
         {/* Branding */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30 mb-3">
-            <Activity className="h-6 w-6 text-primary-foreground" />
+        <div className="flex flex-col items-center text-center">
+          <div className="h-10 w-10 rounded-md bg-primary flex items-center justify-center mb-3">
+            <UserPlus className="h-5 w-5 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Elo Terapêutico
           </h1>
-          <p className="text-sm text-muted-foreground mt-1.5">
+          <p className="text-xs text-muted-foreground mt-1">
             Cadastre sua clínica ou perfil profissional em minutos
           </p>
         </div>
 
         {/* Card de Registro */}
-        <Card className="glass-effect border-white/10 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-primary via-emerald-500 to-primary" />
-          
-          <CardHeader className="space-y-2">
+        <Card className="border-border/80 bg-card shadow-xs">
+          <CardHeader className="space-y-2 pb-4">
+            
             {/* Indicador de Passos */}
             <div className="flex items-center justify-center gap-3 mb-2">
               <div
-                className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold transition-colors duration-200 ${
                   step === 1
-                    ? "bg-primary text-white ring-4 ring-primary/20"
-                    : "bg-emerald-500 text-white"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-primary/20 text-primary"
                 }`}
               >
                 {step > 1 ? <Check className="h-4 w-4" /> : "1"}
               </div>
-              <div className={`h-[2px] w-12 transition-all duration-300 ${step > 1 ? "bg-emerald-500" : "bg-slate-700"}`} />
+              <div className={`h-[2px] w-12 transition-colors duration-200 ${step > 1 ? "bg-primary/40" : "bg-border"}`} />
               <div
-                className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold transition-colors duration-200 ${
                   step === 2
-                    ? "bg-primary text-white ring-4 ring-primary/20"
-                    : "bg-slate-800 text-slate-400"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground"
                 }`}
               >
-                "2"
+                2
               </div>
             </div>
             
-            <CardTitle className="text-2xl font-bold text-white text-center">
+            <CardTitle className="text-xl font-bold text-foreground text-center">
               {step === 1 ? "Dados de Acesso" : "Informações Profissionais"}
             </CardTitle>
-            <CardDescription className="text-slate-400 text-center">
+            <CardDescription className="text-xs text-muted-foreground text-center">
               {step === 1
                 ? "Crie sua credencial de acesso segura para a plataforma"
                 : "Complete o perfil profissional para iniciar os atendimentos"}
@@ -225,8 +223,7 @@ export default function RegisterPage() {
                   value={formData.fullName}
                   onChange={(e) => handleInputChange("fullName", e.target.value)}
                   error={errors.fullName}
-                  leftIcon={<User className="h-5 w-5" />}
-                  className="bg-slate-900/50 border-white/5 text-white placeholder:text-slate-500"
+                  leftIcon={<User className="h-4.5 w-4.5 text-muted-foreground" />}
                 />
 
                 <Input
@@ -236,38 +233,51 @@ export default function RegisterPage() {
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   error={errors.email}
-                  leftIcon={<Mail className="h-5 w-5" />}
-                  className="bg-slate-900/50 border-white/5 text-white placeholder:text-slate-500"
+                  leftIcon={<Mail className="h-4.5 w-4.5 text-muted-foreground" />}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    label="Senha"
-                    placeholder="Mín. 8 caracteres"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
-                    error={errors.password}
-                    leftIcon={<Lock className="h-5 w-5" />}
-                    className="bg-slate-900/50 border-white/5 text-white placeholder:text-slate-500"
-                  />
+                <Input
+                  label="Senha"
+                  placeholder="Mínimo de 8 caracteres"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  error={errors.password}
+                  leftIcon={<Lock className="h-4.5 w-4.5 text-muted-foreground" />}
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                    </button>
+                  }
+                />
 
-                  <Input
-                    label="Confirmar Senha"
-                    placeholder="Repita a senha"
-                    type="password"
-                    value={formData.passwordConfirm}
-                    onChange={(e) => handleInputChange("passwordConfirm", e.target.value)}
-                    error={errors.passwordConfirm}
-                    leftIcon={<Lock className="h-5 w-5" />}
-                    className="bg-slate-900/50 border-white/5 text-white placeholder:text-slate-500"
-                  />
-                </div>
+                <Input
+                  label="Confirmar Senha"
+                  placeholder="Repita a senha"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={formData.passwordConfirm}
+                  onChange={(e) => handleInputChange("passwordConfirm", e.target.value)}
+                  error={errors.passwordConfirm}
+                  leftIcon={<Lock className="h-4.5 w-4.5 text-muted-foreground" />}
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                    </button>
+                  }
+                />
 
                 <Button
                   type="submit"
                   className="w-full text-white font-semibold mt-6"
-                  rightIcon={<ArrowRight className="h-5 w-5" />}
+                  rightIcon={<ArrowRight className="h-4 w-4" />}
                 >
                   Próxima Etapa
                 </Button>
@@ -280,8 +290,7 @@ export default function RegisterPage() {
                   value={formData.crpNumber}
                   onChange={(e) => handleInputChange("crpNumber", e.target.value)}
                   error={errors.crpNumber}
-                  leftIcon={<FileText className="h-5 w-5" />}
-                  className="bg-slate-900/50 border-white/5 text-white placeholder:text-slate-500"
+                  leftIcon={<FileText className="h-4.5 w-4.5 text-muted-foreground" />}
                 />
 
                 <Input
@@ -290,8 +299,7 @@ export default function RegisterPage() {
                   value={formData.specialty}
                   onChange={(e) => handleInputChange("specialty", e.target.value)}
                   error={errors.specialty}
-                  leftIcon={<Briefcase className="h-5 w-5" />}
-                  className="bg-slate-900/50 border-white/5 text-white placeholder:text-slate-500"
+                  leftIcon={<Briefcase className="h-4.5 w-4.5 text-muted-foreground" />}
                 />
 
                 <Input
@@ -300,17 +308,16 @@ export default function RegisterPage() {
                   value={formData.phone}
                   onChange={(e) => handleInputChange("phone", e.target.value)}
                   error={errors.phone}
-                  leftIcon={<Phone className="h-5 w-5" />}
-                  className="bg-slate-900/50 border-white/5 text-white placeholder:text-slate-500"
+                  leftIcon={<Phone className="h-4.5 w-4.5 text-muted-foreground" />}
                 />
 
                 <div className="flex gap-4 mt-6">
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-1/3 text-white border-white/10 hover:bg-white/5"
+                    className="w-1/3"
                     onClick={() => setStep(1)}
-                    leftIcon={<ArrowLeft className="h-5 w-5" />}
+                    leftIcon={<ArrowLeft className="h-4 w-4" />}
                   >
                     Voltar
                   </Button>
@@ -319,19 +326,19 @@ export default function RegisterPage() {
                     type="submit"
                     className="w-2/3 text-white font-semibold"
                     isLoading={isLoading}
-                    rightIcon={<UserPlus className="h-5 w-5" />}
+                    rightIcon={<UserPlus className="h-4 w-4" />}
                   >
-                    Finalizar Cadastro
+                    Criar Conta
                   </Button>
                 </div>
               </form>
             )}
 
-            <div className="mt-6 text-center text-sm text-slate-400">
+            <div className="mt-5 text-center text-xs text-muted-foreground">
               Já possui uma conta?{" "}
               <Link
                 href="/login"
-                className="text-primary hover:text-primary/80 font-semibold transition-colors"
+                className="text-primary hover:underline font-semibold"
               >
                 Faça login
               </Link>
