@@ -263,8 +263,8 @@ export default function PatientDetailPage() {
   if (isLoading) {
     return (
       <div className="py-20 text-center flex flex-col items-center gap-3">
-        <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        <span className="text-sm text-muted-foreground animate-pulse">Carregando ficha...</span>
+        <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <span className="text-xs text-muted-foreground animate-pulse">Carregando ficha...</span>
       </div>
     );
   }
@@ -274,8 +274,8 @@ export default function PatientDetailPage() {
       <div className="py-20 text-center flex flex-col items-center gap-4">
         <ShieldAlert className="h-10 w-10 text-destructive" />
         <div>
-          <h3 className="font-bold text-lg">Paciente não encontrado</h3>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h3 className="font-bold text-sm text-foreground">Paciente não encontrado</h3>
+          <p className="text-xs text-muted-foreground mt-1">
             O registro solicitado não existe ou foi removido do sistema.
           </p>
         </div>
@@ -287,34 +287,34 @@ export default function PatientDetailPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Botão Voltar */}
       <button
         onClick={() => router.push("/dashboard/patients")}
-        className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+        className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
       >
-        <ArrowLeft className="h-4.5 w-4.5" />
+        <ArrowLeft className="h-4 w-4" />
         Voltar para lista de pacientes
       </button>
 
       {/* Header Ficha */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border/40 pb-6">
-        <div className="flex items-start gap-4">
-          <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-xl uppercase shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-lg uppercase shrink-0">
             {patient.full_name.charAt(0)}
           </div>
-          <div className="space-y-1">
-            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+          <div className="space-y-0.5">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
               {patient.full_name}
             </h1>
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               <span>Cadastrado em {new Date(patient.created_at).toLocaleDateString("pt-BR")}</span>
               <span>•</span>
               <span
-                className={`inline-flex px-2 py-0.5 rounded-full font-semibold border ${
+                className={`inline-flex px-2 py-0.5 rounded-sm font-semibold border ${
                   patient.status === "active"
                     ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                    : "bg-slate-500/10 text-slate-500 border-slate-500/20"
+                    : "bg-secondary text-muted-foreground border-border"
                 }`}
               >
                 {patient.status === "active" ? "Em Tratamento" : "Alta/Inativo"}
@@ -324,11 +324,11 @@ export default function PatientDetailPage() {
         </div>
 
         {/* Ações */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             size="sm"
             onClick={() => router.push(`/dashboard/records/${patient.id}`)}
-            leftIcon={<ClipboardList className="h-4.5 w-4.5" />}
+            leftIcon={<ClipboardList className="h-4 w-4" />}
             className="text-white font-semibold"
           >
             Ver Prontuário
@@ -338,16 +338,16 @@ export default function PatientDetailPage() {
             variant="outline"
             className="border-border hover:bg-secondary/60 text-foreground"
             onClick={() => setIsEditModalOpen(true)}
-            leftIcon={<Edit2 className="h-4.5 w-4.5" />}
+            leftIcon={<Edit2 className="h-4 w-4" />}
           >
             Editar Cadastro
           </Button>
           <Button
             size="sm"
-            variant="glass"
-            className="border-destructive/20 text-destructive hover:bg-destructive/10 cursor-pointer"
+            variant="outline"
+            className="border-destructive/20 text-destructive hover:bg-destructive/5 cursor-pointer"
             onClick={handleArchive}
-            leftIcon={<Trash2 className="h-4.5 w-4.5" />}
+            leftIcon={<Trash2 className="h-4 w-4" />}
           >
             Arquivar
           </Button>
@@ -355,49 +355,49 @@ export default function PatientDetailPage() {
       </div>
 
       {/* Grid Dados */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Ficha Geral */}
         <div className="lg:col-span-2 space-y-6">
-          <Card className="border-border/30 bg-card/65 backdrop-blur-md">
+          <Card className="border-border/80 bg-card shadow-xs">
             <CardHeader className="pb-3 border-b border-border/40">
-              <CardTitle className="text-lg font-bold flex items-center gap-2">
-                <Info className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <Info className="h-4.5 w-4.5 text-primary" />
                 Dados Cadastrais
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 mt-3">
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Nome Completo</p>
-                <p className="text-base font-semibold">{patient.full_name}</p>
+            <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1.5">
+              <div className="space-y-0.5">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Nome Completo</p>
+                <p className="text-sm font-semibold text-foreground">{patient.full_name}</p>
               </div>
 
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">CPF</p>
-                <p className="text-base font-semibold">{patient.formatted_cpf || "---"}</p>
+              <div className="space-y-0.5">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">CPF</p>
+                <p className="text-sm font-semibold text-foreground">{patient.formatted_cpf || "---"}</p>
               </div>
 
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Data de Nascimento</p>
-                <p className="text-base font-semibold flex items-center gap-2">
-                  <CalendarDays className="h-4.5 w-4.5 text-muted-foreground" />
+              <div className="space-y-0.5">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Data de Nascimento</p>
+                <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
                   <span>{patient.birth_date ? new Date(patient.birth_date).toLocaleDateString("pt-BR") : "---"} ({patient.age} anos)</span>
                 </p>
               </div>
 
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Gênero</p>
-                <p className="text-base font-semibold">{getGenderLabel(patient.gender)}</p>
+              <div className="space-y-0.5">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Gênero</p>
+                <p className="text-sm font-semibold text-foreground">{getGenderLabel(patient.gender)}</p>
               </div>
 
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Indicação / Origem</p>
-                <p className="text-base font-semibold">{patient.referral_source || "Nenhuma informada"}</p>
+              <div className="space-y-0.5">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Indicação / Origem</p>
+                <p className="text-sm font-semibold text-foreground">{patient.referral_source || "Nenhuma informada"}</p>
               </div>
 
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Terapeuta Responsável</p>
-                <p className="text-base font-semibold flex items-center gap-2">
-                  <User className="h-4.5 w-4.5 text-muted-foreground" />
+              <div className="space-y-0.5">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Terapeuta Responsável</p>
+                <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
                   <span>{patient.therapist_name}</span>
                 </p>
               </div>
@@ -405,20 +405,20 @@ export default function PatientDetailPage() {
           </Card>
 
           {/* Notas Clínicas de Entrada */}
-          <Card className="border-border/30 bg-card/65 backdrop-blur-md">
+          <Card className="border-border/80 bg-card shadow-xs">
             <CardHeader className="pb-3 border-b border-border/40">
-              <CardTitle className="text-lg font-bold flex items-center gap-2">
-                <Heart className="h-5 w-5 text-emerald-500" />
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <Heart className="h-4.5 w-4.5 text-primary" />
                 Notas de Entrada / Queixa Principal
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6 mt-3">
+            <CardContent className="p-5 mt-1.5">
               {patient.notes ? (
-                <p className="text-base text-slate-300 whitespace-pre-wrap leading-relaxed">
+                <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
                   {patient.notes}
                 </p>
               ) : (
-                <p className="text-sm text-muted-foreground italic">
+                <p className="text-xs text-muted-foreground italic">
                   Nenhuma anotação ou queixa inicial informada no cadastro.
                 </p>
               )}
@@ -429,40 +429,40 @@ export default function PatientDetailPage() {
         {/* Lateral: Contato & Responsável Legal */}
         <div className="space-y-6">
           {/* Informações de Contato */}
-          <Card className="border-border/30 bg-card/65 backdrop-blur-md">
+          <Card className="border-border/80 bg-card shadow-xs">
             <CardHeader className="pb-3 border-b border-border/40">
-              <CardTitle className="text-base font-bold">Informações de Contato</CardTitle>
+              <CardTitle className="text-sm font-bold text-foreground">Informações de Contato</CardTitle>
             </CardHeader>
-            <CardContent className="p-4 space-y-4 mt-3">
+            <CardContent className="p-4 space-y-3.5 mt-1.5">
               <div className="flex items-start gap-3">
-                <Phone className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <Phone className="h-4.5 w-4.5 text-primary shrink-0 mt-0.5" />
                 <div className="space-y-0.5">
-                  <p className="text-xs font-bold text-muted-foreground uppercase">WhatsApp / Telefone</p>
-                  <a href={`tel:${patient.phone}`} className="text-sm font-semibold hover:underline">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase">WhatsApp / Telefone</p>
+                  <a href={`tel:${patient.phone}`} className="text-xs font-semibold hover:underline text-foreground">
                     {patient.phone}
                   </a>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <Mail className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <Mail className="h-4.5 w-4.5 text-primary shrink-0 mt-0.5" />
                 <div className="space-y-0.5">
-                  <p className="text-xs font-bold text-muted-foreground uppercase">E-mail</p>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase">E-mail</p>
                   {patient.email ? (
-                    <a href={`mailto:${patient.email}`} className="text-sm font-semibold hover:underline truncate max-w-[200px] block">
+                    <a href={`mailto:${patient.email}`} className="text-xs font-semibold hover:underline text-foreground truncate max-w-[180px] block">
                       {patient.email}
                     </a>
                   ) : (
-                    <span className="text-sm text-muted-foreground">Não cadastrado</span>
+                    <span className="text-xs text-muted-foreground">Não cadastrado</span>
                   )}
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <MapPin className="h-4.5 w-4.5 text-primary shrink-0 mt-0.5" />
                 <div className="space-y-0.5">
-                  <p className="text-xs font-bold text-muted-foreground uppercase">Endereço Residencial</p>
-                  <p className="text-sm text-slate-300 leading-relaxed">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase">Endereço Residencial</p>
+                  <p className="text-xs text-foreground leading-relaxed">
                     {patient.address || "Não informado"}
                   </p>
                 </div>
@@ -472,23 +472,23 @@ export default function PatientDetailPage() {
 
           {/* Responsável Legal (Condicional) */}
           {patient.age < 18 ? (
-            <Card className="border-primary/20 bg-primary/5 backdrop-blur-md relative overflow-hidden">
-              <div className="absolute top-0 left-0 h-full w-[4px] bg-primary" />
+            <Card className="border-primary/20 bg-primary/5 shadow-xs relative overflow-hidden">
+              <div className="absolute top-0 left-0 h-full w-[3px] bg-primary" />
               <CardHeader className="pb-3 border-b border-primary/10">
-                <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-                  <ShieldAlert className="h-5 w-5 text-primary shrink-0" />
+                <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
+                  <ShieldAlert className="h-4 w-4 text-primary shrink-0" />
                   Responsável Legal
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-4 space-y-3.5 mt-3">
+              <CardContent className="p-4 space-y-3 mt-1.5">
                 <div className="space-y-0.5">
-                  <p className="text-xs font-bold text-muted-foreground uppercase">Nome do Tutor</p>
-                  <p className="text-sm font-semibold">{patient.guardian_name || "---"}</p>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase">Nome do Tutor</p>
+                  <p className="text-xs font-semibold text-foreground">{patient.guardian_name || "---"}</p>
                 </div>
 
                 <div className="space-y-0.5">
-                  <p className="text-xs font-bold text-muted-foreground uppercase">CPF do Tutor</p>
-                  <p className="text-sm font-semibold">{patient.guardian_cpf || "---"}</p>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase">CPF do Tutor</p>
+                  <p className="text-xs font-semibold text-foreground">{patient.guardian_cpf || "---"}</p>
                 </div>
               </CardContent>
             </Card>
@@ -511,7 +511,6 @@ export default function PatientDetailPage() {
             value={formData.fullName}
             onChange={(e) => handleInputChange("fullName", e.target.value)}
             error={errors.fullName}
-            className="bg-secondary/20"
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -521,7 +520,6 @@ export default function PatientDetailPage() {
               value={formData.cpf}
               onChange={(e) => handleInputChange("cpf", e.target.value)}
               error={errors.cpf}
-              className="bg-secondary/20"
             />
 
             <Input
@@ -530,17 +528,16 @@ export default function PatientDetailPage() {
               value={formData.birthDate}
               onChange={(e) => handleInputChange("birthDate", e.target.value)}
               error={errors.birthDate}
-              className="bg-secondary/20"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-muted-foreground">Gênero</label>
+              <label className="text-xs font-semibold text-muted-foreground">Gênero</label>
               <select
                 value={formData.gender}
                 onChange={(e) => handleInputChange("gender", e.target.value)}
-                className="w-full h-11 bg-secondary/20 border border-border rounded-lg px-3.5 text-base focus:outline-hidden focus:border-primary"
+                className="w-full h-10 bg-secondary border border-border rounded-md px-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground cursor-pointer"
               >
                 <option value="M">Masculino</option>
                 <option value="F">Feminino</option>
@@ -554,7 +551,6 @@ export default function PatientDetailPage() {
               value={formData.phone}
               onChange={(e) => handleInputChange("phone", e.target.value)}
               error={errors.phone}
-              className="bg-secondary/20"
             />
           </div>
 
@@ -565,7 +561,6 @@ export default function PatientDetailPage() {
             value={formData.email}
             onChange={(e) => handleInputChange("email", e.target.value)}
             error={errors.email}
-            className="bg-secondary/20"
           />
 
           <Input
@@ -574,14 +569,13 @@ export default function PatientDetailPage() {
             value={formData.address}
             onChange={(e) => handleInputChange("address", e.target.value)}
             error={errors.address}
-            className="bg-secondary/20"
           />
 
           {/* Responsável se Menor */}
           {isMinor && (
-            <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-4 animate-scale-in">
-              <div className="flex items-center gap-2 text-primary font-semibold text-sm">
-                <ShieldAlert className="h-4.5 w-4.5" />
+            <div className="p-4 rounded-md border border-primary/20 bg-primary/5 space-y-4 animate-scale-in">
+              <div className="flex items-center gap-2 text-primary font-semibold text-xs">
+                <ShieldAlert className="h-4 w-4" />
                 <span>Paciente Menor de Idade (Requer Responsável)</span>
               </div>
 
@@ -608,22 +602,21 @@ export default function PatientDetailPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Indicação / Origem"
-              placeholder="Ex: Instagram, Médico X"
+              placeholder="Ex: Instagram, Google, Indicação"
               value={formData.referralSource}
               onChange={(e) => handleInputChange("referralSource", e.target.value)}
               error={errors.referralSource}
-              className="bg-secondary/20"
             />
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-muted-foreground">Status do Tratamento</label>
+              <label className="text-xs font-semibold text-muted-foreground">Status do Tratamento</label>
               <select
                 value={formData.status}
                 onChange={(e) => handleInputChange("status", e.target.value)}
-                className="w-full h-11 bg-secondary/20 border border-border rounded-lg px-3.5 text-base focus:outline-hidden focus:border-primary"
+                className="w-full h-10 bg-secondary border border-border rounded-md px-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground cursor-pointer"
               >
                 <option value="active">Ativo (Em Tratamento)</option>
-                <option value="inactive">Inativo</option>
+                <option value="inactive">Inativo (Alta/Pausa)</option>
               </select>
             </div>
           </div>
@@ -634,7 +627,6 @@ export default function PatientDetailPage() {
             value={formData.notes}
             onChange={(e) => handleInputChange("notes", e.target.value)}
             error={errors.notes}
-            className="bg-secondary/20"
           />
 
           <div className="flex gap-3 justify-end pt-4 border-t border-border/40">
@@ -642,14 +634,14 @@ export default function PatientDetailPage() {
               type="button"
               variant="outline"
               onClick={() => setIsEditModalOpen(false)}
-              className="px-5 border-border text-foreground"
+              className="px-4"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               isLoading={isSubmitting}
-              className="px-5 text-white font-semibold"
+              className="px-4 text-white font-semibold"
             >
               Salvar Alterações
             </Button>

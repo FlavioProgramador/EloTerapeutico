@@ -9,11 +9,8 @@ import {
   Filter,
   UserCheck,
   UserMinus,
-  Edit2,
   Trash2,
   ExternalLink,
-  ChevronLeft,
-  ChevronRight,
   ShieldAlert,
 } from "lucide-react";
 import { useToast } from "@/contexts/toast";
@@ -272,20 +269,20 @@ export default function PatientsListPage() {
   const inactiveCount = patients.filter((p) => p.status === "inactive").length;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground via-foreground/90 to-foreground/80">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             CRM de Pacientes
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Gerencie prontuários, contatos e fichas cadastrais dos pacientes
           </p>
         </div>
         <Button
           onClick={() => setIsModalOpen(true)}
-          leftIcon={<Plus className="h-5 w-5" />}
+          leftIcon={<Plus className="h-4 w-4" />}
           className="text-white font-semibold self-start sm:self-auto"
         >
           Novo Paciente
@@ -293,49 +290,46 @@ export default function PatientsListPage() {
       </div>
 
       {/* Cards de Métricas */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <Card className="border-border/30 bg-card/65 backdrop-blur-md relative overflow-hidden">
-          <div className="absolute top-0 left-0 h-full w-[4px] bg-primary" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="border-border/80 bg-card shadow-xs">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total de Pacientes</p>
-              <h3 className="text-2xl font-bold mt-1.5">{isLoading ? "..." : patients.length}</h3>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Total de Pacientes</p>
+              <h3 className="text-2xl font-bold text-foreground mt-1">{isLoading ? "..." : patients.length}</h3>
             </div>
-            <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
-              <Users className="h-5 w-5" />
+            <div className="h-8 w-8 bg-primary/10 rounded-md flex items-center justify-center text-primary">
+              <Users className="h-4.5 w-4.5" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-border/30 bg-card/65 backdrop-blur-md relative overflow-hidden">
-          <div className="absolute top-0 left-0 h-full w-[4px] bg-emerald-500" />
+        <Card className="border-border/80 bg-card shadow-xs">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Em Tratamento (Ativos)</p>
-              <h3 className="text-2xl font-bold mt-1.5">{isLoading ? "..." : activeCount}</h3>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Em Tratamento (Ativos)</p>
+              <h3 className="text-2xl font-bold text-foreground mt-1">{isLoading ? "..." : activeCount}</h3>
             </div>
-            <div className="h-10 w-10 bg-emerald-500/10 rounded-lg flex items-center justify-center text-emerald-500">
-              <UserCheck className="h-5 w-5" />
+            <div className="h-8 w-8 bg-emerald-500/10 rounded-md flex items-center justify-center text-emerald-500">
+              <UserCheck className="h-4.5 w-4.5" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-border/30 bg-card/65 backdrop-blur-md relative overflow-hidden">
-          <div className="absolute top-0 left-0 h-full w-[4px] bg-slate-500" />
+        <Card className="border-border/80 bg-card shadow-xs">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Altas / Inativos</p>
-              <h3 className="text-2xl font-bold mt-1.5">{isLoading ? "..." : inactiveCount}</h3>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Altas / Inativos</p>
+              <h3 className="text-2xl font-bold text-foreground mt-1">{isLoading ? "..." : inactiveCount}</h3>
             </div>
-            <div className="h-10 w-10 bg-slate-500/10 rounded-lg flex items-center justify-center text-slate-500">
-              <UserMinus className="h-5 w-5" />
+            <div className="h-8 w-8 bg-slate-500/10 rounded-md flex items-center justify-center text-slate-500">
+              <UserMinus className="h-4.5 w-4.5" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Barra de Filtros e Busca */}
-      <Card className="border-border/30 bg-card/65 backdrop-blur-md p-4">
+      <Card className="border-border/80 bg-card shadow-xs p-4">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-muted-foreground/60" />
@@ -344,16 +338,16 @@ export default function PatientsListPage() {
               placeholder="Buscar por nome, CPF ou telefone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-11 bg-secondary/35 border border-border/50 rounded-lg pl-11 pr-4 text-sm transition focus:outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/10"
+              className="w-full h-9 bg-secondary border border-border/60 rounded-md pl-10 pr-4 text-xs transition focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 placeholder:text-muted-foreground/50 text-foreground"
             />
           </div>
           
           <div className="flex items-center gap-2 shrink-0">
-            <Filter className="h-4.5 w-4.5 text-muted-foreground" />
+            <Filter className="h-4 w-4 text-muted-foreground" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="h-11 bg-card border border-border/50 rounded-lg px-3 text-sm focus:outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/10"
+              className="h-9 bg-card border border-border/60 rounded-md px-3 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground cursor-pointer"
             >
               <option value="all">Todos os Status</option>
               <option value="active">Ativo (Em Tratamento)</option>
@@ -365,19 +359,19 @@ export default function PatientsListPage() {
 
       {/* Listagem */}
       {isLoading ? (
-        <div className="py-20 text-center flex flex-col items-center gap-3">
-          <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm text-muted-foreground animate-pulse">Carregando CRM...</span>
+        <div className="py-20 text-center flex flex-col items-center gap-2">
+          <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs text-muted-foreground animate-pulse">Carregando pacientes...</span>
         </div>
       ) : filteredPatients.length === 0 ? (
-        <Card className="border-border/30 bg-card/65 backdrop-blur-md p-12 text-center flex flex-col items-center justify-center gap-4">
-          <div className="h-12 w-12 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground">
-            <Users className="h-6 w-6" />
+        <Card className="border-border/80 bg-card shadow-xs p-12 text-center flex flex-col items-center justify-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground">
+            <Users className="h-5 w-5" />
           </div>
           <div>
-            <h4 className="font-bold text-base text-foreground">Nenhum paciente encontrado</h4>
-            <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-              Não encontramos resultados correspondentes à sua pesquisa. Tente refazer a busca ou adicione um novo paciente.
+            <h4 className="font-semibold text-sm text-foreground">Nenhum paciente encontrado</h4>
+            <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+              Não encontramos resultados correspondentes ao termo digitado ou ao filtro ativo.
             </p>
           </div>
         </Card>
@@ -397,23 +391,23 @@ export default function PatientsListPage() {
             <TableBody>
               {filteredPatients.map((p) => (
                 <TableRow key={p.id} className="cursor-pointer" onClick={() => router.push(`/dashboard/patients/${p.id}`)}>
-                  <TableCell className="font-semibold text-foreground">{p.full_name}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.formatted_cpf || "---"}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.age} anos</TableCell>
-                  <TableCell className="text-muted-foreground">{p.phone}</TableCell>
+                  <TableCell className="font-medium text-foreground">{p.full_name}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs">{p.formatted_cpf || "---"}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs">{p.age} anos</TableCell>
+                  <TableCell className="text-muted-foreground text-xs">{p.phone}</TableCell>
                   <TableCell>
                     <span
-                      className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold border ${
+                      className={`inline-flex px-2 py-0.5 rounded-sm text-[10px] font-semibold border ${
                         p.status === "active"
                           ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                          : "bg-slate-500/10 text-slate-500 border-slate-500/20"
+                          : "bg-secondary text-muted-foreground border-border"
                       }`}
                     >
                       {p.status === "active" ? "Ativo" : "Inativo"}
                     </span>
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-1">
                       <Button
                         size="icon"
                         variant="ghost"
@@ -446,7 +440,7 @@ export default function PatientsListPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title="Cadastrar Novo Paciente"
-        description="Preencha os dados cadastrais do novo paciente clínica abaixo."
+        description="Preencha os dados cadastrais do novo paciente abaixo."
         className="max-w-xl"
       >
         <form onSubmit={handleRegister} className="space-y-4">
@@ -456,7 +450,6 @@ export default function PatientsListPage() {
             value={formData.fullName}
             onChange={(e) => handleInputChange("fullName", e.target.value)}
             error={errors.fullName}
-            className="bg-secondary/20"
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -466,7 +459,6 @@ export default function PatientsListPage() {
               value={formData.cpf}
               onChange={(e) => handleInputChange("cpf", e.target.value)}
               error={errors.cpf}
-              className="bg-secondary/20"
             />
 
             <Input
@@ -475,17 +467,16 @@ export default function PatientsListPage() {
               value={formData.birthDate}
               onChange={(e) => handleInputChange("birthDate", e.target.value)}
               error={errors.birthDate}
-              className="bg-secondary/20"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-muted-foreground">Gênero</label>
+              <label className="text-xs font-semibold text-muted-foreground">Gênero</label>
               <select
                 value={formData.gender}
                 onChange={(e) => handleInputChange("gender", e.target.value)}
-                className="w-full h-11 bg-secondary/20 border border-border rounded-lg px-3.5 text-base focus:outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="w-full h-10 bg-secondary border border-border rounded-md px-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground cursor-pointer"
               >
                 <option value="M">Masculino</option>
                 <option value="F">Feminino</option>
@@ -499,7 +490,6 @@ export default function PatientsListPage() {
               value={formData.phone}
               onChange={(e) => handleInputChange("phone", e.target.value)}
               error={errors.phone}
-              className="bg-secondary/20"
             />
           </div>
 
@@ -510,7 +500,6 @@ export default function PatientsListPage() {
             value={formData.email}
             onChange={(e) => handleInputChange("email", e.target.value)}
             error={errors.email}
-            className="bg-secondary/20"
           />
 
           <Input
@@ -519,14 +508,13 @@ export default function PatientsListPage() {
             value={formData.address}
             onChange={(e) => handleInputChange("address", e.target.value)}
             error={errors.address}
-            className="bg-secondary/20"
           />
 
           {/* Campos condicionais para Menores de 18 Anos */}
           {isMinor && (
-            <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-4 animate-scale-in">
-              <div className="flex items-center gap-2 text-primary font-semibold text-sm">
-                <ShieldAlert className="h-4.5 w-4.5" />
+            <div className="p-4 rounded-md border border-primary/20 bg-primary/5 space-y-4 animate-scale-in">
+              <div className="flex items-center gap-2 text-primary font-semibold text-xs">
+                <ShieldAlert className="h-4 w-4" />
                 <span>Paciente Menor de Idade (Requer Responsável)</span>
               </div>
 
@@ -553,33 +541,31 @@ export default function PatientsListPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Indicação / Canal de Entrada"
-              placeholder="Ex: Instagram, Médico X, Google"
+              placeholder="Ex: Instagram, Google, Indicação"
               value={formData.referralSource}
               onChange={(e) => handleInputChange("referralSource", e.target.value)}
               error={errors.referralSource}
-              className="bg-secondary/20"
             />
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-muted-foreground">Status do Tratamento</label>
+              <label className="text-xs font-semibold text-muted-foreground">Status do Tratamento</label>
               <select
                 value={formData.status}
                 onChange={(e) => handleInputChange("status", e.target.value)}
-                className="w-full h-11 bg-secondary/20 border border-border rounded-lg px-3.5 text-base focus:outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="w-full h-10 bg-secondary border border-border rounded-md px-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground cursor-pointer"
               >
                 <option value="active">Ativo (Em Tratamento)</option>
-                <option value="inactive">Inativo</option>
+                <option value="inactive">Inativo (Alta/Pausa)</option>
               </select>
             </div>
           </div>
 
           <Textarea
             label="Observações / Anotações Iniciais"
-            placeholder="Queixas principais, encaminhamento, histórico rápido..."
+            placeholder="Queixas principais, histórico clínico rápido..."
             value={formData.notes}
             onChange={(e) => handleInputChange("notes", e.target.value)}
             error={errors.notes}
-            className="bg-secondary/20"
           />
 
           <div className="flex gap-3 justify-end pt-4 border-t border-border/40">
@@ -587,14 +573,14 @@ export default function PatientsListPage() {
               type="button"
               variant="outline"
               onClick={() => setIsModalOpen(false)}
-              className="px-5 border-border hover:bg-secondary/60 text-foreground"
+              className="px-4"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               isLoading={isSubmitting}
-              className="px-5 text-white font-semibold"
+              className="px-4 text-white font-semibold"
             >
               Registrar Paciente
             </Button>
