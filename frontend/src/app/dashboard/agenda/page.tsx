@@ -11,12 +11,10 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Trash2,
   CalendarDays,
   DollarSign,
   FileText,
   AlertTriangle,
-  RefreshCw,
   Eye,
 } from "lucide-react";
 import { useToast } from "@/contexts/toast";
@@ -42,7 +40,7 @@ interface Appointment {
   start_time: string;
   end_time: string;
   duration_display: string;
-  status: "scheduled" | "confirmed" | "missed" | "cancelled" | "rescheduled";
+  status: "scheduled" | "confirmed" | "missed" | "cancelled" | "rescheduled" | "completed";
   status_display: string;
   session_value: string;
   is_recurring: boolean;
@@ -235,7 +233,7 @@ export default function AgendaPage() {
       
       toast({
         title: "Status atualizado!",
-        description: `O agendamento foi marcado como ${statusStr === "confirmed" ? "confirmado" : statusStr === "missed" ? "falta" : "cancelado"}.`,
+        description: `O agendamento foi atualizado com sucesso.`,
         variant: "success",
       });
 
@@ -347,16 +345,13 @@ export default function AgendaPage() {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
 
-    // Primeiro dia da semana do primeiro dia do mês (0 = Domingo, 1 = Segunda, etc.)
     const firstDayIndex = new Date(year, month, 1).getDay();
-    // Quantidade de dias no mês
     const totalDays = new Date(year, month + 1, 0).getDate();
-    // Quantidade de dias no mês anterior
     const prevMonthDays = new Date(year, month, 0).getDate();
 
     const cells = [];
 
-    // Preenche dias do mês anterior para completar a primeira semana
+    // Mês anterior
     for (let i = firstDayIndex - 1; i >= 0; i--) {
       const date = new Date(year, month - 1, prevMonthDays - i);
       cells.push({
@@ -366,7 +361,7 @@ export default function AgendaPage() {
       });
     }
 
-    // Preenche dias do mês atual
+    // Mês atual
     for (let i = 1; i <= totalDays; i++) {
       const date = new Date(year, month, i);
       cells.push({
@@ -376,7 +371,7 @@ export default function AgendaPage() {
       });
     }
 
-    // Preenche dias do próximo mês para fechar a grid de 42 quadrados (6 semanas)
+    // Próximo mês
     const remainingCells = 42 - cells.length;
     for (let i = 1; i <= remainingCells; i++) {
       const date = new Date(year, month + 1, i);
@@ -398,7 +393,6 @@ export default function AgendaPage() {
     );
   };
 
-  // Filtra consultas por dia específico
   const getAppointmentsForDate = (date: Date) => {
     return appointments.filter((appt) => {
       const apptDate = new Date(appt.start_time);
@@ -414,28 +408,30 @@ export default function AgendaPage() {
     switch (status) {
       case "confirmed":
         return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
+      case "completed":
+        return "bg-slate-500/10 text-slate-500 border-slate-500/20";
       case "missed":
         return "bg-rose-500/10 text-rose-500 border-rose-500/20";
       case "cancelled":
-        return "bg-slate-500/10 text-slate-400 border-slate-500/20";
+        return "bg-secondary text-muted-foreground border-border";
       case "rescheduled":
-        return "bg-indigo-500/10 text-indigo-400 border-indigo-500/20";
+        return "bg-primary/10 text-primary border-primary/20";
       default:
-        return "bg-amber-500/10 text-amber-500 border-amber-500/20";
+        return "bg-primary/10 text-primary border-primary/20";
     }
   };
 
   const calendarDays = buildCalendarDays();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground via-foreground/90 to-foreground/80">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Agenda Clínica
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Controle de horários de sessões, confirmações financeiras e recorrências
           </p>
         </div>
@@ -447,68 +443,66 @@ export default function AgendaPage() {
             }));
             setIsNewModalOpen(true);
           }}
-          leftIcon={<Plus className="h-5 w-5" />}
+          leftIcon={<Plus className="h-4 w-4" />}
           className="text-white font-semibold self-start sm:self-auto"
         >
           Novo Agendamento
         </Button>
       </div>
 
-      {/* Grid Principal: Calendário e Sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      {/* Grid Principal */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Lado Esquerdo: Calendário Mensal */}
         <div className="lg:col-span-3 space-y-4">
-          <Card className="border-border/30 bg-card/65 backdrop-blur-md p-6">
+          <Card className="border-border/80 bg-card shadow-xs p-5">
             {/* Header Calendário */}
-            <div className="flex items-center justify-between pb-6 border-b border-border/20">
-              <div className="flex items-center gap-3">
-                <CalendarIcon className="h-5 w-5 text-primary" />
-                <h3 className="text-xl font-extrabold tracking-tight">
+            <div className="flex items-center justify-between pb-4 border-b border-border/40">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-4.5 w-4.5 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">
                   {MONTHS[currentDate.getMonth()]} de {currentDate.getFullYear()}
                 </h3>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={setToday}
-                  className="border-border text-foreground text-xs"
+                  className="text-xs h-8"
                 >
                   Hoje
                 </Button>
-                <div className="flex items-center border border-border/40 rounded-lg bg-secondary/20">
+                <div className="flex items-center border border-border/60 rounded-md bg-secondary">
                   <button
                     onClick={prevMonth}
-                    className="p-2 hover:bg-secondary/40 text-muted-foreground hover:text-foreground transition rounded-l-lg cursor-pointer"
+                    className="p-1.5 hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition rounded-l-md cursor-pointer"
                   >
-                    <ChevronLeft className="h-4.5 w-4.5" />
+                    <ChevronLeft className="h-4 w-4" />
                   </button>
-                  <div className="h-4 w-[1px] bg-border/40" />
+                  <div className="h-4.5 w-[1px] bg-border/60" />
                   <button
                     onClick={nextMonth}
-                    className="p-2 hover:bg-secondary/40 text-muted-foreground hover:text-foreground transition rounded-r-lg cursor-pointer"
+                    className="p-1.5 hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition rounded-r-md cursor-pointer"
                   >
-                    <ChevronRight className="h-4.5 w-4.5" />
+                    <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
               </div>
             </div>
 
             {/* Grid do Calendário */}
-            <div className="mt-6">
-              {/* Cabeçalho dias da semana */}
-              <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
+            <div className="mt-4">
+              <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
                 {DAYS_OF_WEEK.map((d) => (
                   <div key={d} className="py-1">{d}</div>
                 ))}
               </div>
 
-              {/* Grid 42 Células */}
-              <div className="grid grid-cols-7 gap-2">
+              <div className="grid grid-cols-7 gap-1">
                 {isLoading ? (
-                  <div className="col-span-7 py-32 text-center flex flex-col items-center gap-3">
-                    <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm text-muted-foreground animate-pulse">Carregando consultas...</span>
+                  <div className="col-span-7 py-32 text-center flex flex-col items-center gap-2">
+                    <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <span className="text-xs text-muted-foreground animate-pulse">Carregando consultas...</span>
                   </div>
                 ) : (
                   calendarDays.map((cell, index) => {
@@ -519,50 +513,44 @@ export default function AgendaPage() {
                       <div
                         key={index}
                         onClick={() => setSelectedDate(cell.date)}
-                        className={`min-h-[90px] border p-2 rounded-lg flex flex-col justify-between transition-all cursor-pointer select-none relative group ${
+                        className={`min-h-[84px] border p-1.5 rounded-md flex flex-col justify-between transition-colors cursor-pointer select-none relative ${
                           cell.isCurrentMonth
-                            ? "bg-card border-border/30 hover:border-primary/50"
-                            : "bg-secondary/5 border-border/10 text-muted-foreground/40 hover:border-border/30"
+                            ? "bg-card border-border/60 hover:border-primary/50"
+                            : "bg-secondary/5 border-border/10 text-muted-foreground/30 hover:border-border/30"
                         } ${
                           isSelected
-                            ? "ring-2 ring-primary border-transparent bg-primary/5 shadow-xs"
+                            ? "ring-1 ring-primary bg-primary/5 border-transparent"
                             : ""
                         } ${
                           cell.isToday
-                            ? "border-primary/50 relative after:absolute after:bottom-1 after:right-1.5 after:h-1.5 after:w-1.5 after:bg-primary after:rounded-full"
+                            ? "border-primary"
                             : ""
                         }`}
                       >
                         {/* Número do Dia */}
-                        <div className={`text-xs font-bold self-end ${
-                          cell.isToday ? "text-primary bg-primary/10 rounded-full h-5 w-5 flex items-center justify-center -mr-1 -mt-1" : "text-muted-foreground"
+                        <div className={`text-[10px] font-bold self-end h-5 w-5 flex items-center justify-center ${
+                          cell.isToday ? "text-primary bg-primary/10 rounded-full" : "text-muted-foreground"
                         }`}>
                           {cell.date.getDate()}
                         </div>
 
                         {/* Eventos / Badges */}
-                        <div className="mt-2 space-y-1 overflow-hidden flex-1 flex flex-col justify-end">
+                        <div className="mt-1 space-y-0.5 overflow-hidden flex-1 flex flex-col justify-end">
                           {dayAppts.slice(0, 2).map((appt) => (
                             <div
                               key={appt.id}
-                              className={`text-[9px] px-1.5 py-0.5 rounded-xs border font-medium truncate leading-tight ${
-                                appt.status === "confirmed"
-                                  ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                                  : appt.status === "missed"
-                                  ? "bg-rose-500/10 text-rose-500 border-rose-500/20"
-                                  : appt.status === "cancelled"
-                                  ? "bg-slate-500/10 text-slate-400 border-slate-500/20"
-                                  : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                              className={`text-[8px] px-1 py-0.5 rounded-sm border font-medium truncate leading-none ${
+                                getStatusColor(appt.status)
                               }`}
                             >
                               {new Date(appt.start_time).toLocaleTimeString("pt-BR", {
                                 hour: "2-digit",
                                 minute: "2-digit"
-                              })} - {appt.patient_name}
+                              })} - {appt.patient_name.split(" ")[0]}
                             </div>
                           ))}
                           {dayAppts.length > 2 && (
-                            <div className="text-[8px] text-center font-bold text-primary bg-primary/10 px-1 py-0.5 rounded-xs border border-primary/20">
+                            <div className="text-[7px] text-center font-bold text-primary bg-primary/10 px-1 py-0.5 rounded-sm border border-primary/20">
                               + {dayAppts.length - 2} mais
                             </div>
                           )}
@@ -578,29 +566,28 @@ export default function AgendaPage() {
 
         {/* Lado Direito: Agenda Diária */}
         <div className="lg:col-span-1 space-y-4">
-          <Card className="border-border/30 bg-card/65 backdrop-blur-md p-6 h-full flex flex-col justify-between">
-            <div className="space-y-6">
-              {/* Header Agenda Diária */}
-              <div className="border-b border-border/20 pb-4">
-                <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <CalendarDays className="h-4.5 w-4.5 text-primary" />
+          <Card className="border-border/80 bg-card shadow-xs p-5 h-full flex flex-col justify-between">
+            <div className="space-y-4">
+              <div className="border-b border-border/40 pb-3">
+                <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <CalendarDays className="h-4 w-4 text-primary" />
                   Agenda do Dia
                 </h4>
-                <p className="text-lg font-extrabold text-foreground mt-1.5">
+                <p className="text-sm font-bold text-foreground mt-1">
                   {selectedDate.toLocaleDateString("pt-BR", {
                     weekday: "long",
                     day: "numeric",
-                    month: "long"
+                    month: "short"
                   })}
                 </p>
               </div>
 
-              {/* Lista de Sessões do Dia */}
-              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
+              {/* Lista de Sessões */}
+              <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
                 {selectedDayAppointments.length === 0 ? (
-                  <div className="py-12 text-center text-muted-foreground space-y-3">
-                    <Clock className="h-8 w-8 text-muted-foreground/30 mx-auto" />
-                    <p className="text-xs">Nenhuma consulta agendada para este dia.</p>
+                  <div className="py-12 text-center text-muted-foreground space-y-2">
+                    <Clock className="h-6 w-6 text-muted-foreground/30 mx-auto" />
+                    <p className="text-[10px]">Nenhuma consulta agendada.</p>
                   </div>
                 ) : (
                   selectedDayAppointments.map((appt) => {
@@ -616,35 +603,35 @@ export default function AgendaPage() {
                     return (
                       <div
                         key={appt.id}
-                        className="p-3.5 bg-secondary/15 border border-border/30 hover:border-primary/30 rounded-xl transition-all relative overflow-hidden group"
+                        className="p-3 bg-secondary/20 border border-border/50 hover:border-primary/30 rounded-md transition-colors relative overflow-hidden group"
                       >
                         <div className="flex justify-between items-start gap-2">
-                          <div className="space-y-1">
-                            <span className="text-xs font-bold text-primary block">
+                          <div className="space-y-0.5">
+                            <span className="text-[10px] font-bold text-primary block">
                               {startStr} - {endStr}
                             </span>
-                            <span className="text-sm font-extrabold text-foreground block">
+                            <span className="text-xs font-semibold text-foreground block truncate max-w-[110px]">
                               {appt.patient_name}
                             </span>
-                            <span className="text-[10px] text-muted-foreground block">
-                              Dr. {appt.therapist_name}
+                            <span className="text-[9px] text-muted-foreground block">
+                              {appt.therapist_name.split(" ")[0]}
                             </span>
                           </div>
                           
-                          <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border capitalize shrink-0 ${getStatusColor(appt.status)}`}>
+                          <span className={`inline-flex px-1.5 py-0.5 rounded-sm text-[8px] font-bold border capitalize shrink-0 ${getStatusColor(appt.status)}`}>
                             {appt.status_display}
                           </span>
                         </div>
 
-                        {/* Botão de Ver Detalhes */}
-                        <div className="flex gap-2 justify-end mt-3 border-t border-border/20 pt-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* Botão de Ações */}
+                        <div className="flex gap-1.5 justify-end mt-2.5 border-t border-border/40 pt-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button
                             size="icon"
                             variant="ghost"
                             onClick={() => openAppointmentDetails(appt)}
-                            className="h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer"
+                            className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
                           >
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-3.5 w-3.5" />
                           </Button>
                           {appt.status === "scheduled" && (
                             <>
@@ -652,10 +639,10 @@ export default function AgendaPage() {
                                 size="icon"
                                 variant="ghost"
                                 onClick={() => updateStatus(appt.id, "confirmed")}
-                                className="h-7 w-7 text-emerald-500 hover:bg-emerald-500/10 cursor-pointer"
+                                className="h-6 w-6 text-emerald-500 hover:bg-emerald-500/10 cursor-pointer"
                                 title="Confirmar"
                               >
-                                <CheckCircle className="h-4 w-4" />
+                                <CheckCircle className="h-3.5 w-3.5" />
                               </Button>
                               <Button
                                 size="icon"
@@ -664,10 +651,10 @@ export default function AgendaPage() {
                                   setSelectedAppointment({ ...appt, notes: "", cancellation_reason: "" });
                                   setIsCancelModalOpen(true);
                                 }}
-                                className="h-7 w-7 text-rose-500 hover:bg-rose-500/10 cursor-pointer"
+                                className="h-6 w-6 text-rose-500 hover:bg-rose-500/10 cursor-pointer"
                                 title="Cancelar"
                               >
-                                <XCircle className="h-4 w-4" />
+                                <XCircle className="h-3.5 w-3.5" />
                               </Button>
                             </>
                           )}
@@ -679,7 +666,6 @@ export default function AgendaPage() {
               </div>
             </div>
 
-            {/* Ação Rápida inferior */}
             <Button
               variant="outline"
               size="sm"
@@ -690,9 +676,9 @@ export default function AgendaPage() {
                 }));
                 setIsNewModalOpen(true);
               }}
-              className="border-dashed border-border hover:bg-secondary/40 text-foreground w-full mt-4 flex items-center justify-center gap-1.5"
+              className="border-dashed border-border hover:bg-secondary w-full mt-4 text-xs h-9 flex items-center justify-center gap-1.5"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5" />
               Agendar no dia {selectedDate.getDate()}
             </Button>
           </Card>
@@ -709,15 +695,15 @@ export default function AgendaPage() {
       >
         <form onSubmit={handleCreateAppointment} className="space-y-4">
           {/* Paciente */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
-              <User className="h-4 w-4 text-primary" /> Paciente *
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+              <User className="h-3.5 w-3.5 text-primary" /> Paciente *
             </label>
             <select
               value={newApptForm.patientId}
               onChange={(e) => setNewApptForm({ ...newApptForm, patientId: e.target.value })}
               required
-              className="w-full h-11 bg-secondary/20 border border-border rounded-lg px-3.5 text-base focus:outline-hidden focus:border-primary"
+              className="w-full h-10 bg-secondary border border-border rounded-md px-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground cursor-pointer"
             >
               <option value="">Selecione o paciente ativo...</option>
               {patients.map((p) => (
@@ -727,23 +713,20 @@ export default function AgendaPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Data */}
             <Input
               label="Data da Consulta *"
               type="date"
               value={newApptForm.date}
               onChange={(e) => setNewApptForm({ ...newApptForm, date: e.target.value })}
               required
-              className="bg-secondary/20"
             />
 
-            {/* Duração */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-muted-foreground">Duração (minutos)</label>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-muted-foreground">Duração</label>
               <select
                 value={newApptForm.duration}
                 onChange={(e) => setNewApptForm({ ...newApptForm, duration: Number(e.target.value) })}
-                className="w-full h-11 bg-secondary/20 border border-border rounded-lg px-3.5 text-base focus:outline-hidden focus:border-primary"
+                className="w-full h-10 bg-secondary border border-border rounded-md px-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground cursor-pointer"
               >
                 <option value="30">30 minutos</option>
                 <option value="45">45 minutos</option>
@@ -754,11 +737,11 @@ export default function AgendaPage() {
             </div>
           </div>
 
-          {/* Seleção de horários livres */}
-          <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-4">
+          {/* Seleção de horários libres */}
+          <div className="p-4 rounded-md border border-primary/20 bg-primary/5 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-bold text-primary flex items-center gap-1.5">
-                <Clock className="h-4.5 w-4.5" /> Verificar Horários Livres (Sem conflitos)
+              <span className="text-xs font-semibold text-primary flex items-center gap-1.5">
+                <Clock className="h-4 w-4" /> Verificar Horários Livres
               </span>
               <label className="relative inline-flex items-center cursor-pointer select-none">
                 <input
@@ -767,27 +750,27 @@ export default function AgendaPage() {
                   onChange={(e) => setNewApptForm({ ...newApptForm, useTimeSlots: e.target.checked })}
                   className="sr-only peer"
                 />
-                <div className="w-9 h-5 bg-border/40 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                <div className="w-8 h-4.5 bg-border/60 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-primary"></div>
               </label>
             </div>
 
             {newApptForm.useTimeSlots ? (
               <div className="space-y-2">
                 {loadingSlots ? (
-                  <div className="text-center py-4 flex items-center justify-center gap-2">
-                    <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  <div className="text-center py-2 flex items-center justify-center gap-1.5">
+                    <div className="h-4.5 w-4.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                     <span className="text-xs text-muted-foreground animate-pulse">Buscando slots do terapeuta...</span>
                   </div>
                 ) : availableSlots.length === 0 ? (
-                  <div className="text-xs text-muted-foreground p-3 bg-secondary/20 rounded-lg text-center flex items-center gap-2 justify-center border border-border/30">
-                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <div className="text-[10px] text-muted-foreground p-2.5 bg-card rounded-md text-center flex items-center gap-1.5 justify-center border border-border/40">
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
                     Nenhum slot disponível configurado para este dia da semana.
                   </div>
                 ) : (
                   <select
                     value={newApptForm.selectedSlot}
                     onChange={(e) => setNewApptForm({ ...newApptForm, selectedSlot: e.target.value })}
-                    className="w-full h-11 bg-card border border-border rounded-lg px-3.5 text-sm focus:outline-hidden focus:border-primary"
+                    className="w-full h-10 bg-card border border-border rounded-md px-3 text-xs focus:outline-none focus:border-primary text-foreground cursor-pointer"
                   >
                     {availableSlots.map((slot, index) => (
                       <option key={index} value={JSON.stringify(slot)}>
@@ -798,27 +781,24 @@ export default function AgendaPage() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
                   label="Início Manual"
                   type="time"
                   value={newApptForm.manualStart}
                   onChange={(e) => setNewApptForm({ ...newApptForm, manualStart: e.target.value })}
-                  className="bg-card"
                 />
                 <Input
                   label="Término Manual"
                   type="time"
                   value={newApptForm.manualEnd}
                   onChange={(e) => setNewApptForm({ ...newApptForm, manualEnd: e.target.value })}
-                  className="bg-card"
                 />
               </div>
             )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Valor da Sessão */}
             <Input
               label="Valor da Sessão (R$)"
               type="number"
@@ -827,31 +807,29 @@ export default function AgendaPage() {
               onChange={(e) => setNewApptForm({ ...newApptForm, sessionValue: e.target.value })}
               required
               leftIcon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
-              className="bg-secondary/20"
             />
 
-            {/* Recorrência */}
-            <div className="flex flex-col justify-end pb-3">
-              <label className="flex items-center gap-2 text-sm font-semibold text-muted-foreground select-none cursor-pointer">
+            <div className="flex items-center justify-end pb-3 pt-3">
+              <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground select-none cursor-pointer">
                 <input
                   type="checkbox"
                   checked={newApptForm.isRecurring}
                   onChange={(e) => setNewApptForm({ ...newApptForm, isRecurring: e.target.checked })}
-                  className="rounded-sm bg-secondary border-border focus:ring-primary text-primary"
+                  className="rounded-xs bg-secondary border-border focus:ring-primary text-primary"
                 />
                 <span>Consulta Recorrente?</span>
               </label>
             </div>
           </div>
 
-          {/* Regra de recorrência (se marcado) */}
+          {/* Regra de recorrência */}
           {newApptForm.isRecurring && (
-            <div className="flex flex-col gap-1.5 p-4 rounded-xl border border-indigo-500/20 bg-indigo-500/5 animate-scale-in">
-              <label className="text-sm font-semibold text-muted-foreground">Frequência da Recorrência</label>
+            <div className="flex flex-col gap-1 p-3.5 rounded-md border border-primary/20 bg-primary/5">
+              <label className="text-xs font-semibold text-muted-foreground">Frequência da Recorrência</label>
               <select
                 value={newApptForm.recurrenceRule}
                 onChange={(e) => setNewApptForm({ ...newApptForm, recurrenceRule: e.target.value })}
-                className="w-full h-11 bg-card border border-border rounded-lg px-3.5 text-base focus:outline-hidden focus:border-primary"
+                className="w-full h-10 bg-card border border-border rounded-md px-3 text-sm focus:outline-none focus:border-primary text-foreground cursor-pointer"
               >
                 <option value="WEEKLY">Semanal (Gera 4 sessões consecutivas)</option>
                 <option value="BIWEEKLY">Quinzenal (Gera 4 sessões consecutivas)</option>
@@ -860,29 +838,25 @@ export default function AgendaPage() {
             </div>
           )}
 
-          {/* Notas */}
           <Textarea
             label="Observações do Agendamento (opcional)"
-            placeholder="Alguma nota rápida sobre esta sessão..."
+            placeholder="Anotações ou avisos sobre esta sessão..."
             value={newApptForm.notes}
             onChange={(e) => setNewApptForm({ ...newApptForm, notes: e.target.value })}
-            className="bg-secondary/20 min-h-[80px]"
           />
 
-          {/* Ações */}
           <div className="flex gap-3 justify-end pt-4 border-t border-border/40">
             <Button
               type="button"
               variant="outline"
               onClick={() => setIsNewModalOpen(false)}
-              className="border-border text-foreground px-5"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               isLoading={submittingAppt}
-              className="text-white font-semibold px-5"
+              className="text-white font-semibold"
             >
               Confirmar Agendamento
             </Button>
@@ -895,7 +869,7 @@ export default function AgendaPage() {
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         title="Detalhes do Agendamento"
-        description="Ficha detalhada do horário agendado e controle de quitação financeira."
+        description="Ficha detalhada do horário agendado e status da sessão."
         className="max-w-md"
       >
         {loadingDetail ? (
@@ -904,23 +878,23 @@ export default function AgendaPage() {
             <span className="text-xs text-muted-foreground">Carregando detalhes...</span>
           </div>
         ) : selectedAppointment ? (
-          <div className="space-y-5">
-            <div className="space-y-4">
+          <div className="space-y-4">
+            <div className="space-y-3">
               <div className="flex justify-between items-start">
                 <div>
-                  <h4 className="font-extrabold text-lg text-foreground">{selectedAppointment.patient_name}</h4>
-                  <p className="text-xs text-muted-foreground">Dr(a). {selectedAppointment.therapist_name}</p>
+                  <h4 className="font-semibold text-sm text-foreground">{selectedAppointment.patient_name}</h4>
+                  <p className="text-[10px] text-muted-foreground">Dr(a). {selectedAppointment.therapist_name}</p>
                 </div>
-                <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold border capitalize ${getStatusColor(selectedAppointment.status)}`}>
+                <span className={`inline-flex px-2 py-0.5 rounded-sm text-[10px] font-bold border capitalize ${getStatusColor(selectedAppointment.status)}`}>
                   {selectedAppointment.status_display}
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 border-t border-b border-border/20 py-4">
+              <div className="grid grid-cols-2 gap-3 border-t border-b border-border/40 py-3 text-xs">
                 <div className="space-y-0.5">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Horário</p>
-                  <p className="text-sm font-semibold flex items-center gap-1">
-                    <Clock className="h-4 w-4 text-primary shrink-0" />
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase">Horário</p>
+                  <p className="font-semibold flex items-center gap-1 text-foreground">
+                    <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
                     <span>
                       {new Date(selectedAppointment.start_time).toLocaleTimeString("pt-BR", {
                         hour: "2-digit",
@@ -934,40 +908,40 @@ export default function AgendaPage() {
                 </div>
 
                 <div className="space-y-0.5">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Duração</p>
-                  <p className="text-sm font-semibold">{selectedAppointment.duration_display}</p>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase">Duração</p>
+                  <p className="font-semibold text-foreground">{selectedAppointment.duration_display}</p>
                 </div>
 
                 <div className="space-y-0.5">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Valor da Sessão</p>
-                  <p className="text-sm font-semibold text-emerald-500 font-mono">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase">Valor da Sessão</p>
+                  <p className="font-semibold text-primary">
                     R$ {parseFloat(selectedAppointment.session_value).toFixed(2)}
                   </p>
                 </div>
 
                 <div className="space-y-0.5">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Recorrente</p>
-                  <p className="text-sm font-semibold">{selectedAppointment.is_recurring ? `Sim (${selectedAppointment.recurrence_rule})` : "Não"}</p>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase">Recorrente</p>
+                  <p className="font-semibold text-foreground">{selectedAppointment.is_recurring ? `Sim (${selectedAppointment.recurrence_rule})` : "Não"}</p>
                 </div>
               </div>
 
               {selectedAppointment.notes && (
                 <div className="space-y-1">
-                  <p className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
                     <FileText className="h-3.5 w-3.5" /> Observações
                   </p>
-                  <p className="text-sm text-foreground bg-secondary/20 p-3 rounded-lg border border-border/20">
+                  <p className="text-xs text-foreground bg-secondary p-2.5 rounded-md border border-border">
                     {selectedAppointment.notes}
                   </p>
                 </div>
               )}
 
               {selectedAppointment.status === "cancelled" && selectedAppointment.cancellation_reason && (
-                <div className="space-y-1 p-3.5 rounded-lg bg-rose-500/5 border border-rose-500/10">
-                  <p className="text-xs font-bold text-rose-500 uppercase flex items-center gap-1">
+                <div className="space-y-1 p-3 rounded-md bg-rose-500/5 border border-rose-500/10">
+                  <p className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase flex items-center gap-1">
                     <AlertCircle className="h-3.5 w-3.5" /> Motivo do Cancelamento
                   </p>
-                  <p className="text-sm text-rose-300 font-medium">
+                  <p className="text-xs text-rose-700 dark:text-rose-300 font-medium">
                     {selectedAppointment.cancellation_reason}
                   </p>
                 </div>
@@ -980,25 +954,25 @@ export default function AgendaPage() {
                 <>
                   <Button
                     size="sm"
-                    variant="glass"
+                    variant="outline"
                     onClick={() => updateStatus(selectedAppointment.id, "confirmed")}
-                    className="border-emerald-500/20 hover:bg-emerald-500/10 text-emerald-500 text-xs font-bold"
+                    className="text-xs text-emerald-600 dark:text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/5 font-semibold cursor-pointer"
                   >
                     Confirmar Presença
                   </Button>
                   <Button
                     size="sm"
-                    variant="glass"
+                    variant="outline"
                     onClick={() => updateStatus(selectedAppointment.id, "missed")}
-                    className="border-rose-500/20 hover:bg-rose-500/10 text-rose-500 text-xs font-bold"
+                    className="text-xs text-rose-600 dark:text-rose-500 border-rose-500/20 hover:bg-rose-500/5 font-semibold cursor-pointer"
                   >
                     Faltou
                   </Button>
                   <Button
                     size="sm"
-                    variant="glass"
+                    variant="outline"
                     onClick={() => setIsCancelModalOpen(true)}
-                    className="border-slate-500/20 hover:bg-slate-500/10 text-slate-400 text-xs font-bold"
+                    className="text-xs text-muted-foreground border-border hover:bg-secondary font-semibold cursor-pointer"
                   >
                     Cancelar Sessão
                   </Button>
@@ -1008,7 +982,7 @@ export default function AgendaPage() {
                 size="sm"
                 variant="outline"
                 onClick={() => setIsDetailModalOpen(false)}
-                className="border-border text-foreground text-xs"
+                className="text-xs h-9"
               >
                 Fechar
               </Button>
@@ -1039,11 +1013,11 @@ export default function AgendaPage() {
         >
           <Textarea
             label="Motivo do Cancelamento *"
-            placeholder="Ex: Paciente solicitou desmarcação por imprevisto familiar..."
+            placeholder="Ex: Paciente solicitou desmarcação por imprevisto..."
             value={cancellationReason}
             onChange={(e) => setCancellationReason(e.target.value)}
             required
-            className="bg-secondary/20 min-h-[100px]"
+            className="min-h-[100px]"
           />
 
           <div className="flex gap-3 justify-end pt-4 border-t border-border/40">
@@ -1054,7 +1028,6 @@ export default function AgendaPage() {
                 setIsCancelModalOpen(false);
                 setCancellationReason("");
               }}
-              className="border-border text-foreground"
             >
               Descartar
             </Button>
