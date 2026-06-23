@@ -54,9 +54,10 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch (error: any) {
       console.error(error);
+      const errorData = error.response?.data?.error;
       const errorMessage =
-        error.response?.data?.detail || 
-        error.response?.data?.non_field_errors?.[0] ||
+        errorData?.message ||
+        errorData?.details?.non_field_errors?.[0] ||
         "Não foi possível realizar o login. Verifique suas credenciais.";
       
       toast({

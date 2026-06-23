@@ -113,7 +113,9 @@ export default function RegisterPage() {
       router.push("/login");
     } catch (error: any) {
       console.error(error);
-      const serverErrors = error.response?.data;
+      const errorData = error.response?.data?.error;
+      const serverErrors = errorData?.details || error.response?.data;
+      
       if (serverErrors && typeof serverErrors === "object") {
         const fieldErrors: Record<string, string> = {};
         Object.entries(serverErrors).forEach(([key, value]) => {
@@ -137,9 +139,11 @@ export default function RegisterPage() {
           setStep(1);
         }
 
+        const toastMessage = errorData?.message || "Por favor, corrija os erros sinalizados no formulário.";
+
         toast({
           title: "Erro no Cadastro",
-          description: "Por favor, corrija os erros sinalizados no formulário.",
+          description: toastMessage,
           variant: "destructive",
         });
       } else {
