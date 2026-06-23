@@ -9,21 +9,19 @@ import {
   Plus,
   Filter,
   CheckCircle,
-  XCircle,
-  AlertCircle,
-  FileText,
   Calendar,
   ArrowUpRight,
   ArrowDownRight,
   Trash2,
   Receipt,
   User,
-  Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useToast } from "@/contexts/toast";
 import { useAuth } from "@/contexts/auth";
 import { api } from "@/lib/api";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
@@ -35,6 +33,7 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 interface Patient {
   id: number;
@@ -91,6 +90,15 @@ const PAYMENT_METHODS = [
   { value: "other", label: "Outro" },
 ];
 
+// Helper to get local date string YYYY-MM-DD
+const getLocalTodayDateString = () => {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
+
 export default function FinanceiroPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -114,8 +122,7 @@ export default function FinanceiroPage() {
 
   // Modais
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
-  const [isPayModalOpen, setIsPayModalOpen] = useState(false);
-  const [selectedTxForPay, setSelectedTxForPay] = useState<number | null>(null);
+  const [quickPayingId, setQuickPayingId] = useState<number | null>(null);
   
   // Novo agendamento / Transação Manual form
   const [newTxForm, setNewTxForm] = useState({
@@ -125,19 +132,12 @@ export default function FinanceiroPage() {
     amount: "",
     payment_method: "pix",
     payment_status: "paid",
-    due_date: new Date().toISOString().split("T")[0],
-    paid_at: new Date().toISOString().split("T")[0],
+    due_date: getLocalTodayDateString(),
+    paid_at: getLocalTodayDateString(),
     description: "",
   });
 
-  // Confirmar recebimento form
-  const [payForm, setPayForm] = useState({
-    payment_method: "pix",
-    paid_at: new Date().toISOString().split("T")[0] + "T" + new Date().toTimeString().split(" ")[0].slice(0, 5),
-  });
-
   const [submittingTx, setSubmittingTx] = useState(false);
-  const [submittingPay, setSubmittingPay] = useState(false);
 
   // Busca resumo financeiro
   const fetchSummary = async () => {
@@ -237,7 +237,7 @@ export default function FinanceiroPage() {
       if (newTxForm.due_date) payload.due_date = newTxForm.due_date;
       
       if (newTxForm.payment_status === "paid") {
-        payload.paid_at = newTxForm.paid_at ? new Date(newTxForm.paid_at).toISOString() : new Date().toISOString();
+        payload.paid_at = newTxForm.paid_at ? new Date(newTxForm.paid_at + "T12:00:00").toISOString() : new Date().toISOString();
       }
 
       await api.post("financeiro/", payload);
@@ -257,8 +257,8 @@ export default function FinanceiroPage() {
         amount: "",
         payment_method: "pix",
         payment_status: "paid",
-        due_date: new Date().toISOString().split("T")[0],
-        paid_at: new Date().toISOString().split("T")[0],
+        due_date: getLocalTodayDateString(),
+        paid_at: getLocalTodayDateString(),
         description: "",
       });
       fetchSummary();
@@ -275,28 +275,23 @@ export default function FinanceiroPage() {
     }
   };
 
-  // Quitar transação pendente
-  const handleMarkAsPaid = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedTxForPay) return;
-
-    setSubmittingPay(true);
+  // Quitar transação pendente com 1 clique (assume hoje e pix como padrão)
+  const handleQuickPay = async (txId: number) => {
+    setQuickPayingId(txId);
     try {
       const payload = {
-        payment_method: payForm.payment_method,
-        paid_at: new Date(payForm.paid_at).toISOString(),
+        payment_method: "pix",
+        paid_at: new Date().toISOString(),
       };
 
-      await api.patch(`financeiro/${selectedTxForPay}/pay/`, payload);
+      await api.patch(`financeiro/${txId}/pay/`, payload);
 
       toast({
         title: "Transação liquidada!",
-        description: "O pagamento foi compensado no caixa da clínica.",
+        description: "O pagamento foi compensado no caixa com a data de hoje.",
         variant: "success",
       });
 
-      setIsPayModalOpen(false);
-      setSelectedTxForPay(null);
       fetchSummary();
       fetchTransactions();
     } catch (error) {
@@ -307,7 +302,7 @@ export default function FinanceiroPage() {
         variant: "destructive",
       });
     } finally {
-      setSubmittingPay(false);
+      setQuickPayingId(null);
     }
   };
 
@@ -354,11 +349,11 @@ export default function FinanceiroPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground via-foreground/90 to-foreground/80">
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
             Fluxo Financeiro
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -368,21 +363,21 @@ export default function FinanceiroPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Seletor de Período */}
-          <div className="flex items-center border border-border/40 rounded-lg bg-card overflow-hidden">
+          <div className="flex items-center border border-border/60 rounded-md bg-card overflow-hidden h-11">
             <button
               onClick={() => handleMonthChange("prev")}
-              className="p-2 hover:bg-secondary/40 text-muted-foreground hover:text-foreground transition cursor-pointer"
+              className="p-3 hover:bg-secondary text-muted-foreground hover:text-foreground transition cursor-pointer"
             >
-              <ChevronLeftIcon className="h-4.5 w-4.5" />
+              <ChevronLeft className="h-4.5 w-4.5" />
             </button>
-            <div className="px-4 text-sm font-bold text-foreground select-none">
+            <div className="px-4 text-sm font-semibold text-foreground select-none">
               {MONTHS[selectedMonth - 1]} / {selectedYear}
             </div>
             <button
               onClick={() => handleMonthChange("next")}
-              className="p-2 hover:bg-secondary/40 text-muted-foreground hover:text-foreground transition cursor-pointer"
+              className="p-3 hover:bg-secondary text-muted-foreground hover:text-foreground transition cursor-pointer"
             >
-              <ChevronRightIcon className="h-4.5 w-4.5" />
+              <ChevronRight className="h-4.5 w-4.5" />
             </button>
           </div>
 
@@ -397,135 +392,156 @@ export default function FinanceiroPage() {
       </div>
 
       {/* Cards de Resumos Analíticos */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Receitas pagas */}
-        <Card className="border-border/30 bg-card/65 backdrop-blur-md relative overflow-hidden">
-          <div className="absolute top-0 left-0 h-full w-[4px] bg-emerald-500" />
-          <CardContent className="p-5 flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Faturamento (Pago)</p>
-              <h3 className="text-2xl font-bold text-foreground font-mono">
+        <Card className="border-border/80 bg-card shadow-xs">
+          <div className="p-5">
+            <div className="flex justify-between items-start">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Faturamento (Pago)
+              </span>
+              <div className="h-8 w-8 rounded-md bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <TrendingUp className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="mt-3">
+              <h3 className="text-2xl font-bold tracking-tight text-foreground font-mono">
                 {loadingSummary ? "R$ ..." : `R$ ${parseFloat(summary?.total_income || "0.00").toFixed(2)}`}
               </h3>
+              <p className="text-[10px] text-muted-foreground mt-2">
+                Receitas compensadas no período
+              </p>
             </div>
-            <div className="h-10 w-10 bg-emerald-500/10 rounded-lg flex items-center justify-center text-emerald-500">
-              <TrendingUp className="h-5 w-5" />
-            </div>
-          </CardContent>
+          </div>
         </Card>
 
         {/* Despesas */}
-        <Card className="border-border/30 bg-card/65 backdrop-blur-md relative overflow-hidden">
-          <div className="absolute top-0 left-0 h-full w-[4px] bg-rose-500" />
-          <CardContent className="p-5 flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Despesas Totais</p>
-              <h3 className="text-2xl font-bold text-foreground font-mono">
+        <Card className="border-border/80 bg-card shadow-xs">
+          <div className="p-5">
+            <div className="flex justify-between items-start">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Despesas Totais
+              </span>
+              <div className="h-8 w-8 rounded-md bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                <TrendingDown className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="mt-3">
+              <h3 className="text-2xl font-bold tracking-tight text-foreground font-mono">
                 {loadingSummary ? "R$ ..." : `R$ ${parseFloat(summary?.total_expense || "0.00").toFixed(2)}`}
               </h3>
+              <p className="text-[10px] text-muted-foreground mt-2">
+                Total de saídas operacionais
+              </p>
             </div>
-            <div className="h-10 w-10 bg-rose-500/10 rounded-lg flex items-center justify-center text-rose-500">
-              <TrendingDown className="h-5 w-5" />
-            </div>
-          </CardContent>
+          </div>
         </Card>
 
         {/* Saldo Líquido */}
-        <Card className="border-border/30 bg-card/65 backdrop-blur-md relative overflow-hidden">
-          <div className="absolute top-0 left-0 h-full w-[4px] bg-teal-500" />
-          <CardContent className="p-5 flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Saldo Líquido</p>
-              <h3 className={`text-2xl font-bold font-mono ${
-                summary && parseFloat(summary.balance) < 0 ? "text-rose-500" : "text-emerald-500"
-              }`}>
+        <Card className="border-border/80 bg-card shadow-xs">
+          <div className="p-5">
+            <div className="flex justify-between items-start">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Saldo Líquido
+              </span>
+              <div className={cn(
+                "h-8 w-8 rounded-md flex items-center justify-center",
+                summary && parseFloat(summary.balance) < 0 ? "bg-rose-500/10 text-rose-600 dark:text-rose-400" : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              )}>
+                <DollarSign className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="mt-3">
+              <h3 className={cn(
+                "text-2xl font-bold tracking-tight font-mono",
+                summary && parseFloat(summary.balance) < 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"
+              )}>
                 {loadingSummary ? "R$ ..." : `R$ ${parseFloat(summary?.balance || "0.00").toFixed(2)}`}
               </h3>
+              <p className="text-[10px] text-muted-foreground mt-2">
+                Resultado financeiro consolidado
+              </p>
             </div>
-            <div className="h-10 w-10 bg-teal-500/10 rounded-lg flex items-center justify-center text-teal-500">
-              <DollarSign className="h-5 w-5" />
-            </div>
-          </CardContent>
+          </div>
         </Card>
 
         {/* Pendentes */}
-        <Card className="border-border/30 bg-card/65 backdrop-blur-md relative overflow-hidden">
-          <div className="absolute top-0 left-0 h-full w-[4px] bg-amber-500" />
-          <CardContent className="p-5 flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">A Receber (Pendentes)</p>
-              <h3 className="text-2xl font-bold text-foreground font-mono">
+        <Card className="border-border/80 bg-card shadow-xs">
+          <div className="p-5">
+            <div className="flex justify-between items-start">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                A Receber (Pendentes)
+              </span>
+              <div className="h-8 w-8 rounded-md bg-amber-500/10 flex items-center justify-center text-amber-500">
+                <Clock className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="mt-3">
+              <h3 className="text-2xl font-bold tracking-tight text-foreground font-mono">
                 {loadingSummary ? "R$ ..." : `R$ ${parseFloat(summary?.total_pending || "0.00").toFixed(2)}`}
               </h3>
+              <p className="text-[10px] text-muted-foreground mt-2">
+                Valores aguardando liquidação
+              </p>
             </div>
-            <div className="h-10 w-10 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-500">
-              <Clock className="h-5 w-5" />
-            </div>
-          </CardContent>
+          </div>
         </Card>
       </div>
 
-      {/* Barra de Filtros e Busca */}
-      <Card className="border-border/30 bg-card/65 backdrop-blur-md p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Tipo de Transação */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-muted-foreground uppercase">Fluxo</label>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value as any)}
-              className="h-10 bg-secondary/35 border border-border/50 rounded-lg px-3 text-sm focus:outline-hidden focus:border-primary"
-            >
-              <option value="all">Todas as transações</option>
-              <option value="income">Receita (Entradas)</option>
-              <option value="expense">Despesa (Saídas)</option>
-            </select>
+      {/* Barra de Filtros Compacta */}
+      <Card className="border-border/80 bg-card shadow-xs p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 shrink-0">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Filtrar por:</span>
           </div>
+
+          {/* Tipo de Transação */}
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value as any)}
+            className="h-9 bg-card border border-border/60 rounded-md px-3 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-ring text-foreground cursor-pointer"
+          >
+            <option value="all">Todos os Fluxos</option>
+            <option value="income">Receita (Entradas)</option>
+            <option value="expense">Despesa (Saídas)</option>
+          </select>
 
           {/* Status de Pagamento */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-muted-foreground uppercase">Status</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="h-10 bg-secondary/35 border border-border/50 rounded-lg px-3 text-sm focus:outline-hidden focus:border-primary"
-            >
-              <option value="all">Todos os Status</option>
-              <option value="paid">Confirmados (Pagos)</option>
-              <option value="pending">Abertos (Pendentes)</option>
-              <option value="cancelled">Cancelados</option>
-            </select>
-          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            className="h-9 bg-card border border-border/60 rounded-md px-3 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-ring text-foreground cursor-pointer"
+          >
+            <option value="all">Todos os Status</option>
+            <option value="paid">Confirmados (Pagos)</option>
+            <option value="pending">Abertos (Pendentes)</option>
+            <option value="cancelled">Cancelados</option>
+          </select>
 
           {/* Categoria */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-muted-foreground uppercase">Categoria</label>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="h-10 bg-secondary/35 border border-border/50 rounded-lg px-3 text-sm focus:outline-hidden focus:border-primary"
-            >
-              <option value="all">Todas as Categorias</option>
-              {CATEGORIES.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="h-9 bg-card border border-border/60 rounded-md px-3 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-ring text-foreground cursor-pointer"
+          >
+            <option value="all">Todas as Categorias</option>
+            {CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>{c.label}</option>
+            ))}
+          </select>
 
           {/* Paciente */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-muted-foreground uppercase">Paciente</label>
-            <select
-              value={selectedPatientId}
-              onChange={(e) => setSelectedPatientId(e.target.value)}
-              className="h-10 bg-secondary/35 border border-border/50 rounded-lg px-3 text-sm focus:outline-hidden focus:border-primary"
-            >
-              <option value="all">Todos os Pacientes</option>
-              {patients.map((p) => (
-                <option key={p.id} value={p.id}>{p.full_name}</option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={selectedPatientId}
+            onChange={(e) => setSelectedPatientId(e.target.value)}
+            className="h-9 bg-card border border-border/60 rounded-md px-3 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-ring text-foreground cursor-pointer max-w-xs"
+          >
+            <option value="all">Todos os Pacientes</option>
+            {patients.map((p) => (
+              <option key={p.id} value={p.id}>{p.full_name}</option>
+            ))}
+          </select>
         </div>
       </Card>
 
@@ -536,12 +552,12 @@ export default function FinanceiroPage() {
           <span className="text-sm text-muted-foreground animate-pulse">Consultando fluxo de caixa...</span>
         </div>
       ) : transactions.length === 0 ? (
-        <Card className="border-border/30 bg-card/65 backdrop-blur-md p-12 text-center flex flex-col items-center justify-center gap-4">
+        <Card className="border-border/80 bg-card p-12 text-center flex flex-col items-center justify-center gap-4">
           <div className="h-12 w-12 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground">
             <DollarSign className="h-6 w-6" />
           </div>
           <div>
-            <h4 className="font-bold text-base text-foreground">Nenhuma movimentação no período</h4>
+            <h4 className="font-semibold text-base text-foreground">Nenhuma movimentação no período</h4>
             <p className="text-sm text-muted-foreground mt-1 max-w-sm">
               Não existem registros de receitas ou despesas com os filtros selecionados.
             </p>
@@ -564,43 +580,48 @@ export default function FinanceiroPage() {
             {transactions.map((tx) => (
               <TableRow key={tx.id}>
                 {/* Tipo e Indicador */}
-                <TableCell className="font-semibold text-foreground flex items-center gap-2">
-                  {tx.transaction_type === "income" ? (
-                    <div className="h-7 w-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
-                      <ArrowUpRight className="h-4 w-4" />
-                    </div>
-                  ) : (
-                    <div className="h-7 w-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500">
-                      <ArrowDownRight className="h-4 w-4" />
-                    </div>
-                  )}
-                  <span>{tx.transaction_type_display}</span>
+                <TableCell className="font-semibold text-foreground">
+                  <div className="flex items-center gap-2">
+                    {tx.transaction_type === "income" ? (
+                      <div className="h-7 w-7 rounded-md bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                        <span className="sr-only">Receita</span>
+                        <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                      </div>
+                    ) : (
+                      <div className="h-7 w-7 rounded-md bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
+                        <span className="sr-only">Despesa</span>
+                        <ArrowDownRight className="h-4 w-4" aria-hidden="true" />
+                      </div>
+                    )}
+                    <span>{tx.transaction_type_display}</span>
+                  </div>
                 </TableCell>
                 
                 {/* Paciente */}
-                <TableCell className="text-slate-300 font-medium">
-                  {tx.patient_name || <span className="text-muted-foreground/60 italic">Não associado</span>}
+                <TableCell className="font-medium text-foreground">
+                  {tx.patient_name || <span className="text-muted-foreground/60 italic font-normal text-xs">Não associado</span>}
                 </TableCell>
 
                 {/* Categoria */}
                 <TableCell className="text-muted-foreground text-xs">{tx.category_display}</TableCell>
 
                 {/* Valor */}
-                <TableCell className={`font-bold font-mono ${
-                  tx.transaction_type === "income" ? "text-emerald-500" : "text-rose-500"
-                }`}>
+                <TableCell className={cn(
+                  "font-bold font-mono text-sm tracking-tight",
+                  tx.transaction_type === "income" ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                )}>
                   {tx.transaction_type === "income" ? "+" : "-"} R$ {parseFloat(tx.amount).toFixed(2)}
                 </TableCell>
 
                 {/* Data de Vencimento ou Pagamento */}
                 <TableCell className="text-muted-foreground text-xs">
                   {tx.payment_status === "paid" && tx.paid_at ? (
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3.5 w-3.5 text-emerald-500" />
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                       {new Date(tx.paid_at).toLocaleDateString("pt-BR")}
                     </span>
                   ) : tx.due_date ? (
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1.5">
                       <Calendar className="h-3.5 w-3.5 text-amber-500" />
                       {new Date(tx.due_date).toLocaleDateString("pt-BR")}
                     </span>
@@ -611,30 +632,29 @@ export default function FinanceiroPage() {
 
                 {/* Status */}
                 <TableCell>
-                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold border capitalize ${
+                  <span className={cn(
+                    "inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold border capitalize tracking-wide",
                     tx.payment_status === "paid"
-                      ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                       : tx.payment_status === "pending"
-                      ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                      : "bg-slate-500/10 text-slate-400 border-slate-500/20"
-                  }`}>
+                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-500 border-amber-500/20"
+                      : "bg-secondary text-muted-foreground border-border/40"
+                  )}>
                     {tx.payment_status_display}
                   </span>
                 </TableCell>
 
                 {/* Ações */}
                 <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
+                  <div className="flex items-center justify-end gap-1.5">
                     {tx.payment_status === "pending" && (
                       <Button
                         size="sm"
                         variant="glass"
-                        onClick={() => {
-                          setSelectedTxForPay(tx.id);
-                          setIsPayModalOpen(true);
-                        }}
-                        leftIcon={<CheckCircle className="h-3.5 w-3.5" />}
-                        className="text-xs hover:bg-emerald-500/10 border-emerald-500/20 text-emerald-500 cursor-pointer"
+                        onClick={() => handleQuickPay(tx.id)}
+                        isLoading={quickPayingId === tx.id}
+                        leftIcon={quickPayingId !== tx.id && <CheckCircle className="h-3.5 w-3.5" />}
+                        className="text-xs hover:bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 cursor-pointer h-8"
                       >
                         Compensar
                       </Button>
@@ -681,7 +701,7 @@ export default function FinanceiroPage() {
               <select
                 value={newTxForm.transaction_type}
                 onChange={(e) => setNewTxForm({ ...newTxForm, transaction_type: e.target.value })}
-                className="w-full h-11 bg-secondary/20 border border-border rounded-lg px-3.5 text-base focus:outline-hidden focus:border-primary"
+                className="w-full h-11 bg-card border border-border rounded-md px-3.5 text-base focus:outline-hidden focus:border-primary focus:ring-1 focus:ring-ring transition-colors"
               >
                 <option value="expense">Despesa (Saída de caixa)</option>
                 <option value="income">Receita (Entrada de caixa)</option>
@@ -694,7 +714,7 @@ export default function FinanceiroPage() {
               <select
                 value={newTxForm.category}
                 onChange={(e) => setNewTxForm({ ...newTxForm, category: e.target.value })}
-                className="w-full h-11 bg-secondary/20 border border-border rounded-lg px-3.5 text-base focus:outline-hidden focus:border-primary"
+                className="w-full h-11 bg-card border border-border rounded-md px-3.5 text-base focus:outline-hidden focus:border-primary focus:ring-1 focus:ring-ring transition-colors"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>{c.label}</option>
@@ -713,18 +733,18 @@ export default function FinanceiroPage() {
               onChange={(e) => setNewTxForm({ ...newTxForm, amount: e.target.value })}
               required
               leftIcon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
-              className="bg-secondary/20"
+              className="bg-card"
             />
 
             {/* Paciente (Opcional) */}
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-semibold text-muted-foreground flex items-center gap-1">
-                <User className="h-4 w-4" /> Paciente (Opcional)
+                <User className="h-4 w-4 text-muted-foreground" /> Paciente (Opcional)
               </label>
               <select
                 value={newTxForm.patient}
                 onChange={(e) => setNewTxForm({ ...newTxForm, patient: e.target.value })}
-                className="w-full h-11 bg-secondary/20 border border-border rounded-lg px-3.5 text-base focus:outline-hidden focus:border-primary"
+                className="w-full h-11 bg-card border border-border rounded-md px-3.5 text-base focus:outline-hidden focus:border-primary focus:ring-1 focus:ring-ring transition-colors"
               >
                 <option value="">Nenhum associado...</option>
                 {patients.map((p) => (
@@ -741,7 +761,7 @@ export default function FinanceiroPage() {
               <select
                 value={newTxForm.payment_status}
                 onChange={(e) => setNewTxForm({ ...newTxForm, payment_status: e.target.value })}
-                className="w-full h-11 bg-secondary/20 border border-border rounded-lg px-3.5 text-base focus:outline-hidden focus:border-primary"
+                className="w-full h-11 bg-card border border-border rounded-md px-3.5 text-base focus:outline-hidden focus:border-primary focus:ring-1 focus:ring-ring transition-colors"
               >
                 <option value="paid">Compensado (Pago)</option>
                 <option value="pending">Aberto (Pendente)</option>
@@ -754,7 +774,7 @@ export default function FinanceiroPage() {
               <select
                 value={newTxForm.payment_method}
                 onChange={(e) => setNewTxForm({ ...newTxForm, payment_method: e.target.value })}
-                className="w-full h-11 bg-secondary/20 border border-border rounded-lg px-3.5 text-base focus:outline-hidden focus:border-primary"
+                className="w-full h-11 bg-card border border-border rounded-md px-3.5 text-base focus:outline-hidden focus:border-primary focus:ring-1 focus:ring-ring transition-colors"
               >
                 {PAYMENT_METHODS.map((m) => (
                   <option key={m.value} value={m.value}>{m.label}</option>
@@ -770,7 +790,7 @@ export default function FinanceiroPage() {
               type="date"
               value={newTxForm.due_date}
               onChange={(e) => setNewTxForm({ ...newTxForm, due_date: e.target.value })}
-              className="bg-secondary/20"
+              className="bg-card"
             />
 
             {/* Data de Pagamento */}
@@ -780,7 +800,7 @@ export default function FinanceiroPage() {
                 type="date"
                 value={newTxForm.paid_at}
                 onChange={(e) => setNewTxForm({ ...newTxForm, paid_at: e.target.value })}
-                className="bg-secondary/20"
+                className="bg-card"
               />
             )}
           </div>
@@ -791,7 +811,7 @@ export default function FinanceiroPage() {
             placeholder="Descreva detalhes do lançamento (ex: Compra de materiais de escritório)..."
             value={newTxForm.description}
             onChange={(e) => setNewTxForm({ ...newTxForm, description: e.target.value })}
-            className="bg-secondary/20 min-h-[80px]"
+            className="bg-card min-h-[80px]"
           />
 
           {/* Ações */}
@@ -800,76 +820,16 @@ export default function FinanceiroPage() {
               type="button"
               variant="outline"
               onClick={() => setIsNewModalOpen(false)}
-              className="border-border text-foreground px-5"
+              className="border-border text-foreground px-5 h-11"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               isLoading={submittingTx}
-              className="text-white font-semibold px-5"
+              className="text-white font-semibold px-5 h-11"
             >
               Salvar Lançamento
-            </Button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* MODAL: COMPENSAR PAGAMENTO (PENDENTE -> PAGO) */}
-      <Modal
-        isOpen={isPayModalOpen}
-        onClose={() => {
-          setIsPayModalOpen(false);
-          setSelectedTxForPay(null);
-        }}
-        title="Quitar Lançamento"
-        description="Confirme o recebimento/pagamento desta cobrança no caixa."
-        className="max-w-md"
-      >
-        <form onSubmit={handleMarkAsPaid} className="space-y-4">
-          {/* Método de pagamento */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-muted-foreground">Forma de Recebimento *</label>
-            <select
-              value={payForm.payment_method}
-              onChange={(e) => setPayForm({ ...payForm, payment_method: e.target.value })}
-              className="w-full h-11 bg-secondary/20 border border-border rounded-lg px-3.5 text-base focus:outline-hidden focus:border-primary"
-            >
-              {PAYMENT_METHODS.map((m) => (
-                <option key={m.value} value={m.value}>{m.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Data do pagamento */}
-          <Input
-            label="Data/Hora da Compensação *"
-            type="datetime-local"
-            value={payForm.paid_at}
-            onChange={(e) => setPayForm({ ...payForm, paid_at: e.target.value })}
-            required
-            className="bg-secondary/20"
-          />
-
-          {/* Ações */}
-          <div className="flex gap-3 justify-end pt-4 border-t border-border/40">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setIsPayModalOpen(false);
-                setSelectedTxForPay(null);
-              }}
-              className="border-border text-foreground"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              isLoading={submittingPay}
-              className="text-white font-semibold"
-            >
-              Confirmar Recebimento
             </Button>
           </div>
         </form>
@@ -878,41 +838,3 @@ export default function FinanceiroPage() {
   );
 }
 
-// Icones auxiliares
-function ChevronLeftIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="m15 18-6-6 6-6" />
-    </svg>
-  );
-}
-
-function ChevronRightIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
-}
