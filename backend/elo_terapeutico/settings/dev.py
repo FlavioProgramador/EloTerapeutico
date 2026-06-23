@@ -8,16 +8,9 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
 # CORS – Permite qualquer origem em desenvolvimento
 CORS_ALLOW_ALL_ORIGINS = True
 
-# Banco de dados local (PostgreSQL via Docker ou SQLite como fallback)
+# Banco de dados local (Usa a DATABASE_URL definida no .env, com fallback para SQLite)
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("POSTGRES_DB", default="elo_terapeutico"),
-        "USER": env("POSTGRES_USER", default="postgres"),
-        "PASSWORD": env("POSTGRES_PASSWORD", default="postgres"),
-        "HOST": env("POSTGRES_HOST", default="localhost"),
-        "PORT": env("POSTGRES_PORT", default="5432"),
-    }
+    "default": env.db("DATABASE_URL", default="sqlite:///db.sqlite3")
 }
 
 # E-mail – exibir no console em dev

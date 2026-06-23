@@ -17,9 +17,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: gunicorn elo_terapeutico.wsgi:application --bind 0.0.0.0:8000
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     env_file:
-      - .env.example
+      - .env
     depends_on:
       - db
     ports:
@@ -32,7 +32,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     env_file:
-      - .env.example
+      - .env
     ports:
       - "3000:3000"
     depends_on:
