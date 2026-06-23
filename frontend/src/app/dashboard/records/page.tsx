@@ -2,10 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ClipboardList, BookOpen, ChevronRight, User } from "lucide-react";
+import { Search, ClipboardList, ChevronRight, User } from "lucide-react";
 import { useToast } from "@/contexts/toast";
 import { api } from "@/lib/api";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableHeader,
@@ -64,19 +64,19 @@ export default function RecordsListPage() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Cabeçalho */}
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground via-foreground/90 to-foreground/80">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
           Prontuários Eletrônicos
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-xs text-muted-foreground mt-0.5">
           Acesse anamneses, adicione evoluções clínicas e consulte o histórico de sessões
         </p>
       </div>
 
       {/* Caixa de Busca */}
-      <Card className="border-border/30 bg-card/65 backdrop-blur-md p-4">
+      <Card className="border-border/80 bg-card shadow-xs p-4">
         <div className="relative">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-muted-foreground/60" />
           <input
@@ -84,25 +84,25 @@ export default function RecordsListPage() {
             placeholder="Buscar paciente ativo para ver prontuário..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-11 bg-secondary/35 border border-border/50 rounded-lg pl-11 pr-4 text-sm transition focus:outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/10"
+            className="w-full h-9 bg-secondary border border-border/60 rounded-md pl-10 pr-4 text-xs transition focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 placeholder:text-muted-foreground/50 text-foreground"
           />
         </div>
       </Card>
 
       {/* Tabela de Seleção */}
       {isLoading ? (
-        <div className="py-20 text-center flex flex-col items-center gap-3">
-          <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm text-muted-foreground animate-pulse">Carregando pacientes...</span>
+        <div className="py-20 text-center flex flex-col items-center gap-2">
+          <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs text-muted-foreground animate-pulse">Carregando prontuários...</span>
         </div>
       ) : filteredPatients.length === 0 ? (
-        <Card className="border-border/30 bg-card/65 backdrop-blur-md p-12 text-center flex flex-col items-center justify-center gap-4">
-          <div className="h-12 w-12 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground">
-            <ClipboardList className="h-6 w-6" />
+        <Card className="border-border/80 bg-card shadow-xs p-12 text-center flex flex-col items-center justify-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground">
+            <ClipboardList className="h-5 w-5" />
           </div>
           <div>
-            <h4 className="font-bold text-base text-foreground">Nenhum paciente ativo encontrado</h4>
-            <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+            <h4 className="font-semibold text-sm text-foreground">Nenhum prontuário ativo encontrado</h4>
+            <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
               Não existem prontuários de pacientes ativos correspondentes à busca. Apenas pacientes em tratamento ativo são listados aqui.
             </p>
           </div>
@@ -121,20 +121,20 @@ export default function RecordsListPage() {
           <TableBody>
             {filteredPatients.map((p) => (
               <TableRow key={p.id} className="cursor-pointer" onClick={() => router.push(`/dashboard/records/${p.id}`)}>
-                <TableCell className="font-semibold text-foreground flex items-center gap-2">
+                <TableCell className="font-medium text-foreground flex items-center gap-2">
                   <User className="h-4.5 w-4.5 text-primary shrink-0" />
                   <span>{p.full_name}</span>
                 </TableCell>
-                <TableCell className="text-muted-foreground">{p.formatted_cpf || "---"}</TableCell>
-                <TableCell className="text-muted-foreground">{p.age} anos</TableCell>
-                <TableCell className="text-muted-foreground">{p.phone}</TableCell>
+                <TableCell className="text-muted-foreground text-xs">{p.formatted_cpf || "---"}</TableCell>
+                <TableCell className="text-muted-foreground text-xs">{p.age} anos</TableCell>
+                <TableCell className="text-muted-foreground text-xs">{p.phone}</TableCell>
                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                   <Button
                     size="sm"
-                    variant="glass"
+                    variant="outline"
                     onClick={() => router.push(`/dashboard/records/${p.id}`)}
                     rightIcon={<ChevronRight className="h-4 w-4" />}
-                    className="hover:bg-primary/10 hover:text-primary border-primary/20 text-foreground cursor-pointer"
+                    className="hover:bg-primary/5 hover:text-primary text-foreground cursor-pointer"
                   >
                     Acessar Prontuário
                   </Button>

@@ -434,7 +434,7 @@ export default function RecordDetailPage() {
 
     setSubmittingEditEvolution(true);
     try {
-      const response = await api.put(
+      await api.put(
         `records/evolutions/${selectedEvolutionForEdit.id}/`,
         editEvolutionForm
       );
@@ -477,8 +477,8 @@ export default function RecordDetailPage() {
   if (loadingPatient) {
     return (
       <div className="py-20 text-center flex flex-col items-center gap-3">
-        <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        <span className="text-sm text-muted-foreground animate-pulse">Carregando dados do paciente...</span>
+        <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <span className="text-xs text-muted-foreground animate-pulse">Carregando prontuário...</span>
       </div>
     );
   }
@@ -488,8 +488,8 @@ export default function RecordDetailPage() {
       <div className="py-20 text-center flex flex-col items-center gap-4">
         <AlertTriangle className="h-10 w-10 text-destructive" />
         <div>
-          <h3 className="font-bold text-lg">Paciente não encontrado</h3>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h3 className="font-bold text-sm text-foreground">Paciente não encontrado</h3>
+          <p className="text-xs text-muted-foreground mt-1">
             Não foi possível carregar os prontuários. Verifique a URL ou o status do paciente.
           </p>
         </div>
@@ -501,32 +501,32 @@ export default function RecordDetailPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Voltar */}
       <button
         onClick={() => router.push("/dashboard/records")}
-        className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+        className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
       >
-        <ArrowLeft className="h-4.5 w-4.5" />
+        <ArrowLeft className="h-4 w-4" />
         Voltar para a lista de prontuários
       </button>
 
-      {/* Header Ficha Clíncia */}
+      {/* Header Ficha Clínica */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border/40 pb-6">
-        <div className="flex items-start gap-4">
-          <div className="h-14 w-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 font-bold text-xl uppercase shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-lg uppercase shrink-0">
             {patient.full_name.charAt(0)}
           </div>
-          <div className="space-y-1">
-            <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
+          <div className="space-y-0.5">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3">
               Prontuário Clínico: {patient.full_name}
             </h1>
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               <span>{patient.age} anos</span>
               <span>•</span>
-              <span>CPF: {patient.phone ? patient.phone : "---"}</span>
+              <span>Telefone: {patient.phone || "---"}</span>
               <span>•</span>
-              <span className="inline-flex px-2.5 py-0.5 rounded-full font-semibold border bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
+              <span className="inline-flex px-2 py-0.5 rounded-sm font-semibold border bg-primary/10 text-primary border-primary/20 text-[10px]">
                 Prontuário Ativo
               </span>
             </div>
@@ -538,9 +538,8 @@ export default function RecordDetailPage() {
           variant="outline"
           onClick={() => router.push(`/dashboard/patients/${patient.id}`)}
           rightIcon={<ExternalLink className="h-4 w-4" />}
-          className="border-border text-foreground"
         >
-          Ver Ficha do Paciente
+          Ver Ficha Cadastral
         </Button>
       </div>
 
@@ -551,13 +550,13 @@ export default function RecordDetailPage() {
             setActiveTab("timeline");
             setIsEditingAnamnesis(false);
           }}
-          className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+          className={`pb-4 text-xs font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
             activeTab === "timeline"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          <History className="h-4.5 w-4.5" />
+          <History className="h-4 w-4" />
           Histórico de Evoluções ({evolutions.length})
         </button>
 
@@ -566,13 +565,13 @@ export default function RecordDetailPage() {
             setActiveTab("anamnesis");
             setIsEditingAnamnesis(false);
           }}
-          className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+          className={`pb-4 text-xs font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
             activeTab === "anamnesis"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          <FileText className="h-4.5 w-4.5" />
+          <FileText className="h-4 w-4" />
           Anamnese
         </button>
 
@@ -581,13 +580,13 @@ export default function RecordDetailPage() {
             setActiveTab("new-evolution");
             setIsEditingAnamnesis(false);
           }}
-          className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+          className={`pb-4 text-xs font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
             activeTab === "new-evolution"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          <PlusCircle className="h-4.5 w-4.5" />
+          <PlusCircle className="h-4 w-4" />
           Nova Evolução
         </button>
       </div>
@@ -596,26 +595,26 @@ export default function RecordDetailPage() {
       <div className="space-y-6">
         {/* ABA: HISTÓRICO DE EVOLUÇÕES */}
         {activeTab === "timeline" && (
-          <div className="space-y-6 animate-fade-in">
+          <div className="space-y-6">
             {loadingEvolutions ? (
-              <div className="py-20 text-center flex flex-col items-center gap-3">
-                <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm text-muted-foreground">Carregando histórico...</span>
+              <div className="py-20 text-center flex flex-col items-center gap-2">
+                <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs text-muted-foreground">Carregando histórico...</span>
               </div>
             ) : evolutions.length === 0 ? (
-              <Card className="border-border/30 bg-card/65 backdrop-blur-md p-12 text-center flex flex-col items-center justify-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground">
-                  <ClipboardList className="h-6 w-6" />
+              <Card className="border-border/80 bg-card shadow-xs p-12 text-center flex flex-col items-center justify-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground">
+                  <ClipboardList className="h-5 w-5" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-base text-foreground">Nenhuma sessão registrada</h4>
-                  <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                  <h4 className="font-semibold text-sm text-foreground">Nenhuma sessão registrada</h4>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
                     Este paciente ainda não possui evoluções registradas. Utilize a aba "Nova Evolução" para registrar a primeira sessão.
                   </p>
                 </div>
               </Card>
             ) : (
-              <div className="relative border-l-2 border-primary/20 pl-6 ml-4 space-y-6">
+              <div className="relative border-l border-border pl-6 ml-4 space-y-4">
                 {evolutions.map((ev) => {
                   const isExpanded = !!expandedEvolutions[ev.id];
                   const isLoadingDetailsForThis = !!loadingDetails[ev.id];
@@ -624,88 +623,88 @@ export default function RecordDetailPage() {
                   return (
                     <div key={ev.id} className="relative group">
                       {/* Indicador de Timeline */}
-                      <div className={`absolute -left-[31px] top-1.5 h-4.5 w-4.5 rounded-full border-2 border-background flex items-center justify-center transition-all ${
-                        ev.is_locked ? "bg-slate-400" : "bg-emerald-500 animate-pulse"
+                      <div className={`absolute -left-[31px] top-2 h-2.5 w-2.5 rounded-full border border-background transition-colors ${
+                        ev.is_locked ? "bg-muted-foreground" : "bg-primary animate-pulse"
                       }`} />
 
-                      <div className="bg-card/75 border border-border/40 hover:border-border/80 rounded-xl transition-all shadow-xs overflow-hidden">
+                      <Card className="border-border/80 bg-card shadow-xs overflow-hidden">
                         {/* Cabeçalho do Card */}
                         <div
                           onClick={() => toggleEvolution(ev.id)}
-                          className="p-5 flex items-center justify-between gap-4 cursor-pointer select-none"
+                          className="p-4 flex items-center justify-between gap-4 cursor-pointer select-none hover:bg-secondary/20 transition-colors"
                         >
-                          <div className="space-y-1.5">
-                            <div className="flex flex-wrap items-center gap-3">
-                              <span className="text-base font-bold text-foreground">
+                          <div className="space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-sm font-semibold text-foreground">
                                 Sessão em {new Date(ev.session_date).toLocaleDateString("pt-BR")}
                               </span>
                               {ev.cid10 && (
-                                <span className="inline-flex px-2 py-0.5 rounded-sm bg-secondary text-secondary-foreground text-[10px] font-bold tracking-wider uppercase">
+                                <span className="inline-flex px-1.5 py-0.5 rounded-sm bg-secondary text-muted-foreground text-[9px] font-bold uppercase tracking-wider">
                                   CID: {ev.cid10}
                                 </span>
                               )}
                               {ev.is_locked ? (
-                                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground font-semibold bg-slate-500/10 px-2 py-0.5 rounded-md border border-slate-500/20">
-                                  <Lock className="h-3 w-3" /> Bloqueado (LGPD)
+                                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground font-semibold bg-secondary px-1.5 py-0.5 rounded-sm border border-border">
+                                  <Lock className="h-3 w-3" /> Bloqueado
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 text-xs text-emerald-500 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                                <span className="inline-flex items-center gap-1 text-[10px] text-primary font-semibold bg-primary/10 px-1.5 py-0.5 rounded-sm border border-primary/20">
                                   <LockOpen className="h-3 w-3" /> Editável
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                              Registrado por {ev.created_by_name} em {new Date(ev.created_at).toLocaleString("pt-BR")}
+                            <p className="text-[10px] text-muted-foreground">
+                              Registrado por {ev.created_by_name} • {new Date(ev.created_at).toLocaleDateString("pt-BR")}
                             </p>
                           </div>
 
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-3">
                             {ev.addenda_count > 0 && (
-                              <span className="text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded-md font-semibold">
+                              <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-sm font-semibold">
                                 {ev.addenda_count} aditivo{ev.addenda_count > 1 ? "s" : ""}
                               </span>
                             )}
                             {isLoadingDetailsForThis ? (
-                              <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                              <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                             ) : isExpanded ? (
-                              <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                              <ChevronUp className="h-4 w-4 text-muted-foreground" />
                             ) : (
-                              <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
                             )}
                           </div>
                         </div>
 
                         {/* Corpo Expandido */}
                         {isExpanded && details && (
-                          <div className="border-t border-border/30 bg-secondary/10 p-5 space-y-6 animate-scale-in">
+                          <div className="border-t border-border/60 bg-secondary/10 p-4 space-y-4">
                             {/* Conteúdo Clínico */}
-                            <div className="space-y-2">
-                              <h5 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                            <div className="space-y-1.5">
+                              <h5 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                                 <Stethoscope className="h-3.5 w-3.5" />
-                                Descrição do Caso Clínico
+                                Evolução Clínica da Sessão
                               </h5>
-                              <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed bg-card p-4 rounded-lg border border-border/20 font-medium">
+                              <div className="text-xs text-foreground whitespace-pre-wrap leading-relaxed bg-card p-3 rounded-md border border-border/80 font-medium">
                                 {details.content}
-                              </p>
+                              </div>
                             </div>
 
                             {/* Aditivos */}
                             {details.addenda.length > 0 && (
-                              <div className="space-y-3">
-                                <h5 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                              <div className="space-y-2">
+                                <h5 className="text-[10px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
                                   <History className="h-3.5 w-3.5" />
-                                  Histórico de Aditivos e Retificações
+                                  Histórico de Aditivos e Retificações (LGPD)
                                 </h5>
-                                <div className="space-y-3">
+                                <div className="space-y-2">
                                   {details.addenda.map((ad) => (
-                                    <div key={ad.id} className="p-3.5 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
-                                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                        <span className="font-bold text-primary">Justificativa: {ad.reason}</span>
+                                    <div key={ad.id} className="p-3 rounded-md border border-border bg-card space-y-1">
+                                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                                        <span className="font-semibold text-primary">Justificativa: {ad.reason}</span>
                                         <span>
                                           Por {ad.created_by.full_name} • {new Date(ad.created_at).toLocaleString("pt-BR")}
                                         </span>
                                       </div>
-                                      <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">
+                                      <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed">
                                         {ad.content}
                                       </p>
                                     </div>
@@ -715,26 +714,26 @@ export default function RecordDetailPage() {
                             )}
 
                             {/* Ações da Evolução */}
-                            <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-border/20 justify-end">
+                            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/40 justify-end">
                               {ev.is_locked ? (
                                 <Button
                                   size="sm"
-                                  variant="glass"
+                                  variant="outline"
                                   onClick={() => {
                                     setSelectedEvolutionForAddendum(ev.id);
                                     setIsAddendumModalOpen(true);
                                   }}
-                                  leftIcon={<MessageSquarePlus className="h-4 w-4" />}
-                                  className="border-primary/20 hover:bg-primary/10 text-primary text-xs font-bold cursor-pointer"
+                                  leftIcon={<MessageSquarePlus className="h-3.5 w-3.5" />}
+                                  className="text-xs font-semibold cursor-pointer"
                                 >
-                                  Inserir Aditivo (LGPD)
+                                  Inserir Aditivo
                                 </Button>
                               ) : (
                                 <>
                                   {details.is_editable ? (
                                     <Button
                                       size="sm"
-                                      variant="glass"
+                                      variant="outline"
                                       onClick={() => {
                                         setSelectedEvolutionForEdit(details);
                                         setEditEvolutionForm({
@@ -744,12 +743,12 @@ export default function RecordDetailPage() {
                                         });
                                         setIsEditEvolutionModalOpen(true);
                                       }}
-                                      className="border-primary/30 hover:bg-primary/10 text-primary text-xs font-bold"
+                                      className="text-xs font-semibold"
                                     >
                                       Editar Conteúdo
                                     </Button>
                                   ) : (
-                                    <p className="text-xs text-muted-foreground italic">
+                                    <p className="text-[10px] text-muted-foreground italic">
                                       Apenas o terapeuta autor ({details.created_by.full_name}) pode modificar esta evolução.
                                     </p>
                                   )}
@@ -758,7 +757,7 @@ export default function RecordDetailPage() {
                             </div>
                           </div>
                         )}
-                      </div>
+                      </Card>
                     </div>
                   );
                 })}
@@ -769,20 +768,20 @@ export default function RecordDetailPage() {
 
         {/* ABA: ANAMNESE */}
         {activeTab === "anamnesis" && (
-          <div className="space-y-6 animate-fade-in">
+          <div className="space-y-6">
             {loadingAnamnesis ? (
-              <div className="py-20 text-center flex flex-col items-center gap-3">
-                <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm text-muted-foreground animate-pulse">Consultando ficha...</span>
+              <div className="py-20 text-center flex flex-col items-center gap-2">
+                <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs text-muted-foreground animate-pulse">Carregando anamnese...</span>
               </div>
             ) : !anamnesis && !isEditingAnamnesis ? (
-              <Card className="border-border/30 bg-card/65 backdrop-blur-md p-12 text-center flex flex-col items-center justify-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground">
-                  <FileText className="h-6 w-6" />
+              <Card className="border-border/80 bg-card shadow-xs p-12 text-center flex flex-col items-center justify-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground">
+                  <FileText className="h-5 w-5" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-base text-foreground">Ficha de Anamnese ausente</h4>
-                  <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                  <h4 className="font-semibold text-sm text-foreground">Ficha de Anamnese ausente</h4>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
                     Este paciente ainda não possui a avaliação de anamnese inicial. Crie a ficha para iniciar o histórico do paciente.
                   </p>
                 </div>
@@ -798,39 +797,39 @@ export default function RecordDetailPage() {
                     });
                     setIsEditingAnamnesis(true);
                   }}
-                  leftIcon={<Plus className="h-4.5 w-4.5" />}
+                  leftIcon={<Plus className="h-4 w-4" />}
                   className="text-white font-semibold"
                 >
                   Registrar Anamnese
                 </Button>
               </Card>
             ) : isEditingAnamnesis ? (
-              <form onSubmit={handleSaveAnamnesis} className="space-y-5">
-                <Card className="border-border/30 bg-card/65 backdrop-blur-md">
+              <form onSubmit={handleSaveAnamnesis} className="space-y-4">
+                <Card className="border-border/80 bg-card shadow-xs">
                   <CardHeader className="pb-3 border-b border-border/40">
-                    <CardTitle className="text-lg font-bold">
+                    <CardTitle className="text-base font-bold text-foreground">
                       {anamnesis ? "Editar Anamnese" : "Nova Ficha de Anamnese"}
                     </CardTitle>
-                    <CardDescription>
-                      Todos os dados serão salvos com criptografia AES-128 em conformidade com as regras clínicas da LGPD.
+                    <CardDescription className="text-xs text-muted-foreground">
+                      Todos os dados serão salvos com criptografia ponta a ponta em conformidade com as regras do CFP/LGPD.
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="p-6 space-y-4 mt-3">
+                  <CardContent className="p-5 space-y-4 mt-2">
                     <Textarea
                       label="Queixa Principal *"
-                      placeholder="Principal motivo, sintomas, dores ou demandas clínicas que trouxeram o paciente..."
+                      placeholder="Principal motivo, sintomas, demandas clínicas que trouxeram o paciente..."
                       value={anamnesisForm.chief_complaint}
                       onChange={(e) => setAnamnesisForm({ ...anamnesisForm, chief_complaint: e.target.value })}
                       required
-                      className="bg-secondary/20 min-h-[120px]"
+                      className="min-h-[100px]"
                     />
 
                     <Textarea
                       label="Histórico Clínico"
-                      placeholder="Diagnósticos prévios, tratamentos anteriores, histórico médico e hospitalizações..."
+                      placeholder="Diagnósticos prévios, tratamentos anteriores, histórico médico..."
                       value={anamnesisForm.history}
                       onChange={(e) => setAnamnesisForm({ ...anamnesisForm, history: e.target.value })}
-                      className="bg-secondary/20 min-h-[100px]"
+                      className="min-h-[90px]"
                     />
 
                     <Textarea
@@ -838,7 +837,7 @@ export default function RecordDetailPage() {
                       placeholder="Nome dos remédios, dosagens, frequências e finalidades..."
                       value={anamnesisForm.medications}
                       onChange={(e) => setAnamnesisForm({ ...anamnesisForm, medications: e.target.value })}
-                      className="bg-secondary/20 min-h-[80px]"
+                      className="min-h-[80px]"
                     />
 
                     <Textarea
@@ -846,7 +845,7 @@ export default function RecordDetailPage() {
                       placeholder="Doenças psiquiátricas, genéticas ou dinâmicas familiares relevantes..."
                       value={anamnesisForm.family_history}
                       onChange={(e) => setAnamnesisForm({ ...anamnesisForm, family_history: e.target.value })}
-                      className="bg-secondary/20 min-h-[80px]"
+                      className="min-h-[80px]"
                     />
 
                     <Textarea
@@ -854,7 +853,7 @@ export default function RecordDetailPage() {
                       placeholder="Anotações complementares ou percepções preliminares do terapeuta..."
                       value={anamnesisForm.observations}
                       onChange={(e) => setAnamnesisForm({ ...anamnesisForm, observations: e.target.value })}
-                      className="bg-secondary/20 min-h-[80px]"
+                      className="min-h-[80px]"
                     />
                   </CardContent>
                 </Card>
@@ -864,26 +863,25 @@ export default function RecordDetailPage() {
                     type="button"
                     variant="outline"
                     onClick={() => setIsEditingAnamnesis(false)}
-                    className="border-border text-foreground"
                   >
                     Descartar
                   </Button>
                   <Button
                     type="submit"
                     isLoading={submittingAnamnesis}
-                    leftIcon={<Save className="h-4.5 w-4.5" />}
+                    leftIcon={<Save className="h-4 w-4" />}
                     className="text-white font-semibold"
                   >
-                    Gravar Ficha Clinica
+                    Gravar Ficha Clínica
                   </Button>
                 </div>
               </form>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h3 className="text-xl font-bold text-foreground">Ficha Cadastrada</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <h3 className="text-base font-bold text-foreground">Ficha Cadastrada</h3>
+                    <p className="text-[10px] text-muted-foreground">
                       Registrada por {anamnesis?.created_by?.full_name} em {anamnesis?.created_at ? new Date(anamnesis.created_at).toLocaleDateString("pt-BR") : ""}
                     </p>
                   </div>
@@ -899,36 +897,34 @@ export default function RecordDetailPage() {
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6">
-                  <Card className="border-border/30 bg-card/65 backdrop-blur-md">
-                    <CardContent className="p-6 space-y-6">
-                      <div className="space-y-1.5">
-                        <p className="text-xs font-bold text-primary uppercase tracking-wider">Queixa Principal</p>
-                        <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{anamnesis?.chief_complaint}</p>
-                      </div>
-                      
-                      <div className="border-t border-border/20 pt-4 space-y-1.5">
-                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Histórico Clínico</p>
-                        <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{anamnesis?.history || "Nenhum histórico clínico registrado."}</p>
-                      </div>
+                <Card className="border-border/80 bg-card shadow-xs">
+                  <CardContent className="p-5 space-y-4">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-bold text-primary uppercase tracking-wider">Queixa Principal</p>
+                      <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed font-medium">{anamnesis?.chief_complaint}</p>
+                    </div>
+                    
+                    <div className="border-t border-border/40 pt-3 space-y-1">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Histórico Clínico</p>
+                      <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">{anamnesis?.history || "Nenhum histórico clínico registrado."}</p>
+                    </div>
 
-                      <div className="border-t border-border/20 pt-4 space-y-1.5">
-                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Medicações em Uso</p>
-                        <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{anamnesis?.medications || "Nenhuma medicação informada."}</p>
-                      </div>
+                    <div className="border-t border-border/40 pt-3 space-y-1">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Medicações em Uso</p>
+                      <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">{anamnesis?.medications || "Nenhuma medicação informada."}</p>
+                    </div>
 
-                      <div className="border-t border-border/20 pt-4 space-y-1.5">
-                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Histórico Familiar</p>
-                        <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{anamnesis?.family_history || "Nenhum histórico familiar registrado."}</p>
-                      </div>
+                    <div className="border-t border-border/40 pt-3 space-y-1">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Histórico Familiar</p>
+                      <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">{anamnesis?.family_history || "Nenhum histórico familiar registrado."}</p>
+                    </div>
 
-                      <div className="border-t border-border/20 pt-4 space-y-1.5">
-                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Observações Gerais</p>
-                        <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{anamnesis?.observations || "Nenhuma observação geral registrada."}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                    <div className="border-t border-border/40 pt-3 space-y-1">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Observações Gerais</p>
+                      <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">{anamnesis?.observations || "Nenhuma observação geral registrada."}</p>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             )}
           </div>
@@ -936,15 +932,15 @@ export default function RecordDetailPage() {
 
         {/* ABA: NOVA EVOLUÇÃO */}
         {activeTab === "new-evolution" && (
-          <div className="space-y-6 animate-fade-in">
-            <Card className="border-border/30 bg-card/65 backdrop-blur-md">
+          <div className="space-y-6">
+            <Card className="border-border/80 bg-card shadow-xs">
               <CardHeader className="pb-3 border-b border-border/40">
-                <CardTitle className="text-lg font-bold">Registrar Evolução de Sessão</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-base font-bold text-foreground">Registrar Evolução de Sessão</CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">
                   Grave as anotações sobre a sessão do paciente. Estes dados clínicos serão criptografados e não podem ser apagados após registro.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-6 mt-3">
+              <CardContent className="p-5 mt-2">
                 <form onSubmit={handleCreateEvolution} className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Input
@@ -953,7 +949,6 @@ export default function RecordDetailPage() {
                       value={newEvolutionForm.session_date}
                       onChange={(e) => setNewEvolutionForm({ ...newEvolutionForm, session_date: e.target.value })}
                       required
-                      className="bg-secondary/20"
                     />
 
                     <Input
@@ -961,17 +956,16 @@ export default function RecordDetailPage() {
                       placeholder="Ex: F41.1"
                       value={newEvolutionForm.cid10}
                       onChange={(e) => setNewEvolutionForm({ ...newEvolutionForm, cid10: e.target.value })}
-                      className="bg-secondary/20"
                     />
                   </div>
 
                   <Textarea
                     label="Conteúdo Clínico da Sessão *"
-                    placeholder="Escreva os detalhes, progresso, técnicas aplicadas e percepções sobre a sessão de hoje..."
+                    placeholder="Escreva os detalhes, progresso, técnicas aplicadas e percepções sobre a sessão..."
                     value={newEvolutionForm.content}
                     onChange={(e) => setNewEvolutionForm({ ...newEvolutionForm, content: e.target.value })}
                     required
-                    className="bg-secondary/20 min-h-[220px]"
+                    className="min-h-[200px]"
                   />
 
                   <div className="flex gap-3 justify-end pt-4 border-t border-border/40">
@@ -979,7 +973,6 @@ export default function RecordDetailPage() {
                       type="button"
                       variant="outline"
                       onClick={() => setActiveTab("timeline")}
-                      className="border-border text-foreground"
                     >
                       Voltar ao Histórico
                     </Button>
@@ -1016,7 +1009,6 @@ export default function RecordDetailPage() {
             value={addendumForm.reason}
             onChange={(e) => setAddendumForm({ ...addendumForm, reason: e.target.value })}
             required
-            className="bg-secondary/20"
           />
 
           <Textarea
@@ -1025,7 +1017,7 @@ export default function RecordDetailPage() {
             value={addendumForm.content}
             onChange={(e) => setAddendumForm({ ...addendumForm, content: e.target.value })}
             required
-            className="bg-secondary/20 min-h-[140px]"
+            className="min-h-[120px]"
           />
 
           <div className="flex gap-3 justify-end pt-4 border-t border-border/40">
@@ -1036,7 +1028,6 @@ export default function RecordDetailPage() {
                 setIsAddendumModalOpen(false);
                 setAddendumForm({ reason: "", content: "" });
               }}
-              className="border-border text-foreground"
             >
               Cancelar
             </Button>
@@ -1070,7 +1061,6 @@ export default function RecordDetailPage() {
               value={editEvolutionForm.session_date}
               onChange={(e) => setEditEvolutionForm({ ...editEvolutionForm, session_date: e.target.value })}
               required
-              className="bg-secondary/20"
             />
 
             <Input
@@ -1078,7 +1068,6 @@ export default function RecordDetailPage() {
               placeholder="Ex: F41.1"
               value={editEvolutionForm.cid10}
               onChange={(e) => setEditEvolutionForm({ ...editEvolutionForm, cid10: e.target.value })}
-              className="bg-secondary/20"
             />
           </div>
 
@@ -1088,7 +1077,7 @@ export default function RecordDetailPage() {
             value={editEvolutionForm.content}
             onChange={(e) => setEditEvolutionForm({ ...editEvolutionForm, content: e.target.value })}
             required
-            className="bg-secondary/20 min-h-[180px]"
+            className="min-h-[160px]"
           />
 
           <div className="flex gap-3 justify-end pt-4 border-t border-border/40">
@@ -1099,7 +1088,6 @@ export default function RecordDetailPage() {
                 setIsEditEvolutionModalOpen(false);
                 setSelectedEvolutionForEdit(null);
               }}
-              className="border-border text-foreground"
             >
               Cancelar
             </Button>
