@@ -40,6 +40,8 @@ interface PatientDetail {
   guardian_cpf: string;
   notes: string;
   age: number;
+  therapist: number;
+  therapist_name: string;
   created_at: string;
 }
 
