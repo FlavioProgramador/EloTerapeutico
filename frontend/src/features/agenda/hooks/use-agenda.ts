@@ -20,13 +20,12 @@ export function useAppointments(filters?: AppointmentFilters) {
 }
 
 /**
- * Hook para buscar agendamentos de um dia específico.
+ * Hook para buscar consultas de hoje.
  */
-export function useAppointmentsByDate(date: string | undefined) {
+export function useTodayAppointments() {
   return useQuery({
-    queryKey: QUERY_KEYS.appointmentsByDate(date!),
-    queryFn: () => agendaService.list({ date: date! }),
-    enabled: !!date,
+    queryKey: [...QUERY_KEYS.appointments, "today"],
+    queryFn: () => agendaService.today(),
   });
 }
 
@@ -48,13 +47,16 @@ export function useCreateAppointment() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateAppointmentPayload) => agendaService.create(data),
+    mutationFn: (data: any) => agendaService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.appointments });
       toast.success("Consulta agendada com sucesso.");
     },
-    onError: () => {
-      toast.error("Erro ao agendar consulta. Verifique conflitos de horário.");
+    onError: (error: any) => {
+      const serverMsg = error.response?.data?.start_time?.[0] || error.response?.data?.detail;
+      toast.error("Erro ao agendar consulta.", {
+        description: serverMsg || "Verifique conflitos de horário com o terapeuta.",
+      });
     },
   });
 }
@@ -76,6 +78,48 @@ export function useUpdateAppointment(id: number) {
     onError: () => {
       toast.error("Erro ao atualizar consulta.");
     },
+  });
+}
+
+/**
+ * Hook para atualizar o status de um agendamento.
+ */
+export function useUpdateAppointmentStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      status,
+      cancellationReason,
+    }: {
+      id: number;
+      status: string;
+      cancellationReason?: string;
+    }) => agendaService.updateStatus(id, status, cancellationReason),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.appointments });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.appointment(variables.id) });
+      toast.success("Status do agendamento atualizado.");
+    },
+    onError: (error: any) => {
+      const serverMsg = error.response?.data?.status?.[0] || error.response?.data?.detail;
+      toast.error("Erro ao atualizar status.", {
+        description: serverMsg || "Não foi possível mudar o status desta consulta.",
+      });
+    },
+  });
+}
+
+/**
+ * Hook para buscar slots livres disponíveis.
+ */
+export function useAvailableSlots(date: string, duration: number, enabled: boolean) {
+  return useQuery({
+    queryKey: ["appointments", "availability", date, duration],
+    queryFn: () => agendaService.checkAvailability(date, duration),
+    enabled: enabled && !!date && !!duration,
+    staleTime: 5000, // cache curto para disponibilidade
   });
 }
 
