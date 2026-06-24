@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
-import { AuthProvider } from "@/contexts/auth";
-import { ToastProvider } from "@/contexts/toast";
+import { Providers } from "@/providers/providers";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -12,8 +11,16 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: "Elo Terapêutico – Prontuário Eletrônico & Gestão de Clínicas",
-  description: "Plataforma de alta performance para psicólogos e terapeutas. Gestão de pacientes, prontuários criptografados em conformidade com a LGPD, agenda e controle financeiro completo.",
-  keywords: ["psicologia", "terapia", "prontuário eletrônico", "gestão clínica", "LGPD", "agenda terapêutica"],
+  description:
+    "Plataforma de alta performance para psicólogos e terapeutas. Gestão de pacientes, prontuários criptografados em conformidade com a LGPD, agenda e controle financeiro completo.",
+  keywords: [
+    "psicologia",
+    "terapia",
+    "prontuário eletrônico",
+    "gestão clínica",
+    "LGPD",
+    "agenda terapêutica",
+  ],
   authors: [{ name: "Elo Terapêutico" }],
 };
 
@@ -26,13 +33,10 @@ export default function RootLayout({
     <html
       lang="pt-BR"
       className={`${outfit.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-sans">
-        <AuthProvider>
-          <ToastProvider>
-            {children}
-          </ToastProvider>
-        </AuthProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

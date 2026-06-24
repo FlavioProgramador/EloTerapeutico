@@ -1,18 +1,19 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   ArrowLeft,
   ClipboardList,
   History,
   PlusCircle,
   FileText,
-  User,
   AlertTriangle,
   Lock,
   LockOpen,
-  Calendar,
   Stethoscope,
   ChevronDown,
   ChevronUp,
@@ -21,457 +22,208 @@ import {
   MessageSquarePlus,
   ExternalLink,
 } from "lucide-react";
-import { useToast } from "@/contexts/toast";
-import { useAuth } from "@/contexts/auth";
-import { api } from "@/lib/api";
+import { toast } from "sonner";
+
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
+import { Badge } from "@/components/ui/badge";
 
-interface Patient {
-  id: number;
-  full_name: string;
-  age: number;
-  phone: string;
-  email: string;
-  birth_date: string;
-  status: string;
-}
+import { usePatient } from "@/features/patients/hooks/use-patients";
+import {
+  useRecords,
+  useRecord,
+  useCreateRecord,
+  useUpdateRecord,
+  useAnamnesis,
+  useSaveAnamnesis,
+  useCreateAddendum,
+} from "@/features/records/hooks/use-records";
+import type { EvolutionListItem, EvolutionDetail, Anamnesis } from "@/types";
 
-interface Anamnesis {
-  id?: number;
-  chief_complaint: string;
-  history: string;
-  medications: string;
-  family_history: string;
-  observations: string;
-  created_at?: string;
-  updated_at?: string;
-  created_by?: {
-    id: number;
-    full_name: string;
-    email: string;
-  };
-}
+// Schemas de Validação locais
+const anamnesisSchema = z.object({
+  chief_complaint: z.string().min(1, "A queixa principal é obrigatória."),
+  history: z.string().optional().or(z.literal("")),
+  medications: z.string().optional().or(z.literal("")),
+  family_history: z.string().optional().or(z.literal("")),
+  observations: z.string().optional().or(z.literal("")),
+});
+type AnamnesisFormData = z.infer<typeof anamnesisSchema>;
 
-interface EvolutionListItem {
-  id: number;
-  session_date: string;
-  cid10: string;
-  is_locked: boolean;
-  locked_at: string | null;
-  is_editable: boolean;
-  addenda_count: number;
-  created_by_name: string;
-  created_at: string;
-}
+const evolutionSchema = z.object({
+  content: z.string().min(1, "O conteúdo clínico da sessão não pode ficar em branco."),
+  cid10: z.string().max(10, "CID-10 deve ter no máximo 10 caracteres.").optional().or(z.literal("")),
+  session_date: z.string().min(1, "Data da sessão é obrigatória."),
+});
+type EvolutionFormData = z.infer<typeof evolutionSchema>;
 
-interface Addendum {
-  id: number;
-  reason: string;
-  content: string;
-  created_by: {
-    id: number;
-    full_name: string;
-    email: string;
-  };
-  created_at: string;
-}
-
-interface EvolutionDetail extends EvolutionListItem {
-  content: string;
-  addenda: Addendum[];
-  created_by: {
-    id: number;
-    full_name: string;
-    email: string;
-  };
-}
+const addendumSchema = z.object({
+  reason: z.string().min(1, "O motivo do aditivo é obrigatório."),
+  content: z.string().min(1, "O conteúdo do aditivo é obrigatório."),
+});
+type AddendumFormData = z.infer<typeof addendumSchema>;
 
 export default function RecordDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const patientId = params.patientId;
+  const patientId = Number(params.patientId);
 
-  // Abas: anamnesis | timeline | new-evolution
-  const [activeTab, setActiveTab] = useState<"anamnesis" | "timeline" | "new-evolution">("timeline");
-
-  // Dados principais
-  const [patient, setPatient] = useState<Patient | null>(null);
-  const [loadingPatient, setLoadingPatient] = useState(true);
-  const [anamnesis, setAnamnesis] = useState<Anamnesis | null>(null);
-  const [loadingAnamnesis, setLoadingAnamnesis] = useState(true);
-  const [evolutions, setEvolutions] = useState<EvolutionListItem[]>([]);
-  const [loadingEvolutions, setLoadingEvolutions] = useState(true);
+  // Abas: timeline | anamnesis | new-evolution
+  const [activeTab, setActiveTab] = useState<"timeline" | "anamnesis" | "new-evolution">("timeline");
 
   // Evoluções expandidas
-  const [expandedEvolutions, setExpandedEvolutions] = useState<Record<number, EvolutionDetail>>({});
-  const [loadingDetails, setLoadingDetails] = useState<Record<number, boolean>>({});
-
-  // Anamnese Edição
+  const [expandedEvolutions, setExpandedEvolutions] = useState<Record<number, boolean>>({});
   const [isEditingAnamnesis, setIsEditingAnamnesis] = useState(false);
-  const [anamnesisForm, setAnamnesisForm] = useState<Anamnesis>({
-    chief_complaint: "",
-    history: "",
-    medications: "",
-    family_history: "",
-    observations: "",
-  });
-  const [submittingAnamnesis, setSubmittingAnamnesis] = useState(false);
 
-  // Nova Evolução
-  const [newEvolutionForm, setNewEvolutionForm] = useState({
-    content: "",
-    cid10: "",
-    session_date: new Date().toISOString().split("T")[0],
-  });
-  const [submittingEvolution, setSubmittingEvolution] = useState(false);
-
-  // Aditivo
+  // Modais de Ações
   const [isAddendumModalOpen, setIsAddendumModalOpen] = useState(false);
   const [selectedEvolutionForAddendum, setSelectedEvolutionForAddendum] = useState<number | null>(null);
-  const [addendumForm, setAddendumForm] = useState({
-    reason: "",
-    content: "",
-  });
-  const [submittingAddendum, setSubmittingAddendum] = useState(false);
 
-  // Edição de Evolução (se não bloqueada)
   const [isEditEvolutionModalOpen, setIsEditEvolutionModalOpen] = useState(false);
-  const [selectedEvolutionForEdit, setSelectedEvolutionForEdit] = useState<EvolutionDetail | null>(null);
-  const [editEvolutionForm, setEditEvolutionForm] = useState({
-    content: "",
-    cid10: "",
-    session_date: "",
+  const [selectedEvolutionForEdit, setSelectedEvolutionForEdit] = useState<EvolutionListItem | null>(null);
+
+  // TanStack Query
+  const { data: patient, isLoading: loadingPatient } = usePatient(patientId);
+  const { data: anamnesis, isLoading: loadingAnamnesis, refetch: refetchAnamnesis } = useAnamnesis(patientId);
+  const { data: evolutionsList = [], isLoading: loadingEvolutions, refetch: refetchEvolutions } = useRecords({ patient: patientId });
+
+  const saveAnamnesisMutation = useSaveAnamnesis(patientId);
+  const createEvolutionMutation = useCreateRecord();
+  const updateEvolutionMutation = useUpdateRecord(selectedEvolutionForEdit?.id || 0);
+  const createAddendumMutation = useCreateAddendum(selectedEvolutionForAddendum || 0, patientId);
+
+  // React Hook Form
+  const anamnesisForm = useForm<AnamnesisFormData>({
+    resolver: zodResolver(anamnesisSchema),
+    defaultValues: {
+      chief_complaint: "",
+      history: "",
+      medications: "",
+      family_history: "",
+      observations: "",
+    },
   });
-  const [submittingEditEvolution, setSubmittingEditEvolution] = useState(false);
 
-  // Carrega Paciente
-  const fetchPatient = async () => {
-    setLoadingPatient(true);
-    try {
-      const response = await api.get<Patient>(`patients/${patientId}/`);
-      setPatient(response.data);
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Erro ao buscar paciente",
-        description: "Não foi possível carregar os dados cadastrais do paciente.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingPatient(false);
-    }
-  };
+  const newEvolutionForm = useForm<EvolutionFormData>({
+    resolver: zodResolver(evolutionSchema),
+    defaultValues: {
+      content: "",
+      cid10: "",
+      session_date: new Date().toISOString().split("T")[0],
+    },
+  });
 
-  // Carrega Anamnese
-  const fetchAnamnesis = async () => {
-    setLoadingAnamnesis(true);
-    try {
-      const response = await api.get<Anamnesis>(`records/patients/${patientId}/anamnesis/`);
-      setAnamnesis(response.data);
-      setAnamnesisForm(response.data);
-    } catch (error: any) {
-      if (error.response?.status === 404) {
-        setAnamnesis(null);
-      } else {
-        console.error(error);
-        toast({
-          title: "Erro ao buscar anamnese",
-          description: "Falha ao consultar a ficha de anamnese inicial.",
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setLoadingAnamnesis(false);
-    }
-  };
+  const editEvolutionForm = useForm<EvolutionFormData>({
+    resolver: zodResolver(evolutionSchema),
+    defaultValues: {
+      content: "",
+      cid10: "",
+      session_date: "",
+    },
+  });
 
-  // Carrega Lista de Evoluções
-  const fetchEvolutions = async () => {
-    setLoadingEvolutions(true);
-    try {
-      const response = await api.get<EvolutionListItem[]>(`records/evolutions/?patient=${patientId}`);
-      setEvolutions(response.data);
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Erro ao carregar histórico",
-        description: "Não foi possível recuperar a lista de evoluções.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingEvolutions(false);
-    }
-  };
+  const addendumForm = useForm<AddendumFormData>({
+    resolver: zodResolver(addendumSchema),
+    defaultValues: {
+      reason: "",
+      content: "",
+    },
+  });
 
+  // Preenche formulário de anamnese quando carrega dados
   useEffect(() => {
-    if (patientId) {
-      fetchPatient();
-      fetchAnamnesis();
-      fetchEvolutions();
-    }
-  }, [patientId]);
-
-  // Função para expandir e carregar detalhes da evolução
-  const toggleEvolution = async (id: number) => {
-    if (expandedEvolutions[id]) {
-      setExpandedEvolutions((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
+    if (anamnesis) {
+      anamnesisForm.reset({
+        chief_complaint: anamnesis.chief_complaint,
+        history: anamnesis.history || "",
+        medications: anamnesis.medications || "",
+        family_history: anamnesis.family_history || "",
+        observations: anamnesis.observations || "",
       });
-      return;
     }
+  }, [anamnesis, anamnesisForm]);
 
-    setLoadingDetails((prev) => ({ ...prev, [id]: true }));
-    try {
-      const response = await api.get<EvolutionDetail>(`records/evolutions/${id}/`);
-      setExpandedEvolutions((prev) => ({ ...prev, [id]: response.data }));
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Erro ao buscar detalhes da evolução",
-        description: "Não foi possível carregar as informações clínicas desta sessão.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingDetails((prev) => ({ ...prev, [id]: false }));
-    }
+  // Expandir / Ocultar evolução
+  const toggleEvolution = (id: number) => {
+    setExpandedEvolutions((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
   };
 
-  // Trata submissão da anamnese (Criar ou Atualizar)
-  const handleSaveAnamnesis = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!anamnesisForm.chief_complaint.trim()) {
-      toast({
-        title: "Campo obrigatório",
-        description: "A queixa principal é obrigatória para salvar a anamnese.",
-        variant: "destructive",
-      });
-      return;
-    }
+  // Trata submissão da anamnese
+  const handleSaveAnamnesisSubmit = async (data: AnamnesisFormData) => {
+    const payload: Anamnesis = {
+      ...data,
+      chief_complaint: data.chief_complaint,
+      history: data.history || "",
+      medications: data.medications || "",
+      family_history: data.family_history || "",
+      observations: data.observations || "",
+    };
 
-    setSubmittingAnamnesis(true);
-    try {
-      if (anamnesis) {
-        // PUT para atualizar
-        const response = await api.put<Anamnesis>(`records/patients/${patientId}/anamnesis/`, {
-          chief_complaint: anamnesisForm.chief_complaint,
-          history: anamnesisForm.history,
-          medications: anamnesisForm.medications,
-          family_history: anamnesisForm.family_history,
-          observations: anamnesisForm.observations,
-        });
-        setAnamnesis(response.data);
-        toast({
-          title: "Anamnese atualizada",
-          description: "A ficha de anamnese foi atualizada com sucesso.",
-          variant: "success",
-        });
-      } else {
-        // POST para criar
-        const response = await api.post<Anamnesis>(`records/patients/${patientId}/anamnesis/`, {
-          chief_complaint: anamnesisForm.chief_complaint,
-          history: anamnesisForm.history,
-          medications: anamnesisForm.medications,
-          family_history: anamnesisForm.family_history,
-          observations: anamnesisForm.observations,
-        });
-        setAnamnesis(response.data);
-        toast({
-          title: "Anamnese criada",
-          description: "A ficha de anamnese inicial foi criada com sucesso.",
-          variant: "success",
-        });
+    saveAnamnesisMutation.mutate(
+      { data: payload, exists: !!anamnesis },
+      {
+        onSuccess: () => {
+          setIsEditingAnamnesis(false);
+          refetchAnamnesis();
+        },
       }
-      setIsEditingAnamnesis(false);
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Falha ao salvar",
-        description: "Não foi possível enviar os dados de anamnese.",
-        variant: "destructive",
-      });
-    } finally {
-      setSubmittingAnamnesis(false);
-    }
+    );
   };
 
   // Trata criação de evolução
-  const handleCreateEvolution = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newEvolutionForm.content.trim()) {
-      toast({
-        title: "Campo obrigatório",
-        description: "O conteúdo clínico da sessão não pode ficar em branco.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleCreateEvolutionSubmit = async (data: EvolutionFormData) => {
+    const payload = {
+      patient: patientId,
+      content: data.content,
+      cid10: data.cid10 || undefined,
+      session_date: data.session_date,
+    };
 
-    setSubmittingEvolution(true);
-    try {
-      await api.post("records/evolutions/", {
-        patient: Number(patientId),
-        content: newEvolutionForm.content,
-        cid10: newEvolutionForm.cid10,
-        session_date: newEvolutionForm.session_date,
-      });
-
-      toast({
-        title: "Evolução registrada!",
-        description: "A sessão foi criptografada e salva no prontuário eletrônico.",
-        variant: "success",
-      });
-
-      // Reseta formulário e atualiza a timeline
-      setNewEvolutionForm({
-        content: "",
-        cid10: "",
-        session_date: new Date().toISOString().split("T")[0],
-      });
-      fetchEvolutions();
-      setActiveTab("timeline");
-    } catch (error: any) {
-      console.error(error);
-      const serverError = error.response?.data?.session_date;
-      if (serverError) {
-        toast({
-          title: "Duplicidade de Data",
-          description: Array.isArray(serverError) ? serverError[0] : String(serverError),
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Erro ao registrar sessão",
-          description: "Não foi possível salvar a evolução clínica no servidor.",
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setSubmittingEvolution(false);
-    }
+    createEvolutionMutation.mutate(payload, {
+      onSuccess: () => {
+        newEvolutionForm.reset();
+        refetchEvolutions();
+        setActiveTab("timeline");
+      },
+    });
   };
 
-  // Trata adição de aditivo
-  const handleAddAddendum = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!addendumForm.reason.trim() || !addendumForm.content.trim()) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "O preenchimento de justificativa e conteúdo é obrigatório.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSubmittingAddendum(true);
-    try {
-      const response = await api.post<Addendum>(
-        `records/evolutions/${selectedEvolutionForAddendum}/addendum/`,
-        addendumForm
-      );
-
-      toast({
-        title: "Aditivo inserido!",
-        description: "O aditivo foi indexado com sucesso no prontuário histórico.",
-        variant: "success",
-      });
-
-      // Atualiza o cache da evolução expandida
-      if (selectedEvolutionForAddendum) {
-        const cached = expandedEvolutions[selectedEvolutionForAddendum];
-        if (cached) {
-          setExpandedEvolutions((prev) => ({
-            ...prev,
-            [selectedEvolutionForAddendum]: {
-              ...cached,
-              addenda: [...cached.addenda, response.data],
-              addenda_count: cached.addenda_count + 1,
-            },
-          }));
-        }
-        // Atualiza na lista geral de evoluções
-        setEvolutions((prev) =>
-          prev.map((item) =>
-            item.id === selectedEvolutionForAddendum
-              ? { ...item, addenda_count: item.addenda_count + 1 }
-              : item
-          )
-        );
-      }
-
-      setIsAddendumModalOpen(false);
-      setAddendumForm({ reason: "", content: "" });
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Erro ao salvar aditivo",
-        description: "Ocorreu uma falha ao anexar o aditivo clínico.",
-        variant: "destructive",
-      });
-    } finally {
-      setSubmittingAddendum(false);
-    }
-  };
-
-  // Trata edição de evolução ainda livre
-  const handleEditEvolution = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Trata edição de evolução
+  const handleEditEvolutionSubmit = async (data: EvolutionFormData) => {
     if (!selectedEvolutionForEdit) return;
-    if (!editEvolutionForm.content.trim()) {
-      toast({
-        title: "Conteúdo vazio",
-        description: "O conteúdo descritivo da evolução é obrigatório.",
-        variant: "destructive",
-      });
-      return;
-    }
 
-    setSubmittingEditEvolution(true);
-    try {
-      await api.put(
-        `records/evolutions/${selectedEvolutionForEdit.id}/`,
-        editEvolutionForm
-      );
+    updateEvolutionMutation.mutate(
+      {
+        content: data.content,
+        cid10: data.cid10 || undefined,
+        session_date: data.session_date,
+      },
+      {
+        onSuccess: () => {
+          setIsEditEvolutionModalOpen(false);
+          setSelectedEvolutionForEdit(null);
+          refetchEvolutions();
+        },
+      }
+    );
+  };
 
-      toast({
-        title: "Evolução editada!",
-        description: "As alterações da evolução clínica foram gravadas.",
-        variant: "success",
-      });
+  // Trata criação de aditivo
+  const handleAddAddendumSubmit = async (data: AddendumFormData) => {
+    if (!selectedEvolutionForAddendum) return;
 
-      // Atualiza lista e caches
-      fetchEvolutions();
-      setExpandedEvolutions((prev) => {
-        const next = { ...prev };
-        if (next[selectedEvolutionForEdit.id]) {
-          next[selectedEvolutionForEdit.id] = {
-            ...next[selectedEvolutionForEdit.id],
-            content: editEvolutionForm.content,
-            cid10: editEvolutionForm.cid10,
-            session_date: editEvolutionForm.session_date,
-          };
-        }
-        return next;
-      });
-
-      setIsEditEvolutionModalOpen(false);
-      setSelectedEvolutionForEdit(null);
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Erro ao editar evolução",
-        description: "Não foi possível salvar as alterações da sessão.",
-        variant: "destructive",
-      });
-    } finally {
-      setSubmittingEditEvolution(false);
-    }
+    createAddendumMutation.mutate(data, {
+      onSuccess: () => {
+        setIsAddendumModalOpen(false);
+        addendumForm.reset();
+        refetchEvolutions();
+      },
+    });
   };
 
   if (loadingPatient) {
@@ -522,7 +274,7 @@ export default function RecordDetailPage() {
               Prontuário Clínico: {patient.full_name}
             </h1>
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-              <span>{patient.age} anos</span>
+              {patient.age !== undefined && <span>{patient.age} anos</span>}
               <span>•</span>
               <span>Telefone: {patient.phone || "---"}</span>
               <span>•</span>
@@ -557,7 +309,7 @@ export default function RecordDetailPage() {
           }`}
         >
           <History className="h-4 w-4" />
-          Histórico de Evoluções ({evolutions.length})
+          Histórico de Evoluções ({evolutionsList.length})
         </button>
 
         <button
@@ -601,7 +353,7 @@ export default function RecordDetailPage() {
                 <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                 <span className="text-xs text-muted-foreground">Carregando histórico...</span>
               </div>
-            ) : evolutions.length === 0 ? (
+            ) : evolutionsList.length === 0 ? (
               <Card className="border-border/80 bg-card shadow-xs p-12 text-center flex flex-col items-center justify-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground">
                   <ClipboardList className="h-5 w-5" />
@@ -615,150 +367,29 @@ export default function RecordDetailPage() {
               </Card>
             ) : (
               <div className="relative border-l border-border pl-6 ml-4 space-y-4">
-                {evolutions.map((ev) => {
+                {evolutionsList.map((ev) => {
                   const isExpanded = !!expandedEvolutions[ev.id];
-                  const isLoadingDetailsForThis = !!loadingDetails[ev.id];
-                  const details = expandedEvolutions[ev.id];
-
                   return (
-                    <div key={ev.id} className="relative group">
-                      {/* Indicador de Timeline */}
-                      <div className={`absolute -left-[31px] top-2 h-2.5 w-2.5 rounded-full border border-background transition-colors ${
-                        ev.is_locked ? "bg-muted-foreground" : "bg-primary animate-pulse"
-                      }`} />
-
-                      <Card className="border-border/80 bg-card shadow-xs overflow-hidden">
-                        {/* Cabeçalho do Card */}
-                        <div
-                          onClick={() => toggleEvolution(ev.id)}
-                          className="p-4 flex items-center justify-between gap-4 cursor-pointer select-none hover:bg-secondary/20 transition-colors"
-                        >
-                          <div className="space-y-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-sm font-semibold text-foreground">
-                                Sessão em {new Date(ev.session_date).toLocaleDateString("pt-BR")}
-                              </span>
-                              {ev.cid10 && (
-                                <span className="inline-flex px-1.5 py-0.5 rounded-sm bg-secondary text-muted-foreground text-[9px] font-bold uppercase tracking-wider">
-                                  CID: {ev.cid10}
-                                </span>
-                              )}
-                              {ev.is_locked ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground font-semibold bg-secondary px-1.5 py-0.5 rounded-sm border border-border">
-                                  <Lock className="h-3 w-3" /> Bloqueado
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-[10px] text-primary font-semibold bg-primary/10 px-1.5 py-0.5 rounded-sm border border-primary/20">
-                                  <LockOpen className="h-3 w-3" /> Editável
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[10px] text-muted-foreground">
-                              Registrado por {ev.created_by_name} • {new Date(ev.created_at).toLocaleDateString("pt-BR")}
-                            </p>
-                          </div>
-
-                          <div className="flex items-center gap-3">
-                            {ev.addenda_count > 0 && (
-                              <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-sm font-semibold">
-                                {ev.addenda_count} aditivo{ev.addenda_count > 1 ? "s" : ""}
-                              </span>
-                            )}
-                            {isLoadingDetailsForThis ? (
-                              <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                            ) : isExpanded ? (
-                              <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Corpo Expandido */}
-                        {isExpanded && details && (
-                          <div className="border-t border-border/60 bg-secondary/10 p-4 space-y-4">
-                            {/* Conteúdo Clínico */}
-                            <div className="space-y-1.5">
-                              <h5 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                                <Stethoscope className="h-3.5 w-3.5" />
-                                Evolução Clínica da Sessão
-                              </h5>
-                              <div className="text-xs text-foreground whitespace-pre-wrap leading-relaxed bg-card p-3 rounded-md border border-border/80 font-medium">
-                                {details.content}
-                              </div>
-                            </div>
-
-                            {/* Aditivos */}
-                            {details.addenda.length > 0 && (
-                              <div className="space-y-2">
-                                <h5 className="text-[10px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
-                                  <History className="h-3.5 w-3.5" />
-                                  Histórico de Aditivos e Retificações (LGPD)
-                                </h5>
-                                <div className="space-y-2">
-                                  {details.addenda.map((ad) => (
-                                    <div key={ad.id} className="p-3 rounded-md border border-border bg-card space-y-1">
-                                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                                        <span className="font-semibold text-primary">Justificativa: {ad.reason}</span>
-                                        <span>
-                                          Por {ad.created_by.full_name} • {new Date(ad.created_at).toLocaleString("pt-BR")}
-                                        </span>
-                                      </div>
-                                      <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed">
-                                        {ad.content}
-                                      </p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Ações da Evolução */}
-                            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/40 justify-end">
-                              {ev.is_locked ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setSelectedEvolutionForAddendum(ev.id);
-                                    setIsAddendumModalOpen(true);
-                                  }}
-                                  leftIcon={<MessageSquarePlus className="h-3.5 w-3.5" />}
-                                  className="text-xs font-semibold cursor-pointer"
-                                >
-                                  Inserir Aditivo
-                                </Button>
-                              ) : (
-                                <>
-                                  {details.is_editable ? (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => {
-                                        setSelectedEvolutionForEdit(details);
-                                        setEditEvolutionForm({
-                                          content: details.content,
-                                          cid10: details.cid10 || "",
-                                          session_date: details.session_date,
-                                        });
-                                        setIsEditEvolutionModalOpen(true);
-                                      }}
-                                      className="text-xs font-semibold"
-                                    >
-                                      Editar Conteúdo
-                                    </Button>
-                                  ) : (
-                                    <p className="text-[10px] text-muted-foreground italic">
-                                      Apenas o terapeuta autor ({details.created_by.full_name}) pode modificar esta evolução.
-                                    </p>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </Card>
-                    </div>
+                    <EvolutionCard
+                      key={ev.id}
+                      evolution={ev}
+                      isExpanded={isExpanded}
+                      onToggle={() => toggleEvolution(ev.id)}
+                      onAddAddendum={() => {
+                        setSelectedEvolutionForAddendum(ev.id);
+                        addendumForm.reset();
+                        setIsAddendumModalOpen(true);
+                      }}
+                      onEdit={(details) => {
+                        setSelectedEvolutionForEdit(ev);
+                        editEvolutionForm.reset({
+                          content: details.content,
+                          cid10: details.cid10 || "",
+                          session_date: details.session_date,
+                        });
+                        setIsEditEvolutionModalOpen(true);
+                      }}
+                    />
                   );
                 })}
               </div>
@@ -788,7 +419,7 @@ export default function RecordDetailPage() {
                 <Button
                   size="sm"
                   onClick={() => {
-                    setAnamnesisForm({
+                    anamnesisForm.reset({
                       chief_complaint: "",
                       history: "",
                       medications: "",
@@ -804,7 +435,7 @@ export default function RecordDetailPage() {
                 </Button>
               </Card>
             ) : isEditingAnamnesis ? (
-              <form onSubmit={handleSaveAnamnesis} className="space-y-4">
+              <form onSubmit={anamnesisForm.handleSubmit(handleSaveAnamnesisSubmit)} className="space-y-4" noValidate>
                 <Card className="border-border/80 bg-card shadow-xs">
                   <CardHeader className="pb-3 border-b border-border/40">
                     <CardTitle className="text-base font-bold text-foreground">
@@ -815,45 +446,58 @@ export default function RecordDetailPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="p-5 space-y-4 mt-2">
-                    <Textarea
-                      label="Queixa Principal *"
-                      placeholder="Principal motivo, sintomas, demandas clínicas que trouxeram o paciente..."
-                      value={anamnesisForm.chief_complaint}
-                      onChange={(e) => setAnamnesisForm({ ...anamnesisForm, chief_complaint: e.target.value })}
-                      required
-                      className="min-h-[100px]"
-                    />
+                    <div className="space-y-1">
+                      <Textarea
+                        id="anamnesis-chief-complaint"
+                        label="Queixa Principal *"
+                        placeholder="Principal motivo, sintomas, demandas clínicas que trouxeram o paciente..."
+                        aria-invalid={!!anamnesisForm.formState.errors.chief_complaint}
+                        aria-describedby={anamnesisForm.formState.errors.chief_complaint ? "anamnesis-chief-error" : undefined}
+                        error={anamnesisForm.formState.errors.chief_complaint?.message}
+                        className="min-h-[100px]"
+                        {...anamnesisForm.register("chief_complaint")}
+                      />
+                      {anamnesisForm.formState.errors.chief_complaint && (
+                        <p id="anamnesis-chief-error" className="text-xs text-destructive animate-fade-in" role="alert">
+                          {anamnesisForm.formState.errors.chief_complaint.message}
+                        </p>
+                      )}
+                    </div>
 
                     <Textarea
+                      id="anamnesis-history"
                       label="Histórico Clínico"
                       placeholder="Diagnósticos prévios, tratamentos anteriores, histórico médico..."
-                      value={anamnesisForm.history}
-                      onChange={(e) => setAnamnesisForm({ ...anamnesisForm, history: e.target.value })}
+                      error={anamnesisForm.formState.errors.history?.message}
                       className="min-h-[90px]"
+                      {...anamnesisForm.register("history")}
                     />
 
                     <Textarea
+                      id="anamnesis-medications"
                       label="Medicações em Uso"
                       placeholder="Nome dos remédios, dosagens, frequências e finalidades..."
-                      value={anamnesisForm.medications}
-                      onChange={(e) => setAnamnesisForm({ ...anamnesisForm, medications: e.target.value })}
+                      error={anamnesisForm.formState.errors.medications?.message}
                       className="min-h-[80px]"
+                      {...anamnesisForm.register("medications")}
                     />
 
                     <Textarea
+                      id="anamnesis-family"
                       label="Histórico Familiar"
                       placeholder="Doenças psiquiátricas, genéticas ou dinâmicas familiares relevantes..."
-                      value={anamnesisForm.family_history}
-                      onChange={(e) => setAnamnesisForm({ ...anamnesisForm, family_history: e.target.value })}
+                      error={anamnesisForm.formState.errors.family_history?.message}
                       className="min-h-[80px]"
+                      {...anamnesisForm.register("family_history")}
                     />
 
                     <Textarea
+                      id="anamnesis-observations"
                       label="Observações Gerais"
                       placeholder="Anotações complementares ou percepções preliminares do terapeuta..."
-                      value={anamnesisForm.observations}
-                      onChange={(e) => setAnamnesisForm({ ...anamnesisForm, observations: e.target.value })}
+                      error={anamnesisForm.formState.errors.observations?.message}
                       className="min-h-[80px]"
+                      {...anamnesisForm.register("observations")}
                     />
                   </CardContent>
                 </Card>
@@ -868,7 +512,7 @@ export default function RecordDetailPage() {
                   </Button>
                   <Button
                     type="submit"
-                    isLoading={submittingAnamnesis}
+                    isLoading={saveAnamnesisMutation.isPending}
                     leftIcon={<Save className="h-4 w-4" />}
                     className="text-white font-semibold"
                   >
@@ -888,7 +532,6 @@ export default function RecordDetailPage() {
                   <Button
                     size="sm"
                     onClick={() => {
-                      setAnamnesisForm(anamnesis!);
                       setIsEditingAnamnesis(true);
                     }}
                     className="text-white font-semibold"
@@ -937,36 +580,45 @@ export default function RecordDetailPage() {
               <CardHeader className="pb-3 border-b border-border/40">
                 <CardTitle className="text-base font-bold text-foreground">Registrar Evolução de Sessão</CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
-                  Grave as anotações sobre a sessão do paciente. Estes dados clínicos serão criptografados e não podem ser apagados após registro.
+                  Grave as anotações sobre a sessão do paciente. Estes dados clínicos serão criptografados e não podem ser apagados após o prazo regulatório.
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-5 mt-2">
-                <form onSubmit={handleCreateEvolution} className="space-y-4">
+                <form onSubmit={newEvolutionForm.handleSubmit(handleCreateEvolutionSubmit)} className="space-y-4" noValidate>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Input
-                      label="Data da Sessão *"
-                      type="date"
-                      value={newEvolutionForm.session_date}
-                      onChange={(e) => setNewEvolutionForm({ ...newEvolutionForm, session_date: e.target.value })}
-                      required
-                    />
+                    <div className="space-y-1">
+                      <Input
+                        id="new-session-date"
+                        label="Data da Sessão *"
+                        type="date"
+                        aria-invalid={!!newEvolutionForm.formState.errors.session_date}
+                        error={newEvolutionForm.formState.errors.session_date?.message}
+                        {...newEvolutionForm.register("session_date")}
+                      />
+                    </div>
 
-                    <Input
-                      label="Código CID-10 (opcional)"
-                      placeholder="Ex: F41.1"
-                      value={newEvolutionForm.cid10}
-                      onChange={(e) => setNewEvolutionForm({ ...newEvolutionForm, cid10: e.target.value })}
-                    />
+                    <div className="space-y-1">
+                      <Input
+                        id="new-cid"
+                        label="Código CID-10 (opcional)"
+                        placeholder="Ex: F41.1"
+                        error={newEvolutionForm.formState.errors.cid10?.message}
+                        {...newEvolutionForm.register("cid10")}
+                      />
+                    </div>
                   </div>
 
-                  <Textarea
-                    label="Conteúdo Clínico da Sessão *"
-                    placeholder="Escreva os detalhes, progresso, técnicas aplicadas e percepções sobre a sessão..."
-                    value={newEvolutionForm.content}
-                    onChange={(e) => setNewEvolutionForm({ ...newEvolutionForm, content: e.target.value })}
-                    required
-                    className="min-h-[200px]"
-                  />
+                  <div className="space-y-1">
+                    <Textarea
+                      id="new-content"
+                      label="Conteúdo Clínico da Sessão *"
+                      placeholder="Escreva os detalhes, progresso, técnicas aplicadas e percepções sobre a sessão..."
+                      aria-invalid={!!newEvolutionForm.formState.errors.content}
+                      error={newEvolutionForm.formState.errors.content?.message}
+                      className="min-h-[200px]"
+                      {...newEvolutionForm.register("content")}
+                    />
+                  </div>
 
                   <div className="flex gap-3 justify-end pt-4 border-t border-border/40">
                     <Button
@@ -978,7 +630,7 @@ export default function RecordDetailPage() {
                     </Button>
                     <Button
                       type="submit"
-                      isLoading={submittingEvolution}
+                      isLoading={createEvolutionMutation.isPending}
                       className="text-white font-semibold"
                     >
                       Criptografar e Salvar Evolução
@@ -991,34 +643,40 @@ export default function RecordDetailPage() {
         )}
       </div>
 
-      {/* MODAL DE ADITIVO (EVOLUTION ADDENDUM) */}
+      {/* MODAL DE ADITIVO */}
       <Modal
         isOpen={isAddendumModalOpen}
         onClose={() => {
           setIsAddendumModalOpen(false);
-          setAddendumForm({ reason: "", content: "" });
+          addendumForm.reset();
         }}
         title="Inserir Aditivo de Evolução"
         description="Em conformidade com a LGPD e resoluções do CFP, prontuários travados não podem ser alterados diretamente. Você pode adicionar aditivos ou retificações ao final do documento."
         className="max-w-lg"
       >
-        <form onSubmit={handleAddAddendum} className="space-y-4">
-          <Input
-            label="Motivo do Aditivo *"
-            placeholder="Ex: Correção de informação, detalhe clínico omitido..."
-            value={addendumForm.reason}
-            onChange={(e) => setAddendumForm({ ...addendumForm, reason: e.target.value })}
-            required
-          />
+        <form onSubmit={addendumForm.handleSubmit(handleAddAddendumSubmit)} className="space-y-4" noValidate>
+          <div className="space-y-1">
+            <Input
+              id="addendum-reason"
+              label="Motivo do Aditivo *"
+              placeholder="Ex: Retificação de informação, detalhe clínico omitido..."
+              aria-invalid={!!addendumForm.formState.errors.reason}
+              error={addendumForm.formState.errors.reason?.message}
+              {...addendumForm.register("reason")}
+            />
+          </div>
 
-          <Textarea
-            label="Conteúdo do Aditivo *"
-            placeholder="Digite o texto adicional do prontuário..."
-            value={addendumForm.content}
-            onChange={(e) => setAddendumForm({ ...addendumForm, content: e.target.value })}
-            required
-            className="min-h-[120px]"
-          />
+          <div className="space-y-1">
+            <Textarea
+              id="addendum-content"
+              label="Conteúdo do Aditivo *"
+              placeholder="Digite o texto adicional do prontuário..."
+              aria-invalid={!!addendumForm.formState.errors.content}
+              error={addendumForm.formState.errors.content?.message}
+              className="min-h-[120px]"
+              {...addendumForm.register("content")}
+            />
+          </div>
 
           <div className="flex gap-3 justify-end pt-4 border-t border-border/40">
             <Button
@@ -1026,14 +684,14 @@ export default function RecordDetailPage() {
               variant="outline"
               onClick={() => {
                 setIsAddendumModalOpen(false);
-                setAddendumForm({ reason: "", content: "" });
+                addendumForm.reset();
               }}
             >
               Cancelar
             </Button>
             <Button
               type="submit"
-              isLoading={submittingAddendum}
+              isLoading={createAddendumMutation.isPending}
               className="text-white font-semibold"
             >
               Confirmar Aditivo
@@ -1053,32 +711,41 @@ export default function RecordDetailPage() {
         description="Esta evolução ainda não atingiu o limite de 48 horas e está desbloqueada para correções diretas."
         className="max-w-xl"
       >
-        <form onSubmit={handleEditEvolution} className="space-y-4">
+        <form onSubmit={editEvolutionForm.handleSubmit(handleEditEvolutionSubmit)} className="space-y-4" noValidate>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="Data da Sessão *"
-              type="date"
-              value={editEvolutionForm.session_date}
-              onChange={(e) => setEditEvolutionForm({ ...editEvolutionForm, session_date: e.target.value })}
-              required
-            />
+            <div className="space-y-1">
+              <Input
+                id="edit-session-date"
+                label="Data da Sessão *"
+                type="date"
+                aria-invalid={!!editEvolutionForm.formState.errors.session_date}
+                error={editEvolutionForm.formState.errors.session_date?.message}
+                {...editEvolutionForm.register("session_date")}
+              />
+            </div>
 
-            <Input
-              label="Código CID-10 (opcional)"
-              placeholder="Ex: F41.1"
-              value={editEvolutionForm.cid10}
-              onChange={(e) => setEditEvolutionForm({ ...editEvolutionForm, cid10: e.target.value })}
-            />
+            <div className="space-y-1">
+              <Input
+                id="edit-cid"
+                label="Código CID-10 (opcional)"
+                placeholder="Ex: F41.1"
+                error={editEvolutionForm.formState.errors.cid10?.message}
+                {...editEvolutionForm.register("cid10")}
+              />
+            </div>
           </div>
 
-          <Textarea
-            label="Conteúdo Clínico da Sessão *"
-            placeholder="Edite os detalhes da sessão de terapia..."
-            value={editEvolutionForm.content}
-            onChange={(e) => setEditEvolutionForm({ ...editEvolutionForm, content: e.target.value })}
-            required
-            className="min-h-[160px]"
-          />
+          <div className="space-y-1">
+            <Textarea
+              id="edit-content"
+              label="Conteúdo Clínico da Sessão *"
+              placeholder="Edite os detalhes da sessão de terapia..."
+              aria-invalid={!!editEvolutionForm.formState.errors.content}
+              error={editEvolutionForm.formState.errors.content?.message}
+              className="min-h-[160px]"
+              {...editEvolutionForm.register("content")}
+            />
+          </div>
 
           <div className="flex gap-3 justify-end pt-4 border-t border-border/40">
             <Button
@@ -1093,7 +760,7 @@ export default function RecordDetailPage() {
             </Button>
             <Button
               type="submit"
-              isLoading={submittingEditEvolution}
+              isLoading={updateEvolutionMutation.isPending}
               className="text-white font-semibold"
             >
               Salvar Alterações
@@ -1101,6 +768,150 @@ export default function RecordDetailPage() {
           </div>
         </form>
       </Modal>
+    </div>
+  );
+}
+
+// Subcomponente para renderizar cada evolução individual da timeline
+interface EvolutionCardProps {
+  evolution: EvolutionListItem;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onAddAddendum: () => void;
+  onEdit: (details: EvolutionDetail) => void;
+}
+
+function EvolutionCard({ evolution, isExpanded, onToggle, onAddAddendum, onEdit }: EvolutionCardProps) {
+  // Carrega os detalhes via Query apenas quando expandido
+  const { data: details, isLoading } = useRecord(isExpanded ? evolution.id : undefined);
+
+  return (
+    <div className="relative group">
+      {/* Indicador de Timeline */}
+      <div className={`absolute -left-[31px] top-2 h-2.5 w-2.5 rounded-full border border-background transition-colors ${
+        evolution.is_locked ? "bg-muted-foreground" : "bg-primary animate-pulse"
+      }`} />
+
+      <Card className="border-border/80 bg-card shadow-xs overflow-hidden">
+        {/* Cabeçalho do Card */}
+        <div
+          onClick={onToggle}
+          className="p-4 flex items-center justify-between gap-4 cursor-pointer select-none hover:bg-secondary/20 transition-colors"
+        >
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-semibold text-foreground">
+                Sessão em {new Date(evolution.session_date).toLocaleDateString("pt-BR")}
+              </span>
+              {evolution.cid10 && (
+                <span className="inline-flex px-1.5 py-0.5 rounded-sm bg-secondary text-muted-foreground text-[9px] font-bold uppercase tracking-wider">
+                  CID: {evolution.cid10}
+                </span>
+              )}
+              {evolution.is_locked ? (
+                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground font-semibold bg-secondary px-1.5 py-0.5 rounded-sm border border-border">
+                  <Lock className="h-3 w-3" /> Bloqueado
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[10px] text-primary font-semibold bg-primary/10 px-1.5 py-0.5 rounded-sm border border-primary/20">
+                  <LockOpen className="h-3 w-3" /> Editável
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Registrado por {evolution.created_by_name} • {new Date(evolution.created_at).toLocaleDateString("pt-BR")}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {evolution.addenda_count > 0 && (
+              <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-sm font-semibold">
+                {evolution.addenda_count} aditivo{evolution.addenda_count > 1 ? "s" : ""}
+              </span>
+            )}
+            {isLoading ? (
+              <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            ) : isExpanded ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+        </div>
+
+        {/* Corpo Expandido */}
+        {isExpanded && !isLoading && details && (
+          <div className="border-t border-border/60 bg-secondary/10 p-4 space-y-4">
+            {/* Conteúdo Clínico */}
+            <div className="space-y-1.5">
+              <h5 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Stethoscope className="h-3.5 w-3.5" />
+                Evolução Clínica da Sessão
+              </h5>
+              <div className="text-xs text-foreground whitespace-pre-wrap leading-relaxed bg-card p-3 rounded-md border border-border/80 font-medium">
+                {details.content}
+              </div>
+            </div>
+
+            {/* Aditivos */}
+            {details.addenda.length > 0 && (
+              <div className="space-y-2">
+                <h5 className="text-[10px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                  <History className="h-3.5 w-3.5" />
+                  Histórico de Aditivos e Retificações (LGPD)
+                </h5>
+                <div className="space-y-2">
+                  {details.addenda.map((ad) => (
+                    <div key={ad.id} className="p-3 rounded-md border border-border bg-card space-y-1">
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span className="font-semibold text-primary">Justificativa: {ad.reason}</span>
+                        <span>
+                          Por {ad.created_by.full_name} • {new Date(ad.created_at).toLocaleString("pt-BR")}
+                        </span>
+                      </div>
+                      <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed">
+                        {ad.content}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Ações da Evolução */}
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/40 justify-end">
+              {evolution.is_locked ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onAddAddendum}
+                  leftIcon={<MessageSquarePlus className="h-3.5 w-3.5" />}
+                  className="text-xs font-semibold cursor-pointer"
+                >
+                  Inserir Aditivo
+                </Button>
+              ) : (
+                <>
+                  {details.is_editable ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onEdit(details)}
+                      className="text-xs font-semibold"
+                    >
+                      Editar Conteúdo
+                    </Button>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground italic">
+                      Apenas o terapeuta autor ({details.created_by.full_name}) pode modificar esta evolução.
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

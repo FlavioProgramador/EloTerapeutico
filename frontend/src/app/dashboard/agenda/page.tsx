@@ -1,6 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -17,48 +20,23 @@ import {
   AlertTriangle,
   Eye,
 } from "lucide-react";
-import { useToast } from "@/contexts/toast";
-import { useAuth } from "@/contexts/auth";
-import { api } from "@/lib/api";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { toast } from "sonner";
+
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
+import { cn } from "@/lib/utils";
 
-interface Patient {
-  id: number;
-  full_name: string;
-  phone: string;
-  email: string;
-  status: string;
-}
-
-interface Appointment {
-  id: number;
-  patient_name: string;
-  therapist_name: string;
-  start_time: string;
-  end_time: string;
-  duration_display: string;
-  status: "scheduled" | "confirmed" | "missed" | "cancelled" | "rescheduled" | "completed";
-  status_display: string;
-  session_value: string;
-  is_recurring: boolean;
-}
-
-interface AppointmentDetail extends Appointment {
-  notes: string;
-  cancellation_reason: string;
-  recurrence_rule?: string;
-  parent_appointment?: number;
-}
-
-interface TimeSlot {
-  start: string;
-  end: string;
-  start_datetime: string;
-  end_datetime: string;
-}
+import { usePatients } from "@/features/patients/hooks/use-patients";
+import {
+  useAppointments,
+  useAppointment,
+  useCreateAppointment,
+  useUpdateAppointmentStatus,
+  useAvailableSlots,
+} from "@/features/agenda/hooks/use-agenda";
+import type { TimeSlot } from "@/features/agenda/services/agenda.service";
 
 const MONTHS = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -67,20 +45,27 @@ const MONTHS = [
 
 const DAYS_OF_WEEK = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-export default function AgendaPage() {
-  const { user } = useAuth();
-  const { toast } = useToast();
+const agendaFormSchema = z.object({
+  patientId: z.string().min(1, "Selecione o paciente."),
+  date: z.string().min(1, "Data é obrigatória."),
+  duration: z.number(),
+  useTimeSlots: z.boolean(),
+  selectedSlot: z.string().optional(),
+  manualStart: z.string().optional(),
+  manualEnd: z.string().optional(),
+  sessionValue: z.string().min(1, "Valor da sessão é obrigatório."),
+  isRecurring: z.boolean(),
+  recurrenceRule: z.string(),
+  notes: z.string().optional(),
+});
+type AgendaFormData = z.infer<typeof agendaFormSchema>;
 
-  // Estados principais
+export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [patients, setPatients] = useState<Patient[]>([]);
 
   // Detalhe de consulta
-  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentDetail | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Modais de ações
@@ -88,104 +73,85 @@ export default function AgendaPage() {
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
 
-  // Formulário de novo agendamento
-  const [newApptForm, setNewApptForm] = useState({
-    patientId: "",
-    date: new Date().toISOString().split("T")[0],
-    useTimeSlots: true,
-    duration: 50,
-    selectedSlot: "",
-    manualStart: "09:00",
-    manualEnd: "09:50",
-    sessionValue: "180.00",
-    isRecurring: false,
-    recurrenceRule: "WEEKLY",
-    notes: "",
+  // React Query para buscar pacientes
+  const { data: patientsData } = usePatients({ status: "active" });
+  const activePatients = patientsData?.results || [];
+
+  // Filtra o mês inteiro
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const startOfMonth = new Date(year, month, 1).toISOString();
+  const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+
+  // Busca agendamentos do período
+  const {
+    data: appointments = [],
+    isLoading: loadingAppointments,
+    refetch: refetchAppointments,
+  } = useAppointments({
+    start_time_gte: startOfMonth,
+    start_time_lte: endOfMonth,
   });
 
-  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
-  const [loadingSlots, setLoadingSlots] = useState(false);
-  const [submittingAppt, setSubmittingAppt] = useState(false);
+  // Busca detalhes de um agendamento específico
+  const { data: selectedAppointmentDetails, isLoading: loadingDetail } = useAppointment(
+    selectedAppointmentId || undefined
+  );
 
-  // Busca agendamentos do mês atual
-  const fetchAppointments = async () => {
-    setIsLoading(true);
-    try {
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
-      
-      // Filtra o mês inteiro
-      const startOfMonth = new Date(year, month, 1).toISOString();
-      const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+  // Mutações
+  const createAppointmentMutation = useCreateAppointment();
+  const updateStatusMutation = useUpdateAppointmentStatus();
 
-      const response = await api.get("agenda/appointments/", {
-        params: {
-          start_time_gte: startOfMonth,
-          start_time_lte: endOfMonth,
-        },
-      });
+  // Form com React Hook Form + Zod
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<AgendaFormData>({
+    resolver: zodResolver(agendaFormSchema),
+    defaultValues: {
+      patientId: "",
+      date: new Date().toISOString().split("T")[0],
+      duration: 50,
+      useTimeSlots: true,
+      selectedSlot: "",
+      manualStart: "09:00",
+      manualEnd: "09:50",
+      sessionValue: "180.00",
+      isRecurring: false,
+      recurrenceRule: "WEEKLY",
+      notes: "",
+    },
+  });
 
-      const data = Array.isArray(response.data) ? response.data : (response.data as any).results || [];
-      setAppointments(data);
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Erro ao buscar agenda",
-        description: "Não foi possível carregar as consultas do período.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const watchDate = watch("date");
+  const watchDuration = watch("duration");
+  const watchUseTimeSlots = watch("useTimeSlots");
+  const watchIsRecurring = watch("isRecurring");
 
-  // Busca pacientes
-  const fetchPatients = async () => {
-    try {
-      const response = await api.get("patients/");
-      const data = Array.isArray(response.data) ? response.data : (response.data as any).results || [];
-      // Apenas pacientes ativos
-      setPatients(data.filter((p: any) => p.status === "active"));
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  // Query de horários disponíveis
+  const { data: availableSlots = [], isLoading: loadingSlots } = useAvailableSlots(
+    watchDate,
+    watchDuration,
+    isNewModalOpen && watchUseTimeSlots
+  );
 
+  // Auto-seleciona primeiro slot retornado
   useEffect(() => {
-    fetchAppointments();
-  }, [currentDate]);
-
-  useEffect(() => {
-    fetchPatients();
-  }, []);
-
-  // Busca slots de disponibilidade quando muda a data ou duração no formulário
-  const checkAvailability = async (dateStr: string, duration: number) => {
-    if (!dateStr) return;
-    setLoadingSlots(true);
-    setAvailableSlots([]);
-    try {
-      const response = await api.post<TimeSlot[]>("agenda/appointments/check-availability/", {
-        date: dateStr,
-        duration: duration,
-      });
-      setAvailableSlots(response.data);
-      if (response.data.length > 0) {
-        setNewApptForm(prev => ({ ...prev, selectedSlot: JSON.stringify(response.data[0]) }));
-      }
-    } catch (error) {
-      console.error("Falha ao buscar slots:", error);
-    } finally {
-      setLoadingSlots(false);
+    if (availableSlots.length > 0) {
+      setValue("selectedSlot", JSON.stringify(availableSlots[0]));
+    } else {
+      setValue("selectedSlot", "");
     }
-  };
+  }, [availableSlots, setValue]);
 
-  // Efeito para recarregar slots disponíveis
+  // Busca agendamentos do mês quando muda currentDate
   useEffect(() => {
-    if (isNewModalOpen && newApptForm.useTimeSlots) {
-      checkAvailability(newApptForm.date, newApptForm.duration);
-    }
-  }, [newApptForm.date, newApptForm.duration, newApptForm.useTimeSlots, isNewModalOpen]);
+    refetchAppointments();
+  }, [currentDate, refetchAppointments]);
 
   // Navegar meses
   const prevMonth = () => {
@@ -197,163 +163,84 @@ export default function AgendaPage() {
   };
 
   const setToday = () => {
-    const today = new Date();
-    setCurrentDate(today);
-    setSelectedDate(today);
+    const todayDate = new Date();
+    setCurrentDate(todayDate);
+    setSelectedDate(todayDate);
   };
 
-  // Verifica detalhes da consulta ao clicar nela
-  const openAppointmentDetails = async (appt: Appointment) => {
-    setLoadingDetail(true);
-    setSelectedAppointment(null);
+  // Abre os detalhes
+  const openAppointmentDetails = (apptId: number) => {
+    setSelectedAppointmentId(apptId);
     setIsDetailModalOpen(true);
-    try {
-      const response = await api.get<AppointmentDetail>(`agenda/appointments/${appt.id}/`);
-      setSelectedAppointment(response.data);
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Erro ao buscar detalhes",
-        description: "Não foi possível carregar as informações do agendamento.",
-        variant: "destructive",
-      });
-      setIsDetailModalOpen(false);
-    } finally {
-      setLoadingDetail(false);
-    }
   };
 
-  // Ações de Status rápida
+  // Atualização rápida de status
   const updateStatus = async (apptId: number, statusStr: string, reason?: string) => {
-    try {
-      const payload: any = { status: statusStr };
-      if (reason) payload.cancellation_reason = reason;
-
-      await api.patch(`agenda/appointments/${apptId}/status/`, payload);
-      
-      toast({
-        title: "Status atualizado!",
-        description: `O agendamento foi atualizado com sucesso.`,
-        variant: "success",
-      });
-
-      // Atualiza listagem local
-      fetchAppointments();
-      
-      // Fecha modais e limpa
-      setIsCancelModalOpen(false);
-      setCancellationReason("");
-      setIsDetailModalOpen(false);
-      setSelectedAppointment(null);
-    } catch (error: any) {
-      console.error(error);
-      const serverMsg = error.response?.data?.status?.[0] || error.response?.data?.cancellation_reason?.[0];
-      toast({
-        title: "Erro ao atualizar status",
-        description: serverMsg || "Não foi possível mudar o status desta consulta.",
-        variant: "destructive",
-      });
-    }
+    updateStatusMutation.mutate(
+      { id: apptId, status: statusStr, cancellationReason: reason },
+      {
+        onSuccess: () => {
+          refetchAppointments();
+          setIsCancelModalOpen(false);
+          setCancellationReason("");
+          setIsDetailModalOpen(false);
+          setSelectedAppointmentId(null);
+        },
+      }
+    );
   };
 
-  // Salva novo agendamento
-  const handleCreateAppointment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newApptForm.patientId) {
-      toast({
-        title: "Selecione o paciente",
-        description: "É obrigatório associar a consulta a um paciente.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSubmittingAppt(true);
-
+  // Criação da consulta
+  const onSubmit = async (data: AgendaFormData) => {
     let startTimeStr = "";
     let endTimeStr = "";
 
-    if (newApptForm.useTimeSlots) {
-      if (!newApptForm.selectedSlot) {
-        toast({
-          title: "Selecione um horário",
-          description: "Nenhum horário livre selecionado.",
-          variant: "destructive",
-        });
-        setSubmittingAppt(false);
+    if (data.useTimeSlots) {
+      if (!data.selectedSlot) {
+        toast.error("Selecione um horário", { description: "Nenhum horário livre disponível." });
         return;
       }
-      const slotObj: TimeSlot = JSON.parse(newApptForm.selectedSlot);
+      const slotObj: TimeSlot = JSON.parse(data.selectedSlot);
       startTimeStr = slotObj.start_datetime;
       endTimeStr = slotObj.end_datetime;
     } else {
-      startTimeStr = `${newApptForm.date}T${newApptForm.manualStart}:00`;
-      endTimeStr = `${newApptForm.date}T${newApptForm.manualEnd}:00`;
+      startTimeStr = `${data.date}T${data.manualStart}:00`;
+      endTimeStr = `${data.date}T${data.manualEnd}:00`;
     }
 
-    try {
-      const payload = {
-        patient: Number(newApptForm.patientId),
-        start_time: startTimeStr,
-        end_time: endTimeStr,
-        notes: newApptForm.notes,
-        session_value: newApptForm.sessionValue,
-        is_recurring: newApptForm.isRecurring,
-        recurrence_rule: newApptForm.isRecurring ? newApptForm.recurrenceRule : null,
-      };
+    const payload = {
+      patient: Number(data.patientId),
+      start_time: startTimeStr,
+      end_time: endTimeStr,
+      notes: data.notes || "",
+      session_value: data.sessionValue,
+      is_recurring: data.isRecurring,
+      recurrence_rule: data.isRecurring ? data.recurrenceRule : null,
+    };
 
-      await api.post("agenda/appointments/", payload);
-      toast({
-        title: "Agendado com sucesso!",
-        description: "A consulta foi adicionada à agenda clínica.",
-        variant: "success",
-      });
-
-      setIsNewModalOpen(false);
-      // Limpa form
-      setNewApptForm(prev => ({
-        ...prev,
-        patientId: "",
-        notes: "",
-        isRecurring: false,
-      }));
-      fetchAppointments();
-    } catch (error: any) {
-      console.error(error);
-      const serverErrors = error.response?.data;
-      if (serverErrors && typeof serverErrors === "object") {
-        const errorMsg = serverErrors.start_time?.[0] || serverErrors.end_time?.[0] || serverErrors.recurrence_rule?.[0] || "Erro de validação.";
-        toast({
-          title: "Falha ao agendar",
-          description: errorMsg,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Erro no servidor",
-          description: "Não foi possível criar a consulta na agenda.",
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setSubmittingAppt(false);
-    }
+    createAppointmentMutation.mutate(payload, {
+      onSuccess: () => {
+        setIsNewModalOpen(false);
+        reset();
+        refetchAppointments();
+      },
+    });
   };
 
   // Constrói dias do calendário do mês atual
   const buildCalendarDays = () => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
+    const calendarYear = currentDate.getFullYear();
+    const calendarMonth = currentDate.getMonth();
 
-    const firstDayIndex = new Date(year, month, 1).getDay();
-    const totalDays = new Date(year, month + 1, 0).getDate();
-    const prevMonthDays = new Date(year, month, 0).getDate();
+    const firstDayIndex = new Date(calendarYear, calendarMonth, 1).getDay();
+    const totalDays = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+    const prevMonthDays = new Date(calendarYear, calendarMonth, 0).getDate();
 
     const cells = [];
 
     // Mês anterior
     for (let i = firstDayIndex - 1; i >= 0; i--) {
-      const date = new Date(year, month - 1, prevMonthDays - i);
+      const date = new Date(calendarYear, calendarMonth - 1, prevMonthDays - i);
       cells.push({
         date,
         isCurrentMonth: false,
@@ -363,7 +250,7 @@ export default function AgendaPage() {
 
     // Mês atual
     for (let i = 1; i <= totalDays; i++) {
-      const date = new Date(year, month, i);
+      const date = new Date(calendarYear, calendarMonth, i);
       cells.push({
         date,
         isCurrentMonth: true,
@@ -374,7 +261,7 @@ export default function AgendaPage() {
     // Próximo mês
     const remainingCells = 42 - cells.length;
     for (let i = 1; i <= remainingCells; i++) {
-      const date = new Date(year, month + 1, i);
+      const date = new Date(calendarYear, calendarMonth + 1, i);
       cells.push({
         date,
         isCurrentMonth: false,
@@ -437,10 +324,19 @@ export default function AgendaPage() {
         </div>
         <Button
           onClick={() => {
-            setNewApptForm(prev => ({
-              ...prev,
+            reset({
+              patientId: "",
               date: selectedDate.toISOString().split("T")[0],
-            }));
+              duration: 50,
+              useTimeSlots: true,
+              selectedSlot: "",
+              manualStart: "09:00",
+              manualEnd: "09:50",
+              sessionValue: "180.00",
+              isRecurring: false,
+              recurrenceRule: "WEEKLY",
+              notes: "",
+            });
             setIsNewModalOpen(true);
           }}
           leftIcon={<Plus className="h-4 w-4" />}
@@ -499,7 +395,7 @@ export default function AgendaPage() {
               </div>
 
               <div className="grid grid-cols-7 gap-1">
-                {isLoading ? (
+                {loadingAppointments ? (
                   <div className="col-span-7 py-32 text-center flex flex-col items-center gap-2">
                     <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                     <span className="text-xs text-muted-foreground animate-pulse">Carregando consultas...</span>
@@ -513,24 +409,20 @@ export default function AgendaPage() {
                       <div
                         key={index}
                         onClick={() => setSelectedDate(cell.date)}
-                        className={`min-h-[84px] border p-1.5 rounded-md flex flex-col justify-between transition-colors cursor-pointer select-none relative ${
+                        className={cn(
+                          "min-h-[84px] border p-1.5 rounded-md flex flex-col justify-between transition-colors cursor-pointer select-none relative",
                           cell.isCurrentMonth
-                            ? "bg-card border-border/60 hover:border-primary/50"
-                            : "bg-secondary/5 border-border/10 text-muted-foreground/30 hover:border-border/30"
-                        } ${
-                          isSelected
-                            ? "ring-1 ring-primary bg-primary/5 border-transparent"
-                            : ""
-                        } ${
-                          cell.isToday
-                            ? "border-primary"
-                            : ""
-                        }`}
+                            ? "bg-card border-border/60 hover:border-primary/50 text-foreground"
+                            : "bg-secondary/5 border-border/10 text-muted-foreground/30 hover:border-border/30",
+                          isSelected && "ring-1 ring-primary bg-primary/5 border-transparent",
+                          cell.isToday && "border-primary"
+                        )}
                       >
                         {/* Número do Dia */}
-                        <div className={`text-[10px] font-bold self-end h-5 w-5 flex items-center justify-center ${
+                        <div className={cn(
+                          "text-[10px] font-bold self-end h-5 w-5 flex items-center justify-center",
                           cell.isToday ? "text-primary bg-primary/10 rounded-full" : "text-muted-foreground"
-                        }`}>
+                        )}>
                           {cell.date.getDate()}
                         </div>
 
@@ -539,14 +431,15 @@ export default function AgendaPage() {
                           {dayAppts.slice(0, 2).map((appt) => (
                             <div
                               key={appt.id}
-                              className={`text-[8px] px-1 py-0.5 rounded-sm border font-medium truncate leading-none ${
+                              className={cn(
+                                "text-[8px] px-1 py-0.5 rounded-sm border font-medium truncate leading-none",
                                 getStatusColor(appt.status)
-                              }`}
+                              )}
                             >
                               {new Date(appt.start_time).toLocaleTimeString("pt-BR", {
                                 hour: "2-digit",
                                 minute: "2-digit"
-                              })} - {appt.patient_name.split(" ")[0]}
+                              })} - {appt.patient_name?.split(" ")[0]}
                             </div>
                           ))}
                           {dayAppts.length > 2 && (
@@ -614,11 +507,14 @@ export default function AgendaPage() {
                               {appt.patient_name}
                             </span>
                             <span className="text-[9px] text-muted-foreground block">
-                              {appt.therapist_name.split(" ")[0]}
+                              {appt.therapist_name?.split(" ")[0] || ""}
                             </span>
                           </div>
                           
-                          <span className={`inline-flex px-1.5 py-0.5 rounded-sm text-[8px] font-bold border capitalize shrink-0 ${getStatusColor(appt.status)}`}>
+                          <span className={cn(
+                            "inline-flex px-1.5 py-0.5 rounded-sm text-[8px] font-bold border capitalize shrink-0",
+                            getStatusColor(appt.status)
+                          )}>
                             {appt.status_display}
                           </span>
                         </div>
@@ -628,7 +524,7 @@ export default function AgendaPage() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            onClick={() => openAppointmentDetails(appt)}
+                            onClick={() => openAppointmentDetails(appt.id)}
                             className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
                           >
                             <Eye className="h-3.5 w-3.5" />
@@ -648,7 +544,7 @@ export default function AgendaPage() {
                                 size="icon"
                                 variant="ghost"
                                 onClick={() => {
-                                  setSelectedAppointment({ ...appt, notes: "", cancellation_reason: "" });
+                                  setSelectedAppointmentId(appt.id);
                                   setIsCancelModalOpen(true);
                                 }}
                                 className="h-6 w-6 text-rose-500 hover:bg-rose-500/10 cursor-pointer"
@@ -670,10 +566,19 @@ export default function AgendaPage() {
               variant="outline"
               size="sm"
               onClick={() => {
-                setNewApptForm(prev => ({
-                  ...prev,
+                reset({
+                  patientId: "",
                   date: selectedDate.toISOString().split("T")[0],
-                }));
+                  duration: 50,
+                  useTimeSlots: true,
+                  selectedSlot: "",
+                  manualStart: "09:00",
+                  manualEnd: "09:50",
+                  sessionValue: "180.00",
+                  isRecurring: false,
+                  recurrenceRule: "WEEKLY",
+                  notes: "",
+                });
                 setIsNewModalOpen(true);
               }}
               className="border-dashed border-border hover:bg-secondary w-full mt-4 text-xs h-9 flex items-center justify-center gap-1.5"
@@ -693,39 +598,43 @@ export default function AgendaPage() {
         description="Agende uma consulta individual ou configure uma recorrência de sessões."
         className="max-w-xl"
       >
-        <form onSubmit={handleCreateAppointment} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           {/* Paciente */}
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+            <label htmlFor="new-appt-patient" className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
               <User className="h-3.5 w-3.5 text-primary" /> Paciente *
             </label>
             <select
-              value={newApptForm.patientId}
-              onChange={(e) => setNewApptForm({ ...newApptForm, patientId: e.target.value })}
-              required
+              id="new-appt-patient"
+              {...register("patientId")}
               className="w-full h-10 bg-secondary border border-border rounded-md px-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground cursor-pointer"
             >
               <option value="">Selecione o paciente ativo...</option>
-              {patients.map((p) => (
+              {activePatients.map((p) => (
                 <option key={p.id} value={p.id}>{p.full_name}</option>
               ))}
             </select>
+            {errors.patientId && (
+              <p className="text-[10px] text-destructive mt-0.5">{errors.patientId.message}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="Data da Consulta *"
-              type="date"
-              value={newApptForm.date}
-              onChange={(e) => setNewApptForm({ ...newApptForm, date: e.target.value })}
-              required
-            />
+            <div className="space-y-1">
+              <Input
+                id="new-appt-date"
+                label="Data da Consulta *"
+                type="date"
+                error={errors.date?.message}
+                {...register("date")}
+              />
+            </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-muted-foreground">Duração</label>
+              <label htmlFor="new-appt-duration" className="text-xs font-semibold text-muted-foreground">Duração</label>
               <select
-                value={newApptForm.duration}
-                onChange={(e) => setNewApptForm({ ...newApptForm, duration: Number(e.target.value) })}
+                id="new-appt-duration"
+                {...register("duration", { valueAsNumber: true })}
                 className="w-full h-10 bg-secondary border border-border rounded-md px-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground cursor-pointer"
               >
                 <option value="30">30 minutos</option>
@@ -737,7 +646,7 @@ export default function AgendaPage() {
             </div>
           </div>
 
-          {/* Seleção de horários libres */}
+          {/* Seleção de horários livres */}
           <div className="p-4 rounded-md border border-primary/20 bg-primary/5 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-primary flex items-center gap-1.5">
@@ -746,15 +655,14 @@ export default function AgendaPage() {
               <label className="relative inline-flex items-center cursor-pointer select-none">
                 <input
                   type="checkbox"
-                  checked={newApptForm.useTimeSlots}
-                  onChange={(e) => setNewApptForm({ ...newApptForm, useTimeSlots: e.target.checked })}
+                  {...register("useTimeSlots")}
                   className="sr-only peer"
                 />
                 <div className="w-8 h-4.5 bg-border/60 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-primary"></div>
               </label>
             </div>
 
-            {newApptForm.useTimeSlots ? (
+            {watchUseTimeSlots ? (
               <div className="space-y-2">
                 {loadingSlots ? (
                   <div className="text-center py-2 flex items-center justify-center gap-1.5">
@@ -768,8 +676,7 @@ export default function AgendaPage() {
                   </div>
                 ) : (
                   <select
-                    value={newApptForm.selectedSlot}
-                    onChange={(e) => setNewApptForm({ ...newApptForm, selectedSlot: e.target.value })}
+                    {...register("selectedSlot")}
                     className="w-full h-10 bg-card border border-border rounded-md px-3 text-xs focus:outline-none focus:border-primary text-foreground cursor-pointer"
                   >
                     {availableSlots.map((slot, index) => (
@@ -783,16 +690,16 @@ export default function AgendaPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
+                  id="new-appt-start"
                   label="Início Manual"
                   type="time"
-                  value={newApptForm.manualStart}
-                  onChange={(e) => setNewApptForm({ ...newApptForm, manualStart: e.target.value })}
+                  {...register("manualStart")}
                 />
                 <Input
+                  id="new-appt-end"
                   label="Término Manual"
                   type="time"
-                  value={newApptForm.manualEnd}
-                  onChange={(e) => setNewApptForm({ ...newApptForm, manualEnd: e.target.value })}
+                  {...register("manualEnd")}
                 />
               </div>
             )}
@@ -800,21 +707,19 @@ export default function AgendaPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
+              id="new-appt-value"
               label="Valor da Sessão (R$)"
-              type="number"
-              step="0.01"
-              value={newApptForm.sessionValue}
-              onChange={(e) => setNewApptForm({ ...newApptForm, sessionValue: e.target.value })}
+              type="text"
               required
               leftIcon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
+              {...register("sessionValue")}
             />
 
             <div className="flex items-center justify-end pb-3 pt-3">
               <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground select-none cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={newApptForm.isRecurring}
-                  onChange={(e) => setNewApptForm({ ...newApptForm, isRecurring: e.target.checked })}
+                  {...register("isRecurring")}
                   className="rounded-xs bg-secondary border-border focus:ring-primary text-primary"
                 />
                 <span>Consulta Recorrente?</span>
@@ -823,12 +728,12 @@ export default function AgendaPage() {
           </div>
 
           {/* Regra de recorrência */}
-          {newApptForm.isRecurring && (
+          {watchIsRecurring && (
             <div className="flex flex-col gap-1 p-3.5 rounded-md border border-primary/20 bg-primary/5">
-              <label className="text-xs font-semibold text-muted-foreground">Frequência da Recorrência</label>
+              <label htmlFor="new-appt-recurrence" className="text-xs font-semibold text-muted-foreground">Frequência da Recorrência</label>
               <select
-                value={newApptForm.recurrenceRule}
-                onChange={(e) => setNewApptForm({ ...newApptForm, recurrenceRule: e.target.value })}
+                id="new-appt-recurrence"
+                {...register("recurrenceRule")}
                 className="w-full h-10 bg-card border border-border rounded-md px-3 text-sm focus:outline-none focus:border-primary text-foreground cursor-pointer"
               >
                 <option value="WEEKLY">Semanal (Gera 4 sessões consecutivas)</option>
@@ -839,10 +744,10 @@ export default function AgendaPage() {
           )}
 
           <Textarea
+            id="new-appt-notes"
             label="Observações do Agendamento (opcional)"
             placeholder="Anotações ou avisos sobre esta sessão..."
-            value={newApptForm.notes}
-            onChange={(e) => setNewApptForm({ ...newApptForm, notes: e.target.value })}
+            {...register("notes")}
           />
 
           <div className="flex gap-3 justify-end pt-4 border-t border-border/40">
@@ -855,7 +760,7 @@ export default function AgendaPage() {
             </Button>
             <Button
               type="submit"
-              isLoading={submittingAppt}
+              isLoading={createAppointmentMutation.isPending}
               className="text-white font-semibold"
             >
               Confirmar Agendamento
@@ -867,7 +772,10 @@ export default function AgendaPage() {
       {/* MODAL: DETALHES DE CONSULTA */}
       <Modal
         isOpen={isDetailModalOpen}
-        onClose={() => setIsDetailModalOpen(false)}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setSelectedAppointmentId(null);
+        }}
         title="Detalhes do Agendamento"
         description="Ficha detalhada do horário agendado e status da sessão."
         className="max-w-md"
@@ -877,72 +785,75 @@ export default function AgendaPage() {
             <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             <span className="text-xs text-muted-foreground">Carregando detalhes...</span>
           </div>
-        ) : selectedAppointment ? (
+        ) : selectedAppointmentDetails ? (
           <div className="space-y-4">
             <div className="space-y-3">
               <div className="flex justify-between items-start">
                 <div>
-                  <h4 className="font-semibold text-sm text-foreground">{selectedAppointment.patient_name}</h4>
-                  <p className="text-[10px] text-muted-foreground">Dr(a). {selectedAppointment.therapist_name}</p>
+                  <h4 className="font-semibold text-sm text-foreground">{selectedAppointmentDetails.patient_name}</h4>
+                  <p className="text-[10px] text-muted-foreground">Dr(a). {selectedAppointmentDetails.therapist_name}</p>
                 </div>
-                <span className={`inline-flex px-2 py-0.5 rounded-sm text-[10px] font-bold border capitalize ${getStatusColor(selectedAppointment.status)}`}>
-                  {selectedAppointment.status_display}
+                <span className={cn(
+                  "inline-flex px-2 py-0.5 rounded-sm text-[10px] font-bold border capitalize",
+                  getStatusColor(selectedAppointmentDetails.status)
+                )}>
+                  {selectedAppointmentDetails.status_display}
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-3 border-t border-b border-border/40 py-3 text-xs">
                 <div className="space-y-0.5">
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase">Horário</p>
-                  <p className="font-semibold flex items-center gap-1 text-foreground">
+                  <div className="font-semibold flex items-center gap-1 text-foreground">
                     <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
                     <span>
-                      {new Date(selectedAppointment.start_time).toLocaleTimeString("pt-BR", {
+                      {new Date(selectedAppointmentDetails.start_time).toLocaleTimeString("pt-BR", {
                         hour: "2-digit",
                         minute: "2-digit"
-                      })} - {new Date(selectedAppointment.end_time).toLocaleTimeString("pt-BR", {
+                      })} - {new Date(selectedAppointmentDetails.end_time).toLocaleTimeString("pt-BR", {
                         hour: "2-digit",
                         minute: "2-digit"
                       })}
                     </span>
-                  </p>
+                  </div>
                 </div>
 
                 <div className="space-y-0.5">
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase">Duração</p>
-                  <p className="font-semibold text-foreground">{selectedAppointment.duration_display}</p>
+                  <p className="font-semibold text-foreground">{selectedAppointmentDetails.duration_display}</p>
                 </div>
 
                 <div className="space-y-0.5">
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase">Valor da Sessão</p>
                   <p className="font-semibold text-primary">
-                    R$ {parseFloat(selectedAppointment.session_value).toFixed(2)}
+                    R$ {parseFloat(selectedAppointmentDetails.session_value).toFixed(2)}
                   </p>
                 </div>
 
                 <div className="space-y-0.5">
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase">Recorrente</p>
-                  <p className="font-semibold text-foreground">{selectedAppointment.is_recurring ? `Sim (${selectedAppointment.recurrence_rule})` : "Não"}</p>
+                  <p className="font-semibold text-foreground">{selectedAppointmentDetails.is_recurring ? `Sim (${selectedAppointmentDetails.recurrence_rule})` : "Não"}</p>
                 </div>
               </div>
 
-              {selectedAppointment.notes && (
+              {selectedAppointmentDetails.notes && (
                 <div className="space-y-1">
                   <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
                     <FileText className="h-3.5 w-3.5" /> Observações
                   </p>
                   <p className="text-xs text-foreground bg-secondary p-2.5 rounded-md border border-border">
-                    {selectedAppointment.notes}
+                    {selectedAppointmentDetails.notes}
                   </p>
                 </div>
               )}
 
-              {selectedAppointment.status === "cancelled" && selectedAppointment.cancellation_reason && (
+              {selectedAppointmentDetails.status === "cancelled" && selectedAppointmentDetails.cancellation_reason && (
                 <div className="space-y-1 p-3 rounded-md bg-rose-500/5 border border-rose-500/10">
                   <p className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase flex items-center gap-1">
                     <AlertCircle className="h-3.5 w-3.5" /> Motivo do Cancelamento
                   </p>
                   <p className="text-xs text-rose-700 dark:text-rose-300 font-medium">
-                    {selectedAppointment.cancellation_reason}
+                    {selectedAppointmentDetails.cancellation_reason}
                   </p>
                 </div>
               )}
@@ -950,12 +861,12 @@ export default function AgendaPage() {
 
             {/* Ações */}
             <div className="flex gap-2 pt-4 border-t border-border/40 justify-end">
-              {selectedAppointment.status === "scheduled" && (
+              {selectedAppointmentDetails.status === "scheduled" && (
                 <>
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => updateStatus(selectedAppointment.id, "confirmed")}
+                    onClick={() => updateStatus(selectedAppointmentDetails.id, "confirmed")}
                     className="text-xs text-emerald-600 dark:text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/5 font-semibold cursor-pointer"
                   >
                     Confirmar Presença
@@ -963,7 +874,7 @@ export default function AgendaPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => updateStatus(selectedAppointment.id, "missed")}
+                    onClick={() => updateStatus(selectedAppointmentDetails.id, "missed")}
                     className="text-xs text-rose-600 dark:text-rose-500 border-rose-500/20 hover:bg-rose-500/5 font-semibold cursor-pointer"
                   >
                     Faltou
@@ -981,7 +892,10 @@ export default function AgendaPage() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => setIsDetailModalOpen(false)}
+                onClick={() => {
+                  setIsDetailModalOpen(false);
+                  setSelectedAppointmentId(null);
+                }}
                 className="text-xs h-9"
               >
                 Fechar
@@ -1005,8 +919,8 @@ export default function AgendaPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (selectedAppointment) {
-              updateStatus(selectedAppointment.id, "cancelled", cancellationReason);
+            if (selectedAppointmentId) {
+              updateStatus(selectedAppointmentId, "cancelled", cancellationReason);
             }
           }}
           className="space-y-4"
