@@ -2,79 +2,62 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { Mail, Lock, LogIn, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
-import { useToast } from "@/contexts/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import {
+  loginSchema,
+  type LoginFormData,
+} from "@/features/auth/schemas/auth.schemas";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-
   const { login } = useAuth();
-  const { toast } = useToast();
-  const router = useRouter();
 
-  const validateForm = () => {
-    const tempErrors: { email?: string; password?: string } = {};
-    if (!email) {
-      tempErrors.email = "E-mail é obrigatório";
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      tempErrors.email = "Formato de e-mail inválido";
-    }
-    
-    if (!password) {
-      tempErrors.password = "Senha é obrigatória";
-    } else if (password.length < 6) {
-      tempErrors.password = "A senha deve ter pelo menos 6 caracteres";
-    }
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    mode: "onBlur", // valida ao sair do campo, não a cada keystroke
+  });
 
-    setErrors(tempErrors);
-    return Object.keys(tempErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    setIsLoading(true);
+  const onSubmit = async (data: LoginFormData) => {
     try {
-      await login({ email, password });
-      toast({
-        title: "Bem-vindo de volta!",
+      await login({ email: data.email, password: data.password });
+      toast.success("Bem-vindo de volta!", {
         description: "Login realizado com sucesso.",
-        variant: "success",
       });
-      router.push("/dashboard");
+      // Redirecionamento feito pelo AuthContext
     } catch (error: any) {
-      console.error(error);
-      const errorData = error.response?.data?.error;
-      const errorMessage =
-        errorData?.message ||
-        errorData?.details?.non_field_errors?.[0] ||
-        "Não foi possível realizar o login. Verifique suas credenciais.";
-      
-      toast({
-        title: "Falha na Autenticação",
-        description: errorMessage,
-        variant: "destructive",
+      const serverMessage =
+        error?.response?.data?.error?.message ||
+        error?.response?.data?.detail ||
+        "Verifique suas credenciais e tente novamente.";
+
+      toast.error("Falha na autenticação", {
+        description: serverMessage,
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background text-foreground font-sans">
       <div className="w-full max-w-md space-y-6">
-        
-        {/* Logo / Branding */}
+
+        {/* Branding */}
         <div className="flex flex-col items-center text-center">
           <div className="h-10 w-10 rounded-md bg-primary flex items-center justify-center mb-3">
             <Lock className="h-5 w-5 text-primary-foreground" />
@@ -90,42 +73,73 @@ export default function LoginPage() {
         {/* Card de Login */}
         <Card className="border-border/80 bg-card shadow-xs">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-xl font-bold text-foreground">Login</CardTitle>
+            <CardTitle className="text-xl font-bold text-foreground">
+              Entrar
+            </CardTitle>
             <CardDescription className="text-xs text-muted-foreground">
               Digite seu e-mail e senha para acessar o painel clínico.
             </CardDescription>
           </CardHeader>
-          
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Input
-                label="E-mail profissional"
-                placeholder="seuemail@exemplo.com"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                error={errors.email}
-                leftIcon={<Mail className="h-4.5 w-4.5 text-muted-foreground" />}
-              />
 
-              <Input
-                label="Senha"
-                placeholder="••••••••"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                error={errors.password}
-                leftIcon={<Lock className="h-4.5 w-4.5 text-muted-foreground" />}
-                rightIcon={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
-                  </button>
-                }
-              />
+          <CardContent>
+            <form
+              onSubmit={handleSubmit(onSubmit)}
+              className="space-y-4"
+              noValidate
+            >
+              <div className="space-y-1">
+                <Input
+                  id="login-email"
+                  label="E-mail profissional"
+                  placeholder="seuemail@exemplo.com"
+                  type="email"
+                  autoComplete="email"
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? "login-email-error" : undefined}
+                  leftIcon={<Mail className="h-4.5 w-4.5 text-muted-foreground" />}
+                  error={errors.email?.message}
+                  {...register("email")}
+                />
+                {errors.email && (
+                  <p id="login-email-error" className="text-xs text-destructive" role="alert">
+                    {errors.email.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <Input
+                  id="login-password"
+                  label="Senha"
+                  placeholder="••••••••"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? "login-password-error" : undefined}
+                  leftIcon={<Lock className="h-4.5 w-4.5 text-muted-foreground" />}
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                      className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4.5 w-4.5" />
+                      ) : (
+                        <Eye className="h-4.5 w-4.5" />
+                      )}
+                    </button>
+                  }
+                  error={errors.password?.message}
+                  {...register("password")}
+                />
+                {errors.password && (
+                  <p id="login-password-error" className="text-xs text-destructive" role="alert">
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
 
               <div className="flex items-center justify-between text-xs pt-1">
                 <label className="flex items-center gap-2 text-muted-foreground cursor-pointer select-none">
@@ -139,7 +153,7 @@ export default function LoginPage() {
                   href="#"
                   onClick={(e) => {
                     e.preventDefault();
-                    alert("Redefinição de senha em desenvolvimento.");
+                    toast.info("Redefinição de senha em desenvolvimento.");
                   }}
                   className="text-primary hover:underline font-medium"
                 >
@@ -148,9 +162,10 @@ export default function LoginPage() {
               </div>
 
               <Button
+                id="login-submit"
                 type="submit"
                 className="w-full text-white font-semibold mt-2"
-                isLoading={isLoading}
+                isLoading={isSubmitting}
                 rightIcon={<LogIn className="h-4 w-4" />}
               >
                 Entrar no Painel
