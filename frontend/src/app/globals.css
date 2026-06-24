@@ -1,67 +1,67 @@
 @import "tailwindcss";
 
 :root {
-  /* Cores base do Light Mode - Paleta Sálvia/Obsidian Premium */
-  --background: 140 12% 98%;
-  --foreground: 140 24% 12%;
+  /* Paleta Terrosa e Acolhedora - Referência da Imagem */
+  --background: 165 40% 7%; /* Fundo Petróleo Escuro */
+  --foreground: 40 20% 94%; /* Texto Creme Claro */
   
-  --card: 0 0% 100%;
-  --card-foreground: 140 24% 12%;
+  --card: 165 38% 10%; /* Fundo de cards um pouco mais claro */
+  --card-foreground: 40 20% 94%;
   
-  --popover: 0 0% 100%;
-  --popover-foreground: 140 24% 12%;
+  --popover: 165 38% 10%;
+  --popover-foreground: 40 20% 94%;
   
-  --primary: 154 50% 35%; /* Verde Sálvia Clínico */
-  --primary-foreground: 0 0% 100%;
+  --primary: 38 25% 87%; /* Creme / Bege Acolhedor (Destaques Primários) */
+  --primary-foreground: 165 40% 7%;
   
-  --secondary: 140 10% 93%;
-  --secondary-foreground: 140 24% 12%;
+  --secondary: 165 27% 12%; /* Verde floresta escuro para botões contrastantes */
+  --secondary-foreground: 40 20% 94%;
   
-  --muted: 140 10% 93%;
-  --muted-foreground: 140 10% 45%;
+  --muted: 165 27% 12%;
+  --muted-foreground: 163 8% 68%; /* Verde cinzento para textos de apoio */
   
-  --accent: 195 40% 40%; /* Azul Securitário */
-  --accent-foreground: 0 0% 100%;
+  --accent: 163 27% 62%; /* Verde sálvia claro para tags e badges ativos */
+  --accent-foreground: 165 40% 7%;
   
-  --destructive: 0 65% 45%; /* Vermelho Sóbrio */
-  --destructive-foreground: 0 0% 100%;
+  --destructive: 0 65% 45%;
+  --destructive-foreground: 40 20% 94%;
 
-  --border: 140 8% 90%;
-  --input: 140 8% 90%;
-  --ring: 154 50% 35%;
+  --border: 165 27% 16%;
+  --input: 165 27% 16%;
+  --ring: 38 25% 87%;
 
-  --radius: 0.5rem; /* Cantos arredondados mais discretos e profissionais */
+  --radius: 0.75rem; /* Cantos arredondados moderados */
 }
 
 .dark {
-  /* Cores base do Dark Mode - Obsidian Green */
-  --background: 140 15% 6%;
-  --foreground: 140 10% 92%;
+  /* Dark mode é o padrão terroso escuro nesta nova estética, mantendo coerência visual */
+  --background: 165 40% 7%;
+  --foreground: 40 20% 94%;
   
-  --card: 140 12% 9%;
-  --card-foreground: 140 10% 92%;
+  --card: 165 38% 10%;
+  --card-foreground: 40 20% 94%;
   
-  --popover: 140 12% 9%;
-  --popover-foreground: 140 10% 92%;
+  --popover: 165 38% 10%;
+  --popover-foreground: 40 20% 94%;
   
-  --primary: 154 52% 48%; /* Verde Jade/Sálvia */
-  --primary-foreground: 140 15% 6%;
+  --primary: 38 25% 87%;
+  --primary-foreground: 165 40% 7%;
   
-  --secondary: 140 10% 13%;
-  --secondary-foreground: 140 10% 92%;
+  --secondary: 165 27% 12%;
+  --secondary-foreground: 40 20% 94%;
   
-  --muted: 140 10% 13%;
-  --muted-foreground: 140 8% 60%;
+  --muted: 165 27% 12%;
+  --muted-foreground: 163 8% 68%;
   
-  --accent: 195 45% 55%;
-  --accent-foreground: 140 15% 6%;
+  --accent: 163 27% 62%;
+  --accent-foreground: 165 40% 7%;
   
   --destructive: 0 70% 55%;
-  --destructive-foreground: 140 10% 92%;
+  --destructive-foreground: 40 20% 94%;
 
-  --border: 140 10% 15%;
-  --input: 140 10% 15%;
-  --ring: 154 52% 48%;
+  --border: 165 27% 16%;
+  --input: 165 27% 16%;
+  --ring: 38 25% 87%;
 }
 
 @theme {

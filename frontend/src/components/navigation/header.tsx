@@ -42,17 +42,17 @@ export function Header({ className }: HeaderProps) {
   return (
     <header
       className={cn(
-        "h-16 border-b border-border/40 bg-card sticky top-0 z-20 flex items-center justify-between px-6 transition-colors duration-150",
+        "h-16 border-b border-[hsl(165,27%,16%)] bg-[hsl(165,40%,7%)] sticky top-0 z-20 flex items-center justify-between px-6 transition-colors duration-150",
         className
       )}
     >
       {/* Busca Global */}
       <div className="relative w-full max-w-md hidden md:block">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-muted-foreground/60" />
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(163,8%,68%)]/60" />
         <input
           type="text"
           placeholder="Buscar pacientes, consultas, prontuários..."
-          className="w-full h-9 bg-secondary border border-border/60 rounded-md pl-10 pr-4 text-sm transition-all focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 placeholder:text-muted-foreground/50"
+          className="w-full h-9 bg-[hsl(165,27%,12%)] border border-[hsl(165,27%,16%)] rounded-lg pl-10 pr-4 text-xs text-[hsl(40,20%,94%)] placeholder:text-[hsl(163,8%,68%)]/50 focus:outline-none focus:border-[hsl(38,25%,87%)] transition-colors"
         />
       </div>
 
@@ -61,43 +61,43 @@ export function Header({ className }: HeaderProps) {
         {/* Toggle Light/Dark Mode */}
         <button
           onClick={toggleTheme}
-          className="h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/80 rounded-lg transition-all cursor-pointer"
+          className="h-10 w-10 flex items-center justify-center text-[hsl(163,8%,68%)] hover:text-[hsl(40,20%,94%)] hover:bg-[hsl(165,27%,12%)] rounded-lg transition-all cursor-pointer"
           title="Alternar Tema"
         >
-          {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+          {theme === "light" ? <Moon className="h-4.5 w-4.5" /> : <Sun className="h-4.5 w-4.5" />}
         </button>
 
         {/* Notificações */}
         <button
-          className="h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/80 rounded-lg relative transition-all cursor-pointer"
+          className="h-10 w-10 flex items-center justify-center text-[hsl(163,8%,68%)] hover:text-[hsl(40,20%,94%)] hover:bg-[hsl(165,27%,12%)] rounded-lg relative transition-all cursor-pointer"
           title="Notificações"
         >
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-2 right-2.5 h-2 w-2 rounded-full bg-primary" />
+          <Bell className="h-4.5 w-4.5" />
+          <span className="absolute top-2 right-2.5 h-1.5 w-1.5 rounded-full bg-[hsl(163,27%,62%)]" />
         </button>
 
-        <div className="h-6 w-[1px] bg-border/60" />
+        <div className="h-6 w-[1px] bg-[hsl(165,27%,16%)]" />
 
         {/* Dropdown de Perfil */}
         <div className="relative">
           <button
             onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="flex items-center gap-3 hover:bg-secondary/60 rounded-lg p-1.5 transition-all cursor-pointer"
+            className="flex items-center gap-3 hover:bg-[hsl(165,27%,12%)] rounded-lg p-1.5 transition-all cursor-pointer"
           >
             {/* Avatar Genérico */}
-            <div className="h-8.5 w-8.5 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-sm">
-              {user?.full_name?.charAt(0).toUpperCase() || "U"}
+            <div className="h-8.5 w-8.5 rounded-full bg-[hsl(38,25%,87%)]/10 border border-[hsl(38,25%,87%)]/20 flex items-center justify-center text-[hsl(38,25%,87%)] font-bold text-xs">
+              {user?.full_name?.charAt(0).toUpperCase() || "J"}
             </div>
             
             <div className="text-left hidden sm:block">
-              <p className="text-sm font-semibold leading-none text-foreground">
-                {user?.full_name || "Usuário"}
+              <p className="text-xs font-bold leading-none text-[hsl(40,20%,94%)]">
+                {user?.full_name || "Juliana Martins"}
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {user ? getRoleLabel(user.role) : ""}
+              <p className="text-[10px] text-[hsl(163,8%,68%)] mt-0.5">
+                {user ? getRoleLabel(user.role) : "Terapeuta"}
               </p>
             </div>
-            <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
+            <ChevronDown className="h-3.5 w-3.5 text-[hsl(163,8%,68%)] hidden sm:block" />
           </button>
 
           {/* Menu Dropdown do Perfil */}
@@ -109,13 +109,13 @@ export function Header({ className }: HeaderProps) {
                 onClick={() => setIsProfileOpen(false)}
               />
               
-              <div className="absolute right-0 mt-2 w-56 bg-card border border-border/80 rounded-xl shadow-lg py-1.5 z-50 animate-fade-in">
-                <div className="px-4 py-2 border-b border-border/40">
-                  <p className="text-sm font-semibold text-foreground truncate">
-                    {user?.full_name}
+              <div className="absolute right-0 mt-2 w-56 bg-[hsl(165,38%,10%)] border border-[hsl(165,27%,16%)] rounded-xl shadow-lg py-1.5 z-50 animate-fade-in">
+                <div className="px-4 py-2 border-b border-[hsl(165,27%,16%)]/40">
+                  <p className="text-xs font-bold text-[hsl(40,20%,94%)] truncate">
+                    {user?.full_name || "Juliana Martins"}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">
-                    {user?.email}
+                  <p className="text-[10px] text-[hsl(163,8%,68%)] truncate mt-0.5">
+                    {user?.email || "juliana@teste.com"}
                   </p>
                 </div>
                 
@@ -123,25 +123,24 @@ export function Header({ className }: HeaderProps) {
                   <button
                     onClick={() => {
                       setIsProfileOpen(false);
-                      // TODO: Redirecionar para perfil nas próximas fases
                     }}
-                    className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all text-left cursor-pointer"
+                    className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-[hsl(163,8%,68%)] hover:text-[hsl(40,20%,94%)] hover:bg-[hsl(165,27%,12%)] transition-all text-left cursor-pointer"
                   >
-                    <User className="h-4.5 w-4.5" />
+                    <User className="h-4 w-4" />
                     Meu Perfil
                   </button>
                   <button
                     onClick={() => {
                       setIsProfileOpen(false);
                     }}
-                    className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all text-left cursor-pointer"
+                    className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-[hsl(163,8%,68%)] hover:text-[hsl(40,20%,94%)] hover:bg-[hsl(165,27%,12%)] transition-all text-left cursor-pointer"
                   >
-                    <Settings className="h-4.5 w-4.5" />
+                    <Settings className="h-4 w-4" />
                     Configurações
                   </button>
                 </div>
 
-                <div className="border-t border-border/40 my-1" />
+                <div className="border-t border-[hsl(165,27%,16%)]/40 my-1" />
 
                 <div className="py-1">
                   <button
@@ -149,9 +148,9 @@ export function Header({ className }: HeaderProps) {
                       setIsProfileOpen(false);
                       logout();
                     }}
-                    className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-destructive/80 hover:text-destructive hover:bg-destructive/5 transition-all text-left cursor-pointer"
+                    className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-all text-left cursor-pointer"
                   >
-                    <LogOut className="h-4.5 w-4.5" />
+                    <LogOut className="h-4 w-4" />
                     Sair
                   </button>
                 </div>
