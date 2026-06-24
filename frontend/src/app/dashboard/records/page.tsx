@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ClipboardList, ChevronRight, User } from "lucide-react";
-import { useToast } from "@/contexts/toast";
-import { api } from "@/lib/api";
-import { Card, CardContent } from "@/components/ui/card";
+
+import { Card } from "@/components/ui/card";
 import {
   Table,
   TableHeader,
@@ -15,53 +14,32 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { SkeletonTable } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
-interface Patient {
-  id: number;
-  full_name: string;
-  formatted_cpf: string;
-  phone: string;
-  email: string;
-  status: "active" | "inactive";
-  age: number;
-}
+import { usePatients } from "@/features/patients/hooks/use-patients";
 
 export default function RecordsListPage() {
   const router = useRouter();
-  const { toast } = useToast();
   
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  const fetchPatients = async () => {
-    setIsLoading(true);
-    try {
-      const response = await api.get("patients/");
-      const data = Array.isArray(response.data) ? response.data : (response.data as any).results || [];
-      // Filtra apenas pacientes ativos por padrão para prontuário clínico
-      const activePatients = data.filter((p: any) => p.status === "active");
-      setPatients(activePatients);
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Erro ao carregar prontuários",
-        description: "Não foi possível buscar a lista de pacientes ativos.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Debounce da busca
   useEffect(() => {
-    fetchPatients();
-  }, []);
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
-  const filteredPatients = patients.filter((p) =>
-    p.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.formatted_cpf?.includes(searchTerm)
-  );
+  // Busca pacientes ativos usando TanStack Query
+  const { data: patientsData, isLoading } = usePatients({
+    search: debouncedSearch || undefined,
+    status: "active", // Prontuário apenas para pacientes ativos
+  });
+
+  const activePatients = patientsData?.results || [];
 
   return (
     <div className="space-y-6">
@@ -91,22 +69,13 @@ export default function RecordsListPage() {
 
       {/* Tabela de Seleção */}
       {isLoading ? (
-        <div className="py-20 text-center flex flex-col items-center gap-2">
-          <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs text-muted-foreground animate-pulse">Carregando prontuários...</span>
-        </div>
-      ) : filteredPatients.length === 0 ? (
-        <Card className="border-border/80 bg-card shadow-xs p-12 text-center flex flex-col items-center justify-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground">
-            <ClipboardList className="h-5 w-5" />
-          </div>
-          <div>
-            <h4 className="font-semibold text-sm text-foreground">Nenhum prontuário ativo encontrado</h4>
-            <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-              Não existem prontuários de pacientes ativos correspondentes à busca. Apenas pacientes em tratamento ativo são listados aqui.
-            </p>
-          </div>
-        </Card>
+        <SkeletonTable rows={5} columns={5} />
+      ) : activePatients.length === 0 ? (
+        <EmptyState
+          title="Nenhum prontuário ativo encontrado"
+          description="Não existem prontuários de pacientes ativos correspondentes à busca. Apenas pacientes em tratamento ativo são listados aqui."
+          icon={<ClipboardList className="h-6 w-6 text-muted-foreground" />}
+        />
       ) : (
         <Table>
           <TableHeader>
@@ -119,15 +88,15 @@ export default function RecordsListPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredPatients.map((p) => (
+            {activePatients.map((p) => (
               <TableRow key={p.id} className="cursor-pointer" onClick={() => router.push(`/dashboard/records/${p.id}`)}>
                 <TableCell className="font-medium text-foreground flex items-center gap-2">
                   <User className="h-4.5 w-4.5 text-primary shrink-0" />
                   <span>{p.full_name}</span>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-xs">{p.formatted_cpf || "---"}</TableCell>
-                <TableCell className="text-muted-foreground text-xs">{p.age} anos</TableCell>
-                <TableCell className="text-muted-foreground text-xs">{p.phone}</TableCell>
+                <TableCell className="text-muted-foreground text-xs">{p.age ? `${p.age} anos` : "---"}</TableCell>
+                <TableCell className="text-muted-foreground text-xs">{p.phone || "---"}</TableCell>
                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                   <Button
                     size="sm"
