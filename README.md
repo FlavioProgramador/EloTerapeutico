@@ -1,118 +1,155 @@
-# Elo Terapêutico - Sistema de Gestão para Terapeutas (SaaS)
+# Elo Terapêutico — Plataforma de Gestão Clínica
 
-O **Elo Terapêutico** é uma plataforma SaaS (Software as a Service) desenvolvida para simplificar e assegurar a gestão de consultórios e clínicas de terapia. O sistema oferece prontuário eletrônico criptografado, agenda inteligente, controle financeiro e conformidade nativa com a **Lei Geral de Proteção de Dados (LGPD)**.
+> Prontuário eletrônico, agenda e controle financeiro para psicólogos e terapeutas. Conformidade com LGPD. Arquitetura SaaS multi-tenant.
 
 ---
 
-## 🛠️ Stack Tecnológica
+## 🚀 Quick Start
+
+### Pré-requisitos
+
+- Python 3.11+
+- Node.js 20+
+- PostgreSQL 15+
+- Git
 
 ### Backend
-* **Django 5.x** & **Django Rest Framework (DRF)**
-* **SimpleJWT** (Autenticação baseada em tokens JWT)
-* **PostgreSQL** (Banco de dados relacional robusto)
-* **django-cryptography** (Criptografia de dados de prontuário em nível de banco de dados)
+
+```bash
+cd backend
+
+# Criar ambiente virtual
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
+venv\Scripts\activate     # Windows
+
+# Instalar dependências
+pip install -r requirements/local.txt
+
+# Configurar variáveis de ambiente
+cp .env.example .env
+# Edite .env com suas configurações
+
+# Migrar banco de dados
+python manage.py migrate
+
+# Criar superusuário
+python manage.py createsuperuser
+
+# Iniciar servidor de desenvolvimento
+python manage.py runserver 0.0.0.0:8000
+```
 
 ### Frontend
-* **Next.js 14+** (App Router & Server Actions)
-* **Tailwind CSS** & **Shadcn UI** (Design system limpo, responsivo e moderno)
-* **TypeScript** (Tipagem estática e maior segurança de código)
 
-### Infraestrutura & DevOps
-* **Azure App Service** (Hospedagem da API e do Frontend)
-* **Azure Database/VM (PostgreSQL)** (Banco de dados principal)
-* **Azure Blob Storage** (Armazenamento seguro de anexos e documentos)
-* **GitHub Actions** (CI/CD automatizado)
+```bash
+cd frontend
 
----
+# Instalar dependências
+npm install
 
-## 🚀 Como Iniciar Localmente
+# Configurar variáveis de ambiente
+cp .env.example .env.local
+# Edite .env.local com NEXT_PUBLIC_API_URL
 
-O projeto está dividido em duas partes principais: `/backend` e `/frontend`.
+# Iniciar servidor de desenvolvimento
+npm run dev
+```
 
-### 1. Pré-requisitos
-* Python 3.10 ou superior instalado.
-* Node.js 18.x ou superior instalado.
-* Banco de dados PostgreSQL rodando localmente (ou SQLite para desenvolvimento ágil).
+Acesse em: http://localhost:3000
 
 ---
 
-### 2. Configurando o Backend (Django)
+## 📁 Estrutura do Projeto
 
-1. Navegue até o diretório do backend (crie a pasta caso esteja iniciando a estrutura):
-   ```bash
-   cd backend
-   ```
-
-2. Crie e ative um ambiente virtual:
-   ```bash
-   # Windows (PowerShell)
-   python -m venv venv
-   .\venv\Scripts\Activate.ps1
-
-   # Linux/macOS
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
-
-3. Instale as dependências:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. Copie as variáveis de ambiente de exemplo e configure seu arquivo `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-
-5. Execute as migrações do banco de dados:
-   ```bash
-   python manage.py migrate
-   ```
-
-6. Inicie o servidor de desenvolvimento:
-   ```bash
-   python manage.py runserver
-   ```
-   *O backend estará acessível em: `http://127.0.0.1:8000/`*
+```
+elo-terapeutico/
+├── backend/                  # Django REST API
+│   ├── apps/
+│   │   ├── accounts/         # Autenticação e perfis de usuário
+│   │   ├── agenda/           # Agendamento de consultas
+│   │   ├── patients/         # Gerenciamento de pacientes (CRM)
+│   │   ├── records/          # Prontuários e evoluções clínicas
+│   │   └── financeiro/       # Controle financeiro
+│   ├── config/               # Configurações Django (settings, urls, wsgi)
+│   └── requirements/         # Dependências por ambiente
+│
+├── frontend/                 # Next.js App Router
+│   └── src/
+│       ├── app/              # Páginas (App Router)
+│       ├── components/       # Design System (Button, Card, Input...)
+│       ├── features/         # Módulos por domínio (patients, agenda...)
+│       ├── providers/        # Providers raiz (QueryClient, Theme, Auth)
+│       ├── contexts/         # Contextos React (Auth)
+│       ├── lib/              # Utilitários (api, utils)
+│       ├── types/            # Tipos TypeScript de domínio
+│       └── constants/        # Query Keys, labels, rotas
+│
+└── docs/                     # Documentação técnica
+    ├── FRONTEND.md           # Arquitetura do frontend
+    ├── BACKEND.md            # Arquitetura do backend
+    └── DESIGN_SYSTEM.md      # Design System e tokens
+```
 
 ---
 
-### 3. Configurando o Frontend (Next.js)
+## 🏗️ Stack Técnica
 
-1. Navegue até o diretório do frontend:
-   ```bash
-   cd frontend
-   ```
+### Backend
+| Tecnologia | Versão | Propósito |
+|---|---|---|
+| Python | 3.11+ | Linguagem |
+| Django | 5.x | Framework web |
+| Django REST Framework | 3.15 | API REST |
+| PostgreSQL | 15+ | Banco de dados |
+| Azure Blob Storage | — | Arquivos e documentos |
+| Fernet (cryptography) | — | Criptografia de campos sensíveis (LGPD) |
+| Simple JWT | — | Autenticação JWT |
 
-2. Instale as dependências com o npm:
-   ```bash
-   npm install
-   ```
-
-3. Copie o arquivo de variáveis de ambiente de exemplo:
-   ```bash
-   cp .env.example .env.local
-   ```
-
-4. Execute o servidor de desenvolvimento:
-   ```bash
-   npm run dev
-   ```
-   *O frontend estará acessível em: `http://localhost:3000/`*
-
----
-
-## 🔒 Segurança e LGPD
-
-Por lidar com dados de saúde (dados pessoais sensíveis), este projeto implementa práticas rigorosas de segurança:
-* **Criptografia Simétrica:** Evoluções clínicas e notas de sessão são criptografadas antes de serem gravadas no banco de dados.
-* **Logs de Auditoria:** Rastreabilidade total sobre quais usuários visualizaram ou modificaram prontuários específicos.
-* **Consentimento e Anonimização:** Mecanismos preparados para exportação ou eliminação segura de dados sob demanda do paciente (Direito ao Esquecimento).
-
-Para mais detalhes sobre as práticas de privacidade implementadas, consulte o documento [LGPD_COMPLIANCE.md](file:///d:/Projetos/elo-terapeutico/LGPD_COMPLIANCE.md).
+### Frontend
+| Tecnologia | Versão | Propósito |
+|---|---|---|
+| Next.js | 15+ (App Router) | Framework |
+| TypeScript | 5+ | Linguagem |
+| Tailwind CSS | v4 | Estilização |
+| TanStack Query | v5 | Cache e sync de dados |
+| React Hook Form | — | Formulários |
+| Zod | v4 | Validação de schemas |
+| Sonner | — | Notificações toast |
+| next-themes | — | Dark mode |
+| Framer Motion | — | Animações |
 
 ---
 
-## 🗺️ Roadmap de Desenvolvimento
+## 🔒 Segurança e Compliance
 
-O plano completo de desenvolvimento, incluindo cronogramas de sprints e estratégias de implantação gratuita na Azure, está detalhado no arquivo [ROADMAP.MD](file:///d:/Projetos/elo-terapeutico/ROADMAP.MD).
+- **LGPD**: Campos clínicos sensíveis criptografados em repouso com Fernet (AES-256-CBC)
+- **JWT**: Access tokens de 30 minutos com refresh automático silencioso
+- **RBAC**: Controle de acesso por role (therapist/secretary/admin) no middleware Next.js
+- **CSRF**: Proteção nativa do Django para endpoints de formulário
+- **HTTPS**: Obrigatório em produção via configurações HSTS
+
+---
+
+## 🌿 Git Flow
+
+| Branch | Propósito |
+|---|---|
+| `main` | Código estável, pronto para produção |
+| `refactor/setup-ecosystem` | Instalação e configuração do ecossistema (Fase 2-4) |
+| `feature/*` | Novas funcionalidades |
+| `fix/*` | Correções de bugs |
+
+---
+
+## 📚 Documentação
+
+- [FRONTEND.md](./docs/FRONTEND.md) — Arquitetura e padrões do frontend
+- [BACKEND.md](./docs/BACKEND.md) — Arquitetura e APIs do backend
+- [DESIGN_SYSTEM.md](./docs/DESIGN_SYSTEM.md) — Tokens, componentes e guidelines
+
+---
+
+## 📄 Licença
+
+Propriedade privada. Todos os direitos reservados.
