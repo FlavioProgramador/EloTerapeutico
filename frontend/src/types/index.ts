@@ -39,15 +39,22 @@ export interface Patient {
   phone?: string;
   birth_date?: string;
   cpf?: string;
+  formatted_cpf?: string;
+  gender?: "M" | "F" | "O" | "N";
+  address?: string | Record<string, any>;
   status: PatientStatus;
-  session_value: string;
+  session_value?: string;
   payment_method?: PaymentMethod;
   emergency_contact_name?: string;
   emergency_contact_phone?: string;
+  referral_source?: string;
+  guardian_name?: string;
+  guardian_cpf?: string;
   notes?: string;
   created_at: string;
   updated_at: string;
   therapist?: number;
+  therapist_name?: string;
   age?: number;
 }
 
@@ -57,11 +64,16 @@ export interface CreatePatientPayload {
   phone?: string;
   birth_date?: string;
   cpf?: string;
+  gender?: "M" | "F" | "O" | "N";
+  address?: string | Record<string, any>;
   status?: PatientStatus;
-  session_value: string;
+  session_value?: string;
   payment_method?: PaymentMethod;
   emergency_contact_name?: string;
   emergency_contact_phone?: string;
+  referral_source?: string;
+  guardian_name?: string;
+  guardian_cpf?: string;
   notes?: string;
 }
 
@@ -79,14 +91,19 @@ export interface Appointment {
   patient: number;
   patient_name?: string;
   therapist?: number;
+  therapist_name?: string;
   date: string; // ISO 8601
-  start_time: string; // HH:MM
-  end_time: string; // HH:MM
+  start_time: string; // ISO datetime
+  end_time: string; // ISO datetime
   status: AppointmentStatus;
+  status_display?: string;
   notes?: string;
   google_event_id?: string;
   created_at: string;
   updated_at: string;
+  is_recurring?: boolean;
+  duration_display?: string;
+  session_value?: string;
 }
 
 export interface CreateAppointmentPayload {
@@ -100,23 +117,74 @@ export interface CreateAppointmentPayload {
 
 // ─── Prontuários ───────────────────────────────────────────────────────────────
 
-export interface ClinicalRecord {
+export interface Anamnesis {
+  id?: number;
+  patient_id?: number;
+  chief_complaint: string;
+  history: string;
+  medications: string;
+  family_history: string;
+  observations: string;
+  created_at?: string;
+  updated_at?: string;
+  created_by?: {
+    id: number;
+    full_name: string;
+    email: string;
+  };
+}
+
+export interface EvolutionListItem {
   id: number;
   patient: number;
-  patient_name?: string;
-  appointment?: number;
-  content: string;
+  session_date: string;
+  cid10: string;
   is_locked: boolean;
-  locked_at?: string;
+  locked_at: string | null;
+  is_editable: boolean;
+  addenda_count: number;
+  created_by: number;
+  created_by_name: string;
   created_at: string;
+}
+
+export interface Addendum {
+  id: number;
+  evolution: number;
+  reason: string;
+  content: string;
+  created_by: {
+    id: number;
+    full_name: string;
+    email: string;
+  };
+  created_at: string;
+}
+
+export interface EvolutionDetail extends Omit<EvolutionListItem, "created_by"> {
+  content: string;
+  addenda: Addendum[];
+  created_by: {
+    id: number;
+    full_name: string;
+    email: string;
+  };
   updated_at: string;
 }
 
-export interface CreateRecordPayload {
+export interface CreateEvolutionPayload {
   patient: number;
-  appointment?: number;
+  appointment?: number | null;
+  content: string;
+  cid10?: string;
+  session_date: string;
+}
+
+export interface CreateAddendumPayload {
+  reason: string;
   content: string;
 }
+
 
 // ─── Financeiro ────────────────────────────────────────────────────────────────
 
@@ -131,6 +199,8 @@ export interface FinancialTransaction {
   description: string;
   amount: string;
   type: TransactionType;
+  category: "session" | "subscription" | "material" | "refund" | "other";
+  category_display?: string;
   status: TransactionStatus;
   due_date: string;
   payment_date?: string;
@@ -146,6 +216,7 @@ export interface CreateTransactionPayload {
   description: string;
   amount: string | number;
   type: TransactionType;
+  category: "session" | "subscription" | "material" | "refund" | "other";
   status?: TransactionStatus;
   due_date: string;
   payment_date?: string;

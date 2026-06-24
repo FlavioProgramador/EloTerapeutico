@@ -22,8 +22,7 @@ export const appointmentSchema = z
       .min(1, "Horário de término é obrigatório.")
       .regex(timeRegex, "Formato: HH:MM."),
     status: z
-      .enum(["scheduled", "confirmed", "completed", "cancelled", "missed"])
-      .default("scheduled"),
+      .enum(["scheduled", "confirmed", "completed", "cancelled", "missed"]),
     notes: z.string().max(1000, "Observações limitadas a 1000 caracteres.").optional().or(z.literal("")),
   })
   .refine(

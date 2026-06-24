@@ -29,19 +29,25 @@ export const patientSchema = z.object({
     .regex(cpfRegex, "CPF inválido. Formato: 000.000.000-00.")
     .optional()
     .or(z.literal("")),
+  gender: z.enum(["M", "F", "O", "N"]).optional(),
+  address: z.string().optional().or(z.literal("")),
   status: z
-    .enum(["active", "inactive", "on_hold"])
-    .default("active"),
+    .enum(["active", "inactive", "on_hold"]),
   session_value: z
     .string()
-    .min(1, "Valor da sessão é obrigatório.")
-    .refine(
-      (val) => !isNaN(parseFloat(val.replace(",", "."))) && parseFloat(val.replace(",", ".")) >= 0,
-      "Informe um valor válido."
-    ),
+    .optional()
+    .or(z.literal("")),
   payment_method: z
     .enum(["pix", "credit_card", "cash", "insurance", "boleto"])
     .optional(),
+
+  referral_source: z.string().max(255).optional().or(z.literal("")),
+  guardian_name: z.string().max(255).optional().or(z.literal("")),
+  guardian_cpf: z
+    .string()
+    .regex(cpfRegex, "CPF inválido. Formato: 000.000.000-00.")
+    .optional()
+    .or(z.literal("")),
   emergency_contact_name: z.string().max(150).optional().or(z.literal("")),
   emergency_contact_phone: z
     .string()

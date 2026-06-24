@@ -57,11 +57,18 @@ export function SkeletonTableRow() {
   );
 }
 
+interface SkeletonTableProps {
+  lines?: number;
+  rows?: number;
+  columns?: number;
+}
+
 /** Lista de n linhas de tabela */
-export function SkeletonTable({ lines = 5 }: SkeletonProps) {
+export function SkeletonTable({ lines, rows, columns }: SkeletonTableProps) {
+  const count = lines ?? rows ?? 5;
   return (
     <div className="space-y-0">
-      {Array.from({ length: lines }).map((_, i) => (
+      {Array.from({ length: count }).map((_, i) => (
         <SkeletonTableRow key={i} />
       ))}
     </div>

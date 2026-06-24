@@ -5,10 +5,9 @@
  */
 
 import React from "react";
-import { LucideIcon } from "lucide-react";
 
 interface EmptyStateProps {
-  icon?: LucideIcon;
+  icon?: React.ReactNode;
   title: string;
   description?: string;
   action?: React.ReactNode;
@@ -16,7 +15,7 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({
-  icon: Icon,
+  icon,
   title,
   description,
   action,
@@ -32,9 +31,9 @@ export function EmptyState({
         ${className}
       `}
     >
-      {Icon && (
+      {icon && (
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-          <Icon className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+          {icon}
         </div>
       )}
       <h3 className="text-sm font-semibold text-foreground mb-1">{title}</h3>

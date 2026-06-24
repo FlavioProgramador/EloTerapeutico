@@ -17,9 +17,9 @@ export const transactionSchema = z.object({
       "Informe um valor válido maior que zero."
     ),
   type: z.enum(["income", "expense"], "Tipo é obrigatório."),
+  category: z.enum(["session", "subscription", "material", "refund", "other"], "Categoria é obrigatória."),
   status: z
-    .enum(["pending", "paid", "overdue", "cancelled"])
-    .default("pending"),
+    .enum(["pending", "paid", "overdue", "cancelled"]),
   due_date: z
     .string()
     .min(1, "Data de vencimento é obrigatória.")
