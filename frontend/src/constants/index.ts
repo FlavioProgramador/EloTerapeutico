@@ -24,6 +24,8 @@ export const QUERY_KEYS = {
   recordsByPatient: (patientId: number) =>
     ["records", "patient", patientId] as const,
   record: (id: number) => ["records", id] as const,
+  anamnesis: (patientId: number) => ["records", "anamnesis", patientId] as const,
+
 
   // Financeiro
   transactions: ["transactions"] as const,

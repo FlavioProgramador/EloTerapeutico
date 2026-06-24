@@ -24,13 +24,10 @@ export function useTransactions(filters?: TransactionFilters) {
 /**
  * Hook para buscar o resumo financeiro do período.
  */
-export function useFinancialSummary(filters?: {
-  date_from?: string;
-  date_to?: string;
-}) {
+export function useFinancialSummary(year: number, month: number) {
   return useQuery({
-    queryKey: [...QUERY_KEYS.transactionsSummary, filters],
-    queryFn: () => financeiroService.getSummary(filters),
+    queryKey: [...QUERY_KEYS.transactionsSummary, { year, month }],
+    queryFn: () => financeiroService.getSummary(year, month),
   });
 }
 
@@ -63,8 +60,15 @@ export function useMarkAsPaid() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, paymentDate }: { id: number; paymentDate?: string }) =>
-      financeiroService.markAsPaid(id, paymentDate),
+    mutationFn: ({
+      id,
+      paymentMethod,
+      paidAt,
+    }: {
+      id: number;
+      paymentMethod?: string;
+      paidAt?: string;
+    }) => financeiroService.markAsPaid(id, paymentMethod, paidAt),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.transactions });
       queryClient.invalidateQueries({
