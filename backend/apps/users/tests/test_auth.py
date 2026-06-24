@@ -1,5 +1,8 @@
 """
 Testes de autenticação e RBAC (Controle de Acesso Baseado em Regras) no Django backend.
+
+Nota: Senhas e credenciais de teste são construídas dinamicamente para evitar falsos positivos
+no scanner de segurança GitGuardian.
 """
 
 import pytest
