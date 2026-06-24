@@ -278,251 +278,244 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Grid Principal - Agenda, Financeiro e Atividades */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* Grid Principal - Agenda, Financeiro e Atividades (3 Colunas conforme Imagem) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Lado Esquerdo (Agenda e Resumo Financeiro) */}
-        <div className="lg:col-span-8 space-y-6">
+        {/* Agenda de hoje */}
+        <Card className="border-[hsl(165,27%,16%)] bg-[hsl(165,38%,10%)] shadow-sm">
+          <CardHeader className="pb-3 border-b border-[hsl(165,27%,16%)]/40 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-bold text-[hsl(40,20%,94%)]">Agenda de hoje</CardTitle>
+              <CardDescription className="text-[10px] text-[hsl(163,8%,68%)]">
+                23 de maio, sexta-feira
+              </CardDescription>
+            </div>
+            <Button variant="ghost" className="text-xs text-[hsl(163,27%,62%)] p-0 hover:bg-transparent">
+              Ver agenda completa ▾
+            </Button>
+          </CardHeader>
           
-          {/* Agenda de hoje */}
-          <Card className="border-[hsl(165,27%,16%)] bg-[hsl(165,38%,10%)] shadow-sm">
-            <CardHeader className="pb-3 border-b border-[hsl(165,27%,16%)]/40 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-bold text-[hsl(40,20%,94%)]">Agenda de hoje</CardTitle>
-                <CardDescription className="text-[10px] text-[hsl(163,8%,68%)]">
-                  23 de maio, sexta-feira
-                </CardDescription>
+          <CardContent className="p-5">
+            {loadingToday ? (
+              <div className="py-12 flex flex-col items-center justify-center gap-2">
+                <Activity className="h-6 w-6 text-[hsl(163,27%,62%)] animate-spin" />
+                <span className="text-xs text-[hsl(163,8%,68%)]">Buscando consultas de hoje...</span>
               </div>
-              <Button variant="ghost" className="text-xs text-[hsl(163,27%,62%)] p-0 hover:bg-transparent">
-                Ver agenda completa ▾
-              </Button>
-            </CardHeader>
-            
-            <CardContent className="p-5">
-              {loadingToday ? (
-                <div className="py-12 flex flex-col items-center justify-center gap-2">
-                  <Activity className="h-6 w-6 text-[hsl(163,27%,62%)] animate-spin" />
-                  <span className="text-xs text-[hsl(163,8%,68%)]">Buscando consultas de hoje...</span>
+            ) : appointmentsToday.length === 0 ? (
+              <div className="py-12 text-center flex flex-col items-center justify-center gap-3">
+                <Calendar className="h-8 w-8 text-[hsl(163,8%,68%)] opacity-40" />
+                <div>
+                  <h4 className="font-semibold text-xs text-[hsl(40,20%,94%)]">Nenhuma consulta agendada</h4>
+                  <p className="text-[10px] text-[hsl(163,8%,68%)] mt-1 max-w-xs mx-auto">
+                    Sua agenda de hoje está livre de atendimentos registrados.
+                  </p>
                 </div>
-              ) : appointmentsToday.length === 0 ? (
-                <div className="py-12 text-center flex flex-col items-center justify-center gap-3">
-                  <Calendar className="h-8 w-8 text-[hsl(163,8%,68%)] opacity-40" />
-                  <div>
-                    <h4 className="font-semibold text-xs text-[hsl(40,20%,94%)]">Nenhuma consulta agendada</h4>
-                    <p className="text-[10px] text-[hsl(163,8%,68%)] mt-1 max-w-xs mx-auto">
-                      Sua agenda de hoje está livre de atendimentos registrados.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="divide-y divide-[hsl(165,27%,16%)]/40">
-                  {appointmentsToday.map((appt) => (
-                    <div
-                      key={appt.id}
-                      className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0"
-                    >
-                      <div className="flex items-center gap-4">
-                        {/* Horário */}
-                        <div className="text-center min-w-[50px]">
-                          <span className="font-bold text-xs text-[hsl(40,20%,94%)]">
-                            {formatTime(appt.start_time)}
-                          </span>
-                          <span className="block text-[8px] text-[hsl(163,8%,68%)]">
-                            {formatTime(appt.end_time)}
-                          </span>
-                        </div>
-
-                        {/* Detalhes */}
-                        <div>
-                          <h4 className="font-bold text-xs text-[hsl(40,20%,94%)]">
-                            {appt.patient_name}
-                          </h4>
-                          <span className="text-[9px] text-[hsl(163,8%,68%)]">
-                            Terapia individual
-                          </span>
-                        </div>
+              </div>
+            ) : (
+              <div className="divide-y divide-[hsl(165,27%,16%)]/40">
+                {appointmentsToday.map((appt) => (
+                  <div
+                    key={appt.id}
+                    className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0"
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Horário */}
+                      <div className="text-center min-w-[50px]">
+                        <span className="font-bold text-xs text-[hsl(40,20%,94%)]">
+                          {formatTime(appt.start_time)}
+                        </span>
+                        <span className="block text-[8px] text-[hsl(163,8%,68%)]">
+                          {formatTime(appt.end_time)}
+                        </span>
                       </div>
 
-                      {/* Badge Status */}
-                      <div className="flex items-center gap-3">
-                        <span className={cn(
-                          "px-2 py-0.5 rounded-full text-[9px] font-bold border",
-                          appt.status === "confirmed" || appt.status === "completed"
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                            : "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                        )}>
-                          {appt.status === "confirmed" || appt.status === "completed" ? "Confirmada" : "Pendente"}
+                      {/* Detalhes */}
+                      <div>
+                        <h4 className="font-bold text-xs text-[hsl(40,20%,94%)]">
+                          {appt.patient_name}
+                        </h4>
+                        <span className="text-[9px] text-[hsl(163,8%,68%)]">
+                          Terapia individual
                         </span>
-                        
-                        {/* Ações rápidas */}
-                        {appt.status === "scheduled" && (
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => handleUpdateStatus(appt.id, "confirmed", "Confirmada")}
-                              className="h-6 w-6 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 flex items-center justify-center cursor-pointer"
-                              title="Confirmar Presença"
-                            >
-                              <Check className="h-3 w-3" />
-                            </button>
-                            <button
-                              onClick={() => handleUpdateStatus(appt.id, "cancelled", "Cancelada")}
-                              className="h-6 w-6 rounded bg-destructive/20 hover:bg-destructive/30 text-destructive flex items-center justify-center cursor-pointer"
-                              title="Cancelar Consulta"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* Resumo financeiro */}
-          <Card className="border-[hsl(165,27%,16%)] bg-[hsl(165,38%,10%)] shadow-sm">
-            <CardHeader className="pb-3 border-b border-[hsl(165,27%,16%)]/40">
-              <CardTitle className="text-sm font-bold text-[hsl(40,20%,94%)]">Resumo financeiro</CardTitle>
-              <CardDescription className="text-[10px] text-[hsl(163,8%,68%)]">Este mês</CardDescription>
-            </CardHeader>
-            <CardContent className="p-5 space-y-6">
-              
-              {/* Barra de Receitas e Despesas */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {/* Receitas */}
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-[hsl(163,8%,68%)]">Receitas</span>
-                    <span className="font-bold text-[hsl(40,20%,94%)]">R$ 12.450,00</span>
+                    {/* Badge Status */}
+                    <div className="flex items-center gap-3">
+                      <span className={cn(
+                        "px-2 py-0.5 rounded-full text-[9px] font-bold border",
+                        appt.status === "confirmed" || appt.status === "completed"
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                      )}>
+                        {appt.status === "confirmed" || appt.status === "completed" ? "Confirmada" : "Pendente"}
+                      </span>
+                      
+                      {/* Ações rápidas */}
+                      {appt.status === "scheduled" && (
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleUpdateStatus(appt.id, "confirmed", "Confirmada")}
+                            className="h-6 w-6 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 flex items-center justify-center cursor-pointer"
+                            title="Confirmar Presença"
+                          >
+                            <Check className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => handleUpdateStatus(appt.id, "cancelled", "Cancelada")}
+                            className="h-6 w-6 rounded bg-destructive/20 hover:bg-destructive/30 text-destructive flex items-center justify-center cursor-pointer"
+                            title="Cancelar Consulta"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="w-full bg-[hsl(165,27%,12%)] rounded-full h-1.5">
-                    <div className="bg-emerald-400 h-1.5 rounded-full" style={{ width: "75%" }} />
-                  </div>
-                  <span className="block text-[9px] text-[hsl(163,8%,68%)] text-right">75% do esperado</span>
-                </div>
-
-                {/* Despesas */}
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-[hsl(163,8%,68%)]">Despesas</span>
-                    <span className="font-bold text-[hsl(40,20%,94%)]">R$ 3.210,00</span>
-                  </div>
-                  <div className="w-full bg-[hsl(165,27%,12%)] rounded-full h-1.5">
-                    <div className="bg-red-400 h-1.5 rounded-full" style={{ width: "25%" }} />
-                  </div>
-                  <span className="block text-[9px] text-[hsl(163,8%,68%)] text-right">25% das receitas</span>
-                </div>
+                ))}
               </div>
+            )}
+          </CardContent>
+        </Card>
 
-              {/* Lucro Líquido e Sparkline Principal */}
-              <div className="pt-4 border-t border-[hsl(165,27%,16%)]/40 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div>
-                  <span className="text-[10px] text-[hsl(163,8%,68%)] uppercase tracking-wider block">Lucro líquido</span>
-                  <span className="text-xl font-bold text-[hsl(40,20%,94%)]">R$ 9.240,00</span>
-                </div>
-
-                {/* Gráfico SVG Grande */}
-                <div className="w-full sm:w-80 h-16 relative">
-                  <svg className="w-full h-full text-[hsl(163,27%,62%)]" viewBox="0 0 300 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                      <linearGradient id="netGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="currentColor" stopOpacity="0.2" />
-                        <stop offset="100%" stopColor="currentColor" stopOpacity="0.0" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M0 50 C30 40 60 55 90 35 C120 15 150 45 180 20 C210 -5 240 18 270 5 L300 25" stroke="currentColor" strokeWidth="2.5" />
-                    <path d="M0 50 C30 40 60 55 90 35 C120 15 150 45 180 20 C210 -5 240 18 270 5 L300 25 V60 H0 Z" fill="url(#netGrad)" />
-                  </svg>
-                  <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[8px] text-[hsl(163,8%,68%)]/60 px-1 font-mono pt-1.5">
-                    <span>1 Mai</span>
-                    <span>8 Mai</span>
-                    <span>15 Mai</span>
-                    <span>22 Mai</span>
-                    <span>29 Mai</span>
-                  </div>
-                </div>
-              </div>
-
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Lado Direito (Atividades Recentes) */}
-        <div className="lg:col-span-4">
-          <Card className="border-[hsl(165,27%,16%)] bg-[hsl(165,38%,10%)] h-full shadow-sm">
-            <CardHeader className="pb-3 border-b border-[hsl(165,27%,16%)]/40 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-bold text-[hsl(40,20%,94%)]">Atividades recentes</CardTitle>
-                <CardDescription className="text-[10px] text-[hsl(163,8%,68%)]">Movimentações da clínica</CardDescription>
-              </div>
-            </CardHeader>
+        {/* Resumo financeiro */}
+        <Card className="border-[hsl(165,27%,16%)] bg-[hsl(165,38%,10%)] shadow-sm">
+          <CardHeader className="pb-3 border-b border-[hsl(165,27%,16%)]/40">
+            <CardTitle className="text-sm font-bold text-[hsl(40,20%,94%)]">Resumo financeiro</CardTitle>
+            <CardDescription className="text-[10px] text-[hsl(163,8%,68%)]">Este mês</CardDescription>
+          </CardHeader>
+          <CardContent className="p-5 space-y-6">
             
-            <CardContent className="p-5">
-              <div className="relative border-l border-[hsl(165,27%,16%)]/80 ml-3.5 pl-5 space-y-6 py-2">
-                
-                {/* Atividade 1 */}
-                <div className="relative">
-                  {/* Círculo */}
-                  <div className="absolute -left-[29px] top-0.5 h-4.5 w-4.5 rounded-full bg-[hsl(165,27%,12%)] border-2 border-[hsl(163,27%,62%)] flex items-center justify-center text-[hsl(163,27%,62%)]">
-                    <Users className="h-2 w-2" />
-                  </div>
-                  <div className="space-y-0.5">
-                    <h5 className="font-bold text-xs text-[hsl(40,20%,94%)]">Novo paciente cadastrado</h5>
-                    <p className="text-[10px] text-[hsl(163,8%,68%)]">Ana Clara Sousa</p>
-                    <span className="block text-[8px] text-[hsl(163,8%,68%)]/50 pt-0.5">Há 20 min</span>
-                  </div>
+            {/* Barra de Receitas e Despesas */}
+            <div className="space-y-4">
+              {/* Receitas */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-[hsl(163,8%,68%)]">Receitas</span>
+                  <span className="font-bold text-[hsl(40,20%,94%)]">R$ 12.450,00</span>
                 </div>
-
-                {/* Atividade 2 */}
-                <div className="relative">
-                  {/* Círculo */}
-                  <div className="absolute -left-[29px] top-0.5 h-4.5 w-4.5 rounded-full bg-[hsl(165,27%,12%)] border-2 border-emerald-400 flex items-center justify-center text-emerald-400">
-                    <DollarSign className="h-2 w-2" />
-                  </div>
-                  <div className="space-y-0.5">
-                    <h5 className="font-bold text-xs text-[hsl(40,20%,94%)]">Pagamento recebido</h5>
-                    <p className="text-[10px] text-[hsl(163,8%,68%)]">R$ 250,00 de Marcos Lima</p>
-                    <span className="block text-[8px] text-[hsl(163,8%,68%)]/50 pt-0.5">Há 2h</span>
-                  </div>
+                <div className="w-full bg-[hsl(165,27%,12%)] rounded-full h-1.5">
+                  <div className="bg-emerald-400 h-1.5 rounded-full" style={{ width: "75%" }} />
                 </div>
-
-                {/* Atividade 3 */}
-                <div className="relative">
-                  {/* Círculo */}
-                  <div className="absolute -left-[29px] top-0.5 h-4.5 w-4.5 rounded-full bg-[hsl(165,27%,12%)] border-2 border-amber-400 flex items-center justify-center text-amber-400">
-                    <ClipboardCheck className="h-2 w-2" />
-                  </div>
-                  <div className="space-y-0.5">
-                    <h5 className="font-bold text-xs text-[hsl(40,20%,94%)]">Prontuário atualizado</h5>
-                    <p className="text-[10px] text-[hsl(163,8%,68%)]">Juliana Rocha</p>
-                    <span className="block text-[8px] text-[hsl(163,8%,68%)]/50 pt-0.5">Há 3h</span>
-                  </div>
-                </div>
-
-                {/* Atividade 4 */}
-                <div className="relative">
-                  {/* Círculo */}
-                  <div className="absolute -left-[29px] top-0.5 h-4.5 w-4.5 rounded-full bg-[hsl(165,27%,12%)] border-2 border-[hsl(38,25,87%)] flex items-center justify-center text-[hsl(38,25,87%)]">
-                    <Check className="h-2 w-2" />
-                  </div>
-                  <div className="space-y-0.5">
-                    <h5 className="font-bold text-xs text-[hsl(40,20%,94%)]">Nova mensagem</h5>
-                    <p className="text-[10px] text-[hsl(163,8%,68%)]">De: Ana Clara Sousa</p>
-                    <span className="block text-[8px] text-[hsl(163,8%,68%)]/50 pt-0.5">Há 5h</span>
-                  </div>
-                </div>
-
+                <span className="block text-[9px] text-[hsl(163,8%,68%)] text-right">75% do esperado</span>
               </div>
 
-              <Button variant="ghost" className="w-full text-xs text-[hsl(163,8%,68%)] hover:text-[hsl(40,20%,94%)] pt-4 border-t border-[hsl(165,27%,16%)]/40 mt-4 justify-between hover:bg-transparent">
-                Ver todas atividades <ChevronRight className="h-4 w-4" />
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+              {/* Despesas */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-[hsl(163,8%,68%)]">Despesas</span>
+                  <span className="font-bold text-[hsl(40,20%,94%)]">R$ 3.210,00</span>
+                </div>
+                <div className="w-full bg-[hsl(165,27%,12%)] rounded-full h-1.5">
+                  <div className="bg-red-400 h-1.5 rounded-full" style={{ width: "25%" }} />
+                </div>
+                <span className="block text-[9px] text-[hsl(163,8%,68%)] text-right">25% das receitas</span>
+              </div>
+            </div>
 
+            {/* Lucro Líquido e Sparkline Principal */}
+            <div className="pt-4 border-t border-[hsl(165,27%,16%)]/40 flex flex-col items-start gap-4">
+              <div>
+                <span className="text-[10px] text-[hsl(163,8%,68%)] uppercase tracking-wider block">Lucro líquido</span>
+                <span className="text-xl font-bold text-[hsl(40,20%,94%)]">R$ 9.240,00</span>
+              </div>
+
+              {/* Gráfico SVG Grande */}
+              <div className="w-full h-20 relative">
+                <svg className="w-full h-full text-[hsl(163,27%,62%)]" viewBox="0 0 300 60" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="netGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="currentColor" stopOpacity="0.2" />
+                      <stop offset="100%" stopColor="currentColor" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M0 50 C30 40 60 55 90 35 C120 15 150 45 180 20 C210 -5 240 18 270 5 L300 25" stroke="currentColor" strokeWidth="2.5" />
+                  <path d="M0 50 C30 40 60 55 90 35 C120 15 150 45 180 20 C210 -5 240 18 270 5 L300 25 V60 H0 Z" fill="url(#netGrad)" />
+                </svg>
+                <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[8px] text-[hsl(163,8%,68%)]/60 px-1 font-mono pt-1.5">
+                  <span>1 Mai</span>
+                  <span>8 Mai</span>
+                  <span>15 Mai</span>
+                  <span>22 Mai</span>
+                  <span>29 Mai</span>
+                </div>
+              </div>
+            </div>
+
+          </CardContent>
+        </Card>
+
+        {/* Atividades recentes */}
+        <Card className="border-[hsl(165,27%,16%)] bg-[hsl(165,38%,10%)] h-full shadow-sm">
+          <CardHeader className="pb-3 border-b border-[hsl(165,27%,16%)]/40 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-bold text-[hsl(40,20%,94%)]">Atividades recentes</CardTitle>
+              <CardDescription className="text-[10px] text-[hsl(163,8%,68%)]">Movimentações da clínica</CardDescription>
+            </div>
+          </CardHeader>
+          
+          <CardContent className="p-5">
+            <div className="relative border-l border-[hsl(165,27%,16%)]/80 ml-3.5 pl-5 space-y-6 py-2">
+              
+              {/* Atividade 1 */}
+              <div className="relative">
+                {/* Círculo */}
+                <div className="absolute -left-[29px] top-0.5 h-4.5 w-4.5 rounded-full bg-[hsl(165,27%,12%)] border-2 border-[hsl(163,27%,62%)] flex items-center justify-center text-[hsl(163,27%,62%)]">
+                  <Users className="h-2 w-2" />
+                </div>
+                <div className="space-y-0.5">
+                  <h5 className="font-bold text-xs text-[hsl(40,20%,94%)]">Novo paciente cadastrado</h5>
+                  <p className="text-[10px] text-[hsl(163,8%,68%)]">Ana Clara Sousa</p>
+                  <span className="block text-[8px] text-[hsl(163,8%,68%)]/50 pt-0.5">Há 20 min</span>
+                </div>
+              </div>
+
+              {/* Atividade 2 */}
+              <div className="relative">
+                {/* Círculo */}
+                <div className="absolute -left-[29px] top-0.5 h-4.5 w-4.5 rounded-full bg-[hsl(165,27%,12%)] border-2 border-emerald-400 flex items-center justify-center text-emerald-400">
+                  <DollarSign className="h-2 w-2" />
+                </div>
+                <div className="space-y-0.5">
+                  <h5 className="font-bold text-xs text-[hsl(40,20%,94%)]">Pagamento recebido</h5>
+                  <p className="text-[10px] text-[hsl(163,8%,68%)]">R$ 250,00 de Marcos Lima</p>
+                  <span className="block text-[8px] text-[hsl(163,8%,68%)]/50 pt-0.5">Há 2h</span>
+                </div>
+              </div>
+
+              {/* Atividade 3 */}
+              <div className="relative">
+                {/* Círculo */}
+                <div className="absolute -left-[29px] top-0.5 h-4.5 w-4.5 rounded-full bg-[hsl(165,27%,12%)] border-2 border-amber-400 flex items-center justify-center text-amber-400">
+                  <ClipboardCheck className="h-2 w-2" />
+                </div>
+                <div className="space-y-0.5">
+                  <h5 className="font-bold text-xs text-[hsl(40,20%,94%)]">Prontuário atualizado</h5>
+                  <p className="text-[10px] text-[hsl(163,8%,68%)]">Juliana Rocha</p>
+                  <span className="block text-[8px] text-[hsl(163,8%,68%)]/50 pt-0.5">Há 3h</span>
+                </div>
+              </div>
+
+              {/* Atividade 4 */}
+              <div className="relative">
+                {/* Círculo */}
+                <div className="absolute -left-[29px] top-0.5 h-4.5 w-4.5 rounded-full bg-[hsl(165,27%,12%)] border-2 border-[hsl(38,25%,87%)] flex items-center justify-center text-[hsl(38,25%,87%)]">
+                  <Check className="h-2 w-2" />
+                </div>
+                <div className="space-y-0.5">
+                  <h5 className="font-bold text-xs text-[hsl(40,20%,94%)]">Nova mensagem</h5>
+                  <p className="text-[10px] text-[hsl(163,8%,68%)]">De: Ana Clara Sousa</p>
+                  <span className="block text-[8px] text-[hsl(163,8%,68%)]/50 pt-0.5">Há 5h</span>
+                </div>
+              </div>
+
+            </div>
+
+            <Button variant="ghost" className="w-full text-xs text-[hsl(163,8%,68%)] hover:text-[hsl(40,20%,94%)] pt-4 border-t border-[hsl(165,27%,16%)]/40 mt-4 justify-between hover:bg-transparent">
+              Ver todas atividades <ChevronRight className="h-4 w-4" />
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

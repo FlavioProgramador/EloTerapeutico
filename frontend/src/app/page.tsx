@@ -186,10 +186,10 @@ export default function LandingPage() {
       </section>
 
       {/* Seção Benefícios (Faixa Clara) */}
-      <section id="benefits" className="bg-[hsl(38,25%,97%)] text-[hsl(165,40%,7%)] py-12 border-y border-[hsl(38,20%,90%)]">
-        <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      <section id="benefits" className="bg-[hsl(38,25%,97%)] text-[hsl(165,40%,7%)] py-16 border-y border-[hsl(38,20%,90%)]">
+        <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {benefits.map((benefit, idx) => (
-            <div key={idx} className="flex gap-3.5 items-start text-left">
+            <div key={idx} className="bg-[hsl(38,25%,94%)]/50 border border-[hsl(38,20%,88%)] rounded-xl p-5 shadow-xs transition-all hover:translate-y-[-2px] hover:shadow-sm duration-300 flex flex-col gap-4 text-left">
               {benefit.icon}
               <div className="space-y-1">
                 <h4 className="font-bold text-sm text-[hsl(165,40%,12%)]">{benefit.title}</h4>
@@ -241,15 +241,30 @@ export default function LandingPage() {
       </section>
 
       {/* Chamada Final (CTA Faixa Clara) */}
-      <section className="bg-[hsl(38,25%,97%)] text-[hsl(165,40%,7%)] py-14">
-        <div className="max-w-5xl mx-auto px-6 flex flex-col md:flex-row md:items-center justify-between gap-8 text-left">
-          <div className="space-y-2">
-            <h3 className="text-2xl md:text-3xl font-bold font-sans text-[hsl(165,40%,12%)] leading-tight">
-              Pronto para transformar sua rotina?
-            </h3>
-            <p className="text-sm text-[hsl(165,15%,45%)]">
-              Teste grátis por 14 dias. Sem compromisso.
-            </p>
+      <section className="bg-[hsl(38,25%,97%)] text-[hsl(165,40%,7%)] py-14 overflow-hidden relative">
+        <div className="max-w-5xl mx-auto px-6 flex flex-col md:flex-row md:items-center justify-between gap-8 text-left relative z-10">
+          <div className="flex items-center gap-6">
+            {/* Ilustração de Folha Sutil da Referência */}
+            <div className="hidden md:block shrink-0 text-[hsl(165,30%,40%)]/30">
+              <svg className="h-16 w-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 22C12 22 17 12 17 2" />
+                <path d="M9 14c0-3.5 2.5-6 5.5-6" />
+                <path d="M5 18c0-3.5 2-5.5 4.5-5.5" />
+                <path d="M13 10c0-3.5 2.5-5 4-5" />
+                <path d="M17 2c2 1.5 3 3.5 3 5.5s-1.5 3.5-3 4" />
+                <path d="M13.5 8c1.5 1 2.5 2.5 2.5 4s-1 2.5-2 3" />
+                <path d="M9.5 12.5c1.5 1 2 2 2 3s-.5 2-1.5 2.5" />
+              </svg>
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-2xl md:text-3xl font-bold font-sans text-[hsl(165,40%,12%)] leading-tight">
+                Pronto para transformar sua rotina?
+              </h3>
+              <p className="text-sm text-[hsl(165,15%,45%)]">
+                Teste grátis por 14 dias. Sem compromisso.
+              </p>
+            </div>
           </div>
 
           <Link href="/register" className="shrink-0">
