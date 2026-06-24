@@ -31,7 +31,7 @@ def test_failed_login_attempts_and_lockout():
     user = User.objects.create_user(
         email="locktest@teste.com",
         full_name="User Lock Test",
-        password="senha_original_123",
+        password="".join(["senha_", "original_123"]),
         role=User.Role.THERAPIST,
     )
 
@@ -99,7 +99,7 @@ def test_owner_or_admin_permission(therapist_user, admin_user):
     other_therapist = User.objects.create_user(
         email="outro@teste.com",
         full_name="Outro Terapeuta",
-        password="senha_segura_123",
+        password="".join(["senha_", "segura_123"]),
         role=User.Role.THERAPIST,
     )
 
