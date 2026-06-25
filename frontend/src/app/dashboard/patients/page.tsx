@@ -37,6 +37,23 @@ import { usePatients, useCreatePatient, useDeletePatient } from "@/features/pati
 import { patientSchema, type PatientFormData } from "@/features/patients/schemas/patient.schemas";
 import type { PatientStatus } from "@/types";
 
+// Funções utilitárias para formatação automática de inputs
+const formatCPF = (value: string) => {
+  const clean = value.replace(/\D/g, "").slice(0, 11);
+  if (clean.length <= 3) return clean;
+  if (clean.length <= 6) return `${clean.slice(0, 3)}.${clean.slice(3)}`;
+  if (clean.length <= 9) return `${clean.slice(0, 3)}.${clean.slice(3, 6)}.${clean.slice(6)}`;
+  return `${clean.slice(0, 3)}.${clean.slice(3, 6)}.${clean.slice(6, 9)}-${clean.slice(9)}`;
+};
+
+const formatPhone = (value: string) => {
+  const clean = value.replace(/\D/g, "").slice(0, 11);
+  if (clean.length <= 2) return clean;
+  if (clean.length <= 6) return `(${clean.slice(0, 2)}) ${clean.slice(2)}`;
+  if (clean.length <= 10) return `(${clean.slice(0, 2)}) ${clean.slice(2, 6)}-${clean.slice(6)}`;
+  return `(${clean.slice(0, 2)}) ${clean.slice(2, 7)}-${clean.slice(7)}`;
+};
+
 export default function PatientsListPage() {
   const router = useRouter();
 
@@ -375,7 +392,11 @@ export default function PatientsListPage() {
                 aria-invalid={!!errors.cpf}
                 aria-describedby={errors.cpf ? "patient-cpf-error" : undefined}
                 error={errors.cpf?.message}
-                {...register("cpf")}
+                {...register("cpf", {
+                  onChange: (e) => {
+                    e.target.value = formatCPF(e.target.value);
+                  }
+                })}
               />
               {errors.cpf && (
                 <p id="patient-cpf-error" className="text-xs text-destructive animate-fade-in" role="alert">
@@ -425,7 +446,11 @@ export default function PatientsListPage() {
                 aria-invalid={!!errors.phone}
                 aria-describedby={errors.phone ? "patient-phone-error" : undefined}
                 error={errors.phone?.message}
-                {...register("phone")}
+                {...register("phone", {
+                  onChange: (e) => {
+                    e.target.value = formatPhone(e.target.value);
+                  }
+                })}
               />
               {errors.phone && (
                 <p id="patient-phone-error" className="text-xs text-destructive animate-fade-in" role="alert">
@@ -504,7 +529,11 @@ export default function PatientsListPage() {
                   aria-invalid={!!errors.guardian_cpf}
                   aria-describedby={errors.guardian_cpf ? "patient-guardiancpf-error" : undefined}
                   error={errors.guardian_cpf?.message}
-                  {...register("guardian_cpf")}
+                  {...register("guardian_cpf", {
+                    onChange: (e) => {
+                      e.target.value = formatCPF(e.target.value);
+                    }
+                  })}
                   className="bg-card"
                 />
                 {errors.guardian_cpf && (
