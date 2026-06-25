@@ -5,6 +5,7 @@ Serializers para autenticação, perfil e horários de atendimento.
 
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 
 from .models import User, WorkingHours
 
@@ -13,18 +14,33 @@ from .models import User, WorkingHours
 # Autenticação
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class RegisterSerializer(serializers.ModelSerializer):
     """Serializer para cadastro de novo terapeuta."""
-    password = serializers.CharField(write_only=True, min_length=8, style={"input_type": "password"})
-    password_confirm = serializers.CharField(write_only=True, style={"input_type": "password"})
+    password = serializers.CharField(
+        write_only=True, min_length=8, style={"input_type": "password"}
+    )
+    password_confirm = serializers.CharField(
+        write_only=True, style={"input_type": "password"}
+    )
 
     class Meta:
         model = User
-        fields = ["email", "full_name", "password", "password_confirm", "crp_number", "specialty", "phone"]
+        fields = [
+            "email",
+            "full_name",
+            "password",
+            "password_confirm",
+            "crp_number",
+            "specialty",
+            "phone",
+        ]
 
     def validate(self, attrs):
         if attrs["password"] != attrs.pop("password_confirm"):
-            raise serializers.ValidationError({"password_confirm": "As senhas não conferem."})
+            raise serializers.ValidationError(
+                {"password_confirm": "As senhas não conferem."}
+            )
         return attrs
 
     def create(self, validated_data):
@@ -99,7 +115,9 @@ class ChangePasswordSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs["new_password"] != attrs["new_password_confirm"]:
-            raise serializers.ValidationError({"new_password_confirm": "As novas senhas não conferem."})
+            raise serializers.ValidationError(
+                {"new_password_confirm": "As novas senhas não conferem."}
+            )
         return attrs
 
     def save(self):
@@ -134,7 +152,10 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             "full_name", "specialty", "crp_number", "bio",
-            "phone", "avatar", "default_session_duration", "default_session_value",
+            "phone",
+            "avatar",
+            "default_session_duration",
+            "default_session_value",
         ]
 
 
@@ -143,18 +164,85 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
 # ─────────────────────────────────────────────────────────────────────────────
 
 class WorkingHoursSerializer(serializers.ModelSerializer):
-    weekday_display = serializers.CharField(source="get_weekday_display", read_only=True)
+    weekday_display = serializers.CharField(
+        source="get_weekday_display", read_only=True
+    )
 
     class Meta:
         model = WorkingHours
-        fields = ["id", "weekday", "weekday_display", "start_time", "end_time", "is_active"]
+        fields = [
+            "id",
+            "weekday",
+            "weekday_display",
+            "start_time",
+            "end_time",
+            "is_active",
+        ]
 
     def validate(self, attrs):
         if attrs.get("start_time") and attrs.get("end_time"):
             if attrs["start_time"] >= attrs["end_time"]:
-                raise serializers.ValidationError("O horário de início deve ser anterior ao horário de fim.")
+                raise serializers.ValidationError(
+                    "O horário de início deve ser anterior ao horário de fim."
+                )
         return attrs
 
     def create(self, validated_data):
         validated_data["therapist"] = self.context["request"].user
         return super().create(validated_data)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Redefinição de senha
+# ─────────────────────────────────────────────────────────────────────────────
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    uidb64 = serializers.CharField()
+    token = serializers.CharField()
+    new_password = serializers.CharField(
+        write_only=True, min_length=8, style={"input_type": "password"}
+    )
+    new_password_confirm = serializers.CharField(
+        write_only=True, style={"input_type": "password"}
+    )
+
+    def validate(self, attrs):
+        from django.utils.http import urlsafe_base64_decode
+        from django.utils.encoding import force_str
+        from django.contrib.auth.tokens import default_token_generator
+
+        uidb64 = attrs["uidb64"]
+        token = attrs["token"]
+        new_password = attrs["new_password"]
+        new_password_confirm = attrs["new_password_confirm"]
+
+        if new_password != new_password_confirm:
+            raise serializers.ValidationError(
+                {"new_password_confirm": "As senhas não conferem."}
+            )
+
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            raise serializers.ValidationError(
+                {"token": "O link de redefinição é inválido ou expirou."}
+            )
+
+        if not default_token_generator.check_token(user, token):
+            raise serializers.ValidationError(
+                {"token": "O link de redefinição é inválido ou expirou."}
+            )
+
+        attrs["user"] = user
+        return attrs
+
+    def save(self):
+        user = self.validated_data["user"]
+        user.set_password(self.validated_data["new_password"])
+        user.save(update_fields=["password"])
+        return user
