@@ -152,3 +152,100 @@ class TestPasswordResetAPI:
         future_time = datetime.now() + timedelta(seconds=960)
         with patch.object(default_token_generator, "_now", return_value=future_time):
             assert default_token_generator.check_token(therapist_user, token) is False
+
+    def test_token_invalidation_after_password_reset(
+        self, api_client, therapist_user
+    ):
+        """
+        Testa se tokens antigos são invalidados após reset de senha.
+        """
+        # 1. Autenticar o usuário
+        login_url = reverse("auth-login")
+        login_payload = {
+            "email": therapist_user.email,
+            "password": TEST_PASSWORD
+        }
+        login_response = api_client.post(
+            login_url, login_payload, format="json"
+        )
+        assert login_response.status_code == 200
+        old_access = login_response.data["access"]
+        old_refresh = login_response.data["refresh"]
+
+        # 2. Redefinir a senha
+        token = default_token_generator.make_token(therapist_user)
+        uidb64 = urlsafe_base64_encode(force_bytes(therapist_user.pk))
+
+        reset_url = reverse("auth-password-reset-confirm")
+        new_pass = TEST_NEW_PASSWORD
+        reset_payload = {
+            "uidb64": uidb64,
+            "token": token,
+            "new_password": new_pass,
+            "new_password_confirm": new_pass
+        }
+        reset_response = api_client.post(
+            reset_url, reset_payload, format="json"
+        )
+        assert reset_response.status_code == 200
+
+        # 3. Tentar usar o access token anterior
+        me_url = reverse("user-me")
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {old_access}")
+        me_response = api_client.get(me_url)
+
+        # 4. Tentar renovar a sessão com o refresh token anterior
+        api_client.credentials()  # Limpa credenciais
+        refresh_url = reverse("token-refresh")
+        refresh_payload = {"refresh": old_refresh}
+        refresh_response = api_client.post(
+            refresh_url, refresh_payload, format="json"
+        )
+
+        # 5. Fazer login com a nova senha
+        new_login_response = api_client.post(login_url, {
+            "email": therapist_user.email,
+            "password": new_pass
+        }, format="json")
+        assert new_login_response.status_code == 200
+
+        # Registra o comportamento obtido
+        access_valid_after_reset = (me_response.status_code == 200)
+        refresh_valid_after_reset = (refresh_response.status_code == 200)
+
+        print("\n--- TOKEN INVALIDATION REPORT ---")
+        print(f"Old Access Token: {me_response.status_code} "
+              f"(Valid? {access_valid_after_reset})")
+        print(f"Old Refresh Token: {refresh_response.status_code} "
+              f"(Valid? {refresh_valid_after_reset})")
+        print("--------------------------------\n")
+
+        # Ambos os tokens devem ser invalidados
+        assert me_response.status_code == 401
+        assert refresh_response.status_code == 401
+
+    def test_token_cannot_be_reused(self, api_client, therapist_user):
+        """Testa que um token de reset não pode ser reutilizado após a alteração da senha."""
+        token = default_token_generator.make_token(therapist_user)
+        uidb64 = urlsafe_base64_encode(force_bytes(therapist_user.pk))
+        url = reverse("auth-password-reset-confirm")
+        
+        payload = {
+            "uidb64": uidb64,
+            "token": token,
+            "new_password": TEST_NEW_PASSWORD,
+            "new_password_confirm": TEST_NEW_PASSWORD
+        }
+        
+        # Primeiro uso: sucesso
+        res1 = api_client.post(url, payload, format="json")
+        assert res1.status_code == 200
+        
+        # Segundo uso com o mesmo token: deve falhar
+        res2 = api_client.post(url, payload, format="json")
+        assert res2.status_code == 400
+        assert res2.data["error"]["code"] == "INVALID"
+        assert "token" in res2.data["error"]["details"]
+        assert res2.data["error"]["details"]["token"] == [
+            "O link de redefinição é inválido ou expirou."
+        ]

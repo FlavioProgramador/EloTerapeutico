@@ -22,6 +22,7 @@ from .serializers import (
     WorkingHoursSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
+    SafeTokenRefreshSerializer,
 )
 
 
@@ -272,3 +273,9 @@ class PasswordResetConfirmView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+@extend_schema(tags=["auth"])
+class SafeTokenRefreshView(TokenRefreshView):
+    """
+    View de atualização de token JWT que valida a assinatura da senha.
+    """
+    serializer_class = SafeTokenRefreshSerializer

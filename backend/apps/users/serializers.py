@@ -246,3 +246,50 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         user.set_password(self.validated_data["new_password"])
         user.save(update_fields=["password"])
         return user
+
+
+class SafeTokenRefreshSerializer(TokenRefreshSerializer):
+    """
+    Custom TokenRefreshSerializer that validates that the refresh token's
+    password hash matches the user's current password.
+    """
+    def validate(self, attrs):
+        from rest_framework_simplejwt.exceptions import InvalidToken
+        from rest_framework_simplejwt.tokens import RefreshToken
+        from rest_framework_simplejwt.utils import get_md5_hash_password
+        from .models import User
+
+        refresh = RefreshToken(attrs["refresh"])
+        token_hash = refresh.get("hash_password")
+        user_id = refresh.get("user_id")
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            raise InvalidToken("Usuário não encontrado.")
+
+        # Se o usuário foi desativado nesse meio tempo
+        if not user.is_active:
+            raise InvalidToken("Conta inativa. Entre em contato com o suporte.")
+
+        current_hash = get_md5_hash_password(user.password)
+        if not token_hash or token_hash != current_hash:
+            raise InvalidToken(
+                "O token foi invalidado devido a uma alteração de senha."
+            )
+
+        data = {"access": str(refresh.access_token)}
+
+        from rest_framework_simplejwt.settings import api_settings
+        if api_settings.ROTATE_REFRESH_TOKENS:
+            if api_settings.BLACKLIST_AFTER_ROTATION:
+                try:
+                    refresh.blacklist()
+                except AttributeError:
+                    pass
+
+            new_refresh = RefreshToken.for_user(user)
+            data["access"] = str(new_refresh.access_token)
+            data["refresh"] = str(new_refresh)
+
+        return data
