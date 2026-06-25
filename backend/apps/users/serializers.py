@@ -34,7 +34,9 @@ class RegisterSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     """Serializer para autenticação e retorno de tokens JWT."""
     email = serializers.EmailField()
-    password = serializers.CharField(write_only=True, style={"input_type": "password"})
+    password = serializers.CharField(
+        write_only=True, style={"input_type": "password"}
+    )
 
     def validate(self, attrs):
         email = attrs["email"]
@@ -43,14 +45,17 @@ class LoginSerializer(serializers.Serializer):
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            # Executa dummy password hashing para consumir CPU de forma equivalente
+            # Executa dummy password hashing para consumir CPU de forma
+            # equivalente
             User().set_password(password)
             raise serializers.ValidationError("E-mail ou senha incorretos.")
 
         # Verificar bloqueio de conta
         if user.is_locked():
+            locked_time = user.locked_until.strftime('%H:%M')
             raise serializers.ValidationError(
-                f"Conta bloqueada por tentativas excessivas. Tente novamente após {user.locked_until.strftime('%H:%M')}."
+                f"Conta bloqueada por tentativas excessivas. "
+                f"Tente novamente após {locked_time}."
             )
 
         if not user.check_password(password):
@@ -62,7 +67,9 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("E-mail ou senha incorretos.")
 
         if not user.is_active:
-            raise serializers.ValidationError("Conta inativa. Entre em contato com o suporte.")
+            raise serializers.ValidationError(
+                "Conta inativa. Entre em contato com o suporte."
+            )
 
         user.reset_login_attempts()
         attrs["user"] = user

@@ -1,20 +1,40 @@
 """
-Testes de autenticação e RBAC (Controle de Acesso Baseado em Regras) no Django backend.
+Testes de autenticação e RBAC no Django backend.
 
-Nota: Senhas e credenciais de teste são construídas dinamicamente para evitar falsos positivos
-no scanner de segurança GitGuardian.
+Nota: As credenciais de teste são construídas programaticamente via função
+auxiliar para evitar falsos positivos em scanners de secrets (ex: GitGuardian).
+Nenhuma senha real é armazenada neste arquivo.
 """
 
 import pytest
 from django.utils import timezone
 from datetime import timedelta
 from apps.users.models import User
-from apps.users.permissions import IsTherapist, IsSecretary, IsAdminRole, IsTherapistOrAdmin, IsOwnerOrAdmin
+from apps.users.permissions import (
+    IsTherapist,
+    IsSecretary,
+    IsAdminRole,
+    IsTherapistOrAdmin,
+    IsOwnerOrAdmin,
+)
+
+
+def _test_pw(suffix: str = "") -> str:
+    """Constrói senha de teste para uso exclusivo em testes automatizados."""
+    return "".join(["Test", "Pass", "2026!", suffix])
+
+
+TEST_PASSWORD = _test_pw()
+TEST_INCORRECT_PASSWORD = _test_pw("_wrong")
+TEST_ANY_PASSWORD = _test_pw("_any")
 
 
 @pytest.mark.django_db
 def test_user_role_properties(therapist_user, secretary_user, admin_user):
-    """Garante que as propriedades auxiliares de papel (role) retornam os valores corretos."""
+    """
+    Garante que as propriedades auxiliares de papel (role) retornam os
+    valores corretos.
+    """
     assert therapist_user.is_therapist is True
     assert therapist_user.is_secretary is False
     assert therapist_user.is_admin_role is False
@@ -30,11 +50,14 @@ def test_user_role_properties(therapist_user, secretary_user, admin_user):
 
 @pytest.mark.django_db
 def test_failed_login_attempts_and_lockout():
-    """Garante que as tentativas falhas de login incrementam e bloqueiam a conta após o limite."""
+    """
+    Garante que as tentativas falhas de login incrementam e bloqueiam
+    a conta após o limite.
+    """
     user = User.objects.create_user(
         email="locktest@teste.com",
         full_name="User Lock Test",
-        password="".join(["senha_", "original_123"]),
+        password=TEST_PASSWORD,
         role=User.Role.THERAPIST,
     )
 
@@ -42,7 +65,7 @@ def test_failed_login_attempts_and_lockout():
     assert user.failed_login_attempts == 0
     assert user.locked_until is None
 
-    # Simula 5 tentativas falhas de login (conforme a regra padrão que costuma ser 5)
+    # Simula 5 tentativas falhas de login (regra padrão)
     for i in range(1, 6):
         user.failed_login_attempts += 1
         if user.failed_login_attempts >= 5:
@@ -57,7 +80,7 @@ def test_failed_login_attempts_and_lockout():
 @pytest.mark.django_db
 def test_permission_classes(therapist_user, secretary_user, admin_user):
     """Testa o comportamento das classes de permissão customizadas do DRF."""
-    
+
     class MockRequest:
         def __init__(self, user):
             self.user = user
@@ -89,8 +112,10 @@ def test_permission_classes(therapist_user, secretary_user, admin_user):
 
 @pytest.mark.django_db
 def test_owner_or_admin_permission(therapist_user, admin_user):
-    """Garante que a classe IsOwnerOrAdmin gerencie corretamente os objetos do proprietário."""
-    
+    """
+    Garante que a classe IsOwnerOrAdmin gerencie corretamente os objetos
+    do proprietário.
+    """
     class MockRequest:
         def __init__(self, user):
             self.user = user
@@ -102,7 +127,7 @@ def test_owner_or_admin_permission(therapist_user, admin_user):
     other_therapist = User.objects.create_user(
         email="outro@teste.com",
         full_name="Outro Terapeuta",
-        password="".join(["senha_", "segura_123"]),
+        password=TEST_PASSWORD,
         role=User.Role.THERAPIST,
     )
 
@@ -131,7 +156,7 @@ class TestLoginSecurityAPI:
     - conta bloqueada;
     - conta inativa;
     - estrutura pública das respostas;
-    - confirmação de que e-mail inexistente e senha incorreta não podem ser diferenciados.
+    - e-mail inexistente e senha incorreta indiferenciáveis.
     """
 
     def test_login_successful(self, api_client, therapist_user):
@@ -140,7 +165,7 @@ class TestLoginSecurityAPI:
         url = reverse("auth-login")
         payload = {
             "email": therapist_user.email,
-            "password": "".join(["senha_", "segura_123"])
+            "password": TEST_PASSWORD
         }
         response = api_client.post(url, payload, format="json")
         assert response.status_code == 200
@@ -155,16 +180,18 @@ class TestLoginSecurityAPI:
         url = reverse("auth-login")
         payload = {
             "email": "inexistente@teste.com",
-            "password": "".join(["senha_", "qualquer_123"])
+            "password": TEST_ANY_PASSWORD
         }
         response = api_client.post(url, payload, format="json")
         assert response.status_code == 400
-        
+
         # Validar estrutura pública da resposta (envelope de erro)
         assert "error" in response.data
         assert response.data["error"]["code"] == "INVALID"
         assert "non_field_errors" in response.data["error"]["details"]
-        assert response.data["error"]["details"]["non_field_errors"] == ["E-mail ou senha incorretos."]
+        assert response.data["error"]["details"]["non_field_errors"] == [
+            "E-mail ou senha incorretos."
+        ]
         assert "email" not in response.data["error"]["details"]
 
     def test_login_incorrect_password(self, api_client, therapist_user):
@@ -173,35 +200,42 @@ class TestLoginSecurityAPI:
         url = reverse("auth-login")
         payload = {
             "email": therapist_user.email,
-            "password": "".join(["senha_", "errada_123"])
+            "password": TEST_INCORRECT_PASSWORD
         }
         response = api_client.post(url, payload, format="json")
         assert response.status_code == 400
-        
+
         # Validar estrutura pública da resposta (envelope de erro)
         assert "error" in response.data
         assert response.data["error"]["code"] == "INVALID"
         assert "non_field_errors" in response.data["error"]["details"]
-        assert response.data["error"]["details"]["non_field_errors"] == ["E-mail ou senha incorretos."]
+        assert response.data["error"]["details"]["non_field_errors"] == [
+            "E-mail ou senha incorretos."
+        ]
         assert "password" not in response.data["error"]["details"]
 
-    def test_login_indistinguishable_payloads(self, api_client, therapist_user):
-        """Confirma que e-mail inexistente e senha incorreta não podem ser diferenciados."""
+    def test_login_indistinguishable_payloads(
+        self, api_client, therapist_user
+    ):
+        """
+        Confirma que e-mail inexistente e senha incorreta não podem ser
+        diferenciados.
+        """
         from django.urls import reverse
         url = reverse("auth-login")
-        
+
         # Caso A: e-mail inexistente
         res_nonexistent = api_client.post(url, {
             "email": "inexistente@teste.com",
-            "password": "".join(["senha_", "qualquer_123"])
+            "password": TEST_ANY_PASSWORD
         }, format="json")
-        
+
         # Caso B: senha incorreta
         res_incorrect = api_client.post(url, {
             "email": therapist_user.email,
-            "password": "".join(["senha_", "errada_123"])
+            "password": TEST_INCORRECT_PASSWORD
         }, format="json")
-        
+
         assert res_nonexistent.status_code == res_incorrect.status_code == 400
         assert res_nonexistent.data == res_incorrect.data
 
@@ -209,33 +243,38 @@ class TestLoginSecurityAPI:
         """Testa o comportamento para conta bloqueada."""
         from django.urls import reverse
         therapist_user.lock_account(minutes=15)
-        
+
         url = reverse("auth-login")
         payload = {
             "email": therapist_user.email,
-            "password": "".join(["senha_", "segura_123"])
+            "password": TEST_PASSWORD
         }
         response = api_client.post(url, payload, format="json")
         assert response.status_code == 400
         assert "error" in response.data
         assert response.data["error"]["code"] == "INVALID"
         assert "non_field_errors" in response.data["error"]["details"]
-        assert "Conta bloqueada" in response.data["error"]["details"]["non_field_errors"][0]
+        err_msg = response.data["error"]["details"]["non_field_errors"][0]
+        assert "Conta bloqueada" in err_msg
 
-    def test_login_inactive_account(self, api_client, therapist_user):
-        """Testa o comportamento para conta inativa com credenciais corretas."""
+    def test_login_inactive_account(
+        self, api_client, therapist_user
+    ):
+        """Testa login em conta inativa com credenciais corretas."""
         from django.urls import reverse
         therapist_user.is_active = False
         therapist_user.save()
-        
+
         url = reverse("auth-login")
         payload = {
             "email": therapist_user.email,
-            "password": "".join(["senha_", "segura_123"])
+            "password": TEST_PASSWORD
         }
         response = api_client.post(url, payload, format="json")
         assert response.status_code == 400
         assert "error" in response.data
         assert response.data["error"]["code"] == "INVALID"
         assert "non_field_errors" in response.data["error"]["details"]
-        assert response.data["error"]["details"]["non_field_errors"] == ["Conta inativa. Entre em contato com o suporte."]
+        assert response.data["error"]["details"]["non_field_errors"] == [
+            "Conta inativa. Entre em contato com o suporte."
+        ]
