@@ -13,16 +13,16 @@ O objetivo do módulo é garantir o acesso seguro à plataforma Elo Terapêutico
 *   **Autenticação (Login):** Login seguro com validação de senha (bcrypt/argon2) e retorno de par de tokens (Access e Refresh JWT).
 *   **Controle de Sessão (Logout & Refresh):**
     *   Renovação silenciosa de tokens (silent refresh) no frontend.
-    *   Invalidação de tokens no logout (blacklist de refresh token).
+    *   Invalidação de tokens no logout (blacklist de refresh token) e invalidação por alteração de senha.
 *   **Políticas de Bloqueio (Lockout):** Bloqueio temporário da conta (30 minutos) após 5 tentativas consecutivas de login malsucedidas.
 *   **Controle de Acesso Baseado em Papéis (RBAC):**
     *   Restrição de endpoints no backend por meio de classes de permissão do DRF.
     *   Proteção de rotas no Next.js via Middleware baseado no cookie da role.
+*   **Redefinição de Senha (Forgot Password):** Envio de e-mail de recuperação de senha com token de validação de uso único e redefinição de senha segura.
 *   **Perfil do Usuário:** Consulta (`/api/v1/auth/me/`) e edição de perfil profissional e pessoal do terapeuta autenticado.
 *   **Horários de Atendimento:** CRUD dos horários configurados pelo terapeuta.
 
 ### Fora de Escopo (Gaps identificados a serem planejados no futuro)
-*   **Redefinição de Senha:** Envio de e-mail com token temporário para redefinição (link "Esqueceu a senha?" na UI atualmente gera apenas um toast de desenvolvimento).
 *   **Confirmação de Conta:** Verificação de e-mail pós-cadastro.
 *   **Autenticação Multifator (MFA):** Verificação em duas etapas via SMS ou autenticador (OTP).
 *   **Histórico de Conexões:** Log de auditoria detalhado dos IPs e dispositivos que efetuaram login.
@@ -102,8 +102,10 @@ Todos os endpoints estão documentados no Swagger OpenAPI (`/api/docs/`).
 | `POST` | `/api/v1/auth/register/` | `AllowAny` | Registra uma nova conta de terapeuta e retorna os tokens JWT. |
 | `POST` | `/api/v1/auth/login/` | `AllowAny` | Autentica e-mail/senha. Retorna tokens JWT. Processa lógica de bloqueio de conta. |
 | `POST` | `/api/v1/auth/logout/` | `IsAuthenticated` | Coloca o `refresh_token` na blacklist no Django, invalidando a sessão. |
-| `POST` | `/api/v1/auth/token/refresh/` | `AllowAny` | Recebe um `refresh` token e gera um novo `access` token. |
+| `POST` | `/api/v1/auth/token/refresh/` | `AllowAny` | Recebe um `refresh` token e gera um novo `access` token. Rejeita tokens cujo claim `hash_password` não corresponda à senha atual (revogação nativa SimpleJWT). |
 | `POST` | `/api/v1/auth/password/change/`| `IsAuthenticated` | Altera a senha do usuário logado, exigindo a senha atual. |
+| `POST` | `/api/v1/auth/password/reset/`| `AllowAny` | Solicita link de reset de senha (resposta idêntica para e-mails existentes e inexistentes para mitigar enumeração de contas). |
+| `POST` | `/api/v1/auth/password/reset/confirm/`| `AllowAny` | Confirma o reset de senha informando token, uidb64 e a nova senha. Invalida tokens JWT anteriores imediatamente. |
 | `GET` | `/api/v1/auth/me/` | `IsAuthenticated` | Obtém informações detalhadas do perfil logado. |
 | `PUT/PATCH`| `/api/v1/auth/me/` | `IsAuthenticated` | Atualiza dados cadastrais, especialidades e configurações padrões de sessão. |
 | `GET` | `/api/v1/auth/working-hours/` | `IsAuthenticated` | Lista os horários de atendimento do usuário autenticado. |
@@ -137,9 +139,22 @@ Ocorre via interceptor do Axios (`frontend/src/lib/api.ts`):
 4.  **Se a renovação funcionar:**
     *   Salva o novo `auth_token` e atualiza o cookie.
     *   Dispara as chamadas enfileiradas com o novo token Bearer.
-5.  **Se falhar (refresh expirado):**
+5.  **Se falhar (refresh expirado ou invalidado por alteração de senha):**
     *   Limpa todos os cookies locais de sessão.
     *   Redireciona o usuário para `/login`.
+
+### C. Fluxo de Redefinição de Senha (Forgot Password)
+1.  O usuário solicita recuperação inserindo seu e-mail em `/forgot-password`.
+2.  O backend processa a solicitação no endpoint público. O fluxo utiliza o `default_token_generator` do Django, que produz tokens temporários vinculados ao estado do usuário e não exige uma nova tabela no banco. O token expira em **900 segundos (15 minutos)**, configurado via `PASSWORD_RESET_TIMEOUT` nas settings.
+3.  Para mitigar **enumeração de contas**, a API responde o mesmo status `200 OK` com payload idêntico para e-mails existentes ou inexistentes.
+
+    > [!WARNING]
+    > **Risco de Timing Attack (aberto):** O envio de e-mail é **síncrono** (SMTP direto). E-mails cadastrados recebem o e-mail e têm uma latência de resposta ligeiramente superior à de e-mails inexistentes (que retornam imediatamente). Um atacante paciente pode explorar essa diferença estatística para confirmar a existência de uma conta. **Mitigação futura recomendada:** mover o envio de e-mail para uma fila assíncrona (ex: Celery + Redis) para que ambos os caminhos retornem no mesmo tempo.
+
+4.  O link recebido por e-mail contém `uid` (ID do usuário codificado em base64) e `token` (gerado de forma segura, expiração de 15 minutos). O token é de **uso único** — após a confirmação bem-sucedida, o estado do usuário muda e o token se torna inválido.
+5.  O usuário acessa `/forgot-password/reset?uid=...&token=...`, preenche a nova senha atendendo aos critérios de força (mínimo 8 caracteres, maiúscula, número) e submete.
+6.  Após a submissão, a API valida o token e uid. Em caso de sucesso, redefine a senha do usuário.
+7.  **Invalidação de Sessões Anteriores (SimpleJWT nativo):** A revogação é implementada com o mecanismo nativo do `djangorestframework-simplejwt` (`CHECK_REVOKE_TOKEN = True`, `REVOKE_TOKEN_CLAIM = "hash_password"`). Os JWTs emitidos carregam um claim `hash_password` derivado da senha atual. Ao trocar a senha, todos os tokens anteriores passam a ter um claim desatualizado e são **rejeitados imediatamente** pelo endpoint de refresh e por qualquer endpoint autenticado — sem necessidade de blacklist por token.
 
 ---
 
@@ -150,10 +165,19 @@ Ocorre via interceptor do Axios (`frontend/src/lib/api.ts`):
     *   `auth_token`: `MaxAge=30min`, `SameSite=Lax`, `Path=/`.
     *   `auth_refresh_token`: `MaxAge=7d`, `SameSite=Lax`, `Path=/`.
     *   Em produção, os cookies devem possuir a diretiva `Secure` habilitada (transmissão restrita a conexões HTTPS).
+    *   ⚠️ Os cookies **não** utilizam `HttpOnly`. A leitura via JavaScript é necessária para o mecanismo de silent refresh. Risco de XSS está documentado como gap futuro (ver Seção 1, Fora de Escopo).
+*   **Invalidação de JWT por Alteração de Senha:**
+    *   Implementada com o mecanismo nativo do SimpleJWT (`CHECK_REVOKE_TOKEN = True`).
+    *   O claim `hash_password` é verificado a cada requisição autenticada e no endpoint de refresh.
+    *   Não há dependência de blacklist por token — a invalidação é imediata e baseada no estado do usuário.
 *   **Prevenção de Ataques de Força Bruta:**
     *   Qualquer login com falha incrementa `failed_login_attempts`.
     *   Na 5ª falha seguida, a conta é bloqueada por 30 minutos registrando `locked_until`.
     *   Logins efetuados com sucesso limpam o contador de falhas.
+*   **Prevenção de Enumeração de Contas:**
+    *   O endpoint `/api/v1/auth/login/` retorna a mesma mensagem de erro genérica para e-mail ou senha inválidos.
+    *   O endpoint `/api/v1/auth/password/reset/` retorna `200 OK` com payload idêntico para e-mails existentes e inexistentes.
+    *   ⚠️ **Risco residual (aberto):** O SMTP síncrono introduz diferença de latência mensurável. Ver Seção 5C para detalhes e plano de mitigação.
 *   **Prevenção de Vazamento de Dados (Logs):**
     *   Dados confidenciais como senhas originais ou tokens JWT nunca devem ser impressos nos logs do console, do Django ou de auditoria.
 
@@ -176,6 +200,12 @@ Ocorre via interceptor do Axios (`frontend/src/lib/api.ts`):
 2.  `test_failed_login_attempts_and_lockout`: Testa o fluxo de incremento de falhas de login e bloqueio temporário após 5 erros.
 3.  `test_permission_classes`: Garante que as permissões DRF barram usuários sem permissão e liberam os autorizados.
 4.  `test_owner_or_admin_permission`: Garante isolamento de objetos a nível de registro baseado no proprietário (`therapist`).
+5.  `test_request_reset_valid_email`: Valida que o link contendo UID e token é enviado para e-mails cadastrados.
+6.  `test_request_reset_nonexistent_email`: Valida que o endpoint retorna resposta idêntica e sem enviar e-mail.
+7.  `test_confirm_reset_success`: Valida redefinição bem-sucedida alterando a senha no banco de dados.
+8.  `test_confirm_reset_invalid_token`: Valida que tokens corrompidos são rejeitados com erro.
+9.  `test_confirm_reset_mismatched_passwords`: Valida que senhas divergentes são rejeitadas.
+10. `test_token_invalidation_after_password_reset`: Valida que tanto access tokens antigos quanto refresh tokens antigos são invalidados imediatamente (retornando 401 Unauthorized) após a senha ser redefinida.
 
 ### Testes Manuais de Fluxo (Frontend)
 1.  **Validação de login correto:** Insere credenciais válidas e verifica redirecionamento e criação de cookies.
@@ -186,9 +216,12 @@ Ocorre via interceptor do Axios (`frontend/src/lib/api.ts`):
 
 ## 9. Critérios de Aceite para Conclusão
 
-- [ ] Todos os testes unitários e de integração de autenticação e permissões no backend devem passar com 100% de sucesso.
-- [ ] O frontend deve redirecionar corretamente usuários não autenticados que tentarem acessar rotas do `/dashboard`.
-- [ ] O fluxo de logout deve invalidar o refresh token no banco de dados e limpar os cookies do navegador.
-- [ ] O silent refresh deve renovar o token expirado sem interromper a experiência do usuário durante o uso do dashboard.
-- [ ] A redefinição de senha e fluxo de forgot password deve ser mapeada para implementação na próxima fase.
-- [ ] Acessibilidade WCAG AA validada em formulários utilizando leitores de tela básicos.
+- [x] Todos os testes unitários e de integração de autenticação e permissões no backend passam com 100% de sucesso.
+- [x] O frontend redireciona corretamente usuários não autenticados que tentam acessar rotas do `/dashboard`.
+- [x] O fluxo de logout invalida o refresh token no banco de dados e limpa os cookies do navegador.
+- [x] O silent refresh renova o token expirado sem interromper a experiência do usuário durante o uso do dashboard.
+- [x] A redefinição de senha e fluxo de forgot password implementados: `/forgot-password` e `/forgot-password/reset` no frontend, com API backend em `/api/v1/auth/password/reset/` e `/api/v1/auth/password/reset/confirm/`.
+- [x] Tokens JWT anteriores são invalidados imediatamente após alteração de senha (SimpleJWT nativo, `CHECK_REVOKE_TOKEN = True`).
+- [ ] Acessibilidade WCAG AA validada em formulários utilizando leitores de tela básicos (validação manual pendente).
+- [ ] **Gap de segurança (aberto):** Timing attack via SMTP síncrono no endpoint de reset. Mitigação: mover envio de e-mail para fila assíncrona (Celery). Risco aceito para este PR.
+- [ ] **Gap de segurança (aberto):** Cookies JWT sem `HttpOnly`. Vulnerável a XSS. Dependente de refatoração da estratégia de sessão (BFF ou Next.js server-side cookies).
