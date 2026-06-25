@@ -61,9 +61,9 @@ class Patient(models.Model):
 
     # ── Escolhas de status do paciente ───────────────────────────────────────
     class Status(models.TextChoices):
-        ACTIVE = "ativo", "Ativo"
-        INACTIVE = "inativo", "Inativo"
-        DISCHARGED = "alta", "Alta"
+        ACTIVE = "active", "Ativo"
+        INACTIVE = "inactive", "Inativo"
+        DISCHARGED = "discharged", "Alta"
 
     # ── Identificação pessoal ────────────────────────────────────────────────
     full_name = models.CharField(

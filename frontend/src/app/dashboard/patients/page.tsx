@@ -146,8 +146,9 @@ export default function PatientsListPage() {
       onError: (error: any) => {
         const errorData = error.response?.data;
         if (errorData && typeof errorData === "object") {
+          const apiError = errorData.error?.message || errorData.message || errorData.detail;
           toast.error("Falha ao cadastrar", {
-            description: errorData.message || errorData.detail || "Corrija os erros do formulário.",
+            description: apiError || "Corrija os erros do formulário.",
           });
         }
       },
