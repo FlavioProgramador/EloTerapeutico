@@ -145,9 +145,9 @@ class TestPasswordResetAPI:
         """Testa se o token gerado falha após expirar o prazo (PASSWORD_RESET_TIMEOUT)."""
         from datetime import datetime, timedelta
         from unittest.mock import patch
-        
+
         token = default_token_generator.make_token(therapist_user)
-        
+
         # Simula a passagem do tempo adiantando o relógio em 16 minutos (960 segundos)
         future_time = datetime.now() + timedelta(seconds=960)
         with patch.object(default_token_generator, "_now", return_value=future_time):
@@ -229,18 +229,18 @@ class TestPasswordResetAPI:
         token = default_token_generator.make_token(therapist_user)
         uidb64 = urlsafe_base64_encode(force_bytes(therapist_user.pk))
         url = reverse("auth-password-reset-confirm")
-        
+
         payload = {
             "uidb64": uidb64,
             "token": token,
             "new_password": TEST_NEW_PASSWORD,
             "new_password_confirm": TEST_NEW_PASSWORD
         }
-        
+
         # Primeiro uso: sucesso
         res1 = api_client.post(url, payload, format="json")
         assert res1.status_code == 200
-        
+
         # Segundo uso com o mesmo token: deve falhar
         res2 = api_client.post(url, payload, format="json")
         assert res2.status_code == 400
