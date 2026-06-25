@@ -53,4 +53,25 @@ export const authService = {
     const response = await api.post<User>("auth/register/", data);
     return response.data;
   },
+
+  /**
+   * Solicita a redefinição de senha (forgot password).
+   */
+  requestPasswordReset: async (email: string): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>("auth/password/reset/", { email });
+    return response.data;
+  },
+
+  /**
+   * Confirma a nova senha usando o token e uidb64 recebidos por e-mail.
+   */
+  confirmPasswordReset: async (data: {
+    uidb64: string;
+    token: string;
+    new_password: string;
+    new_password_confirm: string;
+  }): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>("auth/password/reset/confirm/", data);
+    return response.data;
+  },
 };
