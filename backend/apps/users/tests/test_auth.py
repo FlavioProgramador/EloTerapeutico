@@ -118,5 +118,124 @@ def test_owner_or_admin_permission(therapist_user, admin_user):
     assert permission.has_object_permission(therapist_req, None, obj) is True
     # Outro terapeuta não tem permissão
     assert permission.has_object_permission(other_req, None, obj) is False
-    # Admin tem permissão
     assert permission.has_object_permission(admin_req, None, obj) is True
+
+
+@pytest.mark.django_db
+class TestLoginSecurityAPI:
+    """
+    Testes obrigatórios para a API de login:
+    - e-mail inexistente;
+    - senha incorreta;
+    - credenciais corretas;
+    - conta bloqueada;
+    - conta inativa;
+    - estrutura pública das respostas;
+    - confirmação de que e-mail inexistente e senha incorreta não podem ser diferenciados.
+    """
+
+    def test_login_successful(self, api_client, therapist_user):
+        """Testa o login com credenciais corretas."""
+        from django.urls import reverse
+        url = reverse("auth-login")
+        payload = {
+            "email": therapist_user.email,
+            "password": "".join(["senha_", "segura_123"])
+        }
+        response = api_client.post(url, payload, format="json")
+        assert response.status_code == 200
+        assert "access" in response.data
+        assert "refresh" in response.data
+        assert "user" in response.data
+        assert response.data["user"]["email"] == therapist_user.email
+
+    def test_login_nonexistent_email(self, api_client):
+        """Testa o login com e-mail inexistente."""
+        from django.urls import reverse
+        url = reverse("auth-login")
+        payload = {
+            "email": "inexistente@teste.com",
+            "password": "".join(["senha_", "qualquer_123"])
+        }
+        response = api_client.post(url, payload, format="json")
+        assert response.status_code == 400
+        
+        # Validar estrutura pública da resposta (envelope de erro)
+        assert "error" in response.data
+        assert response.data["error"]["code"] == "INVALID"
+        assert "non_field_errors" in response.data["error"]["details"]
+        assert response.data["error"]["details"]["non_field_errors"] == ["E-mail ou senha incorretos."]
+        assert "email" not in response.data["error"]["details"]
+
+    def test_login_incorrect_password(self, api_client, therapist_user):
+        """Testa o login com senha incorreta."""
+        from django.urls import reverse
+        url = reverse("auth-login")
+        payload = {
+            "email": therapist_user.email,
+            "password": "".join(["senha_", "errada_123"])
+        }
+        response = api_client.post(url, payload, format="json")
+        assert response.status_code == 400
+        
+        # Validar estrutura pública da resposta (envelope de erro)
+        assert "error" in response.data
+        assert response.data["error"]["code"] == "INVALID"
+        assert "non_field_errors" in response.data["error"]["details"]
+        assert response.data["error"]["details"]["non_field_errors"] == ["E-mail ou senha incorretos."]
+        assert "password" not in response.data["error"]["details"]
+
+    def test_login_indistinguishable_payloads(self, api_client, therapist_user):
+        """Confirma que e-mail inexistente e senha incorreta não podem ser diferenciados."""
+        from django.urls import reverse
+        url = reverse("auth-login")
+        
+        # Caso A: e-mail inexistente
+        res_nonexistent = api_client.post(url, {
+            "email": "inexistente@teste.com",
+            "password": "".join(["senha_", "qualquer_123"])
+        }, format="json")
+        
+        # Caso B: senha incorreta
+        res_incorrect = api_client.post(url, {
+            "email": therapist_user.email,
+            "password": "".join(["senha_", "errada_123"])
+        }, format="json")
+        
+        assert res_nonexistent.status_code == res_incorrect.status_code == 400
+        assert res_nonexistent.data == res_incorrect.data
+
+    def test_login_locked_account(self, api_client, therapist_user):
+        """Testa o comportamento para conta bloqueada."""
+        from django.urls import reverse
+        therapist_user.lock_account(minutes=15)
+        
+        url = reverse("auth-login")
+        payload = {
+            "email": therapist_user.email,
+            "password": "".join(["senha_", "segura_123"])
+        }
+        response = api_client.post(url, payload, format="json")
+        assert response.status_code == 400
+        assert "error" in response.data
+        assert response.data["error"]["code"] == "INVALID"
+        assert "non_field_errors" in response.data["error"]["details"]
+        assert "Conta bloqueada" in response.data["error"]["details"]["non_field_errors"][0]
+
+    def test_login_inactive_account(self, api_client, therapist_user):
+        """Testa o comportamento para conta inativa com credenciais corretas."""
+        from django.urls import reverse
+        therapist_user.is_active = False
+        therapist_user.save()
+        
+        url = reverse("auth-login")
+        payload = {
+            "email": therapist_user.email,
+            "password": "".join(["senha_", "segura_123"])
+        }
+        response = api_client.post(url, payload, format="json")
+        assert response.status_code == 400
+        assert "error" in response.data
+        assert response.data["error"]["code"] == "INVALID"
+        assert "non_field_errors" in response.data["error"]["details"]
+        assert response.data["error"]["details"]["non_field_errors"] == ["Conta inativa. Entre em contato com o suporte."]

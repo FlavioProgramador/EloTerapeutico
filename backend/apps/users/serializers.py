@@ -3,8 +3,6 @@ apps/users/serializers.py
 Serializers para autenticação, perfil e horários de atendimento.
 """
 
-from django.contrib.auth import authenticate
-from django.utils import timezone
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -45,26 +43,26 @@ class LoginSerializer(serializers.Serializer):
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            raise serializers.ValidationError({"email": "Credenciais inválidas."})
+            # Executa dummy password hashing para consumir CPU de forma equivalente
+            User().set_password(password)
+            raise serializers.ValidationError("E-mail ou senha incorretos.")
 
         # Verificar bloqueio de conta
         if user.is_locked():
-            raise serializers.ValidationError({
-                "email": f"Conta bloqueada por tentativas excessivas. Tente novamente após {user.locked_until.strftime('%H:%M')}."
-            })
+            raise serializers.ValidationError(
+                f"Conta bloqueada por tentativas excessivas. Tente novamente após {user.locked_until.strftime('%H:%M')}."
+            )
 
-        authenticated = authenticate(request=self.context.get("request"), username=email, password=password)
-
-        if not authenticated:
+        if not user.check_password(password):
             user.failed_login_attempts += 1
             if user.failed_login_attempts >= 5:
                 user.lock_account(minutes=30)
             else:
                 user.save(update_fields=["failed_login_attempts"])
-            raise serializers.ValidationError({"password": "Credenciais inválidas."})
+            raise serializers.ValidationError("E-mail ou senha incorretos.")
 
         if not user.is_active:
-            raise serializers.ValidationError({"email": "Conta inativa. Entre em contato com o suporte."})
+            raise serializers.ValidationError("Conta inativa. Entre em contato com o suporte.")
 
         user.reset_login_attempts()
         attrs["user"] = user
