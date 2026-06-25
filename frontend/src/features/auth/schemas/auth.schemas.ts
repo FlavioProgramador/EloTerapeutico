@@ -50,3 +50,34 @@ export const registerSchema = z
 
 export type RegisterFormData = z.input<typeof registerSchema>;
 
+
+// ─── Esqueci a senha ──────────────────────────────────────────────────────────
+
+export const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .min(1, "E-mail é obrigatório.")
+    .email("Informe um e-mail válido."),
+});
+
+export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+
+
+// ─── Redefinir senha ──────────────────────────────────────────────────────────
+
+export const resetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, "A senha deve ter pelo menos 8 caracteres.")
+      .regex(/[A-Z]/, "A senha deve conter pelo menos uma letra maiúscula.")
+      .regex(/[0-9]/, "A senha deve conter pelo menos um número."),
+    confirm_password: z.string().min(1, "Confirme sua senha."),
+  })
+  .refine((data) => data.password === data.confirm_password, {
+    message: "As senhas não coincidem.",
+    path: ["confirm_password"],
+  });
+
+export type ResetPasswordFormData = z.input<typeof resetPasswordSchema>;
+
