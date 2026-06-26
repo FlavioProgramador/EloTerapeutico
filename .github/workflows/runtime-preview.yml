@@ -1,0 +1,153 @@
+name: Runtime Preview
+
+on:
+  push:
+    branches: [codex/runtime-preview]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements/*.txt
+
+      - name: Install backend system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            libpango-1.0-0 \
+            libpangoft2-1.0-0
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Prepare and start backend
+        working-directory: backend
+        run: |
+          cp .env.example .env
+          sed -i 's|^DATABASE_URL=.*|DATABASE_URL=sqlite:///runtime.sqlite3|' .env
+          python manage.py migrate --noinput
+          nohup python manage.py runserver 0.0.0.0:8000 > ../backend-runtime.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl --silent --output /dev/null http://127.0.0.1:8000/admin/login/; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat ../backend-runtime.log
+          exit 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://127.0.0.1:8000/api/v1/
+        run: npm run build
+
+      - name: Start frontend
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://127.0.0.1:8000/api/v1/
+        run: |
+          nohup npm run start -- -H 0.0.0.0 > ../frontend-runtime.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent --output /dev/null http://127.0.0.1:3000/; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat ../frontend-runtime.log
+          exit 1
+
+      - name: Install Playwright
+        working-directory: frontend
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: Capture application screens
+        working-directory: frontend
+        run: |
+          mkdir -p ../runtime-preview
+          node <<'NODE'
+          const { chromium } = require('playwright');
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+            const routes = [
+              ["landing", "/"],
+              ["login", "/login"],
+              ["register", "/register"],
+              ["dashboard", "/dashboard"],
+            ];
+
+            const results = [];
+            for (const [name, path] of routes) {
+              const response = await page.goto(`http://127.0.0.1:3000${path}`, {
+                waitUntil: "networkidle",
+                timeout: 30000,
+              });
+              await page.screenshot({
+                path: `../runtime-preview/${name}.png`,
+                fullPage: true,
+              });
+              results.push({
+                name,
+                path,
+                status: response ? response.status() : null,
+                finalUrl: page.url(),
+                title: await page.title(),
+              });
+            }
+
+            require('fs').writeFileSync(
+              '../runtime-preview/results.json',
+              JSON.stringify(results, null, 2),
+            );
+            await browser.close();
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Upload runtime preview
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: runtime-preview
+          path: |
+            runtime-preview/
+            backend-runtime.log
+            frontend-runtime.log
+          if-no-files-found: warn
+          retention-days: 3
