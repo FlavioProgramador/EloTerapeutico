@@ -10,13 +10,13 @@ django-filter>=24.1,<24.2
 django-environ>=0.11,<0.12
 
 # Autenticação
-djangorestframework-simplejwt>=5.3,<5.4
+djangorestframework-simplejwt>=5.5.1,<6.0
 
 # Banco de dados
 psycopg2-binary>=2.9,<3.0
 
 # Criptografia de campos sensíveis
-cryptography>=42.0,<43.0
+cryptography>=48.0.1,<49.0
 
 # Servidor de produção
 gunicorn>=22.0,<23.0
@@ -28,7 +28,7 @@ drf-spectacular>=0.27,<0.28
 argon2-cffi>=23.1,<23.2
 
 # Geração de PDF para recibos e prontuários
-weasyprint>=62.0,<63.0
+weasyprint>=68.0,<69.0
 
 # Upload para Azure Blob Storage
 azure-storage-blob>=12.19,<12.20
