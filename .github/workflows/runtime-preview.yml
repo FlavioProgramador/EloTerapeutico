@@ -3,6 +3,8 @@ name: Runtime Preview
 on:
   push:
     branches: [codex/runtime-preview]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
