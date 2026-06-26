@@ -11,8 +11,9 @@ export interface InputProps
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type = "text", label, error, leftIcon, rightIcon, id, ...props }, ref) => {
-    const inputId = id || React.useId();
-    
+    const generatedId = React.useId();
+    const inputId = id ?? generatedId;
+
     return (
       <div className="w-full flex flex-col gap-1.5">
         {label && (
@@ -70,8 +71,9 @@ export interface TextareaProps
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className, label, error, id, ...props }, ref) => {
-    const inputId = id || React.useId();
-    
+    const generatedId = React.useId();
+    const inputId = id ?? generatedId;
+
     return (
       <div className="w-full flex flex-col gap-1.5">
         {label && (
