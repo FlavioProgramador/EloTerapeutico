@@ -194,7 +194,7 @@ export interface CreateAddendumPayload {
 // ─── Financeiro ────────────────────────────────────────────────────────────────
 
 export type TransactionType = "income" | "expense";
-export type TransactionStatus = "pending" | "paid" | "overdue" | "cancelled";
+export type TransactionStatus = "pending" | "paid" | "overdue" | "cancelled" | "refunded";
 
 export interface FinancialTransaction {
   id: number;
@@ -210,6 +210,7 @@ export interface FinancialTransaction {
   due_date: string;
   payment_date?: string;
   payment_method?: PaymentMethod;
+  is_overdue?: boolean;
   notes?: string;
   created_at: string;
   updated_at: string;

@@ -111,4 +111,58 @@ export const financeiroService = {
   delete: async (id: number): Promise<void> => {
     await api.delete(`financeiro/${id}/`);
   },
+
+  /**
+   * Cancela uma transação pendente.
+   */
+  cancel: async (id: number): Promise<FinancialTransaction> => {
+    const response = await api.post<FinancialTransaction>(`financeiro/${id}/cancel/`);
+    return response.data;
+  },
+
+  /**
+   * Estorna uma transação paga.
+   */
+  refund: async (id: number): Promise<FinancialTransaction> => {
+    const response = await api.post<FinancialTransaction>(`financeiro/${id}/refund/`);
+    return response.data;
+  },
+
+  /**
+   * Exporta a lista de transações filtrada em formato CSV.
+   */
+  exportCSV: async (filters?: TransactionFilters): Promise<Blob> => {
+    const params = new URLSearchParams();
+    if (filters?.transaction_type) params.set("transaction_type", filters.transaction_type);
+    if (filters?.payment_status) params.set("payment_status", filters.payment_status);
+    if (filters?.category) params.set("category", filters.category);
+    if (filters?.patient) params.set("patient", filters.patient);
+
+    const response = await api.get(`financeiro/export/?${params.toString()}`, {
+      responseType: "blob",
+    });
+    return response.data as unknown as Blob;
+  },
+
+  /**
+   * Obtém a lista de consultas concluídas sem lançamento financeiro associado.
+   */
+  getUnbilledAppointments: async (): Promise<Array<{
+    id: number;
+    patient_id: number;
+    patient_name: string;
+    start_time: string;
+    end_time: string;
+    session_value: string;
+  }>> => {
+    const response = await api.get<Array<{
+      id: number;
+      patient_id: number;
+      patient_name: string;
+      start_time: string;
+      end_time: string;
+      session_value: string;
+    }>>("financeiro/unbilled-appointments/");
+    return response.data;
+  },
 };
