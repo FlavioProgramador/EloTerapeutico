@@ -144,7 +144,12 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
+    "CHECK_REVOKE_TOKEN": True,
+    "REVOKE_TOKEN_CLAIM": "hash_password",
 }
+
+# Tempo limite para o token de redefinição de senha (15 minutos = 900 segundos)
+PASSWORD_RESET_TIMEOUT = env.int("PASSWORD_RESET_TIMEOUT", default=900)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # drf-spectacular (Swagger / OpenAPI)
@@ -198,3 +203,5 @@ AZURE_CONTAINER_NAME = env("AZURE_CONTAINER_NAME", default="elo-terapeutico")
 # ─────────────────────────────────────────────────────────────────────────────
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@eloterapeutico.com.br")
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:3000")

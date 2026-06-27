@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Mail, Lock, LogIn, Eye, EyeOff } from "lucide-react";
+import { AxiosError } from "axios";
 import { useAuth } from "@/contexts/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,11 +42,11 @@ export default function LoginPage() {
         description: "Login realizado com sucesso.",
       });
       // Redirecionamento feito pelo AuthContext
-    } catch (error) {
-      const err = error as { response?: { data?: { error?: { message?: string }; detail?: string } } };
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ error?: { message?: string }; detail?: string }>;
       const serverMessage =
-        err?.response?.data?.error?.message ||
-        err?.response?.data?.detail ||
+        axiosError?.response?.data?.error?.message ||
+        axiosError?.response?.data?.detail ||
         "Verifique suas credenciais e tente novamente.";
 
       toast.error("Falha na autenticação", {
@@ -151,11 +152,7 @@ export default function LoginPage() {
                   Lembrar de mim
                 </label>
                 <Link
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    toast.info("Redefinição de senha em desenvolvimento.");
-                  }}
+                  href="/forgot-password"
                   className="text-primary hover:underline font-medium"
                 >
                   Esqueceu a senha?
