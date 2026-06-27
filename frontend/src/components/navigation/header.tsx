@@ -17,7 +17,10 @@ export function Header({ className }: HeaderProps) {
   // Inicializa o tema baseado no estado atual
   useEffect(() => {
     const isDark = document.documentElement.classList.contains("dark");
-    setTheme(isDark ? "dark" : "light");
+    const timeoutId = setTimeout(() => {
+      setTheme(isDark ? "dark" : "light");
+    }, 0);
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const toggleTheme = () => {

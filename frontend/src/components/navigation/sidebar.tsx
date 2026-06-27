@@ -13,7 +13,6 @@ import {
   ChevronRight,
   LogOut,
   Settings,
-  Bell,
   MessageSquare,
   BarChart2,
 } from "lucide-react";

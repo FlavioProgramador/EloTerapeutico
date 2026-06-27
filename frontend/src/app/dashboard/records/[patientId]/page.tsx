@@ -361,7 +361,7 @@ export default function RecordDetailPage() {
                 <div>
                   <h4 className="font-semibold text-sm text-foreground">Nenhuma sessão registrada</h4>
                   <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                    Este paciente ainda não possui evoluções registradas. Utilize a aba "Nova Evolução" para registrar a primeira sessão.
+                    Este paciente ainda não possui evoluções registradas. Utilize a aba &ldquo;Nova Evolução&rdquo; para registrar a primeira sessão.
                   </p>
                 </div>
               </Card>
