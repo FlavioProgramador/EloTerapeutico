@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:20-alpine
 
 # Set working directory
 WORKDIR /app
@@ -9,9 +9,6 @@ RUN npm ci --silent
 
 # Copy rest of the source code
 COPY . .
-
-# Build the Next.js app (optional for production)
-# RUN npm run build
 
 EXPOSE 3000
 
