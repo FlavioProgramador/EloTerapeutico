@@ -44,22 +44,34 @@ export function formatTime(timeStr: string): string {
   return timeStr.substring(0, 5);
 }
 
-/**
- * Extrai mensagem de erro de uma resposta de API DRF.
- */
 export function extractApiError(error: unknown): string {
-  const err = error as any;
+  const err = error as {
+    response?: {
+      data?: Record<string, unknown> | string | null;
+    };
+  };
   const details = err?.response?.data;
 
   if (details) {
     if (typeof details === "string") return details;
-    if (details.detail) return details.detail;
-    if (details.error?.message) return details.error.message;
-    if (details.non_field_errors?.[0]) return details.non_field_errors[0];
+    
+    const dataObj = details as Record<string, unknown>;
+    if (typeof dataObj.detail === "string") return dataObj.detail;
+    
+    const errObj = dataObj.error as Record<string, unknown> | undefined;
+    if (errObj && typeof errObj.message === "string") return errObj.message;
 
-    const firstKey = Object.keys(details)[0];
-    if (firstKey && Array.isArray(details[firstKey])) {
-      return `${firstKey}: ${details[firstKey][0]}`;
+    const nonFieldErrors = dataObj.non_field_errors;
+    if (Array.isArray(nonFieldErrors) && typeof nonFieldErrors[0] === "string") {
+      return nonFieldErrors[0];
+    }
+
+    const firstKey = Object.keys(dataObj)[0];
+    if (firstKey) {
+      const fieldErrors = dataObj[firstKey];
+      if (Array.isArray(fieldErrors) && typeof fieldErrors[0] === "string") {
+        return `${firstKey}: ${fieldErrors[0]}`;
+      }
     }
   }
 

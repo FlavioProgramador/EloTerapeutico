@@ -62,8 +62,12 @@ export function useCreateRecord() {
       }
       toast.success("Evolução clínica registrada com sucesso.");
     },
-    onError: (error: any) => {
-      const serverMsg = error?.response?.data?.session_date?.[0] || error?.response?.data?.detail;
+    onError: (error: unknown) => {
+      let serverMsg = "";
+      if (error && typeof error === "object" && "response" in error) {
+        const errObj = (error as { response?: { data?: { session_date?: string[]; detail?: string } } }).response?.data;
+        serverMsg = errObj?.session_date?.[0] || errObj?.detail || "";
+      }
       toast.error("Erro ao salvar evolução clínica.", {
         description: serverMsg || "Verifique se já existe um registro para esta data.",
       });
@@ -90,9 +94,14 @@ export function useUpdateRecord(id: number) {
       }
       toast.success("Evolução clínica atualizada com sucesso.");
     },
-    onError: (error: any) => {
-      const isLocked = error?.response?.status === 403 || error?.response?.status === 400;
-      const detail = error?.response?.data?.detail || "Erro ao atualizar evolução clínica.";
+    onError: (error: unknown) => {
+      let isLocked = false;
+      let detail = "Erro ao atualizar evolução clínica.";
+      if (error && typeof error === "object" && "response" in error) {
+        const response = (error as { response?: { status?: number; data?: { detail?: string } } }).response;
+        isLocked = response?.status === 403 || response?.status === 400;
+        detail = response?.data?.detail || detail;
+      }
       toast.error(
         isLocked
           ? "Esta evolução está bloqueada para edição (prazo de 48h esgotado)."
@@ -127,8 +136,11 @@ export function useSaveAnamnesis(patientId: number) {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.anamnesis(patientId) });
       toast.success("Ficha de anamnese salva com sucesso.");
     },
-    onError: (error: any) => {
-      const serverMsg = error?.response?.data?.detail || "Erro ao salvar anamnese.";
+    onError: (error: unknown) => {
+      let serverMsg = "Erro ao salvar anamnese.";
+      if (error && typeof error === "object" && "response" in error) {
+        serverMsg = (error as { response?: { data?: { detail?: string } } }).response?.data?.detail || serverMsg;
+      }
       toast.error("Erro ao salvar.", { description: serverMsg });
     },
   });
@@ -148,8 +160,11 @@ export function useCreateAddendum(evolutionId: number, patientId: number) {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.recordsByPatient(patientId) });
       toast.success("Aditivo inserido com sucesso.");
     },
-    onError: (error: any) => {
-      const serverMsg = error?.response?.data?.detail || "Erro ao registrar aditivo.";
+    onError: (error: unknown) => {
+      let serverMsg = "Erro ao registrar aditivo.";
+      if (error && typeof error === "object" && "response" in error) {
+        serverMsg = (error as { response?: { data?: { detail?: string } } }).response?.data?.detail || serverMsg;
+      }
       toast.error("Erro ao salvar aditivo.", { description: serverMsg });
     },
   });

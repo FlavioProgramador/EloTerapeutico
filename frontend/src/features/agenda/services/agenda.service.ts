@@ -58,15 +58,15 @@ export const agendaService = {
   /**
    * Busca um agendamento pelo ID.
    */
-  getById: async (id: number): Promise<any> => {
-    const response = await api.get<any>(`agenda/appointments/${id}/`);
+  getById: async (id: number): Promise<Appointment> => {
+    const response = await api.get<Appointment>(`agenda/appointments/${id}/`);
     return response.data;
   },
 
   /**
    * Cria um novo agendamento.
    */
-  create: async (data: any): Promise<Appointment> => {
+  create: async (data: CreateAppointmentPayload): Promise<Appointment> => {
     const response = await api.post<Appointment>("agenda/appointments/", data);
     return response.data;
   },
@@ -89,8 +89,8 @@ export const agendaService = {
     id: number,
     status: string,
     cancellationReason?: string
-  ): Promise<any> => {
-    const response = await api.patch(`agenda/appointments/${id}/status/`, {
+  ): Promise<Appointment> => {
+    const response = await api.patch<Appointment>(`agenda/appointments/${id}/status/`, {
       status,
       cancellation_reason: cancellationReason,
     });

@@ -28,8 +28,8 @@ export const transactionSchema = z.object({
   payment_method: z
     .enum(["pix", "credit_card", "cash", "insurance", "boleto"])
     .optional(),
-  patient: z.number().int().positive().optional(),
-  appointment: z.number().int().positive().optional(),
+  patient: z.union([z.string(), z.number()]).optional(),
+  appointment: z.union([z.string(), z.number()]).optional(),
   notes: z.string().max(500).optional().or(z.literal("")),
 });
 

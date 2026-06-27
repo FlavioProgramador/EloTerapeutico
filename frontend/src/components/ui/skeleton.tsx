@@ -60,11 +60,10 @@ export function SkeletonTableRow() {
 interface SkeletonTableProps {
   lines?: number;
   rows?: number;
-  columns?: number;
 }
 
 /** Lista de n linhas de tabela */
-export function SkeletonTable({ lines, rows, columns }: SkeletonTableProps) {
+export function SkeletonTable({ lines, rows }: SkeletonTableProps) {
   const count = lines ?? rows ?? 5;
   return (
     <div className="space-y-0">

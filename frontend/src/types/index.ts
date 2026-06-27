@@ -41,7 +41,7 @@ export interface Patient {
   cpf?: string;
   formatted_cpf?: string;
   gender?: "M" | "F" | "O" | "N";
-  address?: string | Record<string, any>;
+  address?: string | Record<string, unknown>;
   status: PatientStatus;
   session_value?: string;
   payment_method?: PaymentMethod;
@@ -65,7 +65,7 @@ export interface CreatePatientPayload {
   birth_date?: string;
   cpf?: string;
   gender?: "M" | "F" | "O" | "N";
-  address?: string | Record<string, any>;
+  address?: string | Record<string, unknown>;
   status?: PatientStatus;
   session_value?: string;
   payment_method?: PaymentMethod;
@@ -104,15 +104,20 @@ export interface Appointment {
   is_recurring?: boolean;
   duration_display?: string;
   session_value?: string;
+  cancellation_reason?: string;
+  recurrence_rule?: string | null;
 }
 
 export interface CreateAppointmentPayload {
   patient: number;
-  date: string;
+  date?: string;
   start_time: string;
   end_time: string;
   status?: AppointmentStatus;
   notes?: string;
+  session_value?: string;
+  is_recurring?: boolean;
+  recurrence_rule?: string | null;
 }
 
 // ─── Prontuários ───────────────────────────────────────────────────────────────
@@ -189,7 +194,7 @@ export interface CreateAddendumPayload {
 // ─── Financeiro ────────────────────────────────────────────────────────────────
 
 export type TransactionType = "income" | "expense";
-export type TransactionStatus = "pending" | "paid" | "overdue" | "cancelled";
+export type TransactionStatus = "pending" | "paid" | "overdue" | "cancelled" | "refunded";
 
 export interface FinancialTransaction {
   id: number;
@@ -205,6 +210,7 @@ export interface FinancialTransaction {
   due_date: string;
   payment_date?: string;
   payment_method?: PaymentMethod;
+  is_overdue?: boolean;
   notes?: string;
   created_at: string;
   updated_at: string;

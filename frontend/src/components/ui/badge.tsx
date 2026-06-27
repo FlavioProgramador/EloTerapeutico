@@ -100,6 +100,7 @@ export function getTransactionStatusVariant(
     paid: "success",
     overdue: "destructive",
     cancelled: "muted",
+    refunded: "outline",
   };
   return map[status] ?? "outline";
 }

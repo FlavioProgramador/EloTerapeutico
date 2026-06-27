@@ -34,19 +34,24 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { Badge, getTransactionStatusVariant } from "@/components/ui/badge";
 import { SkeletonCard, SkeletonTable } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
-
+import type { CreateTransactionPayload, TransactionType, TransactionStatus } from "@/types";
 import { usePatients } from "@/features/patients/hooks/use-patients";
+
 import {
   useTransactions,
   useFinancialSummary,
   useCreateTransaction,
   useMarkAsPaid,
   useDeleteTransaction,
+  useCancelTransaction,
+  useRefundTransaction,
+  useUnbilledAppointments,
 } from "@/features/financeiro/hooks/use-financeiro";
+import { financeiroService } from "@/features/financeiro/services/financeiro.service";
 import { transactionSchema, type TransactionFormData } from "@/features/financeiro/schemas/transaction.schemas";
 
 const MONTHS = [
@@ -108,6 +113,9 @@ export default function FinanceiroPage() {
   const createTxMutation = useCreateTransaction();
   const markAsPaidMutation = useMarkAsPaid();
   const deleteTxMutation = useDeleteTransaction();
+  const cancelTxMutation = useCancelTransaction();
+  const refundTxMutation = useRefundTransaction();
+  const { data: unbilledAppts = [], refetch: refetchUnbilled } = useUnbilledAppointments();
 
   // Form com React Hook Form + Zod
   const todayStr = today.toISOString().split("T")[0];
@@ -130,6 +138,7 @@ export default function FinanceiroPage() {
       payment_date: todayStr,
       description: "",
       patient: undefined,
+      appointment: undefined,
       notes: "",
     },
   });
@@ -148,6 +157,7 @@ export default function FinanceiroPage() {
       payment_date: todayStr,
       description: "",
       patient: undefined,
+      appointment: undefined,
       notes: "",
     });
     setIsNewModalOpen(true);
@@ -164,11 +174,12 @@ export default function FinanceiroPage() {
       payment_method: data.payment_method || undefined,
     };
 
-    createTxMutation.mutate(payload as any, {
+    createTxMutation.mutate(payload as CreateTransactionPayload, {
       onSuccess: () => {
         setIsNewModalOpen(false);
         refetchSummary();
         refetchTransactions();
+        refetchUnbilled();
       },
     });
   };
@@ -181,6 +192,7 @@ export default function FinanceiroPage() {
         onSuccess: () => {
           refetchSummary();
           refetchTransactions();
+          refetchUnbilled();
         },
       }
     );
@@ -193,8 +205,86 @@ export default function FinanceiroPage() {
       onSuccess: () => {
         refetchSummary();
         refetchTransactions();
+        refetchUnbilled();
       },
     });
+  };
+
+  // Cancelar transação com confirmação
+  const handleCancelTransaction = async (id: number) => {
+    if (!confirm("Tem certeza que deseja cancelar esta transação pendente?")) return;
+    cancelTxMutation.mutate(id, {
+      onSuccess: () => {
+        refetchSummary();
+        refetchTransactions();
+        refetchUnbilled();
+      },
+    });
+  };
+
+  // Estornar transação com confirmação
+  const handleRefundTransaction = async (id: number) => {
+    if (!confirm("Tem certeza que deseja estornar esta transação paga? O valor será marcado como estornado no fluxo.")) return;
+    refundTxMutation.mutate(id, {
+      onSuccess: () => {
+        refetchSummary();
+        refetchTransactions();
+        refetchUnbilled();
+      },
+    });
+  };
+
+  // Trata exportação de CSV
+  const handleExportCSV = async () => {
+    try {
+      const filters = {
+        transaction_type: typeFilter === "all" ? undefined : typeFilter,
+        payment_status: statusFilter === "all" ? undefined : statusFilter,
+        category: categoryFilter === "all" ? undefined : categoryFilter,
+        patient: selectedPatientId === "all" ? undefined : selectedPatientId,
+      };
+      
+      const blob = await financeiroService.exportCSV(filters);
+      
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `fluxo-financeiro-${selectedYear}-${selectedMonth}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success("Relatório financeiro CSV exportado com sucesso!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao exportar relatório financeiro. Tente novamente.");
+    }
+  };
+
+  // Faturamento rápido de consulta concluída
+  const handleQuickBill = (appt: {
+    id: number;
+    patient_id: number;
+    patient_name: string;
+    start_time: string;
+    session_value: string;
+  }) => {
+    const apptDate = appt.start_time.split("T")[0];
+    reset({
+      type: "income",
+      category: "session",
+      amount: parseFloat(appt.session_value).toFixed(2).replace(".", ","),
+      payment_method: "pix",
+      status: "pending",
+      due_date: apptDate,
+      payment_date: apptDate,
+      description: `Faturamento automático de consulta em ${new Date(appt.start_time).toLocaleDateString("pt-BR")}`,
+      patient: String(appt.patient_id),
+      appointment: String(appt.id),
+      notes: "",
+    });
+    setIsNewModalOpen(true);
   };
 
   // Navegar meses
@@ -219,6 +309,48 @@ export default function FinanceiroPage() {
   const getCategoryLabel = (cat: string) => {
     return CATEGORIES.find((c) => c.value === cat)?.label || cat;
   };
+
+  // Agrupa dados para os gráficos CSS dinâmicos
+  const categorySummary = React.useMemo(() => {
+    const categoriesMap: Record<string, { income: number; expense: number }> = {};
+    
+    CATEGORIES.forEach(c => {
+      categoriesMap[c.value] = { income: 0, expense: 0 };
+    });
+    
+    let maxAmount = 0;
+    
+    transactions.forEach(tx => {
+      const amount = parseFloat(tx.amount);
+      const cat = tx.category || "other";
+      if (!categoriesMap[cat]) {
+        categoriesMap[cat] = { income: 0, expense: 0 };
+      }
+      if (tx.type === "income") {
+        categoriesMap[cat].income += amount;
+      } else {
+        categoriesMap[cat].expense += amount;
+      }
+    });
+
+    const list = Object.entries(categoriesMap).map(([key, val]) => {
+      const label = getCategoryLabel(key);
+      const total = val.income + val.expense;
+      if (total > maxAmount) maxAmount = total;
+      return {
+        key,
+        label,
+        income: val.income,
+        expense: val.expense,
+        total,
+      };
+    }).filter(item => item.total > 0)
+      .sort((a, b) => b.total - a.total);
+
+    return { list, maxAmount };
+  }, [transactions]);
+
+  const totalVolume = parseFloat(summary?.total_income || "0") + parseFloat(summary?.total_expense || "0");
 
   return (
     <div className="space-y-6">
@@ -254,9 +386,18 @@ export default function FinanceiroPage() {
           </div>
 
           <Button
+            onClick={handleExportCSV}
+            variant="outline"
+            leftIcon={<Receipt className="h-5 w-5" />}
+            className="text-foreground border border-border hover:bg-secondary shrink-0 font-semibold cursor-pointer h-11"
+          >
+            Exportar CSV
+          </Button>
+
+          <Button
             onClick={handleOpenModal}
             leftIcon={<Plus className="h-5 w-5" />}
-            className="text-white font-semibold"
+            className="text-white font-semibold cursor-pointer h-11"
           >
             Lançar Transação
           </Button>
@@ -371,6 +512,146 @@ export default function FinanceiroPage() {
         )}
       </div>
 
+      {/* Gráficos Analíticos Premium */}
+      {!loadingSummary && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Card 1: Comparativo do Mês */}
+          <Card className="border-border/80 bg-card shadow-xs p-5 flex flex-col justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Saúde Financeira do Período
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Visualização de proporção entre Entradas (Receitas) e Saídas (Despesas) pagas
+              </p>
+            </div>
+            
+            <div className="flex items-end justify-around h-44 mt-6 border-b border-border/40 pb-2">
+              {/* Barra de Receitas */}
+              <div className="flex flex-col items-center gap-2 w-16">
+                <span className="text-[10px] font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                  R$ {parseFloat(summary?.total_income || "0").toFixed(0)}
+                </span>
+                <div 
+                  style={{ height: `${totalVolume > 0 ? (parseFloat(summary?.total_income || "0") / Math.max(parseFloat(summary?.total_income || "0"), parseFloat(summary?.total_expense || "0"), 1)) * 130 : 10}px` }}
+                  className="w-full bg-gradient-to-t from-emerald-500/80 to-emerald-400/80 rounded-t-md hover:from-emerald-500 hover:to-emerald-400 transition-all duration-500 shrink-0 cursor-pointer shadow-md shadow-emerald-500/10"
+                  title={`Receitas: R$ ${parseFloat(summary?.total_income || "0").toFixed(2)}`}
+                />
+                <span className="text-xs font-semibold text-foreground">Receitas</span>
+              </div>
+
+              {/* Barra de Despesas */}
+              <div className="flex flex-col items-center gap-2 w-16">
+                <span className="text-[10px] font-bold font-mono text-rose-600 dark:text-rose-400">
+                  R$ {parseFloat(summary?.total_expense || "0").toFixed(0)}
+                </span>
+                <div 
+                  style={{ height: `${totalVolume > 0 ? (parseFloat(summary?.total_expense || "0") / Math.max(parseFloat(summary?.total_income || "0"), parseFloat(summary?.total_expense || "0"), 1)) * 130 : 10}px` }}
+                  className="w-full bg-gradient-to-t from-rose-500/80 to-rose-400/80 rounded-t-md hover:from-rose-500 hover:to-rose-400 transition-all duration-500 shrink-0 cursor-pointer shadow-md shadow-rose-500/10"
+                  title={`Despesas: R$ ${parseFloat(summary?.total_expense || "0").toFixed(2)}`}
+                />
+                <span className="text-xs font-semibold text-foreground">Despesas</span>
+              </div>
+            </div>
+
+            <div className="mt-4 flex justify-between text-xs text-muted-foreground border-t border-border/20 pt-4">
+              <span>Aproveitamento Financeiro:</span>
+              <span className="font-semibold text-foreground">
+                {parseFloat(summary?.total_income || "0") > 0 
+                  ? `${((parseFloat(summary?.balance || "0") / parseFloat(summary?.total_income || "0")) * 100).toFixed(0)}% de margem`
+                  : "0% de margem"
+                }
+              </span>
+            </div>
+          </Card>
+
+          {/* Card 2: Distribuição por Categorias */}
+          <Card className="border-border/80 bg-card shadow-xs p-5">
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Distribuição por Categoria
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Volume financeiro proporcional a cada categoria (Entradas + Saídas)
+              </p>
+            </div>
+
+            <div className="mt-6 space-y-4 max-h-[178px] overflow-y-auto pr-1">
+              {categorySummary.list.length === 0 ? (
+                <div className="h-40 flex items-center justify-center text-xs text-muted-foreground/60 italic">
+                  Sem movimentação no período para gráficos
+                </div>
+              ) : (
+                categorySummary.list.map(item => (
+                  <div key={item.key} className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="font-medium text-foreground">{item.label}</span>
+                      <span className="font-mono text-muted-foreground font-semibold">
+                        R$ {item.total.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="h-3 w-full bg-secondary/40 rounded-full overflow-hidden flex border border-border/10">
+                      {item.income > 0 && (
+                        <div 
+                          style={{ width: `${(item.income / categorySummary.maxAmount) * 100}%` }}
+                          className="h-full bg-emerald-500/80 hover:bg-emerald-500 transition-all duration-300 relative"
+                          title={`Receitas de ${item.label}: R$ ${item.income.toFixed(2)}`}
+                        />
+                      )}
+                      {item.expense > 0 && (
+                        <div 
+                          style={{ width: `${(item.expense / categorySummary.maxAmount) * 100}%` }}
+                          className="h-full bg-rose-500/80 hover:bg-rose-500 transition-all duration-300 relative"
+                          title={`Despesas de ${item.label}: R$ ${item.expense.toFixed(2)}`}
+                        />
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Alerta de Consultas Pendentes de Faturamento */}
+      {unbilledAppts.length > 0 && (
+        <Card className="border-amber-500/20 bg-amber-500/5 shadow-xs p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="h-9 w-9 rounded-md bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0">
+              <Calendar className="h-5 w-5" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm text-foreground">
+                Você tem {unbilledAppts.length} {unbilledAppts.length === 1 ? "consulta confirmada" : "consultas confirmadas"} pendente de faturamento
+              </h4>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Lance estas sessões no fluxo financeiro para manter o controle de recebimentos e a cobrança de seus pacientes em dia.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 shrink-0 max-w-full">
+            {unbilledAppts.slice(0, 3).map((appt) => (
+              <Button
+                key={appt.id}
+                size="sm"
+                variant="outline"
+                onClick={() => handleQuickBill(appt)}
+                leftIcon={<Plus className="h-3.5 w-3.5" />}
+                className="text-xs hover:bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400 font-medium whitespace-nowrap cursor-pointer h-9"
+              >
+                Faturar {appt.patient_name.split(" ")[0]} (R$ {parseFloat(appt.session_value).toFixed(0)})
+              </Button>
+            ))}
+            {unbilledAppts.length > 3 && (
+              <span className="text-[10px] text-muted-foreground font-semibold px-2">
+                +{unbilledAppts.length - 3} mais
+              </span>
+            )}
+          </div>
+        </Card>
+      )}
+
       {/* Barra de Filtros Compacta */}
       <Card className="border-border/80 bg-card shadow-xs p-4">
         <div className="flex flex-wrap items-center gap-3">
@@ -382,7 +663,7 @@ export default function FinanceiroPage() {
           {/* Tipo de Transação */}
           <select
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as any)}
+            onChange={(e) => setTypeFilter(e.target.value as "all" | TransactionType)}
             className="h-9 bg-card border border-border/60 rounded-md px-3 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-ring text-foreground cursor-pointer"
           >
             <option value="all">Todos os Fluxos</option>
@@ -393,7 +674,7 @@ export default function FinanceiroPage() {
           {/* Status de Pagamento */}
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
+            onChange={(e) => setStatusFilter(e.target.value as "all" | "paid" | "pending" | "cancelled")}
             className="h-9 bg-card border border-border/60 rounded-md px-3 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-ring text-foreground cursor-pointer"
           >
             <option value="all">Todos os Status</option>
@@ -430,7 +711,7 @@ export default function FinanceiroPage() {
 
       {/* Histórico Financeiro */}
       {loadingTransactions ? (
-        <SkeletonTable rows={5} columns={7} />
+        <SkeletonTable rows={5} />
       ) : transactions.length === 0 ? (
         <EmptyState
           title="Nenhuma movimentação no período"
@@ -504,24 +785,46 @@ export default function FinanceiroPage() {
 
                 {/* Status */}
                 <TableCell>
-                  <Badge variant={tx.status === "paid" ? "success" : tx.status === "pending" ? "warning" : "muted"}>
-                    {tx.status === "paid" ? "Pago" : tx.status === "pending" ? "Pendente" : tx.status === "overdue" ? "Atrasado" : "Cancelado"}
+                  <Badge variant={getTransactionStatusVariant(tx.status)}>
+                    {tx.status === "paid" ? "Pago" : tx.status === "pending" ? "Pendente" : tx.status === "overdue" ? "Atrasado" : tx.status === "refunded" ? "Estornado" : "Cancelado"}
                   </Badge>
                 </TableCell>
 
                 {/* Ações */}
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1.5">
-                    {tx.status === "pending" && (
+                    {(tx.status === "pending" || tx.status === "overdue") && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleQuickPay(tx.id)}
+                          isLoading={markAsPaidMutation.isPending}
+                          leftIcon={<CheckCircle className="h-3.5 w-3.5" />}
+                          className="text-xs hover:bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 cursor-pointer h-8"
+                        >
+                          Compensar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleCancelTransaction(tx.id)}
+                          isLoading={cancelTxMutation.isPending}
+                          className="text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/5 cursor-pointer h-8"
+                        >
+                          Cancelar
+                        </Button>
+                      </>
+                    )}
+                    {tx.status === "paid" && (
                       <Button
                         size="sm"
-                        variant="outline"
-                        onClick={() => handleQuickPay(tx.id)}
-                        isLoading={markAsPaidMutation.isPending}
-                        leftIcon={<CheckCircle className="h-3.5 w-3.5" />}
-                        className="text-xs hover:bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 cursor-pointer h-8"
+                        variant="ghost"
+                        onClick={() => handleRefundTransaction(tx.id)}
+                        isLoading={refundTxMutation.isPending}
+                        className="text-xs text-amber-600 dark:text-amber-500 hover:bg-amber-500/10 cursor-pointer h-8"
                       >
-                        Compensar
+                        Estornar
                       </Button>
                     )}
                     <Button

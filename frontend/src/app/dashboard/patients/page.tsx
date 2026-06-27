@@ -160,8 +160,9 @@ export default function PatientsListPage() {
         setIsModalOpen(false);
         reset();
       },
-      onError: (error: any) => {
-        const errorData = error.response?.data;
+      onError: (error: unknown) => {
+        const errObj = error as { response?: { data?: { error?: { message?: string }; message?: string; detail?: string } } };
+        const errorData = errObj.response?.data;
         if (errorData && typeof errorData === "object") {
           const apiError = errorData.error?.message || errorData.message || errorData.detail;
           toast.error("Falha ao cadastrar", {
@@ -272,7 +273,7 @@ export default function PatientsListPage() {
             <Filter className="h-4 w-4 text-muted-foreground" />
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
+              onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")}
               className="h-9 bg-card border border-border/60 rounded-md px-3 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground cursor-pointer"
             >
               <option value="all">Todos os Status</option>
@@ -285,7 +286,7 @@ export default function PatientsListPage() {
 
       {/* Listagem */}
       {isLoading ? (
-        <SkeletonTable rows={5} columns={6} />
+        <SkeletonTable rows={5} />
       ) : patientsList.length === 0 ? (
         <EmptyState
           title="Nenhum paciente encontrado"

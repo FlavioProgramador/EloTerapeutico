@@ -13,7 +13,6 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type = "text", label, error, leftIcon, rightIcon, id, ...props }, ref) => {
     const generatedId = React.useId();
     const inputId = id ?? generatedId;
-
     return (
       <div className="w-full flex flex-col gap-1.5">
         {label && (
@@ -73,7 +72,6 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className, label, error, id, ...props }, ref) => {
     const generatedId = React.useId();
     const inputId = id ?? generatedId;
-
     return (
       <div className="w-full flex flex-col gap-1.5">
         {label && (

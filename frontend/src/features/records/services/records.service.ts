@@ -69,8 +69,9 @@ export const recordsService = {
     try {
       const response = await api.get<Anamnesis>(`records/patients/${patientId}/anamnesis/`);
       return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 404) {
+    } catch (error) {
+      const err = error as { response?: { status?: number } };
+      if (err.response?.status === 404) {
         return null;
       }
       throw error;

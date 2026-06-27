@@ -69,7 +69,7 @@ export default function RecordsListPage() {
 
       {/* Tabela de Seleção */}
       {isLoading ? (
-        <SkeletonTable rows={5} columns={5} />
+        <SkeletonTable rows={5} />
       ) : activePatients.length === 0 ? (
         <EmptyState
           title="Nenhum prontuário ativo encontrado"

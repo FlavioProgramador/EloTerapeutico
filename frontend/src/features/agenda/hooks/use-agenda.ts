@@ -47,13 +47,17 @@ export function useCreateAppointment() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: any) => agendaService.create(data),
+    mutationFn: (data: CreateAppointmentPayload) => agendaService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.appointments });
       toast.success("Consulta agendada com sucesso.");
     },
-    onError: (error: any) => {
-      const serverMsg = error.response?.data?.start_time?.[0] || error.response?.data?.detail;
+    onError: (error: unknown) => {
+      let serverMsg = "";
+      if (error && typeof error === "object" && "response" in error) {
+        const errObj = (error as { response?: { data?: { start_time?: string[]; detail?: string } } }).response?.data;
+        serverMsg = errObj?.start_time?.[0] || errObj?.detail || "";
+      }
       toast.error("Erro ao agendar consulta.", {
         description: serverMsg || "Verifique conflitos de horário com o terapeuta.",
       });
@@ -102,8 +106,12 @@ export function useUpdateAppointmentStatus() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.appointment(variables.id) });
       toast.success("Status do agendamento atualizado.");
     },
-    onError: (error: any) => {
-      const serverMsg = error.response?.data?.status?.[0] || error.response?.data?.detail;
+    onError: (error: unknown) => {
+      let serverMsg = "";
+      if (error && typeof error === "object" && "response" in error) {
+        const errObj = (error as { response?: { data?: { status?: string[]; detail?: string } } }).response?.data;
+        serverMsg = errObj?.status?.[0] || errObj?.detail || "";
+      }
       toast.error("Erro ao atualizar status.", {
         description: serverMsg || "Não foi possível mudar o status desta consulta.",
       });

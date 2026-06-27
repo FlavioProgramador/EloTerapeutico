@@ -125,3 +125,55 @@ export function useDeleteTransaction() {
     },
   });
 }
+
+/**
+ * Hook para cancelar uma transação.
+ */
+export function useCancelTransaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => financeiroService.cancel(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.transactions });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.transactionsSummary,
+      });
+      toast.success("Transação cancelada com sucesso.");
+    },
+    onError: () => {
+      toast.error("Erro ao cancelar transação.");
+    },
+  });
+}
+
+/**
+ * Hook para estornar uma transação.
+ */
+export function useRefundTransaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => financeiroService.refund(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.transactions });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.transactionsSummary,
+      });
+      toast.success("Transação estornada com sucesso.");
+    },
+    onError: () => {
+      toast.error("Erro ao estornar transação.");
+    },
+  });
+}
+
+/**
+ * Hook para buscar consultas não faturadas.
+ */
+export function useUnbilledAppointments() {
+  return useQuery({
+    queryKey: ["unbilledAppointments"],
+    queryFn: () => financeiroService.getUnbilledAppointments(),
+  });
+}

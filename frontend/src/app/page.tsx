@@ -221,7 +221,7 @@ export default function LandingPage() {
                     ))}
                   </div>
                   <p className="text-sm text-[hsl(163,8%,68%)] leading-relaxed">
-                    "{test.text}"
+                    &ldquo;{test.text}&rdquo;
                   </p>
                 </div>
 
