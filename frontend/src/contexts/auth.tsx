@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getCookie, setCookie, deleteCookie } from "cookies-next";
 import { api } from "@/lib/api";
+import { LoginCredentials } from "@/types";
 
 export interface User {
   id: number;
@@ -20,7 +21,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (credentials: any) => Promise<void>;
+  login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updatedUser: Partial<User>) => void;
 }
@@ -56,14 +57,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Efeito de inicialização: roda apenas no cliente para recuperar a sessão
   useEffect(() => {
     const token = getCookie("auth_token");
-    if (token) {
-      fetchUserProfile();
-    } else {
-      setIsLoading(false);
-    }
+    const initAuth = async () => {
+      if (token) {
+        await fetchUserProfile();
+      } else {
+        setIsLoading(false);
+      }
+    };
+    initAuth();
   }, []);
 
-  const login = async (credentials: any) => {
+  const login = async (credentials: LoginCredentials) => {
     setIsLoading(true);
     try {
       const response = await api.post("auth/login/", credentials);

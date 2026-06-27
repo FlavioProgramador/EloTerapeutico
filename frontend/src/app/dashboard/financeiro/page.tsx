@@ -38,6 +38,7 @@ import { Badge } from "@/components/ui/badge";
 import { SkeletonCard, SkeletonTable } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
+import type { CreateTransactionPayload, TransactionType, TransactionStatus } from "@/types";
 
 import { usePatients } from "@/features/patients/hooks/use-patients";
 import {
@@ -164,7 +165,7 @@ export default function FinanceiroPage() {
       payment_method: data.payment_method || undefined,
     };
 
-    createTxMutation.mutate(payload as any, {
+    createTxMutation.mutate(payload as CreateTransactionPayload, {
       onSuccess: () => {
         setIsNewModalOpen(false);
         refetchSummary();
@@ -382,7 +383,7 @@ export default function FinanceiroPage() {
           {/* Tipo de Transação */}
           <select
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as any)}
+            onChange={(e) => setTypeFilter(e.target.value as "all" | TransactionType)}
             className="h-9 bg-card border border-border/60 rounded-md px-3 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-ring text-foreground cursor-pointer"
           >
             <option value="all">Todos os Fluxos</option>
@@ -393,7 +394,7 @@ export default function FinanceiroPage() {
           {/* Status de Pagamento */}
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
+            onChange={(e) => setStatusFilter(e.target.value as "all" | "paid" | "pending" | "cancelled")}
             className="h-9 bg-card border border-border/60 rounded-md px-3 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-ring text-foreground cursor-pointer"
           >
             <option value="all">Todos os Status</option>
@@ -430,7 +431,7 @@ export default function FinanceiroPage() {
 
       {/* Histórico Financeiro */}
       {loadingTransactions ? (
-        <SkeletonTable rows={5} columns={7} />
+        <SkeletonTable rows={5} />
       ) : transactions.length === 0 ? (
         <EmptyState
           title="Nenhuma movimentação no período"

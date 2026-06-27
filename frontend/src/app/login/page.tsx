@@ -41,10 +41,11 @@ export default function LoginPage() {
         description: "Login realizado com sucesso.",
       });
       // Redirecionamento feito pelo AuthContext
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as { response?: { data?: { error?: { message?: string }; detail?: string } } };
       const serverMessage =
-        error?.response?.data?.error?.message ||
-        error?.response?.data?.detail ||
+        err?.response?.data?.error?.message ||
+        err?.response?.data?.detail ||
         "Verifique suas credenciais e tente novamente.";
 
       toast.error("Falha na autenticação", {

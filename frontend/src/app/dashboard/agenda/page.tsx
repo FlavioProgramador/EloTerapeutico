@@ -826,7 +826,7 @@ export default function AgendaPage() {
                 <div className="space-y-0.5">
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase">Valor da Sessão</p>
                   <p className="font-semibold text-primary">
-                    R$ {parseFloat(selectedAppointmentDetails.session_value).toFixed(2)}
+                    R$ {parseFloat(selectedAppointmentDetails.session_value || "0").toFixed(2)}
                   </p>
                 </div>
 

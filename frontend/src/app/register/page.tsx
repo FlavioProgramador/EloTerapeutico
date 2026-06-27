@@ -12,7 +12,6 @@ import {
   User,
   Briefcase,
   FileText,
-  Phone,
   ArrowRight,
   ArrowLeft,
   UserPlus,
@@ -20,6 +19,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
+import axios from "axios";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,7 +47,6 @@ export default function RegisterPage() {
     handleSubmit,
     trigger,
     formState: { errors },
-    getValues,
     setError,
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -87,39 +86,46 @@ export default function RegisterPage() {
         description: "Sua conta foi criada. Faça login para continuar.",
       });
       router.push("/login");
-    } catch (error: any) {
-      const serverErrors = error.response?.data?.error?.details || error.response?.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const responseData = error.response?.data;
+        const serverErrors = responseData?.error?.details || responseData;
 
-      if (serverErrors && typeof serverErrors === "object") {
-        const fieldMap: Record<string, keyof RegisterFormData> = {
-          email: "email",
-          full_name: "full_name",
-          password: "password",
-          password_confirm: "confirm_password",
-          crp: "crp",
-          specialty: "specialty",
-        };
+        if (serverErrors && typeof serverErrors === "object") {
+          const fieldMap: Record<string, keyof RegisterFormData> = {
+            email: "email",
+            full_name: "full_name",
+            password: "password",
+            password_confirm: "confirm_password",
+            crp: "crp",
+            specialty: "specialty",
+          };
 
-        let hasStep1Error = false;
-        Object.entries(serverErrors).forEach(([key, value]) => {
-          const mappedKey = fieldMap[key];
-          if (mappedKey) {
-            setError(mappedKey, {
-              message: Array.isArray(value) ? value[0] : String(value),
-            });
-            if (["email", "full_name", "password", "confirm_password"].includes(key)) {
-              hasStep1Error = true;
+          let hasStep1Error = false;
+          Object.entries(serverErrors).forEach(([key, value]) => {
+            const mappedKey = fieldMap[key];
+            if (mappedKey) {
+              setError(mappedKey, {
+                message: Array.isArray(value) ? value[0] : String(value),
+              });
+              if (["email", "full_name", "password", "confirm_password"].includes(key)) {
+                hasStep1Error = true;
+              }
             }
-          }
-        });
+          });
 
-        if (hasStep1Error) setStep(1);
+          if (hasStep1Error) setStep(1);
 
-        toast.error("Erro no cadastro", {
-          description:
-            error.response?.data?.error?.message ||
-            "Por favor, corrija os erros e tente novamente.",
-        });
+          toast.error("Erro no cadastro", {
+            description:
+              responseData?.error?.message ||
+              "Por favor, corrija os erros e tente novamente.",
+          });
+        } else {
+          toast.error("Erro no cadastro", {
+            description: "Ocorreu um erro ao criar sua conta. Tente novamente.",
+          });
+        }
       } else {
         toast.error("Erro no cadastro", {
           description: "Ocorreu um erro ao criar sua conta. Tente novamente.",

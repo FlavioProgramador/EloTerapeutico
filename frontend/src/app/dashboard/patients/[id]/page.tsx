@@ -96,7 +96,7 @@ export default function PatientDetailPage() {
         gender: patient.gender || "M",
         email: patient.email || "",
         phone: patient.phone || "",
-        address: typeof patient.address === "string" ? patient.address : (patient.address as any)?.street || "",
+        address: typeof patient.address === "string" ? patient.address : (patient.address as Record<string, string>)?.street || "",
         status: patient.status || "active",
         referral_source: patient.referral_source || "",
         guardian_name: patient.guardian_name || "",
@@ -200,7 +200,7 @@ export default function PatientDetailPage() {
 
   const patientAddressString = typeof patient.address === "string"
     ? patient.address
-    : (patient.address as any)?.street || "";
+    : (patient.address as Record<string, string>)?.street || "";
 
   return (
     <div className="space-y-6">
