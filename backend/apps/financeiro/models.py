@@ -43,6 +43,7 @@ class FinancialTransaction(models.Model):
         PAID = "paid", _("Pago")
         PENDING = "pending", _("Pendente")
         CANCELLED = "cancelled", _("Cancelado")
+        REFUNDED = "refunded", _("Estornado")
 
     # ── Relacionamentos ──────────────────────────────────────────────────────
     therapist = models.ForeignKey(
@@ -147,6 +148,61 @@ class FinancialTransaction(models.Model):
         tipo = self.get_transaction_type_display()
         valor = f"R$ {self.amount:,.2f}"
         return f"{tipo} – {valor} ({self.get_payment_status_display()})"
+
+    @property
+    def is_overdue(self) -> bool:
+        """
+        Retorna se a transação está logicamente vencida.
+        Ocorre se o status for pendente, houver data de vencimento e ela for menor que hoje.
+        """
+        if self.payment_status == self.PaymentStatus.PENDING and self.due_date:
+            return self.due_date < timezone.localdate()
+        return False
+
+    def can_pay(self) -> bool:
+        """Só permite pagar se estiver pendente."""
+        return self.payment_status == self.PaymentStatus.PENDING
+
+    def can_cancel(self) -> bool:
+        """Só permite cancelar se estiver pendente."""
+        return self.payment_status == self.PaymentStatus.PENDING
+
+    def can_refund(self) -> bool:
+        """Só permite estornar se estiver paga."""
+        return self.payment_status == self.PaymentStatus.PAID
+
+    def pay(self, payment_method: str = "pix", paid_at=None) -> None:
+        """Registra o pagamento da transação."""
+        from django.core.exceptions import ValidationError
+        if not self.can_pay():
+            raise ValidationError(_("Esta transação não está pendente de pagamento."))
+        self.payment_status = self.PaymentStatus.PAID
+        self.payment_method = payment_method
+        self.paid_at = paid_at or timezone.now()
+        self.save()
+
+        # Atualiza a consulta associada (se houver) para status confirmado
+        if self.appointment:
+            appointment = self.appointment
+            if appointment.status == appointment.Status.SCHEDULED:
+                appointment.status = appointment.Status.CONFIRMED
+                appointment.save(update_fields=["status", "updated_at"])
+
+    def cancel(self) -> None:
+        """Cancela a transação pendente."""
+        from django.core.exceptions import ValidationError
+        if not self.can_cancel():
+            raise ValidationError(_("Apenas transações pendentes podem ser canceladas."))
+        self.payment_status = self.PaymentStatus.CANCELLED
+        self.save()
+
+    def refund(self) -> None:
+        """Estorna a transação paga."""
+        from django.core.exceptions import ValidationError
+        if not self.can_refund():
+            raise ValidationError(_("Apenas transações pagas podem ser estornadas."))
+        self.payment_status = self.PaymentStatus.REFUNDED
+        self.save()
 
     # ── Classmethod: resumo mensal ───────────────────────────────────────────
     @classmethod
