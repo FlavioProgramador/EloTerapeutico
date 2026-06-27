@@ -173,3 +173,127 @@ class TransactionViewSet(viewsets.ModelViewSet):
             {"detail": "Geração de recibo em desenvolvimento (501 Not Implemented)."},
             status=status.HTTP_501_NOT_IMPLEMENTED
         )
+
+    @action(detail=True, methods=["post"], url_path="cancel")
+    def cancel(self, request, pk=None):
+        """
+        Cancela uma transação financeira pendente.
+        POST /api/v1/financeiro/{id}/cancel/
+        """
+        transaction = self.get_object()
+        from django.core.exceptions import ValidationError
+        try:
+            transaction.cancel()
+        except ValidationError as e:
+            return Response({"detail": str(e.messages[0]) if hasattr(e, "messages") else str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        detail_serializer = TransactionDetailSerializer(transaction, context={"request": request})
+        return Response(detail_serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], url_path="refund")
+    def refund(self, request, pk=None):
+        """
+        Estorna uma transação financeira paga.
+        POST /api/v1/financeiro/{id}/refund/
+        """
+        transaction = self.get_object()
+        from django.core.exceptions import ValidationError
+        try:
+            transaction.refund()
+        except ValidationError as e:
+            return Response({"detail": str(e.messages[0]) if hasattr(e, "messages") else str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        detail_serializer = TransactionDetailSerializer(transaction, context={"request": request})
+        return Response(detail_serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["get"], url_path="export")
+    def export_csv(self, request):
+        """
+        Exporta as transações financeiras filtradas do terapeuta logado em formato CSV.
+        GET /api/v1/financeiro/export/
+        """
+        import csv
+        from django.http import HttpResponse
+        
+        # Obtém o queryset filtrado usando os filtros do filterset
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
+        response["Content-Disposition"] = 'attachment; filename="fluxo-financeiro.csv"'
+        
+        writer = csv.writer(response, delimiter=";")
+        # Cabeçalhos
+        writer.writerow([
+            "ID",
+            "Tipo",
+            "Categoria",
+            "Valor (R$)",
+            "Forma de Pagamento",
+            "Status",
+            "Paciente",
+            "Vencimento",
+            "Pago em",
+            "Descrição",
+            "Criado em"
+        ])
+        
+        for tx in queryset:
+            # Protege contra injeção de fórmulas CSV se o campo descrição começar com símbolos perigosos
+            desc = tx.description
+            if desc and desc[0] in ["=", "+", "-", "@"]:
+                desc = "'" + desc
+            
+            patient_name = tx.patient.full_name if tx.patient else "Não associado"
+            due_date = tx.due_date.strftime("%d/%m/%Y") if tx.due_date else ""
+            paid_at = tx.paid_at.strftime("%d/%m/%Y %H:%M") if tx.paid_at else ""
+            created_at = tx.created_at.strftime("%d/%m/%Y %H:%M")
+            
+            writer.writerow([
+                tx.id,
+                tx.get_transaction_type_display(),
+                tx.get_category_display(),
+                f"{tx.amount:.2f}".replace(".", ","),
+                tx.get_payment_method_display(),
+                tx.get_payment_status_display(),
+                patient_name,
+                due_date,
+                paid_at,
+                desc,
+                created_at
+            ])
+            
+        return response
+
+    @action(detail=False, methods=["get"], url_path="unbilled-appointments")
+    def unbilled_appointments(self, request):
+        """
+        Retorna as consultas concluídas ou confirmadas do terapeuta logado
+        que ainda não possuem transações financeiras vinculadas.
+        GET /api/v1/financeiro/unbilled-appointments/
+        """
+        from apps.agenda.models import Appointment
+        
+        user = request.user
+        if user.is_anonymous:
+            return Response([], status=status.HTTP_401_UNAUTHORIZED)
+            
+        unbilled = Appointment.objects.filter(
+            therapist=user,
+            status="confirmed"
+        ).exclude(
+            financial_transactions__isnull=False
+        ).select_related("patient").order_by("-start_time")
+        
+        # Serialização mínima
+        data = []
+        for appt in unbilled:
+            data.append({
+                "id": appt.id,
+                "patient_id": appt.patient.id,
+                "patient_name": appt.patient.full_name,
+                "start_time": appt.start_time,
+                "end_time": appt.end_time,
+                "session_value": str(appt.session_value) if appt.session_value else "0.00"
+            })
+            
+        return Response(data, status=status.HTTP_200_OK)

@@ -51,6 +51,7 @@ class TransactionListSerializer(serializers.ModelSerializer):
         source="get_payment_status_display", read_only=True
     )
     patient_name = serializers.SerializerMethodField()
+    is_overdue = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = FinancialTransaction
@@ -68,6 +69,7 @@ class TransactionListSerializer(serializers.ModelSerializer):
             "patient_name",
             "due_date",
             "paid_at",
+            "is_overdue",
             "created_at",
         )
         read_only_fields = fields
@@ -101,6 +103,8 @@ class TransactionDetailSerializer(serializers.ModelSerializer):
         source="get_payment_status_display", read_only=True
     )
 
+    is_overdue = serializers.BooleanField(read_only=True)
+
     # Representações nested (somente leitura)
     patient_detail = _PatientNestedSerializer(source="patient", read_only=True)
     appointment_detail = _AppointmentNestedSerializer(
@@ -122,6 +126,7 @@ class TransactionDetailSerializer(serializers.ModelSerializer):
             "payment_method_display",
             "payment_status",
             "payment_status_display",
+            "is_overdue",
             # Relacionamentos
             "patient",
             "patient_detail",
