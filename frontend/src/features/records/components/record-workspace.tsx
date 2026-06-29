@@ -1,12 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  FileText,
-  FolderOpen,
-  History,
-  Target,
-} from "lucide-react";
+import { FileText, FolderOpen, History, Target } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { recordWorkspaceService } from "../services/record-workspace.service";
@@ -25,7 +20,11 @@ import {
   useTreatmentGoals,
   useUpdateClinicalEvolution,
 } from "../hooks/use-record-workspace";
-import type { EvolutionPayload, EvolutionWorkspace, RecordTab, TreatmentGoal } from "../types";
+import type {
+  EvolutionPayload,
+  EvolutionWorkspace,
+  RecordTab,
+} from "../types";
 import { AnamnesisTab } from "./anamnesis-tab";
 import { DocumentsTab } from "./documents-tab";
 import { EvolutionEditor } from "./evolution-editor";
@@ -46,8 +45,11 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
   const [activeTab, setActiveTab] = useState<RecordTab>("evolutions");
   const [patientDrawerOpen, setPatientDrawerOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [editingEvolution, setEditingEvolution] = useState<EvolutionWorkspace | null>(null);
-  const [selectedEvolutionId, setSelectedEvolutionId] = useState<number | null>(null);
+  const [editingEvolution, setEditingEvolution] =
+    useState<EvolutionWorkspace | null>(null);
+  const [selectedEvolutionId, setSelectedEvolutionId] = useState<number | null>(
+    null,
+  );
   const [exporting, setExporting] = useState(false);
 
   const summaryQuery = useRecordSummary(patientId);
@@ -58,7 +60,10 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
   const documentsQuery = useClinicalDocuments(patientId);
 
   const createEvolution = useCreateClinicalEvolution(patientId);
-  const updateEvolution = useUpdateClinicalEvolution(patientId, editingEvolution?.id);
+  const updateEvolution = useUpdateClinicalEvolution(
+    patientId,
+    editingEvolution?.id,
+  );
   const finalizeEvolution = useFinalizeClinicalEvolution(patientId);
   const duplicateEvolution = useDuplicateClinicalEvolution(patientId);
   const saveAnamnesis = useSaveClinicalAnamnesis(patientId);
@@ -123,16 +128,29 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
   if (summaryQuery.isError || !summaryQuery.data) {
     return (
       <div className="rounded-xl border border-destructive/25 bg-destructive/5 px-6 py-16 text-center">
-        <h1 className="text-base font-bold text-foreground">Não foi possível carregar o prontuário</h1>
-        <p className="mt-2 text-xs text-muted-foreground">Verifique sua permissão e tente novamente.</p>
-        <Button className="mt-5" variant="outline" onClick={() => summaryQuery.refetch()}>Tentar novamente</Button>
+        <h1 className="text-base font-bold text-foreground">
+          Não foi possível carregar o prontuário
+        </h1>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Verifique sua permissão e tente novamente.
+        </p>
+        <Button
+          className="mt-5"
+          variant="outline"
+          onClick={() => summaryQuery.refetch()}
+        >
+          Tentar novamente
+        </Button>
       </div>
     );
   }
 
   const summary = summaryQuery.data;
   const evolutions = evolutionsQuery.data?.results ?? [];
-  const selectedEvolution = selectedEvolutionQuery.data ?? evolutions.find((item) => item.id === selectedEvolutionId) ?? null;
+  const selectedEvolution =
+    selectedEvolutionQuery.data ??
+    evolutions.find((item) => item.id === selectedEvolutionId) ??
+    null;
 
   return (
     <div className="space-y-4">
@@ -156,16 +174,24 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
         />
 
         <div className="min-w-0 space-y-4">
-          <nav className="flex gap-1 overflow-x-auto rounded-xl border border-border bg-card p-1" aria-label="Seções do prontuário">
+          <nav
+            className="flex gap-1 overflow-x-auto rounded-xl border border-border bg-card p-1"
+            aria-label="Seções do prontuário"
+          >
             {tabs.map(([id, label, Icon]) => (
               <button
                 key={id}
                 type="button"
                 onClick={() => setActiveTab(id)}
-                className={`flex min-w-max flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-[11px] font-bold transition ${activeTab === id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}
+                className={`flex min-w-max flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-[11px] font-bold transition ${
+                  activeTab === id
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                }`}
                 aria-current={activeTab === id ? "page" : undefined}
               >
-                <Icon className="h-3.5 w-3.5" />{label}
+                <Icon className="h-3.5 w-3.5" />
+                {label}
               </button>
             ))}
           </nav>
@@ -174,13 +200,21 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
             <EvolutionTimeline
               evolutions={evolutions}
               selected={selectedEvolution}
-              loading={evolutionsQuery.isLoading || selectedEvolutionQuery.isLoading}
+              loading={
+                evolutionsQuery.isLoading || selectedEvolutionQuery.isLoading
+              }
               onSelect={setSelectedEvolutionId}
               onEdit={editEvolution}
               onDuplicate={async (evolution) => {
-                const date = window.prompt("Data da nova sessão (AAAA-MM-DD):", new Date().toISOString().slice(0, 10));
+                const date = window.prompt(
+                  "Data da nova sessão (AAAA-MM-DD):",
+                  new Date().toISOString().slice(0, 10),
+                );
                 if (!date) return;
-                const created = await duplicateEvolution.mutateAsync({ id: evolution.id, sessionDate: date });
+                const created = await duplicateEvolution.mutateAsync({
+                  id: evolution.id,
+                  sessionDate: date,
+                });
                 setSelectedEvolutionId(created.id);
               }}
               onExport={exportPdf}
@@ -192,7 +226,9 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
               data={anamnesisQuery.data}
               loading={anamnesisQuery.isLoading}
               saving={saveAnamnesis.isPending}
-              onSave={(payload) => saveAnamnesis.mutateAsync(payload).then(() => undefined)}
+              onSave={(payload) =>
+                saveAnamnesis.mutateAsync(payload).then(() => undefined)
+              }
             />
           )}
 
@@ -202,9 +238,17 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
               loading={goalsQuery.isLoading}
               creating={goalMutations.create.isPending}
               updating={goalMutations.update.isPending}
-              onCreate={(payload) => goalMutations.create.mutateAsync(payload).then(() => undefined)}
-              onUpdate={(id, payload) => goalMutations.update.mutateAsync({ id, payload }).then(() => undefined)}
-              onArchive={(id) => goalMutations.archive.mutateAsync(id).then(() => undefined)}
+              onCreate={(payload) =>
+                goalMutations.create.mutateAsync(payload).then(() => undefined)
+              }
+              onUpdate={(id, payload) =>
+                goalMutations.update
+                  .mutateAsync({ id, payload })
+                  .then(() => undefined)
+              }
+              onArchive={(id) =>
+                goalMutations.archive.mutateAsync(id).then(() => undefined)
+              }
             />
           )}
 
@@ -214,8 +258,12 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
               documents={documentsQuery.data ?? []}
               loading={documentsQuery.isLoading}
               uploading={documentMutations.upload.isPending}
-              onUpload={(data) => documentMutations.upload.mutateAsync(data).then(() => undefined)}
-              onArchive={(id) => documentMutations.archive.mutateAsync(id).then(() => undefined)}
+              onUpload={(data) =>
+                documentMutations.upload.mutateAsync(data).then(() => undefined)
+              }
+              onArchive={(id) =>
+                documentMutations.archive.mutateAsync(id).then(() => undefined)
+              }
             />
           )}
         </div>
@@ -231,11 +279,11 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
 
       <div className="flex items-center justify-center gap-2 py-2 text-[10px] text-muted-foreground">
         <span className="h-2 w-2 rounded-full bg-primary" />
-        Dados clínicos protegidos por controle de acesso, auditoria e criptografia em repouso.
+        Dados clínicos protegidos por controle de acesso, auditoria e criptografia
+        em repouso.
       </div>
 
       <EvolutionEditor
-        patientId={patientId}
         open={editorOpen}
         evolution={editingEvolution}
         saving={createEvolution.isPending || updateEvolution.isPending}
