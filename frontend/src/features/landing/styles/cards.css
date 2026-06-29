@@ -1,0 +1,1 @@
+.landing-feature-grid,.landing-steps,.landing-security{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:1rem}.landing-card{height:100%;border:1px solid hsl(var(--border));border-radius:1.2rem;background:hsl(var(--card));padding:1.5rem}.landing-card:hover{transform:translateY(-3px);border-color:hsl(var(--accent)/.35)}
