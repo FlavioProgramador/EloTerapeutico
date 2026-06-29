@@ -26,12 +26,13 @@ export function PatientsWorkspace() {
   const metricsQuery = usePatientMetrics();
   const panelQuery = usePatientPanel(state.selectedId);
   const patients = listQuery.data?.results ?? [];
+  const { selectedId, setSelectedId } = state;
 
   useEffect(() => {
-    if (!state.selectedId && patients[0]) {
-      state.setSelectedId(patients[0].id);
+    if (!selectedId && patients[0]) {
+      setSelectedId(patients[0].id);
     }
-  }, [patients, state]);
+  }, [patients, selectedId, setSelectedId]);
 
   const handleExport = async () => {
     try {
@@ -86,32 +87,28 @@ export function PatientsWorkspace() {
 
       <PatientMetricsGrid metrics={metricsQuery.data} />
 
-      <div className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1.85fr)_minmax(20rem,1fr)]">
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.85fr)_minmax(20rem,1fr)]">
         <PatientListPanel
           patients={patients}
-          selectedId={state.selectedId}
+          selectedId={selectedId}
           loading={listQuery.isLoading}
           total={listQuery.data?.count ?? 0}
           page={state.page}
           pageSize={6}
-          onSelect={state.setSelectedId}
+          onSelect={setSelectedId}
           onPageChange={state.setPage}
         />
         <PatientDetailPanel
           data={panelQuery.data}
           loading={panelQuery.isLoading}
-          onClose={
-            state.selectedId
-              ? () => state.setSelectedId(undefined)
-              : undefined
-          }
+          onClose={selectedId ? () => setSelectedId(undefined) : undefined}
         />
       </div>
 
       <NewPatientModal
         open={newOpen}
         onClose={() => setNewOpen(false)}
-        onCreated={state.setSelectedId}
+        onCreated={setSelectedId}
       />
       <PatientImportModal
         open={importOpen}
