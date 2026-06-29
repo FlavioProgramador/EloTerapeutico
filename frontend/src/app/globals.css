@@ -200,6 +200,58 @@ body {
   transform: translateY(-1px);
 }
 
+/*
+ * Ponte de migração para telas antigas que ainda usam a paleta HSL literal.
+ * Evita divergência visual enquanto os componentes são convertidos para tokens.
+ */
+[class~="text-[hsl(40,20%,94%)]"] {
+  color: hsl(var(--foreground)) !important;
+}
+
+[class~="text-[hsl(163,8%,68%)]"] {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+[class~="text-[hsl(163,27%,62%)]"] {
+  color: hsl(var(--primary)) !important;
+}
+
+[class~="text-[hsl(165,40%,7%)]"] {
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+[class~="bg-[hsl(165,40%,7%)]"] {
+  background-color: hsl(var(--background)) !important;
+}
+
+[class~="bg-[hsl(165,38%,10%)]"] {
+  background-color: hsl(var(--card)) !important;
+}
+
+[class~="bg-[hsl(165,27%,12%)]"] {
+  background-color: hsl(var(--secondary)) !important;
+}
+
+[class~="bg-[hsl(38,25%,87%)]"] {
+  background-color: hsl(var(--primary)) !important;
+}
+
+[class~="bg-[hsl(163,27%,62%)]/10"] {
+  background-color: hsl(var(--primary) / 0.1) !important;
+}
+
+[class~="border-[hsl(165,27%,16%)]"] {
+  border-color: hsl(var(--border)) !important;
+}
+
+[class~="border-[hsl(38,25%,87%)]/20"] {
+  border-color: hsl(var(--primary) / 0.2) !important;
+}
+
+[class~="focus:border-[hsl(38,25%,87%)]"]:focus {
+  border-color: hsl(var(--ring)) !important;
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
