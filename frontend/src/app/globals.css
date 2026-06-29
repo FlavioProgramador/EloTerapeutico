@@ -252,6 +252,10 @@ body {
   border-color: hsl(var(--ring)) !important;
 }
 
+[class~="bg-primary"][class~="text-white"] {
+  color: hsl(var(--primary-foreground)) !important;
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
