@@ -7,6 +7,7 @@ import { recordWorkspaceService } from "../services/record-workspace.service";
 import type { ClinicalDocument } from "../types";
 
 interface Props {
+  patientId?: number;
   documents: ClinicalDocument[];
   loading: boolean;
   uploading: boolean;
