@@ -140,9 +140,9 @@ export interface Appointment {
   patient_name?: string;
   therapist?: number;
   therapist_name?: string;
-  date: string; // ISO 8601
-  start_time: string; // ISO datetime
-  end_time: string; // ISO datetime
+  date: string;
+  start_time: string;
+  end_time: string;
   status: AppointmentStatus;
   status_display?: string;
   notes?: string;
@@ -189,3 +189,107 @@ export interface Anamnesis {
 
 export interface EvolutionListItem {
   id: number;
+  patient: number;
+  session_date: string;
+  cid10: string;
+  is_locked: boolean;
+  locked_at: string | null;
+  is_editable: boolean;
+  addenda_count: number;
+  created_by: number;
+  created_by_name: string;
+  created_at: string;
+}
+
+export interface Addendum {
+  id: number;
+  evolution: number;
+  reason: string;
+  content: string;
+  created_by: {
+    id: number;
+    full_name: string;
+    email: string;
+  };
+  created_at: string;
+}
+
+export interface EvolutionDetail extends Omit<EvolutionListItem, "created_by"> {
+  content: string;
+  addenda: Addendum[];
+  created_by: {
+    id: number;
+    full_name: string;
+    email: string;
+  };
+  updated_at: string;
+}
+
+export interface CreateEvolutionPayload {
+  patient: number;
+  appointment?: number | null;
+  content: string;
+  cid10?: string;
+  session_date: string;
+}
+
+export interface CreateAddendumPayload {
+  reason: string;
+  content: string;
+}
+
+// ─── Financeiro ────────────────────────────────────────────────────────────────
+
+export type TransactionType = "income" | "expense";
+export type TransactionStatus = "pending" | "paid" | "overdue" | "cancelled" | "refunded";
+
+export interface FinancialTransaction {
+  id: number;
+  patient?: number;
+  patient_name?: string;
+  appointment?: number;
+  description: string;
+  amount: string;
+  type: TransactionType;
+  category: "session" | "subscription" | "material" | "refund" | "other";
+  category_display?: string;
+  status: TransactionStatus;
+  due_date: string;
+  payment_date?: string;
+  payment_method?: FinancialPaymentMethod;
+  is_overdue?: boolean;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateTransactionPayload {
+  patient?: number;
+  appointment?: number;
+  description: string;
+  amount: string | number;
+  type: TransactionType;
+  category: "session" | "subscription" | "material" | "refund" | "other";
+  status?: TransactionStatus;
+  due_date: string;
+  payment_date?: string;
+  payment_method?: FinancialPaymentMethod;
+  notes?: string;
+}
+
+// ─── Respostas paginadas ────────────────────────────────────────────────────────
+
+export interface PaginatedResponse<T> {
+  count: number;
+  next?: string | null;
+  previous?: string | null;
+  results: T[];
+}
+
+// ─── Erros de API ──────────────────────────────────────────────────────────────
+
+export interface ApiError {
+  message: string;
+  status?: number;
+  details?: Record<string, string[]>;
+}
