@@ -59,23 +59,21 @@ export function Badge({ variant = "default", children, className = "" }: BadgePr
 
 // ─── Helpers para estados de domínio ──────────────────────────────────────────
 
-/**
- * Retorna a variante correta para status de paciente.
- */
 export function getPatientStatusVariant(
   status: string
 ): BadgeVariant {
   const map: Record<string, BadgeVariant> = {
     active: "success",
+    evaluation: "warning",
+    waiting_return: "outline",
+    discharged: "primary",
     inactive: "muted",
+    archived: "muted",
     on_hold: "warning",
   };
   return map[status] ?? "outline";
 }
 
-/**
- * Retorna a variante correta para status de agendamento.
- */
 export function getAppointmentStatusVariant(
   status: string
 ): BadgeVariant {
@@ -89,9 +87,6 @@ export function getAppointmentStatusVariant(
   return map[status] ?? "outline";
 }
 
-/**
- * Retorna a variante correta para status financeiro.
- */
 export function getTransactionStatusVariant(
   status: string
 ): BadgeVariant {
