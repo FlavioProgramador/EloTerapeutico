@@ -1,8 +1,71 @@
 import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 import { Brand } from "./brand";
+
+const columns = [
+  {
+    title: "Produto",
+    links: [
+      ["Funcionalidades", "#produto"],
+      ["Como funciona", "#fluxo"],
+      ["Módulos", "#modulos"],
+      ["Segurança", "#seguranca"],
+    ],
+  },
+  {
+    title: "Acesso",
+    links: [
+      ["Entrar", "/login"],
+      ["Criar conta", "/register"],
+      ["Recuperar senha", "/forgot-password"],
+    ],
+  },
+  {
+    title: "Suporte",
+    links: [
+      ["Perguntas frequentes", "#faq"],
+      ["Demonstração do produto", "#produto"],
+    ],
+  },
+] as const;
 
 export function SiteFooter() {
   return (
-    <footer className="landing-footer"><div><Brand /><p>Gestão integrada para profissionais que cuidam de pessoas.</p></div><nav aria-label="Links do rodapé"><a href="#produto">Produto</a><a href="#recursos">Recursos</a><a href="#seguranca">Segurança</a><a href="#faq">Perguntas</a><Link href="/login">Entrar</Link></nav><small>© {new Date().getFullYear()} Elo Terapêutico. Todos os direitos reservados.</small></footer>
+    <footer className="site-footer">
+      <div className="site-footer__glow" aria-hidden="true" />
+      <div className="site-footer__inner">
+        <div className="site-footer__brand">
+          <Brand />
+          <p>
+            Gestão integrada para psicólogos, terapeutas e equipes que precisam
+            organizar cuidado clínico e operação em um só ambiente.
+          </p>
+          <small>
+            O projeto está em evolução contínua. Informações comerciais e documentos
+            legais serão publicados antes da disponibilização comercial.
+          </small>
+        </div>
+
+        <div className="site-footer__columns">
+          {columns.map((column) => (
+            <nav key={column.title} aria-label={column.title}>
+              <strong>{column.title}</strong>
+              {column.links.map(([label, href]) =>
+                href.startsWith("/") ? (
+                  <Link key={label} href={href}>{label}<ArrowUpRight aria-hidden="true" /></Link>
+                ) : (
+                  <a key={label} href={href}>{label}<ArrowUpRight aria-hidden="true" /></a>
+                ),
+              )}
+            </nav>
+          ))}
+        </div>
+      </div>
+
+      <div className="site-footer__bottom">
+        <span>© {new Date().getFullYear()} Elo Terapêutico.</span>
+        <span>Produto digital em desenvolvimento.</span>
+      </div>
+    </footer>
   );
 }
