@@ -1,0 +1,1 @@
+html{scroll-behavior:smooth}.landing-page a:focus-visible,.landing-page button:focus-visible,.landing-page summary:focus-visible{outline:2px solid hsl(var(--ring));outline-offset:3px}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.landing-page *{animation-duration:.01ms!important;transition-duration:.01ms!important}}
