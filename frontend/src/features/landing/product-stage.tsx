@@ -10,24 +10,27 @@ import {
   Search,
   Users,
   WalletCards,
+  type LucideIcon,
 } from "lucide-react";
 import { productTabs, type ProductTabId } from "./content";
 import { Reveal } from "./motion";
+
+const overviewMetrics: Array<{ label: string; value: string; icon: LucideIcon }> = [
+  { label: "Atendimentos", value: "23", icon: CalendarDays },
+  { label: "Pacientes", value: "Base ativa", icon: Users },
+  { label: "Receita", value: "R$ 8.540", icon: WalletCards },
+  { label: "Pendências", value: "2 ações", icon: Activity },
+];
 
 function OverviewPanel() {
   return (
     <div className="product-ui__overview">
       <div className="product-ui__metrics">
-        {[
-          ["Atendimentos", "23", CalendarDays],
-          ["Pacientes", "Base ativa", Users],
-          ["Receita", "R$ 8.540", WalletCards],
-          ["Pendências", "2 ações", Activity],
-        ].map(([label, value, Icon]) => (
-          <article key={String(label)}>
-            <span><Icon className="h-4 w-4" /></span>
-            <small>{String(label)}</small>
-            <strong>{String(value)}</strong>
+        {overviewMetrics.map(({ label, value, icon: Icon }) => (
+          <article key={label}>
+            <span><Icon className="h-4 w-4" aria-hidden="true" /></span>
+            <small>{label}</small>
+            <strong>{value}</strong>
           </article>
         ))}
       </div>
@@ -35,7 +38,7 @@ function OverviewPanel() {
         <section>
           <header><strong>Agenda de hoje</strong><small>Visual demonstrativo</small></header>
           {["08:00 · Ana Clara", "09:30 · Marcos Lima", "11:00 · Juliana Rocha"].map((item) => (
-            <div key={item} className="product-ui__row"><Clock3 /><span>{item}</span><b>Confirmado</b></div>
+            <div key={item} className="product-ui__row"><Clock3 aria-hidden="true" /><span>{item}</span><b>Confirmado</b></div>
           ))}
         </section>
         <section>
@@ -71,7 +74,7 @@ function AgendaPanel() {
         ))}
       </div>
       <div className="product-ui__agenda-foot">
-        <CheckCircle2 /> Horários, paciente e status permanecem no mesmo fluxo.
+        <CheckCircle2 aria-hidden="true" /> Horários, paciente e status permanecem no mesmo fluxo.
       </div>
     </div>
   );
@@ -81,16 +84,16 @@ function RecordsPanel() {
   return (
     <div className="product-ui__records">
       <aside>
-        <Search />
+        <Search aria-hidden="true" />
         <span>Histórico clínico</span>
         {["Sessão 12", "Sessão 11", "Sessão 10"].map((item, index) => (
           <button key={item} type="button" className={index === 0 ? "is-active" : ""}>{item}</button>
         ))}
       </aside>
       <article>
-        <header><span><FileText /></span><div><small>Evolução clínica</small><strong>Atendimento vinculado</strong></div></header>
+        <header><span><FileText aria-hidden="true" /></span><div><small>Evolução clínica</small><strong>Atendimento vinculado</strong></div></header>
         <div className="product-ui__record-lines"><span /><span /><span /><span /></div>
-        <footer><CheckCircle2 /> Registro associado ao paciente e ao profissional responsável.</footer>
+        <footer><CheckCircle2 aria-hidden="true" /> Registro associado ao paciente e ao profissional responsável.</footer>
       </article>
     </div>
   );
@@ -105,7 +108,7 @@ function FinancePanel() {
       </div>
       <div className="product-ui__transactions">
         {["Sessão · Ana Clara", "Sessão · Marcos Lima", "Material clínico"].map((item, index) => (
-          <div key={item}><span><WalletCards /></span><b>{item}</b><small className={index === 2 ? "is-pending" : ""}>{index === 2 ? "Pendente" : "Pago"}</small></div>
+          <div key={item}><span><WalletCards aria-hidden="true" /></span><b>{item}</b><small className={index === 2 ? "is-pending" : ""}>{index === 2 ? "Pendente" : "Pago"}</small></div>
         ))}
       </div>
     </div>
@@ -128,14 +131,27 @@ export function ProductStage() {
         <Reveal className="product-stage__frame" delay={0.08}>
           <div className="product-stage__tabs" role="tablist" aria-label="Áreas da plataforma">
             {productTabs.map((tab) => (
-              <button key={tab.id} type="button" role="tab" aria-selected={activeTab === tab.id} onClick={() => setActiveTab(tab.id)}>
+              <button
+                key={tab.id}
+                id={`product-tab-${tab.id}`}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                aria-controls="product-panel"
+                onClick={() => setActiveTab(tab.id)}
+              >
                 {tab.label}
               </button>
             ))}
           </div>
           <div className="product-stage__browser">
             <div className="product-stage__bar"><span /><span /><span /><small>Dados demonstrativos</small></div>
-            <div className="product-stage__canvas">
+            <div
+              id="product-panel"
+              role="tabpanel"
+              aria-labelledby={`product-tab-${activeTab}`}
+              className="product-stage__canvas"
+            >
               {activeTab === "overview" && <OverviewPanel />}
               {activeTab === "agenda" && <AgendaPanel />}
               {activeTab === "records" && <RecordsPanel />}
