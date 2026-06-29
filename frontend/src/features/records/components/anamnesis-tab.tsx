@@ -32,7 +32,15 @@ interface AnamnesisTabProps {
 
 type AnamnesisField = keyof AnamnesisWorkspace;
 
-const sections = [
+type SectionDefinition = {
+  id: string;
+  title: string;
+  description: string;
+  icon: typeof Activity;
+  fields: ReadonlyArray<readonly [AnamnesisField, string]>;
+};
+
+const sections: ReadonlyArray<SectionDefinition> = [
   {
     id: "complaint",
     title: "Queixa principal",
@@ -114,17 +122,11 @@ const sections = [
       ["observations", "Observações adicionais"],
     ],
   },
-] as const satisfies ReadonlyArray<{
-  id: string;
-  title: string;
-  description: string;
-  icon: typeof Activity;
-  fields: ReadonlyArray<readonly [AnamnesisField, string]>;
-}>;
+];
 
 function sectionSummary(
   draft: Partial<AnamnesisWorkspace>,
-  fields: ReadonlyArray<readonly [AnamnesisField, string]>,
+  fields: SectionDefinition["fields"],
 ) {
   const firstValue = fields
     .map(([field]) => String(draft[field] ?? "").trim())
@@ -139,7 +141,9 @@ export function AnamnesisTab({
   onSave,
   onExport,
 }: AnamnesisTabProps) {
-  const [selectedSectionId, setSelectedSectionId] = useState(sections[0].id);
+  const [selectedSectionId, setSelectedSectionId] = useState<string>(
+    sections[0].id,
+  );
   const [editing, setEditing] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [draft, setDraft] = useState<Partial<AnamnesisWorkspace>>({});
@@ -176,12 +180,13 @@ export function AnamnesisTab({
   );
 
   const completion = data?.completion_percentage ?? 0;
-  const statusLabel = data?.status_display ?? (completion === 100 ? "Completa" : "Rascunho");
+  const statusLabel =
+    data?.status_display ?? (completion === 100 ? "Completa" : "Rascunho");
 
   const saveSection = async () => {
     const payload = Object.fromEntries(
       selectedSection.fields.map(([field]) => [field, draft[field] ?? ""]),
-    );
+    ) as Partial<AnamnesisWorkspace>;
     await onSave(payload);
     setDirty(false);
     setEditing(false);
@@ -193,12 +198,28 @@ export function AnamnesisTab({
     setEditing(false);
   };
 
+  const selectSection = (sectionId: string) => {
+    if (
+      dirty &&
+      !window.confirm("Descartar alterações não salvas desta seção?")
+    ) {
+      return;
+    }
+    if (dirty) setDraft(data ?? {});
+    setDirty(false);
+    setEditing(false);
+    setSelectedSectionId(sectionId);
+  };
+
   if (loading) {
     return (
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_17rem]">
         <div className="space-y-2">
           {Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="h-20 animate-pulse rounded-xl bg-secondary" />
+            <div
+              key={index}
+              className="h-20 animate-pulse rounded-xl bg-secondary"
+            />
           ))}
         </div>
         <div className="h-72 animate-pulse rounded-xl bg-secondary" />
@@ -214,19 +235,12 @@ export function AnamnesisTab({
             const Icon = section.icon;
             const selected = section.id === selectedSection.id;
             const completed = completedBySection[section.id] ?? 0;
+
             return (
               <button
                 key={section.id}
                 type="button"
-                onClick={() => {
-                  if (dirty && !window.confirm("Descartar alterações não salvas desta seção?")) {
-                    return;
-                  }
-                  if (dirty) setDraft(data ?? {});
-                  setDirty(false);
-                  setEditing(false);
-                  setSelectedSectionId(section.id);
-                }}
+                onClick={() => selectSection(section.id)}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition",
                   selected
@@ -295,10 +309,7 @@ export function AnamnesisTab({
             {selectedSection.fields.map(([field, label]) => (
               <label
                 key={field}
-                className={cn(
-                  "space-y-1.5 text-[10px] font-semibold text-muted-foreground",
-                  selectedSection.fields.length === 1 && "md:col-span-2",
-                )}
+                className="space-y-1.5 text-[10px] font-semibold text-muted-foreground"
               >
                 {label}
                 {editing ? (
@@ -327,7 +338,9 @@ export function AnamnesisTab({
           {editing && (
             <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
               <span className="text-[10px] text-muted-foreground">
-                {dirty ? "Existem alterações não salvas." : "Nenhuma alteração pendente."}
+                {dirty
+                  ? "Existem alterações não salvas."
+                  : "Nenhuma alteração pendente."}
               </span>
               <div className="flex gap-2">
                 <Button size="sm" variant="ghost" onClick={cancelEditing}>
@@ -351,8 +364,12 @@ export function AnamnesisTab({
 
       <aside className="space-y-3 lg:sticky lg:top-4 lg:self-start">
         <section className="rounded-xl border border-emerald-400/20 bg-gradient-to-b from-emerald-500/10 via-card to-card p-4">
-          <h3 className="text-xs font-bold text-foreground">Resumo da anamnese</h3>
-          <p className="mt-1 text-[10px] text-muted-foreground">Preenchimento geral</p>
+          <h3 className="text-xs font-bold text-foreground">
+            Resumo da anamnese
+          </h3>
+          <p className="mt-1 text-[10px] text-muted-foreground">
+            Preenchimento geral
+          </p>
 
           <div className="my-5 flex justify-center">
             <div
@@ -363,7 +380,9 @@ export function AnamnesisTab({
               aria-label={`${completion}% preenchido`}
             >
               <div className="grid h-full w-full place-items-center rounded-full bg-card">
-                <strong className="text-xl text-emerald-300">{completion}%</strong>
+                <strong className="text-xl text-emerald-300">
+                  {completion}%
+                </strong>
               </div>
             </div>
           </div>
@@ -385,7 +404,9 @@ export function AnamnesisTab({
             </div>
             {data?.updated_by_name && (
               <div>
-                <dt className="text-muted-foreground">Profissional responsável</dt>
+                <dt className="text-muted-foreground">
+                  Profissional responsável
+                </dt>
                 <dd className="mt-1 font-semibold text-foreground">
                   {data.updated_by_name}
                 </dd>
