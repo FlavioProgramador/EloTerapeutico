@@ -1,12 +1,4 @@
-"""
-apps/records/apps.py
-Configuração do app de Prontuários Eletrônicos (Records).
-
-Este app gerencia:
-- Anamnese inicial do paciente
-- Evoluções de sessão (com criptografia e travamento automático em 48h)
-- Aditivos a evoluções bloqueadas
-"""
+"""Configuração do app de Prontuários Eletrônicos."""
 
 from django.apps import AppConfig
 
@@ -17,8 +9,7 @@ class RecordsConfig(AppConfig):
     verbose_name = "Prontuários"
 
     def ready(self):
-        """
-        Importa os signals ao iniciar o app.
-        O signal post_save em Evolution é registrado aqui.
-        """
+        """Registra sinais e modelos complementares do domínio clínico."""
+        import apps.records.extended_models  # noqa: F401
         import apps.records.signals  # noqa: F401
+        import apps.records.treatment_models  # noqa: F401
