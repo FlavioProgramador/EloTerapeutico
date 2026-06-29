@@ -46,6 +46,26 @@ function formatSession(value?: string | null) {
   }).format(date);
 }
 
+function PatientTags({ tags }: { tags: string[] }) {
+  return (
+    <div className="flex flex-wrap gap-1">
+      {tags.slice(0, 2).map((tag) => (
+        <span
+          key={tag}
+          className="rounded-md bg-primary/8 px-2 py-1 text-[9px] text-primary"
+        >
+          {tag}
+        </span>
+      ))}
+      {tags.length > 2 && (
+        <span className="rounded-md bg-secondary px-2 py-1 text-[9px] text-muted-foreground">
+          +{tags.length - 2}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export function PatientListPanel({
   patients,
   selectedId,
@@ -62,7 +82,7 @@ export function PatientListPanel({
     return (
       <div className="space-y-2 rounded-xl border border-border bg-card p-3">
         {Array.from({ length: pageSize }).map((_, index) => (
-          <div key={index} className="h-16 animate-pulse rounded-lg bg-secondary" />
+          <div key={index} className="h-24 animate-pulse rounded-lg bg-secondary" />
         ))}
       </div>
     );
@@ -72,8 +92,12 @@ export function PatientListPanel({
     return (
       <div className="grid min-h-72 place-items-center rounded-xl border border-dashed border-border bg-card p-8 text-center">
         <div>
-          <h2 className="text-sm font-semibold text-foreground">Nenhum paciente encontrado</h2>
-          <p className="mt-2 text-xs text-muted-foreground">Ajuste a busca ou remova os filtros ativos.</p>
+          <h2 className="text-sm font-semibold text-foreground">
+            Nenhum paciente encontrado
+          </h2>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Ajuste a busca ou remova os filtros ativos.
+          </p>
         </div>
       </div>
     );
@@ -81,7 +105,7 @@ export function PatientListPanel({
 
   return (
     <section className="overflow-hidden rounded-xl border border-border bg-card">
-      <div className="overflow-x-auto">
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[720px] border-collapse text-left">
           <thead className="border-b border-border bg-secondary/35 text-[10px] uppercase tracking-wide text-muted-foreground">
             <tr>
@@ -103,8 +127,17 @@ export function PatientListPanel({
                   role="button"
                   aria-selected={selected}
                   onClick={() => onSelect(patient.id)}
-                  onKeyDown={(event) => event.key === "Enter" && onSelect(patient.id)}
-                  className={`cursor-pointer outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${selected ? "bg-primary/8 shadow-[inset_3px_0_0_hsl(var(--primary))]" : "hover:bg-secondary/45"}`}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onSelect(patient.id);
+                    }
+                  }}
+                  className={`cursor-pointer outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${
+                    selected
+                      ? "bg-primary/8 shadow-[inset_3px_0_0_hsl(var(--primary))]"
+                      : "hover:bg-secondary/45"
+                  }`}
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -112,31 +145,39 @@ export function PatientListPanel({
                         {initials(patient.display_name)}
                       </span>
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-semibold text-foreground">{patient.display_name}</p>
+                        <p className="truncate text-xs font-semibold text-foreground">
+                          {patient.display_name}
+                        </p>
                         <p className="mt-0.5 text-[10px] text-muted-foreground">
-                          {patient.age ? `${patient.age} anos` : "Idade não informada"} • {patient.masked_cpf}
+                          {patient.age
+                            ? `${patient.age} anos`
+                            : "Idade não informada"}{" "}
+                          • {patient.masked_cpf}
                         </p>
                       </div>
                     </div>
                   </td>
                   <td className="max-w-48 px-3 py-3">
-                    <p className="truncate text-[11px] text-foreground">{patient.phone || "Sem telefone"}</p>
-                    <p className="truncate text-[10px] text-muted-foreground">{patient.email || "Sem e-mail"}</p>
+                    <p className="truncate text-[11px] text-foreground">
+                      {patient.phone || "Sem telefone"}
+                    </p>
+                    <p className="truncate text-[10px] text-muted-foreground">
+                      {patient.email || "Sem e-mail"}
+                    </p>
                   </td>
-                  <td className="px-3 py-3 text-[10px] text-muted-foreground">{formatSession(patient.last_session)}</td>
-                  <td className="px-3 py-3 text-[10px] text-foreground">{formatSession(patient.next_session)}</td>
-                  <td className="px-3 py-3">
-                    <Badge variant={statusVariant[patient.status]}>{patient.status_display}</Badge>
+                  <td className="px-3 py-3 text-[10px] text-muted-foreground">
+                    {formatSession(patient.last_session)}
+                  </td>
+                  <td className="px-3 py-3 text-[10px] text-foreground">
+                    {formatSession(patient.next_session)}
                   </td>
                   <td className="px-3 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {(patient.tags ?? []).slice(0, 2).map((tag) => (
-                        <span key={tag} className="rounded-md bg-primary/8 px-2 py-1 text-[9px] text-primary">{tag}</span>
-                      ))}
-                      {(patient.tags?.length ?? 0) > 2 && (
-                        <span className="rounded-md bg-secondary px-2 py-1 text-[9px] text-muted-foreground">+{patient.tags.length - 2}</span>
-                      )}
-                    </div>
+                    <Badge variant={statusVariant[patient.status]}>
+                      {patient.status_display}
+                    </Badge>
+                  </td>
+                  <td className="px-3 py-3">
+                    <PatientTags tags={patient.tags ?? []} />
                   </td>
                 </tr>
               );
@@ -145,14 +186,94 @@ export function PatientListPanel({
         </table>
       </div>
 
+      <div className="divide-y divide-border md:hidden">
+        {patients.map((patient) => {
+          const selected = patient.id === selectedId;
+          return (
+            <button
+              key={patient.id}
+              type="button"
+              onClick={() => onSelect(patient.id)}
+              aria-pressed={selected}
+              className={`w-full p-4 text-left transition-colors ${
+                selected
+                  ? "bg-primary/8 shadow-[inset_3px_0_0_hsl(var(--primary))]"
+                  : "hover:bg-secondary/45"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-primary/25 bg-primary/8 text-xs font-bold text-primary">
+                    {initials(patient.display_name)}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {patient.display_name}
+                    </p>
+                    <p className="mt-1 text-[10px] text-muted-foreground">
+                      {patient.age
+                        ? `${patient.age} anos`
+                        : "Idade não informada"}{" "}
+                      • {patient.masked_cpf}
+                    </p>
+                  </div>
+                </div>
+                <Badge variant={statusVariant[patient.status]}>
+                  {patient.status_display}
+                </Badge>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-3 text-[10px]">
+                <div>
+                  <p className="font-semibold uppercase tracking-wide text-muted-foreground">
+                    Contato
+                  </p>
+                  <p className="mt-1 truncate text-foreground">
+                    {patient.phone || "Não informado"}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-semibold uppercase tracking-wide text-muted-foreground">
+                    Próxima sessão
+                  </p>
+                  <p className="mt-1 text-foreground">
+                    {formatSession(patient.next_session)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-3">
+                <PatientTags tags={patient.tags ?? []} />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/20 px-4 py-3 text-[11px] text-muted-foreground">
-        <span>Mostrando {patients.length} de {total} pacientes</span>
+        <span>
+          Mostrando {patients.length} de {total} pacientes
+        </span>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" disabled={page <= 1} onClick={() => onPageChange(page - 1)} aria-label="Página anterior">
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={page <= 1}
+            onClick={() => onPageChange(page - 1)}
+            aria-label="Página anterior"
+          >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span>Página {page} de {totalPages}</span>
-          <Button variant="outline" size="icon" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)} aria-label="Próxima página">
+          <span>
+            Página {page} de {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={page >= totalPages}
+            onClick={() => onPageChange(page + 1)}
+            aria-label="Próxima página"
+          >
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
