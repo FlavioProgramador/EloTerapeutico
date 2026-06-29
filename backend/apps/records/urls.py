@@ -11,7 +11,6 @@ from .clinical_views import (
     ClinicalDocumentDownloadView,
     ClinicalDocumentListCreateView,
     EvolutionDuplicateView,
-    EvolutionFinalizeView,
     EvolutionWorkspaceDetailView,
     PatientEvolutionListCreateView,
     PatientRecordPdfView,
@@ -19,6 +18,7 @@ from .clinical_views import (
     TreatmentGoalDetailView,
     TreatmentGoalListCreateView,
 )
+from .finalize_views import EvolutionFinalizeFreshView
 from .views import AnamnesisView, EvolutionViewSet
 
 router = DefaultRouter()
@@ -35,7 +35,7 @@ urlpatterns = [
     path("patients/<int:patient_id>/export-pdf/", PatientRecordPdfView.as_view(), name="patient-record-pdf"),
     path("patients/<int:patient_id>/ai-summary/", ClinicalAiSummaryStatusView.as_view(), name="clinical-ai-summary"),
     path("clinical-evolutions/<int:pk>/", EvolutionWorkspaceDetailView.as_view(), name="clinical-evolution-detail"),
-    path("clinical-evolutions/<int:pk>/finalize/", EvolutionFinalizeView.as_view(), name="clinical-evolution-finalize"),
+    path("clinical-evolutions/<int:pk>/finalize/", EvolutionFinalizeFreshView.as_view(), name="clinical-evolution-finalize"),
     path("clinical-evolutions/<int:pk>/duplicate/", EvolutionDuplicateView.as_view(), name="clinical-evolution-duplicate"),
     path("goals/<int:pk>/", TreatmentGoalDetailView.as_view(), name="treatment-goal-detail"),
     path("documents/<int:pk>/", ClinicalDocumentDetailView.as_view(), name="clinical-document-detail"),
