@@ -53,7 +53,10 @@ jobs:
         run: python manage.py check
 
       - name: Check for missing migrations
-        run: python manage.py makemigrations --check --dry-run
+        shell: bash
+        run: |
+          set -o pipefail
+          python manage.py makemigrations --check --dry-run 2>&1 | tee migration-output.txt
 
       - name: Apply migrations
         run: python manage.py migrate --noinput
@@ -72,5 +75,6 @@ jobs:
           path: |
             backend/coverage.xml
             backend/pytest-output.txt
+            backend/migration-output.txt
           if-no-files-found: ignore
           retention-days: 7
