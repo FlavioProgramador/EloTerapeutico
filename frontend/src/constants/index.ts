@@ -54,12 +54,16 @@ export const TRANSACTION_STATUS_LABELS: Record<string, string> = {
   paid: "Pago",
   overdue: "Vencido",
   cancelled: "Cancelado",
+  refunded: "Estornado",
 };
 
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   pix: "PIX",
+  debit_card: "Cartao de Debito",
   credit_card: "Cartão de Crédito",
   cash: "Dinheiro",
+  bank_transfer: "Transferencia Bancaria",
+  other: "Outro",
   insurance: "Convênio",
   boleto: "Boleto",
 };

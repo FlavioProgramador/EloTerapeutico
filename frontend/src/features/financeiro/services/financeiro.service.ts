@@ -8,6 +8,9 @@ import type {
   FinancialTransaction,
   CreateTransactionPayload,
   PaginatedResponse,
+  FinancialPaymentMethod,
+  TransactionStatus,
+  TransactionType,
 } from "@/types";
 
 export interface TransactionFilters {
@@ -28,6 +31,116 @@ export interface FinancialSummary {
   transaction_count: number;
 }
 
+type ApiTransactionStatus = Exclude<TransactionStatus, "overdue">;
+
+interface FinancialTransactionApi {
+  id: number;
+  patient?: number | null;
+  appointment?: number | null;
+  patient_name?: string | null;
+  transaction_type: TransactionType;
+  category: FinancialTransaction["category"];
+  amount: string;
+  payment_method?: FinancialPaymentMethod;
+  payment_status: ApiTransactionStatus;
+  due_date?: string | null;
+  paid_at?: string | null;
+  description?: string;
+  receipt_url?: string;
+  is_overdue?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface TransactionApiPayload {
+  patient?: number;
+  appointment?: number;
+  transaction_type: TransactionType;
+  category: FinancialTransaction["category"];
+  amount: string | number;
+  payment_method?: FinancialPaymentMethod;
+  payment_status?: ApiTransactionStatus;
+  due_date: string;
+  paid_at?: string;
+  description: string;
+}
+
+function toPaymentDate(paidAt?: string | null): string | undefined {
+  return paidAt ? paidAt.split("T")[0] : undefined;
+}
+
+function toPaidAt(paymentDate?: string): string | undefined {
+  if (!paymentDate) return undefined;
+  return new Date(`${paymentDate}T12:00:00`).toISOString();
+}
+
+function toAppTransaction(data: FinancialTransactionApi): FinancialTransaction {
+  return {
+    id: data.id,
+    patient: data.patient ?? undefined,
+    patient_name: data.patient_name ?? undefined,
+    appointment: data.appointment ?? undefined,
+    description: data.description ?? "",
+    amount: data.amount,
+    type: data.transaction_type,
+    category: data.category,
+    status:
+      data.payment_status === "pending" && data.is_overdue
+        ? "overdue"
+        : data.payment_status,
+    due_date: data.due_date ?? "",
+    payment_date: toPaymentDate(data.paid_at),
+    payment_method: data.payment_method,
+    is_overdue: data.is_overdue,
+    created_at: data.created_at ?? "",
+    updated_at: data.updated_at ?? "",
+  };
+}
+
+function normalizePaymentStatus(
+  status: CreateTransactionPayload["status"]
+): ApiTransactionStatus | undefined {
+  return status === "overdue" ? "pending" : status;
+}
+
+function toApiPayload(data: CreateTransactionPayload): TransactionApiPayload {
+  const paymentStatus = normalizePaymentStatus(data.status);
+
+  return {
+    patient: data.patient,
+    appointment: data.appointment,
+    transaction_type: data.type,
+    category: data.category,
+    amount: data.amount,
+    payment_method: data.payment_method,
+    payment_status: paymentStatus,
+    due_date: data.due_date,
+    paid_at:
+      paymentStatus === "paid" ? toPaidAt(data.payment_date) : undefined,
+    description: data.description,
+  };
+}
+
+function toApiPatchPayload(
+  data: Partial<CreateTransactionPayload>
+): Partial<TransactionApiPayload> {
+  const paymentStatus = normalizePaymentStatus(data.status);
+
+  return {
+    patient: data.patient,
+    appointment: data.appointment,
+    transaction_type: data.type,
+    category: data.category,
+    amount: data.amount,
+    payment_method: data.payment_method,
+    payment_status: paymentStatus,
+    due_date: data.due_date,
+    paid_at:
+      paymentStatus === "paid" ? toPaidAt(data.payment_date) : undefined,
+    description: data.description,
+  };
+}
+
 export const financeiroService = {
   /**
    * Lista transações com filtros opcionais.
@@ -42,18 +155,23 @@ export const financeiroService = {
     if (filters?.patient) params.set("patient", filters.patient);
     if (filters?.page) params.set("page", String(filters.page));
 
-    const response = await api.get<FinancialTransaction[] | PaginatedResponse<FinancialTransaction>>(
+    const response = await api.get<
+      FinancialTransactionApi[] | PaginatedResponse<FinancialTransactionApi>
+    >(
       `financeiro/?${params.toString()}`
     );
-    return Array.isArray(response.data) ? response.data : response.data.results || [];
+    const results = Array.isArray(response.data)
+      ? response.data
+      : response.data.results || [];
+    return results.map(toAppTransaction);
   },
 
   /**
    * Busca uma transação pelo ID.
    */
   getById: async (id: number): Promise<FinancialTransaction> => {
-    const response = await api.get<FinancialTransaction>(`financeiro/${id}/`);
-    return response.data;
+    const response = await api.get<FinancialTransactionApi>(`financeiro/${id}/`);
+    return toAppTransaction(response.data);
   },
 
   /**
@@ -72,8 +190,11 @@ export const financeiroService = {
   create: async (
     data: CreateTransactionPayload
   ): Promise<FinancialTransaction> => {
-    const response = await api.post<FinancialTransaction>("financeiro/", data);
-    return response.data;
+    const response = await api.post<FinancialTransactionApi>(
+      "financeiro/",
+      toApiPayload(data)
+    );
+    return toAppTransaction(response.data);
   },
 
   /**
@@ -83,11 +204,11 @@ export const financeiroService = {
     id: number,
     data: Partial<CreateTransactionPayload>
   ): Promise<FinancialTransaction> => {
-    const response = await api.patch<FinancialTransaction>(
+    const response = await api.patch<FinancialTransactionApi>(
       `financeiro/${id}/`,
-      data
+      toApiPatchPayload(data)
     );
-    return response.data;
+    return toAppTransaction(response.data);
   },
 
   /**
@@ -95,14 +216,14 @@ export const financeiroService = {
    */
   markAsPaid: async (
     id: number,
-    paymentMethod: string = "pix",
+    paymentMethod: FinancialPaymentMethod = "pix",
     paidAt?: string
   ): Promise<FinancialTransaction> => {
-    const response = await api.patch<FinancialTransaction>(`financeiro/${id}/pay/`, {
+    const response = await api.patch<FinancialTransactionApi>(`financeiro/${id}/pay/`, {
       payment_method: paymentMethod,
       paid_at: paidAt ?? new Date().toISOString(),
     });
-    return response.data;
+    return toAppTransaction(response.data);
   },
 
   /**
@@ -116,16 +237,16 @@ export const financeiroService = {
    * Cancela uma transação pendente.
    */
   cancel: async (id: number): Promise<FinancialTransaction> => {
-    const response = await api.post<FinancialTransaction>(`financeiro/${id}/cancel/`);
-    return response.data;
+    const response = await api.post<FinancialTransactionApi>(`financeiro/${id}/cancel/`);
+    return toAppTransaction(response.data);
   },
 
   /**
    * Estorna uma transação paga.
    */
   refund: async (id: number): Promise<FinancialTransaction> => {
-    const response = await api.post<FinancialTransaction>(`financeiro/${id}/refund/`);
-    return response.data;
+    const response = await api.post<FinancialTransactionApi>(`financeiro/${id}/refund/`);
+    return toAppTransaction(response.data);
   },
 
   /**

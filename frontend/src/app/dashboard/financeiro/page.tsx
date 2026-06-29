@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import React, { useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   DollarSign,
@@ -38,7 +38,7 @@ import { Badge, getTransactionStatusVariant } from "@/components/ui/badge";
 import { SkeletonCard, SkeletonTable } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
-import type { CreateTransactionPayload, TransactionType, TransactionStatus } from "@/types";
+import type { CreateTransactionPayload, TransactionType } from "@/types";
 import { usePatients } from "@/features/patients/hooks/use-patients";
 
 import {
@@ -122,8 +122,7 @@ export default function FinanceiroPage() {
   const {
     register,
     handleSubmit,
-    watch,
-    setValue,
+    control,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<TransactionFormData>({
@@ -143,7 +142,7 @@ export default function FinanceiroPage() {
     },
   });
 
-  const paymentStatusValue = watch("status");
+  const paymentStatusValue = useWatch({ control, name: "status" });
 
   // Ajusta valores quando abre o modal
   const handleOpenModal = () => {

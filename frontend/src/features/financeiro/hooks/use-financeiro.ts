@@ -9,7 +9,7 @@ import {
   type TransactionFilters,
 } from "../services/financeiro.service";
 import { QUERY_KEYS } from "@/constants";
-import type { CreateTransactionPayload } from "@/types";
+import type { CreateTransactionPayload, FinancialPaymentMethod } from "@/types";
 
 /**
  * Hook para listar transações financeiras com filtros.
@@ -66,7 +66,7 @@ export function useMarkAsPaid() {
       paidAt,
     }: {
       id: number;
-      paymentMethod?: string;
+      paymentMethod?: FinancialPaymentMethod;
       paidAt?: string;
     }) => financeiroService.markAsPaid(id, paymentMethod, paidAt),
     onSuccess: () => {
