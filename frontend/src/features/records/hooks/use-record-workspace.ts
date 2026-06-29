@@ -27,11 +27,16 @@ export function useRecordSummary(patientId: number) {
   });
 }
 
-export function useClinicalEvolutions(patientId: number, page = 1, status?: string) {
+export function useClinicalEvolutions(
+  patientId: number,
+  page = 1,
+  status?: string,
+  enabled = true,
+) {
   return useQuery({
     queryKey: keys.evolutions(patientId, page, status),
     queryFn: () => recordWorkspaceService.listEvolutions(patientId, page, status),
-    enabled: Number.isFinite(patientId) && patientId > 0,
+    enabled: enabled && Number.isFinite(patientId) && patientId > 0,
   });
 }
 
@@ -95,11 +100,11 @@ export function useDuplicateClinicalEvolution(patientId: number) {
   });
 }
 
-export function useClinicalAnamnesis(patientId: number) {
+export function useClinicalAnamnesis(patientId: number, enabled = true) {
   return useQuery({
     queryKey: keys.anamnesis(patientId),
     queryFn: () => recordWorkspaceService.getAnamnesis(patientId),
-    enabled: patientId > 0,
+    enabled: enabled && patientId > 0,
   });
 }
 
@@ -117,11 +122,11 @@ export function useSaveClinicalAnamnesis(patientId: number) {
   });
 }
 
-export function useTreatmentGoals(patientId: number) {
+export function useTreatmentGoals(patientId: number, enabled = true) {
   return useQuery({
     queryKey: keys.goals(patientId),
     queryFn: () => recordWorkspaceService.listGoals(patientId),
-    enabled: patientId > 0,
+    enabled: enabled && patientId > 0,
   });
 }
 
@@ -160,11 +165,11 @@ export function useGoalMutations(patientId: number) {
   return { create, update, archive };
 }
 
-export function useClinicalDocuments(patientId: number) {
+export function useClinicalDocuments(patientId: number, enabled = true) {
   return useQuery({
     queryKey: keys.documents(patientId),
     queryFn: () => recordWorkspaceService.listDocuments(patientId),
-    enabled: patientId > 0,
+    enabled: enabled && patientId > 0,
   });
 }
 
