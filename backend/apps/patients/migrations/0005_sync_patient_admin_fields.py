@@ -3,8 +3,29 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-    dependencies = [("patients", "0004_sync_patient_field_metadata")]
+    dependencies = [
+        ("patients", "0004_sync_patient_field_metadata"),
+        ("patients", "0003_alter_patient_status"),
+    ]
     operations = [
+        migrations.AlterField(
+            model_name="patient",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("active", "Ativo"),
+                    ("evaluation", "Em avaliação"),
+                    ("waiting_return", "Aguardando retorno"),
+                    ("discharged", "Alta"),
+                    ("inactive", "Encerrado"),
+                    ("archived", "Arquivado"),
+                ],
+                db_index=True,
+                default="active",
+                max_length=20,
+                verbose_name="Status",
+            ),
+        ),
         migrations.AlterField(
             model_name="patient",
             name="guardian_name",
