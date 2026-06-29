@@ -1,0 +1,1 @@
+.landing-faq{display:grid;gap:.75rem;max-width:56rem;margin:auto}.landing-faq details{border:1px solid hsl(var(--border));border-radius:1rem;background:hsl(var(--card));padding:1rem 1.2rem}.landing-faq summary{cursor:pointer;font-weight:800}.landing-faq details p{margin-top:1rem;color:hsl(var(--muted-foreground));line-height:1.7}
