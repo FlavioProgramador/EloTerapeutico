@@ -1,208 +1,208 @@
 # Design System — Elo Terapêutico
 
-## Filosofia
+## Direção visual
 
-> "Confiança através da consistência."
+> **Acolhimento Seguro:** confiança clínica com aparência tecnológica madura.
 
-O Design System do Elo Terapêutico é construído para transmitir **confiança, profissionalismo e acolhimento** — valores essenciais para uma plataforma clínica.
+A interface deve transmitir profissionalismo, calma e segurança sem parecer fria, excessivamente verde ou produzida por um gerador genérico de dashboards.
 
-Prioridades:
-- **Clareza sobre decoração**: Interfaces que comunicam, não que impressionam
-- **Consistência** acima de originalidade por seção
-- **Acessibilidade** como requisito, não opcional
-- **Densidade informacional** adequada para uso profissional
+Princípios:
+
+- clareza antes de decoração;
+- verde somente para ações principais, sucesso e seleção;
+- azul ardósia para informação, segurança e apoio;
+- superfícies neutras com contraste progressivo;
+- bordas finas e sombras discretas;
+- gradientes apenas quando comunicarem progresso ou seleção;
+- nenhuma informação clínica deve depender apenas da cor.
 
 ---
 
-## Paleta de Cores
+## Paleta semântica
 
-### Light Mode — "Sálvia & Obsidian"
+A implementação oficial fica em `frontend/src/app/globals.css`. Componentes devem usar tokens como `bg-card`, `text-foreground` e `border-border`, nunca repetir valores HSL ou HEX diretamente.
 
-| Token | Valor HSL | Uso |
-|---|---|---|
-| `--background` | `140 12% 98%` | Fundo da aplicação |
-| `--foreground` | `140 24% 12%` | Texto principal |
-| `--card` | `0 0% 100%` | Fundo de cards |
-| `--primary` | `154 50% 35%` | Verde Sálvia Clínico — CTAs principais |
-| `--secondary` | `140 10% 93%` | Fundos secundários, chips |
-| `--muted` | `140 10% 93%` | Backgrounds neutros |
-| `--muted-foreground` | `140 10% 45%` | Texto secundário, placeholders |
-| `--accent` | `195 40% 40%` | Azul Securitário — elementos de destaque |
-| `--destructive` | `0 65% 45%` | Vermelho Sóbrio — erros e exclusões |
-| `--border` | `140 8% 90%` | Bordas sutis |
-| `--ring` | `154 50% 35%` | Focus rings |
+### Tema claro
 
-### Dark Mode — "Obsidian Green"
+| Token | HSL | HEX aproximado | Uso |
+|---|---:|---:|---|
+| `--background` | `204 33% 97%` | `#F5F8FA` | Fundo geral |
+| `--foreground` | `202 46% 12%` | `#10212B` | Texto principal |
+| `--card` | `0 0% 100%` | `#FFFFFF` | Cards e painéis |
+| `--primary` | `168 73% 30%` | `#15856F` | CTA, seleção e sucesso principal |
+| `--primary-foreground` | `0 0% 100%` | `#FFFFFF` | Conteúdo sobre o primário |
+| `--secondary` | `198 31% 94%` | `#EAF1F4` | Ações secundárias e superfícies de apoio |
+| `--muted` | `195 29% 95%` | `#EDF3F5` | Fundos discretos |
+| `--muted-foreground` | `205 15% 44%` | `#5F7280` | Texto secundário |
+| `--accent` | `196 55% 40%` | `#2D7F9D` | Informação e segurança |
+| `--border` | `200 25% 88%` | `#D9E3E8` | Bordas e divisores |
+| `--destructive` | `0 61% 54%` | `#D14343` | Erros e ações destrutivas |
 
-| Token | Valor HSL | Uso |
-|---|---|---|
-| `--background` | `140 15% 6%` | Fundo escuro |
-| `--foreground` | `140 10% 92%` | Texto claro |
-| `--card` | `140 12% 9%` | Cards escuros |
-| `--primary` | `154 52% 48%` | Verde Jade — mais luminoso no escuro |
+### Tema escuro
+
+| Token | HSL | HEX aproximado | Uso |
+|---|---:|---:|---|
+| `--background` | `203 60% 7%` | `#07141C` | Fundo azul-petróleo neutro |
+| `--foreground` | `191 35% 94%` | `#EAF3F5` | Texto principal |
+| `--card` | `203 50% 10%` | `#0D1D27` | Cards e painéis |
+| `--popover` | `202 48% 12%` | `#10232E` | Dropdowns e modais |
+| `--primary` | `163 64% 52%` | `#34D3A5` | CTA, foco e seleção |
+| `--primary-foreground` | `162 68% 7%` | `#062018` | Conteúdo sobre o primário |
+| `--secondary` | `200 45% 14%` | `#142A35` | Ações secundárias |
+| `--muted` | `201 46% 12%` | `#11242E` | Superfícies discretas |
+| `--muted-foreground` | `199 19% 63%` | `#8FA7B2` | Texto secundário |
+| `--accent` | `197 62% 61%` | `#5CB6D9` | Informação e segurança |
+| `--border` | `200 38% 19%` | `#1E3642` | Bordas e divisores |
+| `--destructive` | `0 100% 71%` | `#FF6B6B` | Erros e ações destrutivas |
+
+### Estados
+
+| Token | Finalidade |
+|---|---|
+| `success` | operação concluída, pagamento recebido, registro ativo |
+| `warning` | atenção, prazo próximo, pendência não bloqueante |
+| `info` | ajuda, segurança, informação contextual |
+| `destructive` | erro, cancelamento, exclusão ou bloqueio |
+
+Não use `primary` para avisos, pendências ou erros. Estados devem combinar cor, ícone e texto.
+
+### Navegação lateral
+
+A barra lateral permanece escura nos dois temas para criar referência espacial estável:
+
+- `sidebar`: fundo principal;
+- `sidebar-surface`: hover e bloco de perfil;
+- `sidebar-foreground`: texto principal;
+- `sidebar-muted`: texto e ícones em repouso;
+- `sidebar-active`: item ativo, foco e marca;
+- `sidebar-border`: divisores.
+
+---
+
+## Regras de aplicação
+
+### Hierarquia de superfícies
+
+1. `background`: plano mais distante;
+2. `surface`: agrupamentos discretos;
+3. `card`: conteúdo principal;
+4. `popover`: menus, dropdowns e modais.
+
+Evite empilhar cards dentro de cards sem necessidade. Para agrupamentos internos, prefira borda ou `bg-muted/40`.
+
+### Uso de cores
+
+- uma ação primária por região visual;
+- no máximo duas cores de destaque simultâneas;
+- ícones herdam a cor do contexto;
+- textos longos usam `foreground` ou `muted-foreground`;
+- barras de progresso usam `primary`, exceto quando representam alerta ou erro;
+- badges devem ser compactos e usar transparência baixa no fundo.
+
+### Gradientes e efeitos
+
+- evitar gradientes decorativos grandes;
+- permitir gradiente curto entre `primary` e `accent` para progresso ou seleção;
+- não usar blur ou glassmorphism em cards comuns;
+- sombras devem indicar elevação real, não ornamentação.
 
 ---
 
 ## Tipografia
 
-### Hierarquia
+Fonte principal: `Outfit`, com fallback para `Inter`, `system-ui` e `sans-serif`.
 
-| Nível | Classe | Uso |
+| Nível | Classe de referência | Uso |
 |---|---|---|
-| Display | `text-2xl font-bold tracking-tight` | Títulos de página |
-| Heading 1 | `text-xl font-bold` | Cabeçalhos de seção |
-| Heading 2 | `text-lg font-semibold` | Subtítulos |
-| Body | `text-sm` | Texto padrão |
-| Caption | `text-xs` | Labels, metadata, hints |
-| Code | `font-mono text-xs` | Dados técnicos (CPF, CRP) |
+| Título de página | `text-2xl font-bold tracking-tight` | Nome da tela |
+| Título de seção | `text-base font-semibold` | Blocos principais |
+| Título de card | `text-sm font-semibold` | Cards e painéis |
+| Corpo | `text-sm` | Conteúdo padrão |
+| Metadado | `text-xs text-muted-foreground` | Datas, autores e apoio |
+| Rótulo compacto | `text-[10px] font-semibold uppercase tracking-wide` | KPIs e tabelas densas |
 
-### Fonte
-
-- **Primária**: `Outfit` (Google Fonts) — para headings e UI elements
-- **Fallback**: `Inter`, `system-ui`, `sans-serif`
+Textos clínicos não devem usar tamanho inferior a `12px` em áreas de leitura prolongada.
 
 ---
 
-## Espaçamento
+## Geometria e espaçamento
 
-Sistema baseado em 4px grid (Tailwind padrão):
+O sistema usa grid de 4px.
 
 | Token | Valor | Uso |
-|---|---|---|
-| `space-1` | 4px | Espaçamento mínimo entre elementos irmãos |
-| `space-2` | 8px | Padding interno de badges e chips |
-| `space-3` | 12px | Gap entre ícone e texto |
-| `space-4` | 16px | Padding padrão de cards e inputs |
-| `space-6` | 24px | Gap entre grupos de formulário |
-| `space-8` | 32px | Espaçamento entre seções |
+|---|---:|---|
+| `space-1` | 4px | Ajustes mínimos |
+| `space-2` | 8px | Badges e ícones |
+| `space-3` | 12px | Controles compactos |
+| `space-4` | 16px | Padding padrão de cards |
+| `space-6` | 24px | Separação de grupos |
+| `space-8` | 32px | Seções de página |
 
----
+`--radius` é `0.75rem`. Use:
 
-## Border Radius
+- `rounded-md` para inputs e botões;
+- `rounded-lg` para itens de navegação;
+- `rounded-xl` para cards e modais;
+- `rounded-full` apenas para avatar, status e progresso circular.
 
-| Token | Valor | Uso |
-|---|---|---|
-| `--radius` | `0.5rem` | Componentes padrão (inputs, cards) |
-| `rounded-md` | `0.375rem` | Badges, chips |
-| `rounded-full` | `9999px` | Avatares, indicadores circulares |
-
-> **Princípio**: Evitar arredondamentos excessivos (`rounded-2xl`, `rounded-3xl`) que dão aparência de protótipo não polido.
-
----
-
-## Sombras
-
-| Classe | Uso |
-|---|---|
-| `shadow-xs` | Cards em repouso |
-| `shadow-sm` | Cards com hover |
-| `shadow-md` | Modais e dropdowns |
-| `shadow-lg` | Toasts e tooltips |
+Evite `rounded-2xl` e `rounded-3xl` em interfaces operacionais.
 
 ---
 
 ## Componentes
 
-### Button
+### Botões
 
-Variantes: `default`, `destructive`, `outline`, `ghost`
+- `primary`: ação principal;
+- `secondary`: ação de apoio;
+- `outline`: ação neutra em superfície existente;
+- `ghost`: ação de baixa prioridade;
+- `destructive`: ação irreversível.
 
-```tsx
-<Button variant="default" isLoading={false} leftIcon={<Plus />}>
-  Novo Paciente
-</Button>
-```
+O texto do botão deve usar `text-primary-foreground`, nunca `text-white` fixo.
 
-### Badge
+### Cards
 
-Variantes: `success`, `warning`, `destructive`, `muted`, `primary`, `outline`
+Cards usam `bg-card`, `text-card-foreground`, `border-border` e sombra mínima. Hover só deve existir quando o card for clicável.
 
-```tsx
-<Badge variant="success">Ativo</Badge>
-<Badge variant="warning">Em Espera</Badge>
-```
+### Inputs
 
-### Card
+Inputs usam `bg-background` ou `bg-card`, `border-input` e foco com `ring`. Placeholder usa `muted-foreground` com opacidade reduzida.
 
-```tsx
-<Card>
-  <CardHeader>
-    <CardTitle>Título</CardTitle>
-    <CardDescription>Subtítulo</CardDescription>
-  </CardHeader>
-  <CardContent>
-    {/* conteúdo */}
-  </CardContent>
-</Card>
-```
+### Badges
 
-### Input
+Badges apresentam status com fundo de 8% a 12% de opacidade, borda discreta e texto legível. Não usar badge como botão.
 
-```tsx
-<Input
-  id="email"
-  label="E-mail"
-  type="email"
-  aria-describedby="email-error"
-  leftIcon={<Mail />}
-  error="Campo obrigatório"
-/>
-```
+### Toasts
 
-### Skeleton (Loading States)
-
-```tsx
-<SkeletonTable lines={5} />
-<SkeletonStat />
-<SkeletonCard />
-```
-
-### EmptyState
-
-```tsx
-<EmptyState
-  icon={Users}
-  title="Nenhum paciente cadastrado"
-  description="Cadastre seu primeiro paciente para começar."
-  action={<Button>Novo Paciente</Button>}
-/>
-```
-
----
-
-## Estados de Componentes
-
-### Loading
-- Use `Skeleton*` específico para o contexto (tabela, KPI, card)
-- Nunca use spinner genérico em áreas de conteúdo
-
-### Empty
-- Todo componente de lista deve ter um `EmptyState` contextualizado
-- O EmptyState deve ter uma ação primária quando possível
-
-### Error
-- Use `toast.error()` para erros de operação
-- Para falhas de carregamento, exiba inline com `role="alert"`
-
-### Disabled
-- `opacity-50 cursor-not-allowed` em botões desabilitados
-- Sempre adicionar `disabled` e `aria-disabled="true"`
+- sucesso: borda lateral `success`;
+- informação: borda lateral `info`;
+- atenção: borda lateral `warning`;
+- erro: borda lateral `destructive`.
 
 ---
 
 ## Acessibilidade
 
-### Contraste mínimo (WCAG AA)
-- Texto normal: 4.5:1
-- Texto grande (18px+): 3:1
-- Componentes de interface: 3:1
+- texto normal: contraste mínimo de `4.5:1`;
+- texto grande e componentes: mínimo de `3:1`;
+- foco visível em todos os controles;
+- não remover outline sem substituição;
+- estados sempre combinam texto, ícone e cor;
+- respeitar `prefers-reduced-motion`;
+- botões apenas com ícone exigem `aria-label`;
+- mensagens de erro usam `role="alert"` quando apropriado.
 
-### Focus
-- Todos os elementos interativos têm `focus:ring-2 focus:ring-ring focus:ring-offset-2`
-- Nunca usar `outline: none` sem substituição visual
+Os pares principais foram escolhidos para atender WCAG AA nos usos previstos. Componentes novos devem ser verificados quando introduzirem opacidade ou sobreposição.
 
-### Screen Readers
-- Botões sem texto visível têm `aria-label`
-- Campos têm `label` associado ou `aria-label`
-- Mensagens de erro têm `role="alert"` e `aria-describedby`
-- Modais têm `role="dialog"` e `aria-modal="true"`
+---
+
+## Migração de componentes antigos
+
+Existe uma ponte temporária em `globals.css` para classes que ainda contêm valores HSL literais. Todo código novo deve usar tokens semânticos. Ao editar uma tela antiga:
+
+1. substitua valores `hsl(...)` por tokens;
+2. remova cores fixas de texto em botões;
+3. valide tema claro e escuro;
+4. teste foco, hover, disabled e estados de erro;
+5. remova o seletor de compatibilidade correspondente quando não houver mais consumidores.
