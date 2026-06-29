@@ -51,7 +51,7 @@ def test_documento_rejeita_extensao_invalida(context):
 
 @pytest.mark.django_db
 def test_documento_valido_nao_expoe_url_publica(context):
-    client, _, patient = context
+    client, therapist, patient = context
     uploaded = SimpleUploadedFile(
         "termo.pdf",
         b"%PDF-1.4 test",
@@ -69,6 +69,9 @@ def test_documento_valido_nao_expoe_url_publica(context):
     assert response.data["download_url"].endswith(
         f"/api/v1/records/documents/{response.data['id']}/download/"
     )
+    assert response.data["status"] == "available"
+    assert response.data["status_display"] == "Disponível"
+    assert response.data["uploaded_by_name"] == therapist.full_name
 
 
 @pytest.mark.django_db
@@ -103,3 +106,23 @@ def test_meta_rejeita_evolucao_de_outro_paciente(context):
 
     assert response.status_code == 400
     assert TreatmentGoal.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_meta_expoe_profissional_responsavel(context):
+    client, therapist, patient = context
+
+    response = client.post(
+        f"/api/v1/records/patients/{patient.id}/goals/",
+        {
+            "title": "Reduzir ansiedade social",
+            "priority": "high",
+            "status": "active",
+            "progress": 25,
+            "start_date": "2026-06-29",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 201
+    assert response.data["created_by_name"] == therapist.full_name
