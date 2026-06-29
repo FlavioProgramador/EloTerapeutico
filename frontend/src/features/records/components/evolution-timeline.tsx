@@ -23,7 +23,11 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { EvolutionModality, EvolutionStatus, EvolutionWorkspace } from "../types";
+import type {
+  EvolutionModality,
+  EvolutionStatus,
+  EvolutionWorkspace,
+} from "../types";
 
 interface EvolutionTimelineProps {
   evolutions: EvolutionWorkspace[];
@@ -34,6 +38,14 @@ interface EvolutionTimelineProps {
   onDuplicate: (evolution: EvolutionWorkspace) => void;
   onExport: (evolution: EvolutionWorkspace) => void;
 }
+
+interface DetailSection {
+  label: string;
+  value: string;
+  tone: "emerald" | "sky" | "violet" | "amber";
+}
+
+const PAGE_SIZE = 6;
 
 const dateTones = [
   "border-emerald-400/30 bg-emerald-500/10 text-emerald-300",
@@ -51,11 +63,16 @@ function formatDate(value: string) {
 }
 
 function formatTime(value?: string | null) {
-  if (!value) return "Horário não informado";
-  return value.slice(0, 5);
+  return value ? value.slice(0, 5) : "Horário não informado";
 }
 
-function statusStyles(status: EvolutionWorkspace["status"]) {
+function modalityLabel(modality: EvolutionModality) {
+  if (modality === "online") return "Online";
+  if (modality === "hybrid") return "Híbrido";
+  return "Presencial";
+}
+
+function statusStyles(status: EvolutionStatus) {
   if (status === "finalized") {
     return "border-emerald-400/25 bg-emerald-500/10 text-emerald-300";
   }
@@ -65,10 +82,25 @@ function statusStyles(status: EvolutionWorkspace["status"]) {
   return "border-amber-500/20 bg-amber-500/10 text-amber-300";
 }
 
-function modalityLabel(modality: EvolutionModality) {
-  if (modality === "online") return "Online";
-  if (modality === "hybrid") return "Híbrido";
-  return "Presencial";
+function detailTone(tone: DetailSection["tone"]) {
+  return {
+    emerald: {
+      card: "border-emerald-400/15 bg-emerald-500/5",
+      title: "text-emerald-300",
+    },
+    sky: {
+      card: "border-sky-400/15 bg-sky-500/5",
+      title: "text-sky-300",
+    },
+    violet: {
+      card: "border-violet-400/15 bg-violet-500/5",
+      title: "text-violet-300",
+    },
+    amber: {
+      card: "border-amber-400/15 bg-amber-500/5",
+      title: "text-amber-300",
+    },
+  }[tone];
 }
 
 export function EvolutionTimeline({
@@ -86,13 +118,14 @@ export function EvolutionTimeline({
   const [period, setPeriod] = useState("all");
   const [order, setOrder] = useState<"desc" | "asc">("desc");
   const [page, setPage] = useState(1);
-  const pageSize = 6;
 
   const filtered = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("pt-BR");
     const now = new Date();
-    const minimumDate = new Date(now);
-    if (period !== "all") minimumDate.setDate(now.getDate() - Number(period));
+    const minimumDate = new Date(now.getTime());
+    if (period !== "all") {
+      minimumDate.setDate(now.getDate() - Number(period));
+    }
 
     return [...evolutions]
       .filter((evolution) => {
@@ -105,13 +138,14 @@ export function EvolutionTimeline({
         ]
           .join(" ")
           .toLocaleLowerCase("pt-BR");
-        const matchesSearch = !term || searchable.includes(term);
-        const matchesStatus = status === "all" || evolution.status === status;
-        const matchesModality =
-          modality === "all" || evolution.modality === modality;
+
         const sessionDate = new Date(`${evolution.session_date}T12:00:00`);
-        const matchesPeriod = period === "all" || sessionDate >= minimumDate;
-        return matchesSearch && matchesStatus && matchesModality && matchesPeriod;
+        return (
+          (!term || searchable.includes(term)) &&
+          (status === "all" || evolution.status === status) &&
+          (modality === "all" || evolution.modality === modality) &&
+          (period === "all" || sessionDate >= minimumDate)
+        );
       })
       .sort((first, second) => {
         const difference =
@@ -121,10 +155,10 @@ export function EvolutionTimeline({
       });
   }, [evolutions, modality, order, period, search, status]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const visibleEvolutions = filtered.slice(
-    (page - 1) * pageSize,
-    page * pageSize,
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE,
   );
 
   useEffect(() => {
@@ -148,11 +182,69 @@ export function EvolutionTimeline({
           Nenhuma evolução registrada
         </h3>
         <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-muted-foreground">
-          Crie a primeira evolução clínica para iniciar a linha do tempo do acompanhamento.
+          Crie a primeira evolução clínica para iniciar a linha do tempo do
+          acompanhamento.
         </p>
       </div>
     );
   }
+
+  const detailSections: DetailSection[] = selected
+    ? [
+        {
+          label: "Queixa principal",
+          value: selected.chief_complaint,
+          tone: "emerald",
+        },
+        {
+          label: "Relato do paciente",
+          value: selected.patient_report,
+          tone: "sky",
+        },
+        {
+          label: "Estado emocional observado",
+          value: selected.emotional_state,
+          tone: "violet",
+        },
+        {
+          label: "Observações clínicas",
+          value: selected.therapist_observations || selected.content,
+          tone: "amber",
+        },
+        {
+          label: "Intervenções realizadas",
+          value: selected.interventions,
+          tone: "emerald",
+        },
+        {
+          label: "Evolução percebida",
+          value: selected.perceived_evolution,
+          tone: "sky",
+        },
+        {
+          label: "Tarefas e orientações",
+          value: selected.homework,
+          tone: "violet",
+        },
+        {
+          label: "Encaminhamentos",
+          value: selected.referrals,
+          tone: "amber",
+        },
+        {
+          label: "Próximos passos",
+          value: selected.next_steps,
+          tone: "emerald",
+        },
+      ]
+    : [];
+
+  const clearFilters = () => {
+    setSearch("");
+    setStatus("all");
+    setModality("all");
+    setPeriod("all");
+  };
 
   return (
     <div className="space-y-3">
@@ -168,6 +260,7 @@ export function EvolutionTimeline({
               className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-xs text-foreground outline-none focus:border-emerald-400/50"
             />
           </label>
+
           <select
             value={period}
             onChange={(event) => setPeriod(event.target.value)}
@@ -179,6 +272,7 @@ export function EvolutionTimeline({
             <option value="90">Últimos 90 dias</option>
             <option value="365">Último ano</option>
           </select>
+
           <select
             value={modality}
             onChange={(event) =>
@@ -192,6 +286,7 @@ export function EvolutionTimeline({
             <option value="online">Online</option>
             <option value="hybrid">Híbrido</option>
           </select>
+
           <select
             value={status}
             onChange={(event) =>
@@ -205,9 +300,12 @@ export function EvolutionTimeline({
             <option value="finalized">Finalizada</option>
             <option value="archived">Arquivada</option>
           </select>
+
           <button
             type="button"
-            onClick={() => setOrder((current) => (current === "desc" ? "asc" : "desc"))}
+            onClick={() =>
+              setOrder((current) => (current === "desc" ? "asc" : "desc"))
+            }
             className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-xs text-muted-foreground hover:bg-secondary"
           >
             <Filter className="h-3.5 w-3.5" />
@@ -218,7 +316,7 @@ export function EvolutionTimeline({
 
       <div className="grid min-h-[34rem] gap-3 lg:grid-cols-[minmax(20rem,0.85fr)_minmax(0,1.15fr)]">
         <section className="flex min-h-[34rem] flex-col rounded-xl border border-emerald-400/15 bg-gradient-to-b from-emerald-500/5 via-card to-card p-3">
-          <div className="border-b border-emerald-400/15 px-2 pb-3">
+          <header className="border-b border-emerald-400/15 px-2 pb-3">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
@@ -231,22 +329,20 @@ export function EvolutionTimeline({
                   {filtered.length} registro(s) localizado(s)
                 </p>
               </div>
-              {(search || status !== "all" || modality !== "all" || period !== "all") && (
+              {(search ||
+                status !== "all" ||
+                modality !== "all" ||
+                period !== "all") && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setSearch("");
-                    setStatus("all");
-                    setModality("all");
-                    setPeriod("all");
-                  }}
+                  onClick={clearFilters}
                   className="text-[9px] font-semibold text-emerald-300 hover:underline"
                 >
                   Limpar filtros
                 </button>
               )}
             </div>
-          </div>
+          </header>
 
           {filtered.length === 0 ? (
             <div className="grid flex-1 place-items-center px-5 py-14 text-center">
@@ -264,6 +360,9 @@ export function EvolutionTimeline({
             <div className="relative mt-3 flex-1 space-y-2 before:absolute before:bottom-3 before:left-[1.45rem] before:top-3 before:w-px before:bg-emerald-400/20">
               {visibleEvolutions.map((evolution, index) => {
                 const active = selected?.id === evolution.id;
+                const sessionNumber =
+                  evolutions.findIndex((item) => item.id === evolution.id) + 1;
+
                 return (
                   <button
                     key={evolution.id}
@@ -286,15 +385,23 @@ export function EvolutionTimeline({
                     >
                       {evolution.session_date.slice(8, 10)}
                       <small className="block text-[8px] font-medium uppercase text-muted-foreground">
-                        {new Date(`${evolution.session_date}T12:00:00`).toLocaleDateString("pt-BR", { month: "short" })}
+                        {new Date(
+                          `${evolution.session_date}T12:00:00`,
+                        ).toLocaleDateString("pt-BR", { month: "short" })}
                       </small>
                     </span>
+
                     <span className="min-w-0">
                       <span className="flex items-start justify-between gap-2">
                         <strong className="truncate text-xs text-foreground">
-                          Sessão {evolutions.findIndex((item) => item.id === evolution.id) + 1}
+                          Sessão {sessionNumber}
                         </strong>
-                        <span className={cn("rounded-full border px-2 py-0.5 text-[8px] font-bold", statusStyles(evolution.status))}>
+                        <span
+                          className={cn(
+                            "rounded-full border px-2 py-0.5 text-[8px] font-bold",
+                            statusStyles(evolution.status),
+                          )}
+                        >
                           {evolution.status_display}
                         </span>
                       </span>
@@ -311,7 +418,8 @@ export function EvolutionTimeline({
                         </span>
                         <span className="inline-flex items-center gap-1">
                           <Clock3 className="h-3 w-3 text-violet-300" />
-                          {formatTime(evolution.session_time)} · {evolution.duration_minutes} min
+                          {formatTime(evolution.session_time)} ·{" "}
+                          {evolution.duration_minutes} min
                         </span>
                         {(evolution.attached_documents_count ?? 0) > 0 && (
                           <span className="inline-flex items-center gap-1">
@@ -327,7 +435,7 @@ export function EvolutionTimeline({
             </div>
           )}
 
-          {filtered.length > pageSize && (
+          {filtered.length > PAGE_SIZE && (
             <footer className="mt-3 flex items-center justify-between border-t border-emerald-400/10 px-2 pt-3 text-[9px] text-muted-foreground">
               <span>
                 Página {page} de {totalPages}
@@ -345,7 +453,9 @@ export function EvolutionTimeline({
                 <button
                   type="button"
                   disabled={page >= totalPages}
-                  onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                  onClick={() =>
+                    setPage((current) => Math.min(totalPages, current + 1))
+                  }
                   className="grid h-7 w-7 place-items-center rounded-md border border-border disabled:opacity-40"
                   aria-label="Próxima página"
                 >
@@ -377,17 +487,28 @@ export function EvolutionTimeline({
                     <h3 className="text-sm font-bold text-foreground">
                       Evolução de {formatDate(selected.session_date)}
                     </h3>
-                    <span className={cn("rounded-full border px-2 py-0.5 text-[8px] font-bold", statusStyles(selected.status))}>
+                    <span
+                      className={cn(
+                        "rounded-full border px-2 py-0.5 text-[8px] font-bold",
+                        statusStyles(selected.status),
+                      )}
+                    >
                       {selected.status_display}
                     </span>
                     {selected.is_locked && (
-                      <LockKeyhole className="h-3.5 w-3.5 text-amber-300" aria-label="Registro bloqueado" />
+                      <LockKeyhole
+                        className="h-3.5 w-3.5 text-amber-300"
+                        aria-label="Registro bloqueado"
+                      />
                     )}
                   </div>
                   <p className="mt-1 text-[10px] text-muted-foreground">
-                    {selected.created_by_name} · {formatTime(selected.session_time)} · {selected.duration_minutes} minutos · versão {Math.max(1, selected.version_count + 1)}
+                    {selected.created_by_name} · {formatTime(selected.session_time)} ·{" "}
+                    {selected.duration_minutes} minutos · versão{" "}
+                    {Math.max(1, selected.version_count + 1)}
                   </p>
                 </div>
+
                 <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
@@ -432,43 +553,27 @@ export function EvolutionTimeline({
               </header>
 
               <div className="grid gap-3 py-4 md:grid-cols-2">
-                {[
-                  ["Queixa principal", selected.chief_complaint, "emerald"],
-                  ["Relato do paciente", selected.patient_report, "sky"],
-                  ["Estado emocional observado", selected.emotional_state, "violet"],
-                  ["Observações clínicas", selected.therapist_observations || selected.content, "amber"],
-                  ["Intervenções realizadas", selected.interventions, "emerald"],
-                  ["Evolução percebida", selected.perceived_evolution, "sky"],
-                  ["Tarefas e orientações", selected.homework, "violet"],
-                  ["Encaminhamentos", selected.referrals, "amber"],
-                  ["Próximos passos", selected.next_steps, "emerald"],
-                ].map(([label, value, tone]) => (
-                  <article
-                    key={label}
-                    className={cn(
-                      "rounded-lg border p-3",
-                      tone === "emerald" && "border-emerald-400/15 bg-emerald-500/5",
-                      tone === "sky" && "border-sky-400/15 bg-sky-500/5",
-                      tone === "violet" && "border-violet-400/15 bg-violet-500/5",
-                      tone === "amber" && "border-amber-400/15 bg-amber-500/5",
-                    )}
-                  >
-                    <h4
-                      className={cn(
-                        "text-[10px] font-bold uppercase tracking-wide",
-                        tone === "emerald" && "text-emerald-300",
-                        tone === "sky" && "text-sky-300",
-                        tone === "violet" && "text-violet-300",
-                        tone === "amber" && "text-amber-300",
-                      )}
+                {detailSections.map((section) => {
+                  const tone = detailTone(section.tone);
+                  return (
+                    <article
+                      key={section.label}
+                      className={cn("rounded-lg border p-3", tone.card)}
                     >
-                      {label}
-                    </h4>
-                    <p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-muted-foreground">
-                      {value || "Não informado."}
-                    </p>
-                  </article>
-                ))}
+                      <h4
+                        className={cn(
+                          "text-[10px] font-bold uppercase tracking-wide",
+                          tone.title,
+                        )}
+                      >
+                        {section.label}
+                      </h4>
+                      <p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-muted-foreground">
+                        {section.value || "Não informado."}
+                      </p>
+                    </article>
+                  );
+                })}
               </div>
 
               <div className="grid gap-3 border-t border-sky-400/15 py-4 sm:grid-cols-3">
@@ -507,7 +612,8 @@ export function EvolutionTimeline({
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <Archive className="h-3 w-3 text-violet-300" />
-                  {selected.addenda_count} aditivo(s) · última edição {new Date(selected.updated_at).toLocaleString("pt-BR")}
+                  {selected.addenda_count} aditivo(s) · última edição{" "}
+                  {new Date(selected.updated_at).toLocaleString("pt-BR")}
                 </span>
               </footer>
             </div>
