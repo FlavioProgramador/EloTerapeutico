@@ -56,6 +56,8 @@ export interface EvolutionWorkspace {
   locked_at: string | null;
   is_editable: boolean;
   addenda_count: number;
+  attached_documents_count?: number;
+  linked_goal_ids?: number[];
   version_count: number;
   created_by_name: string;
   created_at: string;
@@ -110,6 +112,9 @@ export interface AnamnesisWorkspace {
   custom_fields?: string;
   completion_percentage: number;
   version_count: number;
+  status?: "draft" | "complete";
+  status_display?: string;
+  updated_by_name?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -135,6 +140,7 @@ export interface TreatmentGoal {
   observations: string;
   sort_order: number;
   evolutions: number[];
+  created_by_name?: string;
   created_at: string;
   updated_at: string;
 }
@@ -143,6 +149,7 @@ export interface ClinicalDocument {
   id: number;
   patient: number;
   evolution?: number | null;
+  evolution_date?: string | null;
   category: string;
   category_display: string;
   original_name: string;
@@ -151,6 +158,9 @@ export interface ClinicalDocument {
   size_bytes: number;
   version: number;
   is_archived: boolean;
+  status?: "available" | "archived";
+  status_display?: string;
+  uploaded_by_name?: string;
   created_at: string;
   updated_at: string;
   download_url: string;
