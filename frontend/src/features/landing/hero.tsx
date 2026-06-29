@@ -1,21 +1,78 @@
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
-import { Reveal } from "./motion";
+import { ArrowRight, CalendarCheck2, CheckCircle2 } from "lucide-react";
+import { ParallaxOrb, Reveal } from "./motion";
 
 export function Hero() {
-  const items = ["Agenda integrada", "Prontuário estruturado", "Controle financeiro"];
+  const highlights = ["Agenda integrada", "Prontuários organizados", "Financeiro conectado"];
+
   return (
-    <section id="conteudo" className="landing-hero">
-      <div className="landing-hero-copy">
-        <Reveal>
-          <span className="landing-eyebrow">Gestão para a rotina terapêutica</span>
-          <h1>Sua clínica organizada. Seu cuidado no centro.</h1>
-          <p>Centralize pacientes, agenda, prontuários e financeiro em uma experiência conectada, clara e preparada para o dia a dia.</p>
-          <div className="landing-actions"><Link href="/register">Criar minha conta <ArrowRight /></Link><a href="#produto">Conhecer a plataforma</a></div>
-          <div className="landing-checks">{items.map((item) => <span key={item}><CheckCircle2 />{item}</span>)}</div>
+    <section id="conteudo" className="hero-premium">
+      <div className="hero-premium__texture" aria-hidden="true" />
+      <ParallaxOrb className="hero-premium__orb hero-premium__orb--one" speed={34} />
+      <ParallaxOrb className="hero-premium__orb hero-premium__orb--two" speed={18} />
+
+      <div className="hero-premium__inner">
+        <Reveal className="hero-premium__copy">
+          <span className="landing-eyebrow">O sistema feito para terapeutas</span>
+          <h1>
+            Gestão completa.
+            <br />
+            Mais tempo para <em>cuidar.</em>
+          </h1>
+          <p>
+            Organize agenda, prontuários, pacientes e financeiro em um só lugar.
+            Menos burocracia para manter o foco no acompanhamento de quem você atende.
+          </p>
+
+          <div className="hero-premium__actions">
+            <Link href="/register" className="hero-premium__primary">
+              Começar agora <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+            <a href="#produto" className="hero-premium__secondary">
+              Ver a plataforma
+            </a>
+          </div>
+
+          <div className="hero-premium__checks" aria-label="Principais áreas da plataforma">
+            {highlights.map((item) => (
+              <span key={item}>
+                <CheckCircle2 aria-hidden="true" />
+                {item}
+              </span>
+            ))}
+          </div>
+        </Reveal>
+
+        <Reveal className="hero-premium__media" delay={0.08}>
+          <div className="hero-premium__photo">
+            <Image
+              src="/terapeuta_acolhedora.png"
+              alt="Terapeuta em um ambiente acolhedor de atendimento"
+              fill
+              priority
+              sizes="(max-width: 1024px) 100vw, 48vw"
+            />
+            <div className="hero-premium__shade" aria-hidden="true" />
+          </div>
+
+          <div className="hero-premium__floating-card">
+            <span className="hero-premium__floating-icon">
+              <CalendarCheck2 aria-hidden="true" />
+            </span>
+            <span>
+              <strong>Sua agenda organizada</strong>
+              <small>Contexto e rotina no mesmo fluxo</small>
+            </span>
+          </div>
+
+          <div className="hero-premium__signal" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
         </Reveal>
       </div>
-      <Reveal delay={0.08}><div className="landing-hero-preview"><small>VISÃO DEMONSTRATIVA</small><h2>O essencial em uma única tela</h2><div><span>Próximos atendimentos</span><span>Pendências do dia</span><span>Resumo da operação</span></div></div></Reveal>
     </section>
   );
 }
