@@ -31,6 +31,13 @@ export interface AuthTokens {
 
 export type PatientStatus = "active" | "inactive" | "on_hold";
 export type PaymentMethod = "pix" | "credit_card" | "cash" | "insurance" | "boleto";
+export type FinancialPaymentMethod =
+  | "pix"
+  | "credit_card"
+  | "debit_card"
+  | "cash"
+  | "bank_transfer"
+  | "other";
 
 export interface Patient {
   id: number;
@@ -209,7 +216,7 @@ export interface FinancialTransaction {
   status: TransactionStatus;
   due_date: string;
   payment_date?: string;
-  payment_method?: PaymentMethod;
+  payment_method?: FinancialPaymentMethod;
   is_overdue?: boolean;
   notes?: string;
   created_at: string;
@@ -226,7 +233,7 @@ export interface CreateTransactionPayload {
   status?: TransactionStatus;
   due_date: string;
   payment_date?: string;
-  payment_method?: PaymentMethod;
+  payment_method?: FinancialPaymentMethod;
   notes?: string;
 }
 

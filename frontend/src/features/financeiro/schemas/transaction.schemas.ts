@@ -26,7 +26,7 @@ export const transactionSchema = z.object({
     .refine((val) => !isNaN(Date.parse(val)), "Data inválida."),
   payment_date: z.string().optional().or(z.literal("")),
   payment_method: z
-    .enum(["pix", "credit_card", "cash", "insurance", "boleto"])
+    .enum(["pix", "credit_card", "debit_card", "cash", "bank_transfer", "other"])
     .optional(),
   patient: z.union([z.string(), z.number()]).optional(),
   appointment: z.union([z.string(), z.number()]).optional(),
