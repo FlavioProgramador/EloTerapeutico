@@ -1,7 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Search, Sun, Moon, Bell, ChevronDown, User, LogOut, Settings } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
+import {
+  Bell,
+  ChevronDown,
+  LogOut,
+  Moon,
+  Search,
+  Settings,
+  Sun,
+  User,
+} from "lucide-react";
+
 import { useAuth } from "@/contexts/auth";
 import { cn } from "@/lib/utils";
 
@@ -11,27 +22,11 @@ interface HeaderProps {
 
 export function Header({ className }: HeaderProps) {
   const { user, logout } = useAuth();
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  // Inicializa o tema baseado no estado atual
-  useEffect(() => {
-    const isDark = document.documentElement.classList.contains("dark");
-    const timeoutId = setTimeout(() => {
-      setTheme(isDark ? "dark" : "light");
-    }, 0);
-    return () => clearTimeout(timeoutId);
-  }, []);
-
-  const toggleTheme = () => {
-    if (theme === "light") {
-      document.documentElement.classList.add("dark");
-      setTheme("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      setTheme("light");
-    }
-  };
+  useEffect(() => setMounted(true), []);
 
   const getRoleLabel = (role: string) => {
     const roles: Record<string, string> = {
@@ -42,116 +37,120 @@ export function Header({ className }: HeaderProps) {
     return roles[role] || role;
   };
 
+  const isDark = resolvedTheme === "dark";
+
   return (
     <header
       className={cn(
-        "h-16 border-b border-[hsl(165,27%,16%)] bg-[hsl(165,40%,7%)] sticky top-0 z-20 flex items-center justify-between px-6 transition-colors duration-150",
-        className
+        "sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border bg-background px-6 transition-colors duration-150",
+        className,
       )}
     >
-      {/* Busca Global */}
-      <div className="relative w-full max-w-md hidden md:block">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(163,8%,68%)]/60" />
+      <div className="relative hidden w-full max-w-md md:block">
+        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
         <input
           type="text"
           placeholder="Buscar pacientes, consultas, prontuários..."
-          className="w-full h-9 bg-[hsl(165,27%,12%)] border border-[hsl(165,27%,16%)] rounded-lg pl-10 pr-4 text-xs text-[hsl(40,20%,94%)] placeholder:text-[hsl(163,8%,68%)]/50 focus:outline-none focus:border-[hsl(38,25%,87%)] transition-colors"
+          className="h-9 w-full rounded-lg border border-border bg-card pl-10 pr-4 text-xs text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/10"
         />
       </div>
 
-      {/* Ações do Header */}
-      <div className="flex items-center gap-4 ml-auto">
-        {/* Toggle Light/Dark Mode */}
+      <div className="ml-auto flex items-center gap-2 sm:gap-3">
         <button
-          onClick={toggleTheme}
-          className="h-10 w-10 flex items-center justify-center text-[hsl(163,8%,68%)] hover:text-[hsl(40,20%,94%)] hover:bg-[hsl(165,27%,12%)] rounded-lg transition-all cursor-pointer"
-          title="Alternar Tema"
+          type="button"
+          onClick={() => setTheme(isDark ? "light" : "dark")}
+          className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+          title={isDark ? "Ativar tema claro" : "Ativar tema escuro"}
+          aria-label={isDark ? "Ativar tema claro" : "Ativar tema escuro"}
         >
-          {theme === "light" ? <Moon className="h-4.5 w-4.5" /> : <Sun className="h-4.5 w-4.5" />}
+          {mounted &&
+            (isDark ? (
+              <Sun className="h-4 w-4" />
+            ) : (
+              <Moon className="h-4 w-4" />
+            ))}
         </button>
 
-        {/* Notificações */}
         <button
-          className="h-10 w-10 flex items-center justify-center text-[hsl(163,8%,68%)] hover:text-[hsl(40,20%,94%)] hover:bg-[hsl(165,27%,12%)] rounded-lg relative transition-all cursor-pointer"
+          type="button"
+          className="relative grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition hover:bg-secondary hover:text-foreground"
           title="Notificações"
+          aria-label="Notificações"
         >
-          <Bell className="h-4.5 w-4.5" />
-          <span className="absolute top-2 right-2.5 h-1.5 w-1.5 rounded-full bg-[hsl(163,27%,62%)]" />
+          <Bell className="h-4 w-4" />
+          <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary ring-2 ring-background" />
         </button>
 
-        <div className="h-6 w-[1px] bg-[hsl(165,27%,16%)]" />
+        <div className="mx-1 h-6 w-px bg-border" />
 
-        {/* Dropdown de Perfil */}
         <div className="relative">
           <button
-            onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="flex items-center gap-3 hover:bg-[hsl(165,27%,12%)] rounded-lg p-1.5 transition-all cursor-pointer"
+            type="button"
+            onClick={() => setIsProfileOpen((current) => !current)}
+            className="flex items-center gap-3 rounded-lg p-1.5 transition hover:bg-secondary"
+            aria-expanded={isProfileOpen}
           >
-            {/* Avatar Genérico */}
-            <div className="h-8.5 w-8.5 rounded-full bg-[hsl(38,25%,87%)]/10 border border-[hsl(38,25%,87%)]/20 flex items-center justify-center text-[hsl(38,25%,87%)] font-bold text-xs">
+            <div className="grid h-8.5 w-8.5 place-items-center rounded-full border border-primary/25 bg-primary/10 text-xs font-bold text-primary">
               {user?.full_name?.charAt(0).toUpperCase() || "J"}
             </div>
-            
-            <div className="text-left hidden sm:block">
-              <p className="text-xs font-bold leading-none text-[hsl(40,20%,94%)]">
+
+            <div className="hidden text-left sm:block">
+              <p className="text-xs font-bold leading-none text-foreground">
                 {user?.full_name || "Juliana Martins"}
               </p>
-              <p className="text-[10px] text-[hsl(163,8%,68%)] mt-0.5">
+              <p className="mt-0.5 text-[10px] text-muted-foreground">
                 {user ? getRoleLabel(user.role) : "Terapeuta"}
               </p>
             </div>
-            <ChevronDown className="h-3.5 w-3.5 text-[hsl(163,8%,68%)] hidden sm:block" />
+            <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:block" />
           </button>
 
-          {/* Menu Dropdown do Perfil */}
           {isProfileOpen && (
             <>
-              {/* Overlay invisível para fechar */}
-              <div
-                className="fixed inset-0 z-40"
+              <button
+                type="button"
+                className="fixed inset-0 z-40 cursor-default"
                 onClick={() => setIsProfileOpen(false)}
+                aria-label="Fechar menu de perfil"
               />
-              
-              <div className="absolute right-0 mt-2 w-56 bg-[hsl(165,38%,10%)] border border-[hsl(165,27%,16%)] rounded-xl shadow-lg py-1.5 z-50 animate-fade-in">
-                <div className="px-4 py-2 border-b border-[hsl(165,27%,16%)]/40">
-                  <p className="text-xs font-bold text-[hsl(40,20%,94%)] truncate">
+
+              <div className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-border bg-popover shadow-xl shadow-black/10">
+                <div className="border-b border-border px-4 py-3">
+                  <p className="truncate text-xs font-bold text-popover-foreground">
                     {user?.full_name || "Juliana Martins"}
                   </p>
-                  <p className="text-[10px] text-[hsl(163,8%,68%)] truncate mt-0.5">
+                  <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
                     {user?.email || "juliana@teste.com"}
                   </p>
                 </div>
-                
-                <div className="py-1">
+
+                <div className="p-1.5">
                   <button
-                    onClick={() => {
-                      setIsProfileOpen(false);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-[hsl(163,8%,68%)] hover:text-[hsl(40,20%,94%)] hover:bg-[hsl(165,27%,12%)] transition-all text-left cursor-pointer"
+                    type="button"
+                    onClick={() => setIsProfileOpen(false)}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs text-muted-foreground transition hover:bg-secondary hover:text-foreground"
                   >
                     <User className="h-4 w-4" />
-                    Meu Perfil
+                    Meu perfil
                   </button>
                   <button
-                    onClick={() => {
-                      setIsProfileOpen(false);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-[hsl(163,8%,68%)] hover:text-[hsl(40,20%,94%)] hover:bg-[hsl(165,27%,12%)] transition-all text-left cursor-pointer"
+                    type="button"
+                    onClick={() => setIsProfileOpen(false)}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs text-muted-foreground transition hover:bg-secondary hover:text-foreground"
                   >
                     <Settings className="h-4 w-4" />
                     Configurações
                   </button>
                 </div>
 
-                <div className="border-t border-[hsl(165,27%,16%)]/40 my-1" />
-
-                <div className="py-1">
+                <div className="border-t border-border p-1.5">
                   <button
+                    type="button"
                     onClick={() => {
                       setIsProfileOpen(false);
                       logout();
                     }}
-                    className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-all text-left cursor-pointer"
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs text-destructive transition hover:bg-destructive/10"
                   >
                     <LogOut className="h-4 w-4" />
                     Sair
