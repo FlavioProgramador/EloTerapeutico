@@ -33,16 +33,35 @@ class PatientFilter(filters.FilterSet):
     def filter_search(self, queryset, name, value):
         if not value:
             return queryset
+
         digits = "".join(filter(str.isdigit, value))
         query = (
             Q(full_name__icontains=value)
             | Q(social_name__icontains=value)
             | Q(email__icontains=value)
             | Q(phone__icontains=value)
+            | Q(whatsapp__icontains=value)
         )
+
         if digits:
-            query |= Q(cpf__contains=digits) | Q(whatsapp__contains=digits)
-        return queryset.filter(query)
+            phone_variants = {digits}
+            if len(digits) == 10:
+                phone_variants.add(
+                    f"({digits[:2]}) {digits[2:6]}-{digits[6:]}"
+                )
+            elif len(digits) == 11:
+                phone_variants.add(
+                    f"({digits[:2]}) {digits[2:7]}-{digits[7:]}"
+                )
+
+            query |= Q(cpf__contains=digits)
+            for phone_value in phone_variants:
+                query |= (
+                    Q(phone__icontains=phone_value)
+                    | Q(whatsapp__icontains=phone_value)
+                )
+
+        return queryset.filter(query).distinct()
 
     def filter_tag(self, queryset, name, value):
         return queryset.filter(tags__icontains=value) if value else queryset
