@@ -1,7 +1,4 @@
-"""
-apps/patients/apps.py
-Configuração do aplicativo Pacientes.
-"""
+from importlib import import_module
 
 from django.apps import AppConfig
 
@@ -12,8 +9,4 @@ class PatientsConfig(AppConfig):
     verbose_name = "Pacientes"
 
     def ready(self):
-        """
-        Importa os signals do app ao inicializar.
-        Placeholder para futuras implementações de signals.
-        """
-        pass
+        import_module("apps.patients.review_filter")
