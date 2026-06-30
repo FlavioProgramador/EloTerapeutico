@@ -13,6 +13,7 @@ from core.audit import AuditLog, log_access
 from .dashboard_serializers import PatientDashboardSerializer
 from .form_serializers import PatientFormSerializer
 from .models import Patient
+from .serializers import PatientDetailSerializer
 
 
 def _csv_cell(row, key, default=""):
@@ -53,9 +54,6 @@ class PatientDashboardActions:
 
     @action(detail=False, methods=["post"], url_path="import-csv")
     def import_csv(self, request):
-        # O fluxo de importação do frontend atribui automaticamente o profissional
-        # autenticado. Perfis administrativos não devem importar sem uma seleção
-        # explícita e auditável do terapeuta responsável.
         if not request.user.is_therapist:
             return Response(
                 {
@@ -165,6 +163,20 @@ class PatientDashboardActions:
             {**preview, "imported": len(valid_payloads)},
             status=status.HTTP_201_CREATED,
         )
+
+    @action(detail=True, methods=["get"], url_path="form")
+    def form(self, request, pk=None):
+        """Retorna todos os campos editáveis sem depender de valores padrão do frontend."""
+        patient = self.get_object()
+        detail_data = PatientDetailSerializer(
+            patient,
+            context={"request": request},
+        ).data
+        form_data = PatientFormSerializer(
+            patient,
+            context={"request": request},
+        ).data
+        return Response({**detail_data, **form_data})
 
     @action(detail=True, methods=["get"], url_path="dashboard")
     def dashboard(self, request, pk=None):
