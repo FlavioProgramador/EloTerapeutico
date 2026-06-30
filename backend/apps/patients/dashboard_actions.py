@@ -1,5 +1,7 @@
 import csv
+import hashlib
 import re
+import secrets
 from datetime import timedelta
 from io import StringIO
 
@@ -9,15 +11,16 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.users.models import User
 from core.audit import AuditLog, log_access
+
 from .dashboard_serializers import PatientDashboardSerializer
 from .form_serializers import PatientFormSerializer
-from .models import Patient
+from .models import Patient, PatientRegistrationInvite
 from .serializers import PatientDetailSerializer
 
 
 def _csv_cell(row, key, default=""):
-    """Retorna uma célula CSV normalizada, inclusive quando DictReader devolve None."""
     value = row.get(key, default)
     if value is None:
         return default
@@ -52,6 +55,87 @@ class PatientDashboardActions:
             }
         )
 
+    @action(detail=False, methods=["get"], url_path="professionals")
+    def professionals(self, request):
+        if request.user.is_therapist:
+            queryset = User.objects.filter(pk=request.user.pk, is_active=True)
+        else:
+            queryset = User.objects.filter(
+                role=User.Role.THERAPIST,
+                is_active=True,
+            ).order_by("full_name")
+        return Response(
+            [
+                {
+                    "id": professional.pk,
+                    "full_name": professional.full_name,
+                    "specialty": professional.specialty,
+                }
+                for professional in queryset
+            ]
+        )
+
+    @action(detail=True, methods=["post"], url_path="registration-link")
+    @transaction.atomic
+    def registration_link(self, request, pk=None):
+        patient = self.get_object()
+        if request.user.is_secretary:
+            return Response(
+                {"detail": "Seu perfil não pode gerar links de cadastro."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        PatientRegistrationInvite.objects.filter(
+            patient=patient,
+            used_at__isnull=True,
+            expires_at__gt=timezone.now(),
+        ).update(used_at=timezone.now())
+        raw_token = secrets.token_urlsafe(32)
+        PatientRegistrationInvite.objects.create(
+            patient=patient,
+            token_hash=hashlib.sha256(raw_token.encode("utf-8")).hexdigest(),
+            expires_at=timezone.now() + timedelta(hours=72),
+            created_by=request.user,
+        )
+        invite = patient.registration_invites.first()
+        log_access(
+            request,
+            AuditLog.Action.CREATE,
+            obj=patient,
+            obj_repr=f"Link de complementação do paciente #{patient.pk}",
+        )
+        return Response(
+            {
+                "path": f"/cadastro-paciente/{raw_token}",
+                "expires_at": invite.expires_at,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="registration-link/revoke",
+    )
+    def revoke_registration_link(self, request, pk=None):
+        patient = self.get_object()
+        if request.user.is_secretary:
+            return Response(
+                {"detail": "Seu perfil não pode revogar links de cadastro."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        revoked = PatientRegistrationInvite.objects.filter(
+            patient=patient,
+            used_at__isnull=True,
+        ).update(used_at=timezone.now())
+        log_access(
+            request,
+            AuditLog.Action.UPDATE,
+            obj=patient,
+            obj_repr=f"Revogação de {revoked} convite(s) do paciente #{patient.pk}",
+        )
+        return Response({"revoked": revoked})
+
     @action(detail=False, methods=["post"], url_path="import-csv")
     def import_csv(self, request):
         if not request.user.is_therapist:
@@ -83,11 +167,7 @@ class PatientDashboardActions:
         fieldnames = set(reader.fieldnames or [])
         if not required_columns.issubset(fieldnames):
             return Response(
-                {
-                    "detail": (
-                        "O CSV deve conter as colunas full_name, cpf e birth_date."
-                    )
-                },
+                {"detail": "O CSV deve conter as colunas full_name, cpf e birth_date."},
                 status=400,
             )
 
@@ -101,7 +181,6 @@ class PatientDashboardActions:
         errors = []
         duplicates = []
         seen_cpfs = set()
-
         for line, row in enumerate(rows, start=2):
             raw_cpf = _csv_cell(row, "cpf")
             clean_cpf = re.sub(r"\D", "", raw_cpf)
@@ -122,19 +201,11 @@ class PatientDashboardActions:
                 "phone": _csv_cell(row, "phone"),
                 "gender": _csv_cell(row, "gender", "N") or "N",
                 "status": _csv_cell(row, "status", "active") or "active",
-                "modality": (
-                    _csv_cell(row, "modality", "in_person") or "in_person"
-                ),
-                "payer_type": (
-                    _csv_cell(row, "payer_type", "private") or "private"
-                ),
+                "modality": _csv_cell(row, "modality", "in_person") or "in_person",
+                "payer_type": _csv_cell(row, "payer_type", "private") or "private",
                 "therapist": request.user.pk,
             }
-
-            serializer = PatientFormSerializer(
-                data=payload,
-                context={"request": request},
-            )
+            serializer = PatientFormSerializer(data=payload, context={"request": request})
             if serializer.is_valid():
                 valid_payloads.append(serializer.validated_data)
             else:
@@ -153,7 +224,6 @@ class PatientDashboardActions:
         with transaction.atomic():
             for payload in valid_payloads:
                 Patient.objects.create(**payload)
-
         log_access(
             request,
             AuditLog.Action.CREATE,
@@ -166,7 +236,6 @@ class PatientDashboardActions:
 
     @action(detail=True, methods=["get"], url_path="form")
     def form(self, request, pk=None):
-        """Retorna todos os campos editáveis sem depender de valores padrão do frontend."""
         patient = self.get_object()
         detail_data = PatientDetailSerializer(
             patient,
@@ -182,7 +251,6 @@ class PatientDashboardActions:
     def dashboard(self, request, pk=None):
         patient = self.get_object()
         can_access_records = request.user.is_therapist or request.user.is_admin_role
-
         latest_evolution = None
         documents = []
         if can_access_records:
@@ -214,13 +282,17 @@ class PatientDashboardActions:
                     patient, context={"request": request}
                 ).data,
                 "can_access_records": can_access_records,
-                "next_session": None if not next_appointment else {
+                "next_session": None
+                if not next_appointment
+                else {
                     "id": next_appointment.id,
                     "start_time": next_appointment.start_time,
                     "end_time": next_appointment.end_time,
                     "status": next_appointment.status,
                 },
-                "latest_evolution": None if not latest_evolution else {
+                "latest_evolution": None
+                if not latest_evolution
+                else {
                     "id": latest_evolution.id,
                     "session_date": latest_evolution.session_date,
                     "summary": latest_evolution.content[:280],
