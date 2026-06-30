@@ -1,1 +1,2 @@
-export { PatientBrowserSafe as default } from "@/features/patients/components/patient-browser-safe";
+import { PatientBrowserFinal } from "@/features/patients/components/patient-browser-final";
+export default PatientBrowserFinal;
