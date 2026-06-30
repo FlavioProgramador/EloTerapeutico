@@ -1,2 +1,1 @@
-import { PatientBrowser } from "@/features/patients/components/patient-browser";
-export default function Page() { return <PatientBrowser />; }
+export { PatientBrowserSafe as default } from "@/features/patients/components/patient-browser-safe";
