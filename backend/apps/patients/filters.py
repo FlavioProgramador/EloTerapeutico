@@ -1,20 +1,57 @@
-"""Filtros validados e paginados para a listagem de pacientes."""
+"""Filtros validados e paginados para a listagem de pacientes.
+
+Este módulo evita importar o model ``Patient`` durante a carga inicial do app.
+A ``main`` mantém um módulo de compatibilidade que importa estes filtros a partir
+do ``apps.patients.__init__``; importar models nessa fase dispara
+``AppRegistryNotReady`` antes de o Django concluir o registro das aplicações.
+Todos os filtros são declarados explicitamente e recebem o model do queryset em
+tempo de execução pelo django-filter.
+"""
 
 from django.db.models import Q
 from django.utils import timezone
 from django_filters import rest_framework as filters
 
-from .models import Patient
+
+PATIENT_STATUS_CHOICES = (
+    ("active", "Ativo"),
+    ("evaluation", "Em avaliação"),
+    ("waiting_return", "Aguardando retorno"),
+    ("discharged", "Alta"),
+    ("inactive", "Encerrado"),
+    ("archived", "Arquivado"),
+)
+
+PATIENT_MODALITY_CHOICES = (
+    ("in_person", "Presencial"),
+    ("online", "Online"),
+    ("hybrid", "Híbrido"),
+)
+
+PATIENT_PAYER_TYPE_CHOICES = (
+    ("private", "Particular"),
+    ("insurance", "Convênio"),
+)
+
+PATIENT_ATTENDANCE_TYPE_CHOICES = (
+    ("individual", "Individual"),
+    ("couple", "Casal"),
+    ("family", "Familiar"),
+    ("group", "Grupo"),
+    ("other", "Outro"),
+)
 
 
 class PatientFilter(filters.FilterSet):
     search = filters.CharFilter(method="filter_search")
-    status = filters.MultipleChoiceFilter(choices=Patient.Status.choices)
+    status = filters.MultipleChoiceFilter(choices=PATIENT_STATUS_CHOICES)
     therapist = filters.NumberFilter(field_name="therapist_id")
     professional = filters.NumberFilter(method="filter_professional")
-    modality = filters.ChoiceFilter(choices=Patient.Modality.choices)
-    payer_type = filters.ChoiceFilter(choices=Patient.PayerType.choices)
-    attendance_type = filters.ChoiceFilter(choices=Patient.AttendanceType.choices)
+    modality = filters.ChoiceFilter(choices=PATIENT_MODALITY_CHOICES)
+    payer_type = filters.ChoiceFilter(choices=PATIENT_PAYER_TYPE_CHOICES)
+    attendance_type = filters.ChoiceFilter(
+        choices=PATIENT_ATTENDANCE_TYPE_CHOICES,
+    )
     insurance = filters.CharFilter(
         field_name="insurance_name",
         lookup_expr="icontains",
@@ -49,27 +86,6 @@ class PatientFilter(filters.FilterSet):
     birthday_month = filters.NumberFilter(method="filter_birthday_month")
     birthdays = filters.BooleanFilter(method="filter_birthdays")
     reminders_enabled = filters.BooleanFilter()
-
-    class Meta:
-        model = Patient
-        fields = [
-            "status",
-            "therapist",
-            "professional",
-            "modality",
-            "payer_type",
-            "attendance_type",
-            "insurance",
-            "birth_date_gte",
-            "birth_date_lte",
-            "created_from",
-            "created_to",
-            "created_at_gte",
-            "created_at_lte",
-            "birthday_month",
-            "birthdays",
-            "reminders_enabled",
-        ]
 
     def filter_search(self, queryset, name, value):
         term = (value or "").strip()
