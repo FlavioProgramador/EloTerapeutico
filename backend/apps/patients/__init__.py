@@ -1,1 +1,1 @@
-from . import review_filter  # noqa: F401
+# apps/patients/__init__.py
