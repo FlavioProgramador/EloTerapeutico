@@ -3,40 +3,36 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "sonner";
+
 import { AuthProvider } from "@/contexts/auth";
 import { ThemeProvider } from "./theme-provider";
 import { queryClient } from "./query-client";
 
 /**
  * Providers raiz da aplicação.
- * Ordem correta de aninhamento:
- * ThemeProvider → QueryClientProvider → AuthProvider → Toaster
- *
- * O Toaster está fora do AuthProvider pois deve ser acessível globalmente,
- * inclusive antes/depois de autenticação.
+ * Ordem: tema → dados remotos → autenticação → notificações.
  */
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <AuthProvider>{children}</AuthProvider>
         <Toaster
           position="bottom-right"
+          theme="system"
           toastOptions={{
             classNames: {
               toast:
-                "bg-card text-card-foreground border border-border shadow-lg",
-              title: "font-medium text-sm",
+                "bg-popover text-popover-foreground border border-border shadow-xl shadow-black/10",
+              title: "font-semibold text-sm",
               description: "text-muted-foreground text-sm",
-              success: "border-l-4 border-l-primary",
+              success: "border-l-4 border-l-success",
               error: "border-l-4 border-l-destructive",
-              warning: "border-l-4 border-l-yellow-500",
+              warning: "border-l-4 border-l-warning",
+              info: "border-l-4 border-l-info",
             },
             duration: 4000,
           }}
-          richColors
         />
         {process.env.NODE_ENV === "development" && (
           <ReactQueryDevtools initialIsOpen={false} />

@@ -1,134 +1,341 @@
 @import "tailwindcss";
 
 :root {
-  /* Paleta Terrosa e Acolhedora - Referência da Imagem */
-  --background: 165 40% 7%; /* Fundo Petróleo Escuro */
-  --foreground: 40 20% 94%; /* Texto Creme Claro */
-  
-  --card: 165 38% 10%; /* Fundo de cards um pouco mais claro */
-  --card-foreground: 40 20% 94%;
-  
-  --popover: 165 38% 10%;
-  --popover-foreground: 40 20% 94%;
-  
-  --primary: 38 25% 87%; /* Creme / Bege Acolhedor (Destaques Primários) */
-  --primary-foreground: 165 40% 7%;
-  
-  --secondary: 165 27% 12%; /* Verde floresta escuro para botões contrastantes */
-  --secondary-foreground: 40 20% 94%;
-  
-  --muted: 165 27% 12%;
-  --muted-foreground: 163 8% 68%; /* Verde cinzento para textos de apoio */
-  
-  --accent: 163 27% 62%; /* Verde sálvia claro para tags e badges ativos */
-  --accent-foreground: 165 40% 7%;
-  
-  --destructive: 0 65% 45%;
-  --destructive-foreground: 40 20% 94%;
+  /*
+   * Elo Terapêutico — paleta "Íris Terapêutica"
+   * Base neutra fria, índigo-violeta como identidade principal e azul
+   * luminoso como apoio informativo. O verde deixa de ser cor de marca.
+   */
+  --background: 220 35% 98%;
+  --foreground: 223 34% 14%;
 
-  --border: 165 27% 16%;
-  --input: 165 27% 16%;
-  --ring: 38 25% 87%;
+  --card: 0 0% 100%;
+  --card-foreground: 223 34% 14%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 223 34% 14%;
 
-  --radius: 0.75rem; /* Cantos arredondados moderados */
+  --primary: 246 91% 67%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 225 29% 95%;
+  --secondary-foreground: 225 29% 20%;
+
+  --muted: 223 24% 95%;
+  --muted-foreground: 224 14% 46%;
+
+  --accent: 211 100% 65%;
+  --accent-foreground: 225 42% 9%;
+
+  --success: 187 88% 29%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 28 90% 12%;
+  --info: 211 100% 65%;
+  --info-foreground: 225 42% 9%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 224 24% 88%;
+  --input: 224 24% 88%;
+  --ring: 246 91% 67%;
+
+  --surface: 224 31% 96%;
+  --surface-elevated: 0 0% 100%;
+
+  --sidebar: 228 42% 8%;
+  --sidebar-surface: 228 32% 13%;
+  --sidebar-foreground: 220 35% 94%;
+  --sidebar-muted: 224 17% 65%;
+  --sidebar-active: 246 91% 67%;
+  --sidebar-border: 225 22% 21%;
+
+  --radius: 0.75rem;
 }
 
 .dark {
-  /* Dark mode é o padrão terroso escuro nesta nova estética, mantendo coerência visual */
-  --background: 165 40% 7%;
-  --foreground: 40 20% 94%;
-  
-  --card: 165 38% 10%;
-  --card-foreground: 40 20% 94%;
-  
-  --popover: 165 38% 10%;
-  --popover-foreground: 40 20% 94%;
-  
-  --primary: 38 25% 87%;
-  --primary-foreground: 165 40% 7%;
-  
-  --secondary: 165 27% 12%;
-  --secondary-foreground: 40 20% 94%;
-  
-  --muted: 165 27% 12%;
-  --muted-foreground: 163 8% 68%;
-  
-  --accent: 163 27% 62%;
-  --accent-foreground: 165 40% 7%;
-  
-  --destructive: 0 70% 55%;
-  --destructive-foreground: 40 20% 94%;
+  /* Tema escuro principal: índigo profundo com superfícies azul-violeta. */
+  --background: 225 42% 9%;
+  --foreground: 220 35% 94%;
 
-  --border: 165 27% 16%;
-  --input: 165 27% 16%;
-  --ring: 38 25% 87%;
+  --card: 226 36% 13%;
+  --card-foreground: 220 35% 94%;
+  --popover: 226 34% 14%;
+  --popover-foreground: 220 35% 94%;
+
+  --primary: 246 91% 67%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 225 28% 17%;
+  --secondary-foreground: 220 30% 92%;
+
+  --muted: 225 25% 16%;
+  --muted-foreground: 224 17% 65%;
+
+  --accent: 211 100% 65%;
+  --accent-foreground: 225 42% 9%;
+
+  --success: 188 86% 53%;
+  --success-foreground: 225 42% 9%;
+  --warning: 38 92% 58%;
+  --warning-foreground: 28 90% 12%;
+  --info: 211 100% 65%;
+  --info-foreground: 225 42% 9%;
+  --destructive: 0 84% 66%;
+  --destructive-foreground: 225 42% 9%;
+
+  --border: 225 22% 23%;
+  --input: 225 22% 23%;
+  --ring: 246 91% 67%;
+
+  --surface: 225 30% 12%;
+  --surface-elevated: 226 36% 13%;
+
+  --sidebar: 228 42% 8%;
+  --sidebar-surface: 228 32% 13%;
+  --sidebar-foreground: 220 35% 94%;
+  --sidebar-muted: 224 17% 65%;
+  --sidebar-active: 246 91% 67%;
+  --sidebar-border: 225 22% 21%;
 }
 
 @theme {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
-  
+
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
-  
   --color-popover: hsl(var(--popover));
   --color-popover-foreground: hsl(var(--popover-foreground));
-  
+
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
-  
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
-  
   --color-muted: hsl(var(--muted));
   --color-muted-foreground: hsl(var(--muted-foreground));
-  
   --color-accent: hsl(var(--accent));
   --color-accent-foreground: hsl(var(--accent-foreground));
-  
+
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-info: hsl(var(--info));
+  --color-info-foreground: hsl(var(--info-foreground));
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
-  
+
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
+  --color-surface: hsl(var(--surface));
+  --color-surface-elevated: hsl(var(--surface-elevated));
+
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-surface: hsl(var(--sidebar-surface));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-muted: hsl(var(--sidebar-muted));
+  --color-sidebar-active: hsl(var(--sidebar-active));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+
+  /*
+   * Compatibilidade cromática: componentes antigos ainda usam classes
+   * emerald/green/teal. As escalas são redirecionadas para a identidade
+   * índigo, removendo o verde visual sem quebrar os componentes existentes.
+   */
+  --color-emerald-50: #f5f3ff;
+  --color-emerald-100: #ede9fe;
+  --color-emerald-200: #ddd6fe;
+  --color-emerald-300: #c4b5fd;
+  --color-emerald-400: #a78bfa;
+  --color-emerald-500: #6d5ef8;
+  --color-emerald-600: #5b4ae6;
+  --color-emerald-700: #4c3ac7;
+  --color-emerald-800: #3e329f;
+  --color-emerald-900: #332b7c;
+  --color-emerald-950: #1c1748;
+
+  --color-green-50: #f5f3ff;
+  --color-green-100: #ede9fe;
+  --color-green-200: #ddd6fe;
+  --color-green-300: #c4b5fd;
+  --color-green-400: #a78bfa;
+  --color-green-500: #6d5ef8;
+  --color-green-600: #5b4ae6;
+  --color-green-700: #4c3ac7;
+  --color-green-800: #3e329f;
+  --color-green-900: #332b7c;
+  --color-green-950: #1c1748;
+
+  --color-teal-50: #f5f3ff;
+  --color-teal-100: #ede9fe;
+  --color-teal-200: #ddd6fe;
+  --color-teal-300: #c4b5fd;
+  --color-teal-400: #a78bfa;
+  --color-teal-500: #6d5ef8;
+  --color-teal-600: #5b4ae6;
+  --color-teal-700: #4c3ac7;
+  --color-teal-800: #3e329f;
+  --color-teal-900: #332b7c;
+  --color-teal-950: #1c1748;
+
+  /* Lime passa a funcionar como escala azul-ciano de apoio. */
+  --color-lime-50: #effbff;
+  --color-lime-100: #d9f6ff;
+  --color-lime-200: #b8ecff;
+  --color-lime-300: #7fdeff;
+  --color-lime-400: #45c8f5;
+  --color-lime-500: #1ea7e1;
+  --color-lime-600: #1386ba;
+  --color-lime-700: #146b95;
+  --color-lime-800: #175978;
+  --color-lime-900: #184b65;
+  --color-lime-950: #0b3044;
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
-  
+
   --font-sans: var(--font-outfit), Inter, system-ui, sans-serif;
 }
 
+* {
+  border-color: hsl(var(--border));
+}
+
+html {
+  color-scheme: light;
+  scroll-behavior: smooth;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
 body {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-  font-family: var(--font-sans);
   min-height: 100vh;
   margin: 0;
   padding: 0;
-  transition: background-color 0.3s ease, color 0.3s ease;
   overflow-x: hidden;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans);
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
 }
 
-/* Micro-animações e utilitários úteis */
+::selection {
+  background: hsl(var(--primary) / 0.22);
+  color: hsl(var(--foreground));
+}
+
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Superfície translúcida legada, mantida sem blur para evitar glassmorphism. */
 .glass-effect {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.dark .glass-effect {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card) / 0.96);
 }
 
 .hover-glow {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
 }
 
 .hover-glow:hover {
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+  border-color: hsl(var(--primary) / 0.35);
+  box-shadow: 0 10px 28px hsl(var(--foreground) / 0.06);
   transform: translateY(-1px);
+}
+
+/*
+ * Ponte de migração para telas antigas que ainda usam a paleta HSL literal.
+ * Evita divergência visual enquanto os componentes são convertidos para tokens.
+ */
+[class~="text-[hsl(40,20%,94%)]"] {
+  color: hsl(var(--foreground)) !important;
+}
+
+[class~="text-[hsl(163,8%,68%)]"] {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+[class~="text-[hsl(163,27%,62%)]"] {
+  color: hsl(var(--primary)) !important;
+}
+
+[class~="text-[hsl(165,40%,7%)]"] {
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+[class~="bg-[hsl(165,40%,7%)]"] {
+  background-color: hsl(var(--background)) !important;
+}
+
+[class~="bg-[hsl(165,38%,10%)]"] {
+  background-color: hsl(var(--card)) !important;
+}
+
+[class~="bg-[hsl(165,27%,12%)]"] {
+  background-color: hsl(var(--secondary)) !important;
+}
+
+[class~="bg-[hsl(38,25%,87%)]"] {
+  background-color: hsl(var(--primary)) !important;
+}
+
+[class~="bg-[hsl(163,27%,62%)]/10"] {
+  background-color: hsl(var(--primary) / 0.1) !important;
+}
+
+[class~="border-[hsl(165,27%,16%)]"] {
+  border-color: hsl(var(--border)) !important;
+}
+
+[class~="border-[hsl(38,25%,87%)]/20"] {
+  border-color: hsl(var(--primary) / 0.2) !important;
+}
+
+[class~="focus:border-[hsl(38,25%,87%)]"]:focus {
+  border-color: hsl(var(--ring)) !important;
+}
+
+[class~="bg-primary"][class~="text-white"],
+[class~="bg-emerald-500"][class~="text-emerald-950"] {
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+/* Recolore indicadores circulares legados que ainda usam verde inline. */
+[class~="h-24"][class~="w-24"][style*="conic-gradient"] {
+  filter: hue-rotate(90deg);
+}
+
+[class~="h-24"][class~="w-24"][style*="conic-gradient"] > * {
+  filter: hue-rotate(-90deg);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

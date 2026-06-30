@@ -66,6 +66,8 @@ def test_cria_e_finaliza_evolucao(client, patient):
     )
     assert created.status_code == 201
     assert created.data["status"] == "draft"
+    assert created.data["attached_documents_count"] == 0
+    assert created.data["linked_goal_ids"] == []
 
     finalized = client.post(
         f"/api/v1/records/clinical-evolutions/{created.data['id']}/finalize/",
@@ -79,13 +81,16 @@ def test_cria_e_finaliza_evolucao(client, patient):
 
 
 @pytest.mark.django_db
-def test_anamnese_cria_versao_antes_da_edicao(client, patient):
+def test_anamnese_cria_versao_antes_da_edicao(client, patient, therapist):
     first = client.patch(
         f"/api/v1/records/patients/{patient.id}/clinical-anamnesis/",
         {"chief_complaint": "Primeira versão"},
         format="json",
     )
     assert first.status_code == 200
+    assert first.data["status"] == "draft"
+    assert first.data["status_display"] == "Rascunho"
+    assert first.data["updated_by_name"] == therapist.full_name
 
     second = client.patch(
         f"/api/v1/records/patients/{patient.id}/clinical-anamnesis/",

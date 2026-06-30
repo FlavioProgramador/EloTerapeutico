@@ -81,6 +81,9 @@ class ClinicalAnamnesisSerializer(serializers.Serializer):
     clinical_hypotheses = serializers.CharField(required=False, allow_blank=True)
     custom_fields = serializers.CharField(required=False, allow_blank=True, default="{}")
     completion_percentage = serializers.IntegerField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    status_display = serializers.CharField(read_only=True)
+    updated_by_name = serializers.CharField(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
     version_count = serializers.IntegerField(read_only=True)
@@ -95,6 +98,9 @@ class ClinicalAnamnesisSerializer(serializers.Serializer):
                 instance.updated_at,
                 profile.updated_at if profile else instance.updated_at,
             ),
+            "updated_by_name": (
+                profile.updated_by.full_name if profile and profile.updated_by else ""
+            ),
             "version_count": instance.versions.count(),
         }
         for field in ANAMNESIS_LEGACY_FIELDS:
@@ -107,10 +113,15 @@ class ClinicalAnamnesisSerializer(serializers.Serializer):
             for key, value in values.items()
             if key in ANAMNESIS_LEGACY_FIELDS + ANAMNESIS_PROFILE_FIELDS
         ]
-        values["completion_percentage"] = round(
+        completion_percentage = round(
             sum(bool(str(value).strip()) for value in completed_fields)
             / len(completed_fields)
             * 100
+        )
+        values["completion_percentage"] = completion_percentage
+        values["status"] = "complete" if completion_percentage == 100 else "draft"
+        values["status_display"] = (
+            "Completa" if completion_percentage == 100 else "Rascunho"
         )
         return super().to_representation(values)
 
@@ -170,6 +181,15 @@ class EvolutionWorkspaceSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
     is_editable = serializers.SerializerMethodField()
     addenda_count = serializers.IntegerField(source="addenda.count", read_only=True)
+    attached_documents_count = serializers.IntegerField(
+        source="documents.count",
+        read_only=True,
+    )
+    linked_goal_ids = serializers.PrimaryKeyRelatedField(
+        source="treatment_goals",
+        many=True,
+        read_only=True,
+    )
     session_time = serializers.TimeField(
         source="clinical_data.session_time",
         required=False,
@@ -261,6 +281,8 @@ class EvolutionWorkspaceSerializer(serializers.ModelSerializer):
             "locked_at",
             "is_editable",
             "addenda_count",
+            "attached_documents_count",
+            "linked_goal_ids",
             "created_by_name",
             "created_at",
             "updated_at",
@@ -271,6 +293,8 @@ class EvolutionWorkspaceSerializer(serializers.ModelSerializer):
             "locked_at",
             "is_editable",
             "addenda_count",
+            "attached_documents_count",
+            "linked_goal_ids",
             "created_by_name",
             "created_at",
             "updated_at",
@@ -370,6 +394,7 @@ class TreatmentGoalSerializer(serializers.ModelSerializer):
         source="get_priority_display",
         read_only=True,
     )
+    created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
 
     class Meta:
         model = TreatmentGoal
@@ -391,10 +416,16 @@ class TreatmentGoalSerializer(serializers.ModelSerializer):
             "observations",
             "sort_order",
             "evolutions",
+            "created_by_name",
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("patient", "created_at", "updated_at")
+        read_only_fields = (
+            "patient",
+            "created_by_name",
+            "created_at",
+            "updated_at",
+        )
 
     def validate_evolutions(self, evolutions):
         patient = self.context["patient"]
@@ -410,6 +441,17 @@ class ClinicalDocumentSerializer(serializers.ModelSerializer):
         source="get_category_display",
         read_only=True,
     )
+    uploaded_by_name = serializers.CharField(
+        source="uploaded_by.full_name",
+        read_only=True,
+    )
+    evolution_date = serializers.DateField(
+        source="evolution.session_date",
+        read_only=True,
+        allow_null=True,
+    )
+    status = serializers.SerializerMethodField()
+    status_display = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
     file = serializers.FileField(write_only=True, required=False)
 
@@ -419,6 +461,7 @@ class ClinicalDocumentSerializer(serializers.ModelSerializer):
             "id",
             "patient",
             "evolution",
+            "evolution_date",
             "category",
             "category_display",
             "file",
@@ -428,21 +471,34 @@ class ClinicalDocumentSerializer(serializers.ModelSerializer):
             "size_bytes",
             "version",
             "is_archived",
+            "status",
+            "status_display",
+            "uploaded_by_name",
             "created_at",
             "updated_at",
             "download_url",
         )
         read_only_fields = (
             "patient",
+            "evolution_date",
             "original_name",
             "content_type",
             "size_bytes",
             "version",
             "is_archived",
+            "status",
+            "status_display",
+            "uploaded_by_name",
             "created_at",
             "updated_at",
             "download_url",
         )
+
+    def get_status(self, obj):
+        return "archived" if obj.is_archived else "available"
+
+    def get_status_display(self, obj):
+        return "Arquivado" if obj.is_archived else "Disponível"
 
     def get_download_url(self, obj):
         request = self.context.get("request")

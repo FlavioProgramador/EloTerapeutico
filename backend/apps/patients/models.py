@@ -1,13 +1,23 @@
-"""Modelo administrativo de pacientes do Elo Terapêutico."""
+"""Domínio administrativo de pacientes do Elo Terapêutico."""
 
 import re
 from datetime import date
+from pathlib import Path
+from uuid import uuid4
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
 from core.validators import validate_cpf, validate_phone
+
+
+def patient_photo_path(instance, filename: str) -> str:
+    """Gera nome não previsível sem expor o nome do paciente no storage."""
+
+    suffix = Path(filename).suffix.lower()
+    owner = instance.therapist_id or "unassigned"
+    return f"patient_photos/{owner}/{uuid4().hex}{suffix}"
 
 
 class PatientManager(models.Manager):
@@ -68,16 +78,35 @@ class Patient(models.Model):
         MONTHLY = "monthly", "Mensal"
         AS_NEEDED = "as_needed", "Conforme necessidade"
 
+    class ReminderRecipient(models.TextChoices):
+        PATIENT = "patient", "Paciente"
+        FINANCIAL_RESPONSIBLE = "financial_responsible", "Responsável financeiro"
+        BOTH = "both", "Paciente e responsável"
+        NONE = "none", "Não enviar"
+
     full_name = models.CharField(max_length=255, db_index=True, verbose_name="Nome completo")
     social_name = models.CharField(max_length=255, blank=True, verbose_name="Nome social")
+    photo = models.FileField(
+        upload_to=patient_photo_path,
+        null=True,
+        blank=True,
+        verbose_name="Foto do paciente",
+    )
     cpf = models.CharField(
         max_length=11,
         unique=True,
+        null=True,
+        blank=True,
         validators=[validate_cpf],
         verbose_name="CPF",
     )
     rg = models.CharField(max_length=30, blank=True, verbose_name="RG")
-    birth_date = models.DateField(verbose_name="Data de nascimento")
+    birth_date = models.DateField(null=True, blank=True, verbose_name="Data de nascimento")
+    treatment_start_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Início dos atendimentos",
+    )
     gender = models.CharField(
         max_length=1,
         choices=Gender.choices,
@@ -90,6 +119,8 @@ class Patient(models.Model):
         blank=True,
         verbose_name="Estado civil",
     )
+    profession = models.CharField(max_length=160, blank=True, verbose_name="Profissão")
+    social_network = models.CharField(max_length=160, blank=True, verbose_name="Rede social")
 
     email = models.EmailField(blank=True, verbose_name="E-mail")
     phone = models.CharField(
@@ -151,12 +182,19 @@ class Patient(models.Model):
         blank=True,
         verbose_name="Frequência planejada",
     )
+    reminders_enabled = models.BooleanField(default=True, verbose_name="Lembretes ativos")
+    reminder_recipient = models.CharField(
+        max_length=32,
+        choices=ReminderRecipient.choices,
+        default=ReminderRecipient.PATIENT,
+        verbose_name="Destinatário dos lembretes",
+    )
 
     referral_source = models.CharField(max_length=255, blank=True, verbose_name="Origem / indicação")
     tags = models.JSONField(default=list, blank=True, verbose_name="Etiquetas")
 
     emergency_contact_name = models.CharField(max_length=255, blank=True, verbose_name="Contato de emergência")
-    emergency_contact_relationship = models.CharField(max_length=80, blank=True, verbose_name="Parentesco do contato")
+    emergency_contact_relationship = models.CharField(max_length=80, blank=True, verbose_name="Relação do contato")
     emergency_contact_phone = models.CharField(
         max_length=20,
         blank=True,
@@ -164,21 +202,64 @@ class Patient(models.Model):
         verbose_name="Telefone de emergência",
     )
 
-    guardian_name = models.CharField(max_length=255, blank=True, verbose_name="Nome do responsável")
+    guardian_name = models.CharField(max_length=255, blank=True, verbose_name="Nome do responsável legal")
     guardian_cpf = models.CharField(
         max_length=11,
         blank=True,
         validators=[validate_cpf],
-        verbose_name="CPF do responsável",
+        verbose_name="CPF do responsável legal",
     )
     guardian_phone = models.CharField(
         max_length=20,
         blank=True,
         validators=[validate_phone],
-        verbose_name="Telefone do responsável",
+        verbose_name="Telefone do responsável legal",
     )
-    guardian_email = models.EmailField(blank=True, verbose_name="E-mail do responsável")
-    guardian_relationship = models.CharField(max_length=80, blank=True, verbose_name="Parentesco do responsável")
+    guardian_email = models.EmailField(blank=True, verbose_name="E-mail do responsável legal")
+    guardian_relationship = models.CharField(max_length=80, blank=True, verbose_name="Relação do responsável legal")
+
+    financial_responsible_name = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Responsável financeiro",
+    )
+    financial_responsible_cpf = models.CharField(
+        max_length=11,
+        blank=True,
+        validators=[validate_cpf],
+        verbose_name="CPF do responsável financeiro",
+    )
+    financial_responsible_phone = models.CharField(
+        max_length=20,
+        blank=True,
+        validators=[validate_phone],
+        verbose_name="Telefone do responsável financeiro",
+    )
+    financial_responsible_email = models.EmailField(
+        blank=True,
+        verbose_name="E-mail do responsável financeiro",
+    )
+    financial_responsible_marital_status = models.CharField(
+        max_length=16,
+        choices=MaritalStatus.choices,
+        blank=True,
+        verbose_name="Estado civil do responsável financeiro",
+    )
+    financial_responsible_naturality = models.CharField(
+        max_length=120,
+        blank=True,
+        verbose_name="Naturalidade do responsável financeiro",
+    )
+    financial_responsible_occupation = models.CharField(
+        max_length=160,
+        blank=True,
+        verbose_name="Ocupação do responsável financeiro",
+    )
+    financial_responsible_relationship = models.CharField(
+        max_length=80,
+        blank=True,
+        verbose_name="Relação do responsável financeiro",
+    )
 
     consent_terms_accepted = models.BooleanField(default=False, verbose_name="Consentimentos registrados")
     consent_at = models.DateTimeField(null=True, blank=True, verbose_name="Consentimento registrado em")
@@ -203,6 +284,8 @@ class Patient(models.Model):
             models.Index(fields=["deleted_at"], name="patient_deleted_at_idx"),
             models.Index(fields=["therapist", "status"], name="patient_owner_status_idx"),
             models.Index(fields=["created_at"], name="patient_created_at_idx"),
+            models.Index(fields=["birth_date"], name="patient_birth_date_idx"),
+            models.Index(fields=["payer_type", "insurance_name"], name="patient_payer_insurance_idx"),
         ]
 
     def __str__(self) -> str:
@@ -228,13 +311,13 @@ class Patient(models.Model):
 
     @property
     def formatted_cpf(self) -> str:
-        if len(self.cpf) == 11:
+        if self.cpf and len(self.cpf) == 11:
             return f"{self.cpf[:3]}.{self.cpf[3:6]}.{self.cpf[6:9]}-{self.cpf[9:]}"
-        return self.cpf
+        return ""
 
     @property
     def masked_cpf(self) -> str:
-        if len(self.cpf) == 11:
+        if self.cpf and len(self.cpf) == 11:
             return f"{self.cpf[:3]}.***.***-{self.cpf[-2:]}"
         return "CPF não informado"
 
@@ -245,9 +328,15 @@ class Patient(models.Model):
             self.cpf = re.sub(r"\D", "", self.cpf)
         if self.guardian_cpf:
             self.guardian_cpf = re.sub(r"\D", "", self.guardian_cpf)
+        if self.financial_responsible_cpf:
+            self.financial_responsible_cpf = re.sub(
+                r"\D",
+                "",
+                self.financial_responsible_cpf,
+            )
         if self.is_minor and not self.guardian_name:
             raise ValidationError(
-                {"guardian_name": "Pacientes menores de 18 anos devem ter responsável cadastrado."}
+                {"guardian_name": "Pacientes menores de 18 anos devem ter responsável legal cadastrado."}
             )
         if self.payer_type == self.PayerType.INSURANCE and not self.insurance_name:
             raise ValidationError({"insurance_name": "Informe o convênio do paciente."})
@@ -255,8 +344,16 @@ class Patient(models.Model):
     def save(self, *args, **kwargs):
         if self.cpf:
             self.cpf = re.sub(r"\D", "", self.cpf)
+        else:
+            self.cpf = None
         if self.guardian_cpf:
             self.guardian_cpf = re.sub(r"\D", "", self.guardian_cpf)
+        if self.financial_responsible_cpf:
+            self.financial_responsible_cpf = re.sub(
+                r"\D",
+                "",
+                self.financial_responsible_cpf,
+            )
         if self.consent_terms_accepted and not self.consent_at:
             self.consent_at = timezone.now()
         if not self.consent_terms_accepted:
@@ -269,8 +366,82 @@ class Patient(models.Model):
         self.status = self.Status.ARCHIVED
         self.save(update_fields=["deleted_at", "is_active", "status", "updated_at"])
 
-    def restore(self) -> None:
+    def deactivate(self) -> None:
+        self.is_active = False
+        self.status = self.Status.INACTIVE
+        self.save(update_fields=["is_active", "status", "updated_at"])
+
+    def activate(self) -> None:
         self.deleted_at = None
         self.is_active = True
         self.status = self.Status.ACTIVE
         self.save(update_fields=["deleted_at", "is_active", "status", "updated_at"])
+
+    def restore(self) -> None:
+        self.activate()
+
+
+class PatientProfessional(models.Model):
+    """Profissionais adicionais autorizados a acompanhar o paciente."""
+
+    patient = models.ForeignKey(
+        Patient,
+        on_delete=models.PROTECT,
+        related_name="professional_links",
+    )
+    professional = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="patient_professional_links",
+        limit_choices_to={"role": "therapist"},
+    )
+    is_primary = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    assigned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="patient_professionals_assigned",
+    )
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-is_primary", "professional__full_name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["patient", "professional"],
+                name="unique_patient_professional",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=["professional", "is_active"],
+                name="pat_prof_active_idx",
+            )
+        ]
+
+
+class PatientRegistrationInvite(models.Model):
+    """Convite temporário para o paciente complementar seu cadastro."""
+
+    patient = models.ForeignKey(
+        Patient,
+        on_delete=models.PROTECT,
+        related_name="registration_invites",
+    )
+    token_hash = models.CharField(max_length=64, unique=True)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="patient_registration_invites_created",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["expires_at", "used_at"], name="patient_invite_validity_idx")]
+
+    @property
+    def is_valid(self) -> bool:
+        return self.used_at is None and self.expires_at > timezone.now()

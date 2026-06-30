@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FileText, FolderOpen, History, Target } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { recordWorkspaceService } from "../services/record-workspace.service";
@@ -33,16 +33,22 @@ import { GoalsTab } from "./goals-tab";
 import { PatientSelector } from "./patient-selector";
 import { RecordHeader } from "./record-header";
 import { RecordStats, RecordSupportPanel } from "./record-overview";
+import { RecordTabsNav } from "./record-tabs-nav";
 
-const tabs = [
-  ["evolutions", "Histórico de evoluções", History],
-  ["anamnesis", "Anamnese", FileText],
-  ["goals", "Plano terapêutico", Target],
-  ["documents", "Documentos", FolderOpen],
-] as const;
+function isRecordTab(value: string | null): value is RecordTab {
+  return ["evolutions", "anamnesis", "goals", "documents"].includes(
+    value ?? "",
+  );
+}
 
 export function RecordWorkspace({ patientId }: { patientId: number }) {
-  const [activeTab, setActiveTab] = useState<RecordTab>("evolutions");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState<RecordTab>(
+    isRecordTab(requestedTab) ? requestedTab : "evolutions",
+  );
   const [patientDrawerOpen, setPatientDrawerOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingEvolution, setEditingEvolution] =
@@ -52,12 +58,38 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
   );
   const [exporting, setExporting] = useState(false);
 
+  useEffect(() => {
+    if (isRecordTab(requestedTab) && requestedTab !== activeTab) {
+      setActiveTab(requestedTab);
+    }
+  }, [activeTab, requestedTab]);
+
+  const changeTab = (tab: RecordTab) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
   const summaryQuery = useRecordSummary(patientId);
-  const evolutionsQuery = useClinicalEvolutions(patientId);
-  const selectedEvolutionQuery = useClinicalEvolution(selectedEvolutionId);
-  const anamnesisQuery = useClinicalAnamnesis(patientId);
-  const goalsQuery = useTreatmentGoals(patientId);
-  const documentsQuery = useClinicalDocuments(patientId);
+  const evolutionsQuery = useClinicalEvolutions(
+    patientId,
+    1,
+    undefined,
+    activeTab === "evolutions",
+  );
+  const selectedEvolutionQuery = useClinicalEvolution(
+    activeTab === "evolutions" ? selectedEvolutionId : null,
+  );
+  const anamnesisQuery = useClinicalAnamnesis(
+    patientId,
+    activeTab === "anamnesis",
+  );
+  const goalsQuery = useTreatmentGoals(patientId, activeTab === "goals");
+  const documentsQuery = useClinicalDocuments(
+    patientId,
+    activeTab === "documents",
+  );
 
   const createEvolution = useCreateClinicalEvolution(patientId);
   const updateEvolution = useUpdateClinicalEvolution(
@@ -71,11 +103,18 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
   const documentMutations = useDocumentMutations(patientId);
 
   useEffect(() => {
+    if (activeTab !== "evolutions") return;
     const first = evolutionsQuery.data?.results[0];
-    if (!selectedEvolutionId && first) setSelectedEvolutionId(first.id);
-  }, [evolutionsQuery.data?.results, selectedEvolutionId]);
+    const selectedStillVisible = evolutionsQuery.data?.results.some(
+      (item) => item.id === selectedEvolutionId,
+    );
+    if ((!selectedEvolutionId || !selectedStillVisible) && first) {
+      setSelectedEvolutionId(first.id);
+    }
+  }, [activeTab, evolutionsQuery.data?.results, selectedEvolutionId]);
 
   const openNewEvolution = () => {
+    changeTab("evolutions");
     setEditingEvolution(null);
     setEditorOpen(true);
   };
@@ -159,8 +198,8 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
         exporting={exporting}
         onOpenPatients={() => setPatientDrawerOpen(true)}
         onNewEvolution={openNewEvolution}
-        onOpenAnamnesis={() => setActiveTab("anamnesis")}
-        onOpenDocuments={() => setActiveTab("documents")}
+        onOpenAnamnesis={() => changeTab("anamnesis")}
+        onOpenDocuments={() => changeTab("documents")}
         onExport={exportPdf}
       />
 
@@ -174,27 +213,7 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
         />
 
         <div className="min-w-0 space-y-4">
-          <nav
-            className="flex gap-1 overflow-x-auto rounded-xl border border-border bg-card p-1"
-            aria-label="Seções do prontuário"
-          >
-            {tabs.map(([id, label, Icon]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setActiveTab(id)}
-                className={`flex min-w-max flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-[11px] font-bold transition ${
-                  activeTab === id
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                }`}
-                aria-current={activeTab === id ? "page" : undefined}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {label}
-              </button>
-            ))}
-          </nav>
+          <RecordTabsNav activeTab={activeTab} onChange={changeTab} />
 
           {activeTab === "evolutions" && (
             <EvolutionTimeline
@@ -235,6 +254,7 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
           {activeTab === "goals" && (
             <GoalsTab
               goals={goalsQuery.data ?? []}
+              summary={summary}
               loading={goalsQuery.isLoading}
               creating={goalMutations.create.isPending}
               updating={goalMutations.update.isPending}
@@ -258,8 +278,14 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
               documents={documentsQuery.data ?? []}
               loading={documentsQuery.isLoading}
               uploading={documentMutations.upload.isPending}
+              updating={documentMutations.update.isPending}
               onUpload={(data) =>
                 documentMutations.upload.mutateAsync(data).then(() => undefined)
+              }
+              onUpdate={(id, payload) =>
+                documentMutations.update
+                  .mutateAsync({ id, payload })
+                  .then(() => undefined)
               }
               onArchive={(id) =>
                 documentMutations.archive.mutateAsync(id).then(() => undefined)
@@ -271,14 +297,14 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
         <div className="hidden 2xl:block">
           <RecordSupportPanel
             summary={summary}
-            onOpenGoal={() => setActiveTab("goals")}
-            onOpenDocuments={() => setActiveTab("documents")}
+            onOpenGoal={() => changeTab("goals")}
+            onOpenDocuments={() => changeTab("documents")}
           />
         </div>
       </div>
 
       <div className="flex items-center justify-center gap-2 py-2 text-[10px] text-muted-foreground">
-        <span className="h-2 w-2 rounded-full bg-primary" />
+        <span className="h-2 w-2 rounded-full bg-emerald-400" />
         Dados clínicos protegidos por controle de acesso, auditoria e criptografia
         em repouso.
       </div>

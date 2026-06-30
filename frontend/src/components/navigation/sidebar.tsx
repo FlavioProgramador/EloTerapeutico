@@ -4,20 +4,21 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home,
-  Users,
-  ClipboardList,
+  BarChart2,
   Calendar,
-  DollarSign,
   ChevronLeft,
   ChevronRight,
+  ClipboardList,
+  DollarSign,
+  Home,
   LogOut,
-  Settings,
   MessageSquare,
-  BarChart2,
+  Settings,
+  Users,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+
 import { useAuth } from "@/contexts/auth";
+import { cn } from "@/lib/utils";
 
 interface SidebarProps {
   className?: string;
@@ -45,47 +46,63 @@ export function Sidebar({ className }: SidebarProps) {
   ];
 
   const allowedMenuItems = menuItems.filter(
-    (item) => !item.roles || (user && item.roles.includes(user.role))
+    (item) => !item.roles || (user && item.roles.includes(user.role)),
   );
 
   return (
     <aside
       className={cn(
-        "h-screen sticky top-0 bg-[hsl(165,38%,10%)] border-r border-[hsl(165,27%,16%)] flex flex-col justify-between transition-all duration-300 z-30",
+        "sticky top-0 z-30 flex h-screen flex-col justify-between border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200",
         isCollapsed ? "w-20" : "w-64",
-        className
+        className,
       )}
     >
-      {/* Topo / Logo */}
       <div>
-        <div className={cn("p-6 flex items-center justify-between", isCollapsed && "justify-center")}>
+        <div
+          className={cn(
+            "flex items-center justify-between px-5 py-5",
+            isCollapsed && "justify-center px-3",
+          )}
+        >
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 shrink-0 rounded-lg bg-[hsl(38,25%,87%)]/10 flex items-center justify-center text-[hsl(38,25%,87%)]">
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-sidebar-active/25 bg-sidebar-active/10 text-sidebar-active">
+              <svg
+                className="h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.25"
+                aria-hidden="true"
+              >
+                <path d="M12 2 2 7l10 5 10-5-10-5ZM2 17l10 5 10-5M2 12l10 5 10-5" />
               </svg>
             </div>
             {!isCollapsed && (
-              <span className="font-bold text-base tracking-tight text-[hsl(40,20%,94%)]">
+              <span className="text-base font-bold tracking-tight text-sidebar-foreground">
                 Elo Terapêutico
               </span>
             )}
           </div>
-          
+
           {!isCollapsed && (
             <button
+              type="button"
               onClick={() => setIsCollapsed(true)}
-              className="text-[hsl(163,8%,68%)] hover:text-[hsl(40,20%,94%)] hover:bg-[hsl(165,27%,12%)] rounded-lg p-1 transition-all cursor-pointer"
+              className="rounded-lg p-1.5 text-sidebar-muted transition hover:bg-sidebar-surface hover:text-sidebar-foreground"
+              aria-label="Recolher menu lateral"
             >
-              <ChevronLeft className="h-4.5 w-4.5" />
+              <ChevronLeft className="h-4 w-4" />
             </button>
           )}
         </div>
 
-        {/* Menu de Navegação */}
-        <nav className="px-4 space-y-1.5 mt-6 text-left">
+        <nav className="mt-4 space-y-1 px-3" aria-label="Navegação principal">
           {allowedMenuItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname?.startsWith(item.href + "/"));
+            const isActive =
+              pathname === item.href ||
+              (item.href !== "/dashboard" &&
+                item.href !== "#" &&
+                pathname?.startsWith(`${item.href}/`));
             const Icon = item.icon;
 
             return (
@@ -93,18 +110,29 @@ export function Sidebar({ className }: SidebarProps) {
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all duration-150 group relative",
+                  "group relative flex items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-xs font-semibold transition",
                   isActive
-                    ? "bg-[hsl(38,25%,87%)]/10 text-[hsl(40,20%,94%)] border-l-2 border-[hsl(163,27%,62%)] pl-2.5"
-                    : "text-[hsl(163,8%,68%)] hover:text-[hsl(40,20%,94%)] hover:bg-[hsl(165,27%,12%)]"
+                    ? "border-sidebar-active/15 bg-sidebar-active/10 text-sidebar-foreground"
+                    : "text-sidebar-muted hover:bg-sidebar-surface hover:text-sidebar-foreground",
+                  isCollapsed && "justify-center px-2",
                 )}
+                aria-current={isActive ? "page" : undefined}
               >
-                <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-[hsl(163,27%,62%)]" : "text-[hsl(163,8%,68%)] group-hover:text-[hsl(40,20%,94%)]")} />
+                {isActive && (
+                  <span className="absolute bottom-2 left-0 top-2 w-0.5 rounded-full bg-sidebar-active" />
+                )}
+                <Icon
+                  className={cn(
+                    "h-4 w-4 shrink-0 transition-colors",
+                    isActive
+                      ? "text-sidebar-active"
+                      : "text-sidebar-muted group-hover:text-sidebar-foreground",
+                  )}
+                />
                 {!isCollapsed && <span>{item.name}</span>}
-                
-                {/* Tooltip quando colapsado */}
+
                 {isCollapsed && (
-                  <div className="absolute left-full ml-4 px-2.5 py-1.5 bg-[hsl(165,38%,10%)] border border-[hsl(165,27%,16%)] text-[hsl(40,20%,94%)] text-[10px] font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap shadow-md z-50">
+                  <div className="pointer-events-none absolute left-full z-50 ml-4 whitespace-nowrap rounded-md border border-sidebar-border bg-sidebar-surface px-2.5 py-1.5 text-[10px] font-semibold text-sidebar-foreground opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
                     {item.name}
                   </div>
                 )}
@@ -114,47 +142,47 @@ export function Sidebar({ className }: SidebarProps) {
         </nav>
       </div>
 
-      {/* Rodapé / Perfil & Logout */}
-      <div className="p-4 border-t border-[hsl(165,27%,16%)]/40 space-y-2 text-left">
-        
-        {/* Dados do Perfil */}
+      <div className="space-y-2 border-t border-sidebar-border p-3">
         {!isCollapsed && (
-          <div className="flex items-center gap-3 px-2 py-2 mb-2">
-            <div className="h-9 w-9 rounded-full bg-[hsl(38,25%,87%)]/10 border border-[hsl(38,25%,87%)]/20 flex items-center justify-center text-[hsl(38,25%,87%)] font-bold text-xs shrink-0">
+          <div className="mb-2 flex items-center gap-3 rounded-lg border border-sidebar-border bg-sidebar-surface/70 px-3 py-3">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-sidebar-active/25 bg-sidebar-active/10 text-xs font-bold text-sidebar-active">
               {user?.full_name?.charAt(0).toUpperCase() || "J"}
             </div>
-            <div className="truncate">
-              <p className="text-xs font-bold text-[hsl(40,20%,94%)] truncate leading-tight">
+            <div className="min-w-0">
+              <p className="truncate text-xs font-bold leading-tight text-sidebar-foreground">
                 {user?.full_name || "Juliana Martins"}
               </p>
-              <span className="text-[9px] text-[hsl(163,8%,68%)] block hover:text-[hsl(40,20%,94%)] cursor-pointer">
+              <span className="mt-0.5 block truncate text-[9px] text-sidebar-muted">
                 Ver perfil
               </span>
             </div>
           </div>
         )}
 
-        {/* Toggle para abrir se tiver colapsado */}
         {isCollapsed && (
           <button
+            type="button"
             onClick={() => setIsCollapsed(false)}
-            className="w-full flex items-center justify-center p-2.5 text-[hsl(163,8%,68%)] hover:text-[hsl(40,20%,94%)] hover:bg-[hsl(165,27%,12%)] rounded-lg transition-all cursor-pointer"
+            className="flex w-full items-center justify-center rounded-lg p-2.5 text-sidebar-muted transition hover:bg-sidebar-surface hover:text-sidebar-foreground"
+            aria-label="Expandir menu lateral"
           >
-            <ChevronRight className="h-4.5 w-4.5" />
+            <ChevronRight className="h-4 w-4" />
           </button>
         )}
 
         <button
+          type="button"
           onClick={logout}
           className={cn(
-            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-all cursor-pointer group relative"
+            "group relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/10 hover:text-red-200",
+            isCollapsed && "justify-center px-2",
           )}
         >
-          <LogOut className="h-4 w-4 shrink-0 group-hover:translate-x-[-1px] transition-transform duration-150" />
+          <LogOut className="h-4 w-4 shrink-0 transition-transform group-hover:-translate-x-0.5" />
           {!isCollapsed && <span>Sair</span>}
-          
+
           {isCollapsed && (
-            <div className="absolute left-full ml-4 px-2 py-1 bg-red-950/60 border border-red-500/20 text-red-400 text-[10px] font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap shadow-md z-50">
+            <div className="pointer-events-none absolute left-full z-50 ml-4 whitespace-nowrap rounded-md border border-red-500/20 bg-sidebar-surface px-2.5 py-1.5 text-[10px] font-semibold text-red-300 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
               Sair
             </div>
           )}
