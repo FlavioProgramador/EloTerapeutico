@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { useAuth } from "@/contexts/auth";
 import { NewPatientModal } from "./new-patient-modal";
 import { PatientDetailPanel } from "./patient-detail-panel";
 import { PatientImportModal } from "./patient-import-modal";
@@ -18,6 +19,7 @@ import {
 import { usePatientWorkspaceState } from "../hooks/use-patient-workspace";
 
 export function PatientsWorkspace() {
+  const { user } = useAuth();
   const state = usePatientWorkspaceState();
   const [newOpen, setNewOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -26,6 +28,7 @@ export function PatientsWorkspace() {
   const metricsQuery = usePatientMetrics();
   const panelQuery = usePatientPanel(state.selectedId);
   const patients = listQuery.data?.results ?? [];
+  const canImport = user?.role === "therapist";
   const { selectedId, setSelectedId } = state;
 
   useEffect(() => {
@@ -33,6 +36,12 @@ export function PatientsWorkspace() {
       setSelectedId(patients[0].id);
     }
   }, [patients, selectedId, setSelectedId]);
+
+  useEffect(() => {
+    if (!canImport && importOpen) {
+      setImportOpen(false);
+    }
+  }, [canImport, importOpen]);
 
   const handleExport = async () => {
     try {
@@ -81,7 +90,7 @@ export function PatientsWorkspace() {
         onFiltersChange={state.setFilters}
         onAdvancedToggle={state.toggleAdvanced}
         onNew={() => setNewOpen(true)}
-        onImport={() => setImportOpen(true)}
+        onImport={canImport ? () => setImportOpen(true) : undefined}
         onExport={handleExport}
       />
 
@@ -92,7 +101,7 @@ export function PatientsWorkspace() {
           patients={patients}
           selectedId={selectedId}
           loading={listQuery.isLoading}
-          total={listQuery.data?.count ?? 0}
+          total={listQuery.data?.pagination.count ?? 0}
           page={state.page}
           pageSize={6}
           onSelect={setSelectedId}
@@ -110,10 +119,12 @@ export function PatientsWorkspace() {
         onClose={() => setNewOpen(false)}
         onCreated={setSelectedId}
       />
-      <PatientImportModal
-        open={importOpen}
-        onClose={() => setImportOpen(false)}
-      />
+      {canImport && (
+        <PatientImportModal
+          open={importOpen}
+          onClose={() => setImportOpen(false)}
+        />
+      )}
     </div>
   );
 }
