@@ -1,10 +1,6 @@
-/**
- * Badge – Componente de rótulo/estado tipado.
- * Cobre todos os estados de domínio do Elo Terapêutico.
- * Design discreto, sem exageros visuais.
- */
-
 import React from "react";
+
+import { cn } from "@/lib/utils";
 
 type BadgeVariant =
   | "default"
@@ -22,49 +18,35 @@ interface BadgeProps {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default:
-    "bg-primary/10 text-primary border-primary/20",
-  primary:
-    "bg-primary text-primary-foreground border-transparent",
-  success:
-    "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
-  warning:
-    "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800",
+  default: "border-primary/20 bg-primary/10 text-primary",
+  primary: "border-transparent bg-primary text-primary-foreground",
+  success: "border-success/20 bg-success/10 text-success",
+  warning: "border-warning/25 bg-warning/10 text-warning",
   destructive:
-    "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800",
-  outline:
-    "bg-transparent text-foreground border-border",
-  muted:
-    "bg-muted text-muted-foreground border-transparent",
+    "border-destructive/20 bg-destructive/10 text-destructive",
+  outline: "border-border bg-transparent text-foreground",
+  muted: "border-transparent bg-muted text-muted-foreground",
 };
 
-export function Badge({ variant = "default", children, className = "" }: BadgeProps) {
+export function Badge({
+  variant = "default",
+  children,
+  className,
+}: BadgeProps) {
   return (
     <span
-      className={`
-        inline-flex items-center gap-1
-        rounded-md border
-        px-2 py-0.5
-        text-xs font-medium
-        leading-none
-        transition-colors
-        ${variantClasses[variant]}
-        ${className}
-      `}
+      className={cn(
+        "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium leading-none transition-colors",
+        variantClasses[variant],
+        className,
+      )}
     >
       {children}
     </span>
   );
 }
 
-// ─── Helpers para estados de domínio ──────────────────────────────────────────
-
-/**
- * Retorna a variante correta para status de paciente.
- */
-export function getPatientStatusVariant(
-  status: string
-): BadgeVariant {
+export function getPatientStatusVariant(status: string): BadgeVariant {
   const map: Record<string, BadgeVariant> = {
     active: "success",
     inactive: "muted",
@@ -73,12 +55,7 @@ export function getPatientStatusVariant(
   return map[status] ?? "outline";
 }
 
-/**
- * Retorna a variante correta para status de agendamento.
- */
-export function getAppointmentStatusVariant(
-  status: string
-): BadgeVariant {
+export function getAppointmentStatusVariant(status: string): BadgeVariant {
   const map: Record<string, BadgeVariant> = {
     scheduled: "default",
     confirmed: "primary",
@@ -89,12 +66,7 @@ export function getAppointmentStatusVariant(
   return map[status] ?? "outline";
 }
 
-/**
- * Retorna a variante correta para status financeiro.
- */
-export function getTransactionStatusVariant(
-  status: string
-): BadgeVariant {
+export function getTransactionStatusVariant(status: string): BadgeVariant {
   const map: Record<string, BadgeVariant> = {
     pending: "warning",
     paid: "success",
