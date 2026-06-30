@@ -311,6 +311,15 @@ body {
   color: hsl(var(--primary-foreground)) !important;
 }
 
+/* Recolore indicadores circulares legados que ainda usam verde inline. */
+[class~="h-24"][class~="w-24"][style*="conic-gradient"] {
+  filter: hue-rotate(90deg);
+}
+
+[class~="h-24"][class~="w-24"][style*="conic-gradient"] > * {
+  filter: hue-rotate(-90deg);
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
