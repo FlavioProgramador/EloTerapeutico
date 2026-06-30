@@ -1,5 +1,1 @@
-import { PatientsPageContent } from "@/features/patients/components/patients-page-content";
-
-export default function PatientsListPage() {
-  return <PatientsPageContent />;
-}
+export { PatientBrowserSafe as default } from "@/features/patients/components/patient-browser-safe";
