@@ -15,6 +15,14 @@ from .form_serializers import PatientFormSerializer
 from .models import Patient
 
 
+def _csv_cell(row, key, default=""):
+    """Retorna uma célula CSV normalizada, inclusive quando DictReader devolve None."""
+    value = row.get(key, default)
+    if value is None:
+        return default
+    return str(value).strip()
+
+
 class PatientDashboardActions:
     @action(detail=False, methods=["get"], url_path="dashboard-metrics")
     def dashboard_metrics(self, request):
@@ -45,6 +53,21 @@ class PatientDashboardActions:
 
     @action(detail=False, methods=["post"], url_path="import-csv")
     def import_csv(self, request):
+        # O fluxo de importação do frontend atribui automaticamente o profissional
+        # autenticado. Perfis administrativos não devem importar sem uma seleção
+        # explícita e auditável do terapeuta responsável.
+        if not request.user.is_therapist:
+            return Response(
+                {
+                    "detail": (
+                        "A importação em lote está disponível somente para terapeutas. "
+                        "Cadastros administrativos devem informar o profissional "
+                        "responsável individualmente."
+                    )
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         uploaded = request.FILES.get("file")
         confirm = str(request.data.get("confirm", "false")).lower() == "true"
         if not uploaded:
@@ -57,9 +80,10 @@ class PatientDashboardActions:
         except UnicodeDecodeError:
             return Response({"detail": "Utilize um CSV codificado em UTF-8."}, status=400)
 
-        rows = list(csv.DictReader(StringIO(content)))
+        reader = csv.DictReader(StringIO(content))
         required_columns = {"full_name", "cpf", "birth_date"}
-        if not rows or not required_columns.issubset(set(rows[0].keys())):
+        fieldnames = set(reader.fieldnames or [])
+        if not required_columns.issubset(fieldnames):
             return Response(
                 {
                     "detail": (
@@ -68,6 +92,10 @@ class PatientDashboardActions:
                 },
                 status=400,
             )
+
+        rows = list(reader)
+        if not rows:
+            return Response({"detail": "O arquivo CSV não possui registros."}, status=400)
         if len(rows) > 500:
             return Response({"detail": "Importe no máximo 500 pacientes por vez."}, status=400)
 
@@ -77,28 +105,33 @@ class PatientDashboardActions:
         seen_cpfs = set()
 
         for line, row in enumerate(rows, start=2):
-            raw_cpf = row.get("cpf", "")
+            raw_cpf = _csv_cell(row, "cpf")
             clean_cpf = re.sub(r"\D", "", raw_cpf)
-            if clean_cpf in seen_cpfs or Patient.all_objects.filter(cpf=clean_cpf).exists():
+            if clean_cpf and (
+                clean_cpf in seen_cpfs
+                or Patient.all_objects.filter(cpf=clean_cpf).exists()
+            ):
                 duplicates.append({"line": line, "cpf": raw_cpf})
                 continue
-            seen_cpfs.add(clean_cpf)
+            if clean_cpf:
+                seen_cpfs.add(clean_cpf)
 
             payload = {
-                "full_name": row.get("full_name", "").strip(),
-                "cpf": raw_cpf.strip(),
-                "birth_date": row.get("birth_date", "").strip(),
-                "email": row.get("email", "").strip(),
-                "phone": row.get("phone", "").strip(),
-                "gender": row.get("gender", "N").strip() or "N",
-                "status": row.get("status", "active").strip() or "active",
-                "modality": row.get("modality", "in_person").strip() or "in_person",
-                "payer_type": row.get("payer_type", "private").strip() or "private",
+                "full_name": _csv_cell(row, "full_name"),
+                "cpf": raw_cpf,
+                "birth_date": _csv_cell(row, "birth_date"),
+                "email": _csv_cell(row, "email"),
+                "phone": _csv_cell(row, "phone"),
+                "gender": _csv_cell(row, "gender", "N") or "N",
+                "status": _csv_cell(row, "status", "active") or "active",
+                "modality": (
+                    _csv_cell(row, "modality", "in_person") or "in_person"
+                ),
+                "payer_type": (
+                    _csv_cell(row, "payer_type", "private") or "private"
+                ),
+                "therapist": request.user.pk,
             }
-            if request.user.is_therapist:
-                payload["therapist"] = request.user.pk
-            elif row.get("therapist"):
-                payload["therapist"] = row["therapist"].strip()
 
             serializer = PatientFormSerializer(
                 data=payload,
@@ -136,12 +169,20 @@ class PatientDashboardActions:
     @action(detail=True, methods=["get"], url_path="dashboard")
     def dashboard(self, request, pk=None):
         patient = self.get_object()
-        latest_evolution = patient.evolutions.order_by(
-            "-session_date", "-created_at"
-        ).first()
-        documents = patient.clinical_documents.filter(
-            is_archived=False
-        ).order_by("-created_at")[:3]
+        can_access_records = request.user.is_therapist or request.user.is_admin_role
+
+        latest_evolution = None
+        documents = []
+        if can_access_records:
+            latest_evolution = patient.evolutions.order_by(
+                "-session_date", "-created_at"
+            ).first()
+            documents = list(
+                patient.clinical_documents.filter(is_archived=False).order_by(
+                    "-created_at"
+                )[:3]
+            )
+
         next_appointment = patient.appointments.filter(
             start_time__gte=timezone.now(),
             status__in=["scheduled", "confirmed"],
@@ -160,6 +201,7 @@ class PatientDashboardActions:
                 "patient": PatientDashboardSerializer(
                     patient, context={"request": request}
                 ).data,
+                "can_access_records": can_access_records,
                 "next_session": None if not next_appointment else {
                     "id": next_appointment.id,
                     "start_time": next_appointment.start_time,
