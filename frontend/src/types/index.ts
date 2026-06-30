@@ -29,7 +29,15 @@ export interface AuthTokens {
 
 // ─── Pacientes ─────────────────────────────────────────────────────────────────
 
-export type PatientStatus = "active" | "inactive" | "on_hold";
+export type PatientStatus =
+  | "active"
+  | "evaluation"
+  | "waiting_return"
+  | "discharged"
+  | "inactive"
+  | "archived"
+  | "on_hold";
+
 export type PaymentMethod = "pix" | "credit_card" | "cash" | "insurance" | "boleto";
 export type FinancialPaymentMethod =
   | "pix"
@@ -42,21 +50,38 @@ export type FinancialPaymentMethod =
 export interface Patient {
   id: number;
   full_name: string;
+  social_name?: string;
   email?: string;
   phone?: string;
+  whatsapp?: string;
   birth_date?: string;
   cpf?: string;
   formatted_cpf?: string;
+  masked_cpf?: string;
+  rg?: string;
   gender?: "M" | "F" | "O" | "N";
+  marital_status?: string;
   address?: string | Record<string, unknown>;
   status: PatientStatus;
+  status_display?: string;
+  attendance_type?: string;
+  modality?: string;
+  payer_type?: string;
+  insurance_name?: string;
   session_value?: string;
+  planned_frequency?: string;
   payment_method?: PaymentMethod;
+  tags?: string[];
   emergency_contact_name?: string;
+  emergency_contact_relationship?: string;
   emergency_contact_phone?: string;
   referral_source?: string;
   guardian_name?: string;
   guardian_cpf?: string;
+  guardian_phone?: string;
+  guardian_email?: string;
+  guardian_relationship?: string;
+  consent_terms_accepted?: boolean;
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -67,21 +92,37 @@ export interface Patient {
 
 export interface CreatePatientPayload {
   full_name: string;
+  social_name?: string;
   email?: string;
   phone?: string;
+  whatsapp?: string;
   birth_date?: string;
   cpf?: string;
+  rg?: string;
   gender?: "M" | "F" | "O" | "N";
+  marital_status?: string;
   address?: string | Record<string, unknown>;
   status?: PatientStatus;
+  attendance_type?: string;
+  modality?: string;
+  payer_type?: string;
+  insurance_name?: string;
   session_value?: string;
+  planned_frequency?: string;
   payment_method?: PaymentMethod;
+  tags?: string[];
   emergency_contact_name?: string;
+  emergency_contact_relationship?: string;
   emergency_contact_phone?: string;
   referral_source?: string;
   guardian_name?: string;
   guardian_cpf?: string;
+  guardian_phone?: string;
+  guardian_email?: string;
+  guardian_relationship?: string;
+  consent_terms_accepted?: boolean;
   notes?: string;
+  therapist?: number;
 }
 
 // ─── Agenda ────────────────────────────────────────────────────────────────────
@@ -99,9 +140,9 @@ export interface Appointment {
   patient_name?: string;
   therapist?: number;
   therapist_name?: string;
-  date: string; // ISO 8601
-  start_time: string; // ISO datetime
-  end_time: string; // ISO datetime
+  date: string;
+  start_time: string;
+  end_time: string;
   status: AppointmentStatus;
   status_display?: string;
   notes?: string;
@@ -196,7 +237,6 @@ export interface CreateAddendumPayload {
   reason: string;
   content: string;
 }
-
 
 // ─── Financeiro ────────────────────────────────────────────────────────────────
 

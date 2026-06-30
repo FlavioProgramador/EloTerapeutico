@@ -51,6 +51,7 @@ export interface PatientMetrics {
 
 export interface PatientPanelData {
   patient: PatientDashboardItem;
+  can_access_records: boolean;
   next_session: null | {
     id: number;
     start_time: string;

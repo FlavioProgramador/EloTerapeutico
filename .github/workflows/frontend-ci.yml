@@ -38,12 +38,33 @@ jobs:
         run: npm ci
 
       - name: Run ESLint
-        run: npm run lint
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run lint 2>&1 | tee eslint-output.txt
 
       - name: Run TypeScript checks
-        run: npx tsc --noEmit
+        shell: bash
+        run: |
+          set -o pipefail
+          npx tsc --noEmit 2>&1 | tee typescript-output.txt
 
       - name: Build Next.js application
         env:
           NEXT_PUBLIC_API_URL: http://127.0.0.1:8000/api/v1/
-        run: npm run build
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee build-output.txt
+
+      - name: Upload frontend reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-reports
+          path: |
+            frontend/eslint-output.txt
+            frontend/typescript-output.txt
+            frontend/build-output.txt
+          if-no-files-found: ignore
+          retention-days: 7

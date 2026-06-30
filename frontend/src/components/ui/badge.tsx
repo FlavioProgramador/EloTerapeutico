@@ -49,7 +49,11 @@ export function Badge({
 export function getPatientStatusVariant(status: string): BadgeVariant {
   const map: Record<string, BadgeVariant> = {
     active: "success",
+    evaluation: "warning",
+    waiting_return: "outline",
+    discharged: "primary",
     inactive: "muted",
+    archived: "muted",
     on_hold: "warning",
   };
   return map[status] ?? "outline";
