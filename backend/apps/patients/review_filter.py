@@ -1,3 +1,4 @@
+from django.apps import apps
 from django.db.models import Q
 
 
@@ -24,7 +25,9 @@ def filter_search(self, queryset, name, value):
     return queryset.filter(query).distinct()
 
 
-def apply_patch():
+def apply_patch(*args):
     from .filters import PatientFilter
-
     PatientFilter.filter_search = filter_search
+
+
+apps.lazy_model_operation(apply_patch, ("patients", "patient"))
