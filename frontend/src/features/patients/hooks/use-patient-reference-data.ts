@@ -96,7 +96,7 @@ export function usePatientReferenceData({
           queryKey: ["patients", "dashboard-metrics"],
         }),
       ]);
-      toast.success("Paciente restaurado com sucesso."),
+      toast.success("Paciente restaurado com sucesso.");
     },
     onError: () => toast.error("Não foi possível restaurar o paciente."),
   });
@@ -123,9 +123,9 @@ export function usePatientReferenceData({
       link.download = "pacientes.csv";
       link.click();
       URL.revokeObjectURL(objectUrl);
-      toast.success("Exportação concluída."),
+      toast.success("Exportação concluída.");
     } catch {
-      toast.error("Não foi possível exportar os pacientes."),
+      toast.error("Não foi possível exportar os pacientes.");
     } finally {
       setExporting(false);
     }
