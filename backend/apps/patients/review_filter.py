@@ -1,7 +1,5 @@
 from django.db.models import Q
 
-from .filters import PatientFilter
-
 
 def filter_search(self, queryset, name, value):
     term = (value or "").strip()
@@ -26,4 +24,7 @@ def filter_search(self, queryset, name, value):
     return queryset.filter(query).distinct()
 
 
-PatientFilter.filter_search = filter_search
+def apply_patch():
+    from .filters import PatientFilter
+
+    PatientFilter.filter_search = filter_search
