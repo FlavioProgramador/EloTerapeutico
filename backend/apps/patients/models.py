@@ -415,7 +415,7 @@ class PatientProfessional(models.Model):
         indexes = [
             models.Index(
                 fields=["professional", "is_active"],
-                name="patient_professional_active_idx",
+                name="pat_prof_active_idx",
             )
         ]
 
