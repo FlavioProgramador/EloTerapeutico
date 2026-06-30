@@ -1,6 +1,5 @@
 import {
   Download,
-  Filter,
   Plus,
   Search,
   SlidersHorizontal,
@@ -27,7 +26,7 @@ interface Props {
   onFiltersChange: (filters: PatientToolbarFilters) => void;
   onAdvancedToggle: () => void;
   onNew: () => void;
-  onImport: () => void;
+  onImport?: () => void;
   onExport: () => void;
 }
 
@@ -80,9 +79,11 @@ export function PatientToolbar({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={onImport} leftIcon={<Upload className="h-4 w-4" />}>
-            Importar
-          </Button>
+          {onImport && (
+            <Button variant="outline" size="sm" onClick={onImport} leftIcon={<Upload className="h-4 w-4" />}>
+              Importar
+            </Button>
+          )}
           <Button variant="outline" size="sm" isLoading={exporting} onClick={onExport} leftIcon={<Download className="h-4 w-4" />}>
             Exportar
           </Button>

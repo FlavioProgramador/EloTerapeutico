@@ -35,10 +35,12 @@ export const patientsService = {
   },
 
   /**
-   * Busca um paciente pelo ID.
+   * Busca todos os campos administrativos editáveis de um paciente.
+   * O endpoint dedicado evita preencher campos ausentes com valores padrão
+   * e sobrescrevê-los acidentalmente durante um PATCH.
    */
   getById: async (id: number): Promise<Patient> => {
-    const response = await api.get<Patient>(`patients/${id}/`);
+    const response = await api.get<Patient>(`patients/${id}/form/`);
     return response.data;
   },
 

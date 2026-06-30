@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
-import type { PaginatedResponse } from "@/types";
 import type {
   PatientDashboardItem,
   PatientMetrics,
@@ -18,6 +17,17 @@ export interface PatientDashboardFilters {
   page?: number;
   pageSize?: number;
   ordering?: string;
+}
+
+export interface PatientDashboardResponse {
+  pagination: {
+    count: number;
+    total_pages: number;
+    current_page: number;
+    next?: string | null;
+    previous?: string | null;
+  };
+  results: PatientDashboardItem[];
 }
 
 function buildParams(filters: PatientDashboardFilters) {
@@ -38,7 +48,7 @@ export function usePatientDashboardList(filters: PatientDashboardFilters) {
   return useQuery({
     queryKey: ["patients", "dashboard-list", filters],
     queryFn: async () => {
-      const response = await api.get<PaginatedResponse<PatientDashboardItem>>(
+      const response = await api.get<PatientDashboardResponse>(
         `patients/?${buildParams(filters).toString()}`,
       );
       return response.data;

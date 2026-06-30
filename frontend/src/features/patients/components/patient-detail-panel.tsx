@@ -6,6 +6,7 @@ import {
   NotebookPen,
   Sparkles,
   Target,
+  UserRound,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -61,6 +62,7 @@ export function PatientDetailPanel({ data, loading, onClose }: Props) {
 
   const patient = data.patient;
   const attendance = data.follow_up.attendance_percentage;
+  const canAccessRecords = data.can_access_records;
 
   return (
     <aside className="overflow-hidden rounded-xl border border-border bg-card xl:sticky xl:top-4">
@@ -92,22 +94,41 @@ export function PatientDetailPanel({ data, loading, onClose }: Props) {
           <p>{patient.phone || "Telefone não informado"}</p>
           <p className="truncate">{patient.email || "E-mail não informado"}</p>
         </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="mt-3 w-full"
+          onClick={() => router.push(`/dashboard/patients/${patient.id}`)}
+          leftIcon={<UserRound className="h-4 w-4" />}
+        >
+          Abrir cadastro do paciente
+        </Button>
       </header>
 
-      <div className="grid grid-cols-2 border-b border-border">
-        <button type="button" onClick={() => router.push(`/dashboard/records/${patient.id}`)} className="flex items-center justify-center gap-2 border-r border-border px-3 py-3 text-[10px] font-semibold text-foreground hover:bg-primary/8 hover:text-primary">
-          <NotebookPen className="h-4 w-4" /> Ver prontuário
-        </button>
-        <button type="button" onClick={() => router.push(`/dashboard/agenda?patient=${patient.id}`)} className="flex items-center justify-center gap-2 px-3 py-3 text-[10px] font-semibold text-foreground hover:bg-primary/8 hover:text-primary">
+      {canAccessRecords ? (
+        <div className="grid grid-cols-2 border-b border-border">
+          <button type="button" onClick={() => router.push(`/dashboard/records/${patient.id}`)} className="flex items-center justify-center gap-2 border-r border-border px-3 py-3 text-[10px] font-semibold text-foreground hover:bg-primary/8 hover:text-primary">
+            <NotebookPen className="h-4 w-4" /> Ver prontuário
+          </button>
+          <button type="button" onClick={() => router.push(`/dashboard/agenda?patient=${patient.id}`)} className="flex items-center justify-center gap-2 px-3 py-3 text-[10px] font-semibold text-foreground hover:bg-primary/8 hover:text-primary">
+            <CalendarDays className="h-4 w-4" /> Agendar sessão
+          </button>
+          <button type="button" onClick={() => router.push(`/dashboard/records/${patient.id}?new=evolution`)} className="flex items-center justify-center gap-2 border-r border-t border-border px-3 py-3 text-[10px] font-semibold text-foreground hover:bg-primary/8 hover:text-primary">
+            <FileText className="h-4 w-4" /> Nova evolução
+          </button>
+          <button type="button" disabled className="flex items-center justify-center gap-2 border-t border-border px-3 py-3 text-[10px] font-semibold text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60">
+            <MessageCircle className="h-4 w-4" /> Mensagem indisponível
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => router.push(`/dashboard/agenda?patient=${patient.id}`)}
+          className="flex w-full items-center justify-center gap-2 border-b border-border px-3 py-3 text-[10px] font-semibold text-foreground hover:bg-primary/8 hover:text-primary"
+        >
           <CalendarDays className="h-4 w-4" /> Agendar sessão
         </button>
-        <button type="button" onClick={() => router.push(`/dashboard/records/${patient.id}?new=evolution`)} className="flex items-center justify-center gap-2 border-r border-t border-border px-3 py-3 text-[10px] font-semibold text-foreground hover:bg-primary/8 hover:text-primary">
-          <FileText className="h-4 w-4" /> Nova evolução
-        </button>
-        <button type="button" disabled className="flex items-center justify-center gap-2 border-t border-border px-3 py-3 text-[10px] font-semibold text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60">
-          <MessageCircle className="h-4 w-4" /> Mensagem indisponível
-        </button>
-      </div>
+      )}
 
       <div className="space-y-3 p-3">
         <section className="rounded-lg border border-border bg-secondary/25 p-3">
@@ -129,22 +150,24 @@ export function PatientDetailPanel({ data, loading, onClose }: Props) {
           )}
         </section>
 
-        <section className="rounded-lg border border-border bg-secondary/25 p-3">
-          <div className="flex items-center gap-2 text-[10px] font-semibold text-muted-foreground">
-            <NotebookPen className="h-3.5 w-3.5 text-primary" /> Última evolução
-          </div>
-          {data.latest_evolution ? (
-            <div className="mt-3">
-              <p className="text-[10px] text-muted-foreground">{formatDate(data.latest_evolution.session_date)}</p>
-              <p className="mt-2 line-clamp-3 text-[11px] leading-5 text-foreground">{data.latest_evolution.summary}</p>
-              <button type="button" onClick={() => router.push(`/dashboard/records/${patient.id}`)} className="mt-3 text-[10px] font-semibold text-primary hover:underline">
-                Ver evolução completa
-              </button>
+        {canAccessRecords && (
+          <section className="rounded-lg border border-border bg-secondary/25 p-3">
+            <div className="flex items-center gap-2 text-[10px] font-semibold text-muted-foreground">
+              <NotebookPen className="h-3.5 w-3.5 text-primary" /> Última evolução
             </div>
-          ) : (
-            <p className="mt-3 text-xs text-muted-foreground">Nenhuma evolução registrada.</p>
-          )}
-        </section>
+            {data.latest_evolution ? (
+              <div className="mt-3">
+                <p className="text-[10px] text-muted-foreground">{formatDate(data.latest_evolution.session_date)}</p>
+                <p className="mt-2 line-clamp-3 text-[11px] leading-5 text-foreground">{data.latest_evolution.summary}</p>
+                <button type="button" onClick={() => router.push(`/dashboard/records/${patient.id}`)} className="mt-3 text-[10px] font-semibold text-primary hover:underline">
+                  Ver evolução completa
+                </button>
+              </div>
+            ) : (
+              <p className="mt-3 text-xs text-muted-foreground">Nenhuma evolução registrada.</p>
+            )}
+          </section>
+        )}
 
         <section className="rounded-lg border border-border bg-secondary/25 p-3">
           <div className="flex items-center justify-between text-[10px] font-semibold text-muted-foreground">
@@ -158,30 +181,34 @@ export function PatientDetailPanel({ data, loading, onClose }: Props) {
           </div>
         </section>
 
-        <section className="rounded-lg border border-border bg-secondary/25 p-3">
-          <div className="flex items-center gap-2 text-[10px] font-semibold text-muted-foreground">
-            <FolderOpen className="h-3.5 w-3.5 text-primary" /> Documentos recentes
-          </div>
-          {data.recent_documents.length ? (
-            <div className="mt-2 divide-y divide-border/70">
-              {data.recent_documents.map((document) => (
-                <div key={document.id} className="py-2">
-                  <p className="truncate text-[11px] font-medium text-foreground">{document.name}</p>
-                  <p className="mt-0.5 text-[9px] text-muted-foreground">{document.category} • {formatDate(document.created_at)}</p>
-                </div>
-              ))}
+        {canAccessRecords && (
+          <section className="rounded-lg border border-border bg-secondary/25 p-3">
+            <div className="flex items-center gap-2 text-[10px] font-semibold text-muted-foreground">
+              <FolderOpen className="h-3.5 w-3.5 text-primary" /> Documentos recentes
             </div>
-          ) : (
-            <p className="mt-3 text-xs text-muted-foreground">Nenhum documento anexado.</p>
-          )}
-        </section>
+            {data.recent_documents.length ? (
+              <div className="mt-2 divide-y divide-border/70">
+                {data.recent_documents.map((document) => (
+                  <div key={document.id} className="py-2">
+                    <p className="truncate text-[11px] font-medium text-foreground">{document.name}</p>
+                    <p className="mt-0.5 text-[9px] text-muted-foreground">{document.category} • {formatDate(document.created_at)}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 text-xs text-muted-foreground">Nenhum documento anexado.</p>
+            )}
+          </section>
+        )}
 
-        <section className="rounded-lg border border-dashed border-border bg-secondary/20 p-3">
-          <div className="flex items-center gap-2 text-[10px] font-semibold text-muted-foreground">
-            <Sparkles className="h-3.5 w-3.5 text-primary" /> Resumo assistido por IA
-          </div>
-          <p className="mt-2 text-[10px] leading-4 text-muted-foreground">{data.ai_summary.message}</p>
-        </section>
+        {canAccessRecords && (
+          <section className="rounded-lg border border-dashed border-border bg-secondary/20 p-3">
+            <div className="flex items-center gap-2 text-[10px] font-semibold text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5 text-primary" /> Resumo assistido por IA
+            </div>
+            <p className="mt-2 text-[10px] leading-4 text-muted-foreground">{data.ai_summary.message}</p>
+          </section>
+        )}
       </div>
     </aside>
   );
