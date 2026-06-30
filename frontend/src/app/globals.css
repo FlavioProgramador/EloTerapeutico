@@ -2,100 +2,100 @@
 
 :root {
   /*
-   * Elo Terapêutico — paleta "Acolhimento Seguro"
-   * Base clara neutra, verde clínico como ação principal e azul ardósia
-   * para informação, segurança e estados de apoio.
+   * Elo Terapêutico — paleta "Íris Terapêutica"
+   * Base neutra fria, índigo-violeta como identidade principal e azul
+   * luminoso como apoio informativo. O verde deixa de ser cor de marca.
    */
-  --background: 204 33% 97%;
-  --foreground: 202 46% 12%;
+  --background: 220 35% 98%;
+  --foreground: 223 34% 14%;
 
   --card: 0 0% 100%;
-  --card-foreground: 202 46% 12%;
+  --card-foreground: 223 34% 14%;
   --popover: 0 0% 100%;
-  --popover-foreground: 202 46% 12%;
+  --popover-foreground: 223 34% 14%;
 
-  --primary: 168 73% 30%;
+  --primary: 246 91% 67%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 198 31% 94%;
-  --secondary-foreground: 202 38% 18%;
+  --secondary: 225 29% 95%;
+  --secondary-foreground: 225 29% 20%;
 
-  --muted: 195 29% 95%;
-  --muted-foreground: 205 15% 44%;
+  --muted: 223 24% 95%;
+  --muted-foreground: 224 14% 46%;
 
-  --accent: 196 55% 40%;
-  --accent-foreground: 0 0% 100%;
+  --accent: 211 100% 65%;
+  --accent-foreground: 225 42% 9%;
 
-  --success: 168 73% 30%;
+  --success: 187 88% 29%;
   --success-foreground: 0 0% 100%;
-  --warning: 39 87% 48%;
-  --warning-foreground: 32 80% 12%;
-  --info: 196 55% 40%;
-  --info-foreground: 0 0% 100%;
-  --destructive: 0 61% 54%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 28 90% 12%;
+  --info: 211 100% 65%;
+  --info-foreground: 225 42% 9%;
+  --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 200 25% 88%;
-  --input: 200 25% 88%;
-  --ring: 168 73% 30%;
+  --border: 224 24% 88%;
+  --input: 224 24% 88%;
+  --ring: 246 91% 67%;
 
-  --surface: 198 35% 96%;
+  --surface: 224 31% 96%;
   --surface-elevated: 0 0% 100%;
 
-  --sidebar: 200 60% 8%;
-  --sidebar-surface: 201 56% 11%;
-  --sidebar-foreground: 191 35% 94%;
-  --sidebar-muted: 199 19% 63%;
-  --sidebar-active: 163 64% 52%;
-  --sidebar-border: 200 38% 19%;
+  --sidebar: 228 42% 8%;
+  --sidebar-surface: 228 32% 13%;
+  --sidebar-foreground: 220 35% 94%;
+  --sidebar-muted: 224 17% 65%;
+  --sidebar-active: 246 91% 67%;
+  --sidebar-border: 225 22% 21%;
 
   --radius: 0.75rem;
 }
 
 .dark {
-  /* Tema escuro principal: azul-petróleo neutro, sem dominante esverdeada. */
-  --background: 203 60% 7%;
-  --foreground: 191 35% 94%;
+  /* Tema escuro principal: índigo profundo com superfícies azul-violeta. */
+  --background: 225 42% 9%;
+  --foreground: 220 35% 94%;
 
-  --card: 203 50% 10%;
-  --card-foreground: 191 35% 94%;
-  --popover: 202 48% 12%;
-  --popover-foreground: 191 35% 94%;
+  --card: 226 36% 13%;
+  --card-foreground: 220 35% 94%;
+  --popover: 226 34% 14%;
+  --popover-foreground: 220 35% 94%;
 
-  --primary: 163 64% 52%;
-  --primary-foreground: 162 68% 7%;
+  --primary: 246 91% 67%;
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 200 45% 14%;
-  --secondary-foreground: 194 32% 90%;
+  --secondary: 225 28% 17%;
+  --secondary-foreground: 220 30% 92%;
 
-  --muted: 201 46% 12%;
-  --muted-foreground: 199 19% 63%;
+  --muted: 225 25% 16%;
+  --muted-foreground: 224 17% 65%;
 
-  --accent: 197 62% 61%;
-  --accent-foreground: 203 60% 7%;
+  --accent: 211 100% 65%;
+  --accent-foreground: 225 42% 9%;
 
-  --success: 163 64% 52%;
-  --success-foreground: 162 68% 7%;
-  --warning: 39 87% 62%;
-  --warning-foreground: 32 80% 12%;
-  --info: 197 62% 61%;
-  --info-foreground: 203 60% 7%;
-  --destructive: 0 100% 71%;
-  --destructive-foreground: 203 60% 7%;
+  --success: 188 86% 53%;
+  --success-foreground: 225 42% 9%;
+  --warning: 38 92% 58%;
+  --warning-foreground: 28 90% 12%;
+  --info: 211 100% 65%;
+  --info-foreground: 225 42% 9%;
+  --destructive: 0 84% 66%;
+  --destructive-foreground: 225 42% 9%;
 
-  --border: 200 38% 19%;
-  --input: 200 33% 24%;
-  --ring: 163 64% 52%;
+  --border: 225 22% 23%;
+  --input: 225 22% 23%;
+  --ring: 246 91% 67%;
 
-  --surface: 201 46% 9%;
-  --surface-elevated: 203 50% 10%;
+  --surface: 225 30% 12%;
+  --surface-elevated: 226 36% 13%;
 
-  --sidebar: 200 60% 8%;
-  --sidebar-surface: 201 56% 11%;
-  --sidebar-foreground: 191 35% 94%;
-  --sidebar-muted: 199 19% 63%;
-  --sidebar-active: 163 64% 52%;
-  --sidebar-border: 200 38% 19%;
+  --sidebar: 228 42% 8%;
+  --sidebar-surface: 228 32% 13%;
+  --sidebar-foreground: 220 35% 94%;
+  --sidebar-muted: 224 17% 65%;
+  --sidebar-active: 246 91% 67%;
+  --sidebar-border: 225 22% 21%;
 }
 
 @theme {
@@ -137,6 +137,60 @@
   --color-sidebar-muted: hsl(var(--sidebar-muted));
   --color-sidebar-active: hsl(var(--sidebar-active));
   --color-sidebar-border: hsl(var(--sidebar-border));
+
+  /*
+   * Compatibilidade cromática: componentes antigos ainda usam classes
+   * emerald/green/teal. As escalas são redirecionadas para a identidade
+   * índigo, removendo o verde visual sem quebrar os componentes existentes.
+   */
+  --color-emerald-50: #f5f3ff;
+  --color-emerald-100: #ede9fe;
+  --color-emerald-200: #ddd6fe;
+  --color-emerald-300: #c4b5fd;
+  --color-emerald-400: #a78bfa;
+  --color-emerald-500: #6d5ef8;
+  --color-emerald-600: #5b4ae6;
+  --color-emerald-700: #4c3ac7;
+  --color-emerald-800: #3e329f;
+  --color-emerald-900: #332b7c;
+  --color-emerald-950: #1c1748;
+
+  --color-green-50: #f5f3ff;
+  --color-green-100: #ede9fe;
+  --color-green-200: #ddd6fe;
+  --color-green-300: #c4b5fd;
+  --color-green-400: #a78bfa;
+  --color-green-500: #6d5ef8;
+  --color-green-600: #5b4ae6;
+  --color-green-700: #4c3ac7;
+  --color-green-800: #3e329f;
+  --color-green-900: #332b7c;
+  --color-green-950: #1c1748;
+
+  --color-teal-50: #f5f3ff;
+  --color-teal-100: #ede9fe;
+  --color-teal-200: #ddd6fe;
+  --color-teal-300: #c4b5fd;
+  --color-teal-400: #a78bfa;
+  --color-teal-500: #6d5ef8;
+  --color-teal-600: #5b4ae6;
+  --color-teal-700: #4c3ac7;
+  --color-teal-800: #3e329f;
+  --color-teal-900: #332b7c;
+  --color-teal-950: #1c1748;
+
+  /* Lime passa a funcionar como escala azul-ciano de apoio. */
+  --color-lime-50: #effbff;
+  --color-lime-100: #d9f6ff;
+  --color-lime-200: #b8ecff;
+  --color-lime-300: #7fdeff;
+  --color-lime-400: #45c8f5;
+  --color-lime-500: #1ea7e1;
+  --color-lime-600: #1386ba;
+  --color-lime-700: #146b95;
+  --color-lime-800: #175978;
+  --color-lime-900: #184b65;
+  --color-lime-950: #0b3044;
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -252,8 +306,18 @@ body {
   border-color: hsl(var(--ring)) !important;
 }
 
-[class~="bg-primary"][class~="text-white"] {
+[class~="bg-primary"][class~="text-white"],
+[class~="bg-emerald-500"][class~="text-emerald-950"] {
   color: hsl(var(--primary-foreground)) !important;
+}
+
+/* Recolore indicadores circulares legados que ainda usam verde inline. */
+[class~="h-24"][class~="w-24"][style*="conic-gradient"] {
+  filter: hue-rotate(90deg);
+}
+
+[class~="h-24"][class~="w-24"][style*="conic-gradient"] > * {
+  filter: hue-rotate(-90deg);
 }
 
 * {
