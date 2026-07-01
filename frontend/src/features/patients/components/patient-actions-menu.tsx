@@ -122,6 +122,11 @@ export function PatientActionsMenu({
   }, [close, open, updatePosition]);
 
   const onMenuKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Tab") {
+      close(true);
+      return;
+    }
+
     const items = Array.from(
       menuRef.current?.querySelectorAll<HTMLButtonElement>(
         "[role='menuitem']:not(:disabled)",
@@ -149,9 +154,7 @@ export function PatientActionsMenu({
   };
   const itemClass =
     "flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-xs font-medium text-popover-foreground outline-none transition hover:bg-secondary focus-visible:bg-secondary focus-visible:ring-2 focus-visible:ring-ring/40";
-  const inactive = ["inactive", "archived", "discharged"].includes(
-    patient.status,
-  );
+  const restorable = ["inactive", "archived"].includes(patient.status);
 
   const menu = open ? (
     <div
@@ -230,14 +233,14 @@ export function PatientActionsMenu({
             type="button"
             role="menuitem"
             className={itemClass}
-            onClick={() => run(inactive ? onRestore : onDeactivate)}
+            onClick={() => run(restorable ? onRestore : onDeactivate)}
           >
-            {inactive ? (
+            {restorable ? (
               <RotateCcw className="h-4 w-4" />
             ) : (
               <UserRoundX className="h-4 w-4" />
             )}
-            {inactive ? "Reativar Paciente" : "Inativar Paciente"}
+            {restorable ? "Reativar Paciente" : "Inativar Paciente"}
           </button>
         )}
       </div>
