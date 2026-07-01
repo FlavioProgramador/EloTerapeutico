@@ -18,6 +18,7 @@ from weasyprint import HTML
 
 from apps.agenda.models import Appointment
 from apps.patients.models import Patient
+from apps.patients.permissions import can_access_patient
 from core.audit import AuditLog, log_access
 
 from .clinical_serializers import (
@@ -25,10 +26,12 @@ from .clinical_serializers import (
     ClinicalDocumentSerializer,
     EvolutionWorkspaceSerializer,
     TreatmentGoalSerializer,
+    ClinicalFormResponseSerializer,
+    ClinicalExportSerializer,
 )
 from .extended_models import AnamnesisVersion, EvolutionClinicalData
 from .models import Anamnesis, Evolution
-from .treatment_models import ClinicalDocument, TreatmentGoal
+from .treatment_models import ClinicalDocument, TreatmentGoal, ClinicalFormResponse, ClinicalExport
 
 
 class RecordPagination(PageNumberPagination):
@@ -46,7 +49,7 @@ class ClinicalPatientMixin:
             pk=patient_id,
         )
         user = self.request.user
-        if not user.is_admin_role and patient.therapist_id != user.id:
+        if not can_access_patient(user, patient, allow_secretary=False):
             self.permission_denied(
                 self.request,
                 message="Você não tem permissão para acessar este prontuário.",
@@ -64,7 +67,15 @@ class ClinicalPatientMixin:
             pk=pk,
         )
         self.get_patient(evolution.patient_id)
+        user = self.request.user
+        # Validação de confidencialidade
+        if evolution.is_confidential and evolution.created_by_id != user.id and not user.has_perm("records.view_confidential_evolution"):
+            self.permission_denied(
+                self.request,
+                message="Você não tem permissão para acessar esta evolução confidencial.",
+            )
         return evolution
+
 
     @staticmethod
     def serialize_evolution(evolution, request):
@@ -153,7 +164,6 @@ class PatientRecordSummaryView(ClinicalPatientMixin, APIView):
                 "message": "A integração de IA ainda não está configurada neste ambiente.",
             },
         }
-        log_access(request, AuditLog.Action.VIEW, obj=patient, obj_repr=f"Prontuário do paciente #{patient.id}")
         return Response(payload)
 
 
@@ -224,6 +234,13 @@ class PatientEvolutionListCreateView(ClinicalPatientMixin, APIView):
             .prefetch_related("addenda", "versions")
             .order_by("-session_date", "-created_at")
         )
+        
+        # Filtro de confidencialidade
+        user = request.user
+        if not user.has_perm("records.view_confidential_evolution"):
+            from django.db.models import Q
+            queryset = queryset.filter(Q(is_confidential=False) | Q(created_by=user))
+
         requested_status = request.query_params.get("status")
         if requested_status:
             queryset = queryset.filter(clinical_data__status=requested_status)
@@ -523,3 +540,127 @@ class ClinicalAiSummaryStatusView(ClinicalPatientMixin, APIView):
                 "message": "Resumo assistido indisponível até a configuração de um provedor seguro e consentimento adequado.",
             }
         )
+
+
+class ClinicalFormResponseListCreateView(ClinicalPatientMixin, APIView):
+    def get(self, request, patient_id):
+        patient = self.get_patient(patient_id)
+        queryset = ClinicalFormResponse.objects.filter(patient=patient).order_by("-completed_at", "-created_at")
+        
+        search = request.query_params.get("search")
+        if search:
+            queryset = queryset.filter(form_name__icontains=search)
+            
+        serializer = ClinicalFormResponseSerializer(queryset, many=True)
+        log_access(request, AuditLog.Action.VIEW, obj=patient, obj_repr=f"Lista de formulários do paciente #{patient.id}")
+        return Response(serializer.data)
+
+    def post(self, request, patient_id):
+        patient = self.get_patient(patient_id)
+        serializer = ClinicalFormResponseSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save(patient=patient, therapist=request.user)
+        log_access(request, AuditLog.Action.CREATE, obj=instance, obj_repr=f"Resposta de formulário #{instance.id}")
+        return Response(ClinicalFormResponseSerializer(instance).data, status=status.HTTP_201_CREATED)
+
+
+class ClinicalFormResponseDetailView(ClinicalPatientMixin, APIView):
+    def get(self, request, pk):
+        response_obj = get_object_or_404(ClinicalFormResponse, pk=pk)
+        self.get_patient(response_obj.patient_id)
+        serializer = ClinicalFormResponseSerializer(response_obj)
+        log_access(request, AuditLog.Action.VIEW, obj=response_obj, obj_repr=f"Resposta de formulário #{response_obj.id}")
+        return Response(serializer.data)
+
+
+class ClinicalExportListCreateView(ClinicalPatientMixin, APIView):
+    def get(self, request, patient_id):
+        patient = self.get_patient(patient_id)
+        queryset = ClinicalExport.objects.filter(patient=patient).order_by("-created_at")
+        serializer = ClinicalExportSerializer(queryset, many=True)
+        log_access(request, AuditLog.Action.VIEW, obj=patient, obj_repr=f"Lista de exportações do paciente #{patient.id}")
+        return Response(serializer.data)
+
+    def post(self, request, patient_id):
+        patient = self.get_patient(patient_id)
+        
+        # Validar permissão distinta para exportar registros confidenciais
+        other_confidential = Evolution.objects.filter(patient=patient, is_confidential=True).exclude(created_by=request.user).exists()
+        if other_confidential and not request.user.has_perm("records.export_confidential_evolution"):
+            self.permission_denied(
+                request,
+                message="Você não tem permissão para exportar evoluções confidenciais deste paciente."
+            )
+            
+        serializer = ClinicalExportSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        
+        export_type = serializer.validated_data.get("export_type", "Completo")
+        period = serializer.validated_data.get("period", "Todo o período")
+        
+        # Sanitização do nome do arquivo
+        from django.utils.text import slugify
+        clean_name = slugify(patient.full_name)[:50]
+        filename = f"prontuario_{clean_name}_{timezone.now():%Y%m%d%H%M%S}.pdf"
+        
+        instance = serializer.save(
+            patient=patient,
+            created_by=request.user,
+            filename=filename,
+            status=ClinicalExport.Status.PENDING,
+        )
+        
+        log_access(request, AuditLog.Action.EXPORT, obj=patient, obj_repr=f"Solicitação de exportação #{instance.id}")
+        return Response(ClinicalExportSerializer(instance).data, status=status.HTTP_201_CREATED)
+
+
+class ClinicalExportRetryView(ClinicalPatientMixin, APIView):
+    def post(self, request, pk):
+        export_obj = get_object_or_404(ClinicalExport, pk=pk)
+        self.get_patient(export_obj.patient_id)
+        
+        if export_obj.status not in [ClinicalExport.Status.FAILED, ClinicalExport.Status.EXPIRED]:
+            return Response(
+                {"detail": "Somente exportações com status Falhou ou Expirado podem ser reprocessadas."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+            
+        export_obj.status = ClinicalExport.Status.PENDING
+        export_obj.retries = 0
+        export_obj.started_at = None
+        export_obj.completed_at = None
+        export_obj.worker_id = ""
+        export_obj.error_message = ""
+        export_obj.save()
+        
+        log_access(request, AuditLog.Action.EXPORT, obj=export_obj.patient, obj_repr=f"Reprocessamento de exportação #{export_obj.id}")
+        return Response(ClinicalExportSerializer(export_obj).data)
+
+
+class ClinicalExportDownloadView(ClinicalPatientMixin, APIView):
+    def get(self, request, pk):
+        export_obj = get_object_or_404(ClinicalExport, pk=pk)
+        self.get_patient(export_obj.patient_id)
+        
+        if export_obj.status != ClinicalExport.Status.COMPLETED:
+            return Response(
+                {"detail": "O arquivo de exportação ainda não está pronto ou falhou."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+            
+        if not export_obj.file:
+            raise Http404("Arquivo de exportação não encontrado.")
+            
+        try:
+            stream = export_obj.file.open("rb")
+        except FileNotFoundError as exc:
+            raise Http404("Arquivo físico de exportação não encontrado.") from exc
+            
+        log_access(request, AuditLog.Action.EXPORT, obj=export_obj.patient, obj_repr=f"Download da exportação #{export_obj.id}")
+        return FileResponse(
+            stream,
+            as_attachment=True,
+            filename=export_obj.filename,
+            content_type="application/pdf",
+        )
+

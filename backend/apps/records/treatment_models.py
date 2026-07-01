@@ -196,6 +196,13 @@ class ClinicalFormResponse(models.Model):
         ]
 
 
+def clinical_export_path(instance, filename: str) -> str:
+    from uuid import uuid4
+    from pathlib import Path
+    suffix = Path(filename).suffix.lower()
+    return f"clinical_exports/{instance.patient_id}/{uuid4().hex}{suffix}"
+
+
 class ClinicalExport(models.Model):
     class Status(models.TextChoices):
         PENDING = "PENDING", "Pendente"
@@ -212,6 +219,7 @@ class ClinicalExport(models.Model):
     )
     export_type = models.CharField(max_length=100, verbose_name="Tipo de exportação")
     filename = models.CharField(max_length=255, verbose_name="Nome do arquivo")
+    file = models.FileField(upload_to=clinical_export_path, null=True, blank=True, verbose_name="Arquivo gerado")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -242,4 +250,5 @@ class ClinicalExport(models.Model):
         indexes = [
             models.Index(fields=["patient", "status"], name="export_patient_status_idx")
         ]
+
 

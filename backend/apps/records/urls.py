@@ -17,6 +17,11 @@ from .clinical_views import (
     PatientRecordSummaryView,
     TreatmentGoalDetailView,
     TreatmentGoalListCreateView,
+    ClinicalFormResponseListCreateView,
+    ClinicalFormResponseDetailView,
+    ClinicalExportListCreateView,
+    ClinicalExportRetryView,
+    ClinicalExportDownloadView,
 )
 from .finalize_views import EvolutionFinalizeFreshView
 from .views import AnamnesisView, EvolutionViewSet
@@ -34,6 +39,11 @@ urlpatterns = [
     path("patients/<int:patient_id>/documents/", ClinicalDocumentListCreateView.as_view(), name="clinical-documents"),
     path("patients/<int:patient_id>/export-pdf/", PatientRecordPdfView.as_view(), name="patient-record-pdf"),
     path("patients/<int:patient_id>/ai-summary/", ClinicalAiSummaryStatusView.as_view(), name="clinical-ai-summary"),
+    path("patients/<int:patient_id>/forms/", ClinicalFormResponseListCreateView.as_view(), name="patient-forms"),
+    path("forms/<int:pk>/", ClinicalFormResponseDetailView.as_view(), name="form-response-detail"),
+    path("patients/<int:patient_id>/exports/", ClinicalExportListCreateView.as_view(), name="patient-exports"),
+    path("exports/<int:pk>/retry/", ClinicalExportRetryView.as_view(), name="export-retry"),
+    path("exports/<int:pk>/download/", ClinicalExportDownloadView.as_view(), name="export-download"),
     path("clinical-evolutions/<int:pk>/", EvolutionWorkspaceDetailView.as_view(), name="clinical-evolution-detail"),
     path("clinical-evolutions/<int:pk>/finalize/", EvolutionFinalizeFreshView.as_view(), name="clinical-evolution-finalize"),
     path("clinical-evolutions/<int:pk>/duplicate/", EvolutionDuplicateView.as_view(), name="clinical-evolution-duplicate"),
