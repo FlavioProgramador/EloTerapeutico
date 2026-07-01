@@ -486,29 +486,55 @@ class ClinicalDocumentDownloadView(ClinicalPatientMixin, APIView):
 class PatientRecordPdfView(ClinicalPatientMixin, APIView):
     def get(self, request, patient_id):
         patient = self.get_patient(patient_id)
-        evolutions = Evolution.objects.filter(patient=patient).select_related(
+        
+        # Validar permissão distinta para exportar registros confidenciais
+        other_confidential = Evolution.objects.filter(patient=patient, is_confidential=True).exclude(created_by=request.user).exists()
+        if other_confidential and not request.user.has_perm("records.export_confidential_evolution"):
+            self.permission_denied(
+                request,
+                message="Você não tem permissão para exportar evoluções confidenciais deste paciente."
+            )
+            
+        user = request.user
+        queryset = Evolution.objects.filter(patient=patient).select_related(
             "created_by",
             "clinical_data",
         )
+        if not user.has_perm("records.view_confidential_evolution"):
+            from django.db.models import Q
+            queryset = queryset.filter(Q(is_confidential=False) | Q(created_by=user))
+            
+        from .utils import render_markdown_safely, safe_url_fetcher
+        
         sections = []
-        for evolution in evolutions:
+        for evolution in queryset:
             clinical_data = getattr(evolution, "clinical_data", None)
+            obs = getattr(clinical_data, 'therapist_observations', '') or evolution.content
+            interv = getattr(clinical_data, 'interventions', '')
+            steps = getattr(clinical_data, 'next_steps', '')
+            
+            obs_html = render_markdown_safely(obs)
+            interv_html = render_markdown_safely(interv)
+            steps_html = render_markdown_safely(steps)
+            
             sections.append(
                 f"""
                 <section>
                   <h2>{escape(evolution.session_date.strftime('%d/%m/%Y'))}</h2>
                   <p><strong>Profissional:</strong> {escape(evolution.created_by.full_name)}</p>
-                  <p><strong>Observações clínicas:</strong> {escape(getattr(clinical_data, 'therapist_observations', '') or evolution.content)}</p>
-                  <p><strong>Intervenções:</strong> {escape(getattr(clinical_data, 'interventions', ''))}</p>
-                  <p><strong>Próximos passos:</strong> {escape(getattr(clinical_data, 'next_steps', ''))}</p>
+                  <div><strong>Observações clínicas:</strong> {obs_html}</div>
+                  <div><strong>Intervenções:</strong> {interv_html}</div>
+                  <div><strong>Próximos passos:</strong> {steps_html}</div>
                 </section>
                 """
             )
+            
         html = f"""
         <html><head><meta charset='utf-8'><style>
         body{{font-family:Arial,sans-serif;color:#17201d;font-size:12px}}
         h1{{color:#0f766e}} section{{border-top:1px solid #d8e0dd;padding:14px 0}}
         p{{line-height:1.5;white-space:pre-wrap}}
+        div{{margin-top:4px}}
         </style></head><body>
         <h1>Prontuário eletrônico</h1>
         <p><strong>Paciente:</strong> {escape(patient.full_name)}</p>
@@ -517,7 +543,7 @@ class PatientRecordPdfView(ClinicalPatientMixin, APIView):
         </body></html>
         """
         output = BytesIO()
-        HTML(string=html).write_pdf(output)
+        HTML(string=html, url_fetcher=safe_url_fetcher).write_pdf(output)
         output.seek(0)
         log_access(request, AuditLog.Action.EXPORT, obj=patient, obj_repr=f"Exportação do prontuário #{patient.id}")
         return FileResponse(
@@ -526,6 +552,7 @@ class PatientRecordPdfView(ClinicalPatientMixin, APIView):
             filename=f"prontuario-paciente-{patient.id}.pdf",
             content_type="application/pdf",
         )
+
 
 
 class ClinicalAiSummaryStatusView(ClinicalPatientMixin, APIView):
