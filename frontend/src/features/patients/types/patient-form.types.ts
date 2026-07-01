@@ -1,4 +1,10 @@
-import type { PatientStatus } from "@/types";
+export type PatientFormStatus =
+  | "active"
+  | "evaluation"
+  | "waiting_return"
+  | "discharged"
+  | "inactive"
+  | "archived";
 
 export interface PatientProfessionalOption {
   id: number;
@@ -28,12 +34,16 @@ export interface PatientFormRecord {
   birth_date?: string | null;
   treatment_start_date?: string | null;
   cpf?: string;
+  formatted_cpf?: string;
+  masked_cpf?: string;
   rg?: string;
+  age?: number;
   gender?: "M" | "F" | "O" | "N";
   marital_status?: string;
   profession?: string;
   social_network?: string;
-  status: PatientStatus;
+  status: PatientFormStatus;
+  status_display?: string;
   attendance_type?: string;
   modality?: string;
   payer_type?: string;
@@ -45,7 +55,7 @@ export interface PatientFormRecord {
   therapist?: number;
   therapist_name?: string;
   professionals?: PatientProfessionalOption[];
-  address?: PatientAddress;
+  address?: PatientAddress | string;
   tags?: string[];
   referral_source?: string;
   emergency_contact_name?: string;
@@ -66,9 +76,20 @@ export interface PatientFormRecord {
   financial_responsible_relationship?: string;
   consent_terms_accepted?: boolean;
   notes?: string;
+  is_active?: boolean;
+  deleted_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export type PatientFormRequest = Record<
   string,
-  string | number | boolean | string[] | PatientAddress | File | null | undefined
+  | string
+  | number
+  | boolean
+  | string[]
+  | PatientAddress
+  | File
+  | null
+  | undefined
 >;
