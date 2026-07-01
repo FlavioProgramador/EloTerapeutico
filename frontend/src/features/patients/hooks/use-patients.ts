@@ -17,9 +17,14 @@ export function usePatients(filters?: PatientFilters) {
 
 export function usePatient(id: number | undefined) {
   return useQuery({
-    queryKey: QUERY_KEYS.patient(id ?? 0),
-    queryFn: () => patientsService.getById(id as number),
-    enabled: Boolean(id),
+    queryKey: QUERY_KEYS.patient(id),
+    queryFn: () => {
+      if (id === undefined) {
+        throw new Error("O identificador do paciente é obrigatório.");
+      }
+      return patientsService.getById(id);
+    },
+    enabled: id !== undefined,
   });
 }
 
@@ -56,8 +61,12 @@ export function useCreatePatient() {
 export function useUpdatePatient(id: number | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: PatientFormRequest | FormData) =>
-      patientsService.update(id as number, data),
+    mutationFn: (data: PatientFormRequest | FormData) => {
+      if (id === undefined) {
+        throw new Error("O identificador do paciente é obrigatório para edição.");
+      }
+      return patientsService.update(id, data);
+    },
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.patients }),
@@ -67,7 +76,7 @@ export function useUpdatePatient(id: number | undefined) {
         queryClient.invalidateQueries({
           queryKey: ["patients", "dashboard-metrics"],
         }),
-        id
+        id !== undefined
           ? queryClient.invalidateQueries({ queryKey: QUERY_KEYS.patient(id) })
           : Promise.resolve(),
       ]);
