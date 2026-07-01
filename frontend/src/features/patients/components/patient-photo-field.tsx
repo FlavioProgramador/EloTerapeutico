@@ -9,23 +9,23 @@ interface Props {
   onRemove: () => void;
 }
 
-function sanitizeImageSrc(value: string | null): string | null {
+function sanitizeImageSrc(
+  value: string | null,
+  expectedPreview: string | null,
+): string | null {
   if (!value) return null;
 
   const candidate = value.trim();
   if (!candidate) return null;
 
-  if (candidate.startsWith("/") && !candidate.startsWith("//")) {
-    return candidate;
-  }
-
   try {
     const parsed = new URL(candidate);
-    if (
-      parsed.protocol === "blob:" ||
-      parsed.protocol === "https:" ||
-      parsed.protocol === "http:"
-    ) {
+
+    if (parsed.protocol === "blob:") {
+      return expectedPreview && candidate === expectedPreview ? candidate : null;
+    }
+
+    if (parsed.protocol === "https:" || parsed.protocol === "http:") {
       return parsed.toString();
     }
   } catch {
@@ -36,7 +36,10 @@ function sanitizeImageSrc(value: string | null): string | null {
 }
 
 export function PatientPhotoField(props: Props) {
-  const photoSrc = sanitizeImageSrc(props.preview || props.current);
+  const photoSrc = sanitizeImageSrc(
+    props.preview || props.current,
+    props.preview,
+  );
 
   return (
     <div className="flex items-center gap-4 sm:col-span-2">
