@@ -1,10 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/auth";
 import { usePatientReferenceData } from "../hooks/use-patient-reference-data";
 import { usePatientReferenceFilters } from "../hooks/use-patient-reference-filters";
+import { patientsService } from "../services/patients.service";
+import { NewPatientModal } from "./new-patient-modal";
 import { countPatientFilters } from "./patient-list-config";
 import type { PatientListItem } from "./patient-list-item";
 import { PatientListEmpty, PatientListError } from "./patient-list-state";
@@ -14,8 +17,11 @@ import { PatientTable, PatientTableSkeleton } from "./patient-table";
 import { PatientToolbarReference } from "./patient-toolbar-reference";
 
 export function PatientBrowserReference() {
-  const router = useRouter();
   const { user } = useAuth();
+  const [drawer, setDrawer] = useState<{
+    open: boolean;
+    patientId?: number;
+  }>({ open: false });
   const state = usePatientReferenceFilters();
   const data = usePatientReferenceData({
     params: state.params,
@@ -30,12 +36,26 @@ export function PatientBrowserReference() {
   const canManage = (patient: PatientListItem) =>
     user?.role === "admin" ||
     (user?.role === "therapist" && patient.therapist === user.id);
-  const goToNew = () => router.push("/dashboard/patients/new");
+  const canAccessRecords = (patient: PatientListItem) =>
+    user?.role === "admin" ||
+    (user?.role === "therapist" && patient.therapist === user.id);
+  const goToNew = () => setDrawer({ open: true });
   const clearAll = () => {
     state.setSearch("");
     state.clearFilters();
   };
   const filtered = Boolean(state.debouncedSearch || filterCount);
+
+  const createRegistrationLink = async (patient: PatientListItem) => {
+    try {
+      const result = await patientsService.createRegistrationLink(patient.id);
+      const url = new URL(result.path, window.location.origin).toString();
+      await navigator.clipboard.writeText(url);
+      toast.success("Link seguro copiado para a área de transferência.");
+    } catch {
+      toast.error("Não foi possível gerar o link de cadastro.");
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -91,12 +111,21 @@ export function PatientBrowserReference() {
           loading={data.list.isFetching}
           reminderPendingId={data.reminder.variables?.id}
           canManage={canManage}
-          canAccessRecords={canManage}
+          canAccessRecords={canAccessRecords}
           onReminderChange={(patient, enabled) =>
             data.reminder.mutate({ id: patient.id, enabled })
           }
-          onArchive={data.archivePatient}
-          onRestore={(patient) => data.restore.mutate(patient.id)}
+          onEdit={(patient) =>
+            setDrawer({ open: true, patientId: patient.id })
+          }
+          onDeactivate={data.deactivatePatient}
+          onRestore={(patient) => {
+            if (window.confirm(`Reativar ${patient.display_name}?`)) {
+              data.restore.mutate(patient.id);
+            }
+          }}
+          onRemove={data.archivePatient}
+          onRegistrationLink={createRegistrationLink}
           onPageChange={state.setPage}
           onPageSizeChange={(size) => {
             state.setPageSize(size);
@@ -104,6 +133,13 @@ export function PatientBrowserReference() {
           }}
         />
       )}
+
+      <NewPatientModal
+        open={drawer.open}
+        patientId={drawer.patientId}
+        onClose={() => setDrawer({ open: false })}
+        onSaved={() => data.refresh()}
+      />
     </div>
   );
 }

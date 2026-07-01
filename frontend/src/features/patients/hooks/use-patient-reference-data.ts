@@ -5,13 +5,13 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { api } from "@/lib/api";
-import type { PatientMetrics } from "../types";
 import {
   buildPatientListParams,
   type PatientListFilters,
   type PatientPageData,
 } from "../components/patient-list-config";
 import type { PatientListItem } from "../components/patient-list-item";
+import type { PatientMetrics } from "../types";
 
 interface Options {
   params: URLSearchParams;
@@ -56,16 +56,26 @@ export function usePatientReferenceData({
         .then((response) => response.data.pagination.count),
   });
 
-  const refreshList = () =>
-    queryClient.invalidateQueries({
-      queryKey: ["patients", "reference-list"],
-    });
+  const refresh = () =>
+    Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: ["patients", "reference-list"],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["patients", "dashboard-metrics"],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["patients", "birthday-count"],
+      }),
+    ]);
 
   const reminder = useMutation({
     mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
       api.patch(`patients/${id}/reminders/`, { enabled }),
     onSuccess: async (_, values) => {
-      await refreshList();
+      await queryClient.invalidateQueries({
+        queryKey: ["patients", "reference-list"],
+      });
       toast.success(
         values.enabled ? "Lembretes ativados." : "Lembretes desativados.",
       );
@@ -73,15 +83,19 @@ export function usePatientReferenceData({
     onError: () => toast.error("Não foi possível atualizar os lembretes."),
   });
 
+  const deactivate = useMutation({
+    mutationFn: (id: number) => api.post(`patients/${id}/deactivate/`),
+    onSuccess: async () => {
+      await refresh();
+      toast.success("Paciente inativado com sucesso.");
+    },
+    onError: () => toast.error("Não foi possível inativar o paciente."),
+  });
+
   const archive = useMutation({
     mutationFn: (id: number) => api.delete(`patients/${id}/`),
     onSuccess: async () => {
-      await Promise.all([
-        refreshList(),
-        queryClient.invalidateQueries({
-          queryKey: ["patients", "dashboard-metrics"],
-        }),
-      ]);
+      await refresh();
       toast.success("Paciente arquivado com sucesso.");
     },
     onError: () => toast.error("Não foi possível arquivar o paciente."),
@@ -90,12 +104,7 @@ export function usePatientReferenceData({
   const restore = useMutation({
     mutationFn: (id: number) => api.post(`patients/${id}/restore/`),
     onSuccess: async () => {
-      await Promise.all([
-        refreshList(),
-        queryClient.invalidateQueries({
-          queryKey: ["patients", "dashboard-metrics"],
-        }),
-      ]);
+      await refresh();
       toast.success("Paciente restaurado com sucesso.");
     },
     onError: () => toast.error("Não foi possível restaurar o paciente."),
@@ -131,9 +140,16 @@ export function usePatientReferenceData({
     }
   };
 
+  const deactivatePatient = (patient: PatientListItem) => {
+    const confirmed = window.confirm(
+      `Inativar ${patient.display_name}? O histórico e o prontuário serão preservados.`,
+    );
+    if (confirmed) deactivate.mutate(patient.id);
+  };
+
   const archivePatient = (patient: PatientListItem) => {
     const confirmed = window.confirm(
-      `Arquivar o cadastro de ${patient.display_name}? O histórico será preservado.`,
+      `Arquivar ${patient.display_name}? O cadastro sairá da listagem ativa, mas o histórico será preservado.`,
     );
     if (confirmed) archive.mutate(patient.id);
   };
@@ -143,10 +159,13 @@ export function usePatientReferenceData({
     metrics,
     birthdayCount,
     reminder,
+    deactivate,
     archive,
     restore,
     exporting,
     exportCsv,
+    deactivatePatient,
     archivePatient,
+    refresh,
   };
 }

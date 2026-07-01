@@ -4,18 +4,18 @@ Serializers para o modelo Patient do sistema Elo Terapêutico.
 """
 
 import re
+from datetime import date
+
 from rest_framework import serializers
+
+from apps.users.models import User
 from core.validators import validate_cpf, validate_phone
+
 from .models import Patient
 
 
-from apps.users.models import User
-
-
 class PatientListSerializer(serializers.ModelSerializer):
-    """
-    Serializer resumido para listagem de pacientes.
-    """
+    """Serializer resumido para listagem de pacientes."""
 
     age = serializers.IntegerField(read_only=True)
     formatted_cpf = serializers.CharField(read_only=True)
@@ -37,9 +37,7 @@ class PatientListSerializer(serializers.ModelSerializer):
 
 
 class PatientDetailSerializer(serializers.ModelSerializer):
-    """
-    Serializer detalhado com todos os campos do paciente.
-    """
+    """Serializer detalhado com todos os campos do paciente."""
 
     age = serializers.IntegerField(read_only=True)
     formatted_cpf = serializers.CharField(read_only=True)
@@ -83,10 +81,7 @@ class PatientDetailSerializer(serializers.ModelSerializer):
 
 
 class PatientCreateUpdateSerializer(serializers.ModelSerializer):
-    """
-    Serializer para criação e atualização de pacientes com
-    validações customizadas.
-    """
+    """Serializer de criação e atualização com validações do domínio."""
 
     cpf = serializers.CharField(max_length=14, required=True)
     guardian_cpf = serializers.CharField(
@@ -116,22 +111,15 @@ class PatientCreateUpdateSerializer(serializers.ModelSerializer):
         ]
 
     def validate_cpf(self, value):
-        # Valida usando o validador do core
         validate_cpf(value)
-        # Normaliza removendo não dígitos
         clean_cpf = re.sub(r"\D", "", value)
-
-        # Verifica se já existe um paciente com este CPF
-        # Exclui o próprio paciente se for uma atualização (update)
-        instance = self.instance
         queryset = Patient.all_objects.filter(cpf=clean_cpf)
-        if instance:
-            queryset = queryset.exclude(id=instance.id)
+        if self.instance:
+            queryset = queryset.exclude(id=self.instance.id)
         if queryset.exists():
             raise serializers.ValidationError(
                 "Um paciente com este CPF já está cadastrado."
             )
-
         return clean_cpf
 
     def validate_guardian_cpf(self, value):
@@ -146,7 +134,6 @@ class PatientCreateUpdateSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        # Validar que o terapeuta é fornecido se o usuário não for um terapeuta
         request = self.context.get("request")
         if request and request.user:
             user = request.user
@@ -159,37 +146,34 @@ class PatientCreateUpdateSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError(
                         {
                             "therapist": (
-                                "O campo terapeuta é obrigatório "
-                                "para este perfil."
+                                "O campo terapeuta é obrigatório para este perfil."
                             )
                         }
                     )
 
-        # Valida responsável legal caso seja menor de 18 anos
-        birth_date = attrs.get("birth_date")
-        if birth_date:
-            # Calcula idade
-            from datetime import date
+        birth_date = attrs.get(
+            "birth_date",
+            self.instance.birth_date if self.instance else None,
+        )
+        guardian_name = attrs.get(
+            "guardian_name",
+            self.instance.guardian_name if self.instance else "",
+        )
 
+        if birth_date:
             today = date.today()
-            birthday_this_year = birth_date.replace(year=today.year)
             age = today.year - birth_date.year
-            if birthday_this_year > today:
+            if (today.month, today.day) < (birth_date.month, birth_date.day):
                 age -= 1
 
-            if age < 18:
-                guardian_name = attrs.get("guardian_name")
-                if guardian_name is None:
-                    guardian_name = (
-                        self.instance.guardian_name if self.instance else ""
-                    )
-                if not guardian_name:
-                    raise serializers.ValidationError(
-                        {
-                            "guardian_name": (
-                                "Pacientes menores de 18 anos devem "
-                                "ter um responsável cadastrado."
-                            )
-                        }
-                    )
+            if age < 18 and not guardian_name:
+                raise serializers.ValidationError(
+                    {
+                        "guardian_name": (
+                            "Pacientes menores de 18 anos devem ter um "
+                            "responsável cadastrado."
+                        )
+                    }
+                )
+
         return attrs
