@@ -12,7 +12,7 @@ class PatientFormSerializer(PatientCreateUpdateSerializer):
     """Contrato completo utilizado pelo drawer de criação e edição."""
 
     photo = serializers.FileField(required=False, allow_null=True)
-    remove_photo = serializers.BooleanField(write_only=True, required=False, default=False)
+    remove_photo = serializers.BooleanField(write_only=True, required=False)
     tags = serializers.ListField(
         child=serializers.CharField(max_length=32),
         required=False,
