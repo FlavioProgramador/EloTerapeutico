@@ -11,7 +11,10 @@ import {
 export function recordToPatientForm(
   record: PatientFormRecord,
 ): PatientFormData {
-  const address = record.address ?? {};
+  const address =
+    record.address && typeof record.address === "object" ? record.address : {};
+  const legacyAddress =
+    typeof record.address === "string" ? record.address : address.street ?? "";
   return {
     ...EMPTY_PATIENT_FORM,
     full_name: record.full_name ?? "",
@@ -43,6 +46,7 @@ export function recordToPatientForm(
     therapist: record.therapist ? String(record.therapist) : "",
     tags: record.tags?.join(", ") ?? "",
     referral_source: record.referral_source ?? "",
+    address: legacyAddress,
     address_zip_code: address.zip_code ? formatCep(address.zip_code) : "",
     address_street: address.street ?? "",
     address_number: address.number ?? "",
