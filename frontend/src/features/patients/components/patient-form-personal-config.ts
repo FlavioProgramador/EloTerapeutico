@@ -3,7 +3,7 @@ import type { PatientFormData } from "../schemas/patient.schemas";
 export interface PatientFieldConfig {
   name: keyof PatientFormData;
   label: string;
-  type?: "text" | "email" | "date" | "select";
+  type?: "text" | "email" | "date" | "select" | "textarea";
   full?: boolean;
   mask?: "cpf" | "phone" | "cep" | "money";
   options?: Array<[string, string]>;
