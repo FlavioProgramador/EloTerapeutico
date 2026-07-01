@@ -196,10 +196,9 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
       <RecordHeader
         summary={summary}
         exporting={exporting}
-        onOpenPatients={() => setPatientDrawerOpen(true)}
+        onBack={() => router.push("/dashboard/patients")}
         onNewEvolution={openNewEvolution}
-        onOpenAnamnesis={() => changeTab("anamnesis")}
-        onOpenDocuments={() => changeTab("documents")}
+        onFillForm={() => changeTab("forms")}
         onExport={exportPdf}
       />
 
