@@ -7,6 +7,12 @@ export const DOCUMENT_FIELD_CONFIG: PatientFieldConfig[] = [
   { name: "social_network", label: "Rede social" },
 ];
 
+const UF_OPTIONS = [
+  "", "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT",
+  "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR",
+  "SC", "SP", "SE", "TO",
+].map((value) => [value, value || "UF"] as [string, string]);
+
 export const ADDRESS_FIELD_CONFIG: PatientFieldConfig[] = [
   { name: "address_zip_code", label: "CEP", mask: "cep" },
   { name: "address_street", label: "Rua / Avenida" },
@@ -14,7 +20,12 @@ export const ADDRESS_FIELD_CONFIG: PatientFieldConfig[] = [
   { name: "address_complement", label: "Complemento" },
   { name: "address_neighborhood", label: "Bairro" },
   { name: "address_city", label: "Cidade" },
-  { name: "address_state", label: "Estado" },
+  {
+    name: "address_state",
+    label: "Estado",
+    type: "select",
+    options: UF_OPTIONS,
+  },
 ];
 
 export const EMERGENCY_FIELD_CONFIG: PatientFieldConfig[] = [
