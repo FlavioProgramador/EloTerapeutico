@@ -13,7 +13,7 @@ from .extended_models import (
     EvolutionVersion,
 )
 from .models import Anamnesis, Evolution
-from .treatment_models import ClinicalDocument, TreatmentGoal
+from .treatment_models import ClinicalDocument, TreatmentGoal, ClinicalFormResponse, ClinicalExport
 
 
 ANAMNESIS_LEGACY_FIELDS = (
@@ -280,6 +280,7 @@ class EvolutionWorkspaceSerializer(serializers.ModelSerializer):
             "is_locked",
             "locked_at",
             "is_editable",
+            "is_confidential",
             "addenda_count",
             "attached_documents_count",
             "linked_goal_ids",
@@ -355,6 +356,7 @@ class EvolutionWorkspaceSerializer(serializers.ModelSerializer):
             "content": instance.content,
             "cid10": instance.cid10,
             "session_date": instance.session_date.isoformat(),
+            "is_confidential": instance.is_confidential,
         }
         profile = getattr(instance, "clinical_data", None)
         current.update(
@@ -532,3 +534,78 @@ class ClinicalDocumentSerializer(serializers.ModelSerializer):
                 "A evolução não pertence ao paciente."
             )
         return evolution
+
+
+class ClinicalFormResponseSerializer(serializers.ModelSerializer):
+    therapist_name = serializers.CharField(source="therapist.full_name", read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+
+    class Meta:
+        model = ClinicalFormResponse
+        fields = (
+            "id",
+            "patient",
+            "form_name",
+            "category",
+            "sent_at",
+            "completed_at",
+            "completed_by",
+            "therapist",
+            "therapist_name",
+            "status",
+            "status_display",
+            "answers_count",
+            "form_snapshot",
+            "answers",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "patient",
+            "therapist",
+            "therapist_name",
+            "status_display",
+            "created_at",
+            "updated_at",
+        )
+
+
+class ClinicalExportSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+
+    class Meta:
+        model = ClinicalExport
+        fields = (
+            "id",
+            "patient",
+            "export_type",
+            "filename",
+            "period",
+            "status",
+            "status_display",
+            "size_bytes",
+            "download_url",
+            "started_at",
+            "completed_at",
+            "created_by",
+            "created_by_name",
+            "created_at",
+            "retries",
+            "error_message",
+        )
+        read_only_fields = (
+            "patient",
+            "filename",
+            "status_display",
+            "size_bytes",
+            "download_url",
+            "started_at",
+            "completed_at",
+            "created_by",
+            "created_by_name",
+            "created_at",
+            "retries",
+            "error_message",
+        )
+

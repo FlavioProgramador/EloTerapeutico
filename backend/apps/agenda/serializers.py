@@ -91,6 +91,8 @@ class AppointmentDetailSerializer(serializers.ModelSerializer):
 
     # Série de recorrências relacionadas (somente leitura, sem detalhes internos)
     recurrences_count = serializers.SerializerMethodField()
+    evolution_id = serializers.SerializerMethodField()
+    evolution_status = serializers.SerializerMethodField()
 
     class Meta:
         model  = Appointment
@@ -111,6 +113,8 @@ class AppointmentDetailSerializer(serializers.ModelSerializer):
             "recurrence_rule",
             "parent_appointment",
             "recurrences_count",
+            "evolution_id",
+            "evolution_status",
             "created_at",
             "updated_at",
         ]
@@ -118,6 +122,19 @@ class AppointmentDetailSerializer(serializers.ModelSerializer):
     def get_recurrences_count(self, obj) -> int:
         """Retorna quantas ocorrências futuras existem nesta série."""
         return obj.recurrences.count()
+
+    def get_evolution_id(self, obj):
+        try:
+            return obj.evolution.id
+        except Exception:
+            return None
+
+    def get_evolution_status(self, obj):
+        try:
+            return obj.evolution.clinical_data.status
+        except Exception:
+            return None
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
