@@ -16,8 +16,11 @@ interface RowProps {
   canAccessRecords: boolean;
   reminderPending: boolean;
   onReminderChange: (enabled: boolean) => void;
-  onArchive: () => void;
+  onEdit: () => void;
+  onDeactivate: () => void;
   onRestore: () => void;
+  onRemove: () => void;
+  onRegistrationLink: () => void;
 }
 
 function ReminderSwitch({
@@ -53,6 +56,21 @@ function ReminderSwitch({
         }`}
       />
     </button>
+  );
+}
+
+function ActionMenu(props: RowProps) {
+  return (
+    <PatientActionsMenu
+      patient={props.patient}
+      canManage={props.canManage}
+      canAccessRecords={props.canAccessRecords}
+      onEdit={props.onEdit}
+      onDeactivate={props.onDeactivate}
+      onRestore={props.onRestore}
+      onRemove={props.onRemove}
+      onRegistrationLink={props.onRegistrationLink}
+    />
   );
 }
 
@@ -111,13 +129,7 @@ export function PatientDesktopRow(props: RowProps) {
         </Badge>
       </td>
       <td className="px-3 py-3">
-        <PatientActionsMenu
-          patient={patient}
-          canManage={props.canManage}
-          canAccessRecords={props.canAccessRecords}
-          onArchive={props.onArchive}
-          onRestore={props.onRestore}
-        />
+        <ActionMenu {...props} />
       </td>
     </tr>
   );
@@ -147,28 +159,30 @@ export function PatientMobileCard(props: RowProps) {
             </p>
           </div>
         </div>
-        <PatientActionsMenu
-          patient={patient}
-          canManage={props.canManage}
-          canAccessRecords={props.canAccessRecords}
-          onArchive={props.onArchive}
-          onRestore={props.onRestore}
-        />
+        <ActionMenu {...props} />
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
         <div>
-          <p className="text-[9px] font-semibold uppercase text-muted-foreground">Idade</p>
+          <p className="text-[9px] font-semibold uppercase text-muted-foreground">
+            Idade
+          </p>
           <p className="mt-1 text-foreground">
             {typeof patient.age === "number" ? `${patient.age} anos` : "Não informada"}
           </p>
         </div>
         <div>
-          <p className="text-[9px] font-semibold uppercase text-muted-foreground">Pagador</p>
-          <p className="mt-1 truncate text-foreground">{patientPayerLabel(patient)}</p>
+          <p className="text-[9px] font-semibold uppercase text-muted-foreground">
+            Pagador
+          </p>
+          <p className="mt-1 truncate text-foreground">
+            {patientPayerLabel(patient)}
+          </p>
         </div>
         <div className="col-span-2 min-w-0">
-          <p className="text-[9px] font-semibold uppercase text-muted-foreground">Contato</p>
+          <p className="text-[9px] font-semibold uppercase text-muted-foreground">
+            Contato
+          </p>
           <p className="mt-1 truncate text-foreground">
             {patient.phone || "Telefone não informado"}
           </p>
