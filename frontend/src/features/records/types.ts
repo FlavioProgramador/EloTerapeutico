@@ -55,6 +55,7 @@ export interface EvolutionWorkspace {
   is_locked: boolean;
   locked_at: string | null;
   is_editable: boolean;
+  is_confidential?: boolean;
   addenda_count: number;
   attached_documents_count?: number;
   linked_goal_ids?: number[];
@@ -84,6 +85,7 @@ export interface EvolutionPayload {
   next_steps?: string;
   content?: string;
   cid10?: string;
+  is_confidential?: boolean;
 }
 
 export interface AnamnesisWorkspace {

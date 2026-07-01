@@ -35,6 +35,7 @@ const emptyForm: EvolutionPayload = {
   referrals: "",
   next_steps: "",
   cid10: "",
+  is_confidential: false,
 };
 
 const sections = [
@@ -114,6 +115,7 @@ export function EvolutionEditor({
         referrals: evolution.referrals,
         next_steps: evolution.next_steps,
         cid10: evolution.cid10 ?? "",
+        is_confidential: evolution.is_confidential ?? false,
       });
     } else {
       setForm({
@@ -270,6 +272,17 @@ export function EvolutionEditor({
               <option value="other">Outro</option>
             </select>
           </label>
+          <div className="flex items-center gap-2 lg:col-span-5 py-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.is_confidential ?? false}
+                onChange={(event) => change("is_confidential", event.target.checked)}
+                className="h-4 w-4 rounded border-border bg-background text-emerald-600 focus:ring-emerald-500"
+              />
+              <span className="text-xs font-semibold text-muted-foreground">Marcar evolução como Confidencial (Apenas você ou pessoas autorizadas poderão visualizar/exportar)</span>
+            </label>
+          </div>
         </div>
 
         {sections.map((section) => (

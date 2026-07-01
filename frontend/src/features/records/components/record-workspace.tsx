@@ -6,7 +6,6 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { recordWorkspaceService } from "../services/record-workspace.service";
 import {
-  useClinicalAnamnesis,
   useClinicalDocuments,
   useClinicalEvolution,
   useClinicalEvolutions,
@@ -14,10 +13,7 @@ import {
   useDocumentMutations,
   useDuplicateClinicalEvolution,
   useFinalizeClinicalEvolution,
-  useGoalMutations,
   useRecordSummary,
-  useSaveClinicalAnamnesis,
-  useTreatmentGoals,
   useUpdateClinicalEvolution,
 } from "../hooks/use-record-workspace";
 import type {
@@ -25,18 +21,20 @@ import type {
   EvolutionWorkspace,
   RecordTab,
 } from "../types";
-import { AnamnesisTab } from "./anamnesis-tab";
+
+import { AppointmentsTab } from "./appointments-tab";
+import { FormsTab } from "./forms-tab";
+import { ExportsTab } from "./exports-tab";
 import { DocumentsTab } from "./documents-tab";
 import { EvolutionEditor } from "./evolution-editor";
 import { EvolutionTimeline } from "./evolution-timeline";
-import { GoalsTab } from "./goals-tab";
 import { PatientSelector } from "./patient-selector";
 import { RecordHeader } from "./record-header";
-import { RecordStats, RecordSupportPanel } from "./record-overview";
+import { RecordStats } from "./record-overview";
 import { RecordTabsNav } from "./record-tabs-nav";
 
 function isRecordTab(value: string | null): value is RecordTab {
-  return ["evolutions", "anamnesis", "goals", "documents"].includes(
+  return ["evolutions", "appointments", "documents", "forms", "exports"].includes(
     value ?? "",
   );
 }
@@ -81,11 +79,6 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
   const selectedEvolutionQuery = useClinicalEvolution(
     activeTab === "evolutions" ? selectedEvolutionId : null,
   );
-  const anamnesisQuery = useClinicalAnamnesis(
-    patientId,
-    activeTab === "anamnesis",
-  );
-  const goalsQuery = useTreatmentGoals(patientId, activeTab === "goals");
   const documentsQuery = useClinicalDocuments(
     patientId,
     activeTab === "documents",
@@ -98,8 +91,6 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
   );
   const finalizeEvolution = useFinalizeClinicalEvolution(patientId);
   const duplicateEvolution = useDuplicateClinicalEvolution(patientId);
-  const saveAnamnesis = useSaveClinicalAnamnesis(patientId);
-  const goalMutations = useGoalMutations(patientId);
   const documentMutations = useDocumentMutations(patientId);
 
   useEffect(() => {
@@ -113,9 +104,13 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
     }
   }, [activeTab, evolutionsQuery.data?.results, selectedEvolutionId]);
 
-  const openNewEvolution = () => {
+  const openNewEvolution = (appointmentId?: number) => {
+    if (appointmentId) {
+      setEditingEvolution({ appointment: appointmentId } as any);
+    } else {
+      setEditingEvolution(null);
+    }
     changeTab("evolutions");
-    setEditingEvolution(null);
     setEditorOpen(true);
   };
 
@@ -125,11 +120,16 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
   };
 
   const saveEvolution = async (payload: EvolutionPayload) => {
-    if (editingEvolution) {
+    if (editingEvolution && editingEvolution.id) {
       const updated = await updateEvolution.mutateAsync(payload);
       setSelectedEvolutionId(updated.id);
     } else {
-      const created = await createEvolution.mutateAsync(payload);
+      // Repassa o ID de consulta preenchido anteriormente no estado, se existir
+      const finalPayload = {
+        ...payload,
+        appointment: editingEvolution?.appointment || payload.appointment,
+      };
+      const created = await createEvolution.mutateAsync(finalPayload);
       setSelectedEvolutionId(created.id);
       setEditingEvolution(created);
     }
@@ -155,8 +155,7 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
       <div className="space-y-4">
         <div className="h-20 animate-pulse rounded-xl bg-secondary" />
         <div className="h-28 animate-pulse rounded-xl bg-secondary" />
-        <div className="grid gap-3 xl:grid-cols-[18rem_1fr_18rem]">
-          <div className="h-[36rem] animate-pulse rounded-xl bg-secondary" />
+        <div className="grid gap-3 xl:grid-cols-[18rem_1fr]">
           <div className="h-[36rem] animate-pulse rounded-xl bg-secondary" />
           <div className="h-[36rem] animate-pulse rounded-xl bg-secondary" />
         </div>
@@ -197,14 +196,14 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
         summary={summary}
         exporting={exporting}
         onBack={() => router.push("/dashboard/patients")}
-        onNewEvolution={openNewEvolution}
+        onNewEvolution={() => openNewEvolution()}
         onFillForm={() => changeTab("forms")}
         onExport={exportPdf}
       />
 
       <RecordStats summary={summary} />
 
-      <div className="grid items-start gap-4 xl:grid-cols-[18rem_minmax(0,1fr)] 2xl:grid-cols-[18rem_minmax(0,1fr)_18rem]">
+      <div className="grid items-start gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]">
         <PatientSelector
           selectedPatientId={patientId}
           mobileOpen={patientDrawerOpen}
@@ -213,6 +212,17 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
 
         <div className="min-w-0 space-y-4">
           <RecordTabsNav activeTab={activeTab} onChange={changeTab} />
+
+          {activeTab === "appointments" && (
+            <AppointmentsTab
+              patientId={patientId}
+              onNewEvolution={openNewEvolution}
+              onViewEvolution={(evoId) => {
+                setSelectedEvolutionId(evoId);
+                changeTab("evolutions");
+              }}
+            />
+          )}
 
           {activeTab === "evolutions" && (
             <EvolutionTimeline
@@ -239,38 +249,6 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
             />
           )}
 
-          {activeTab === "anamnesis" && (
-            <AnamnesisTab
-              data={anamnesisQuery.data}
-              loading={anamnesisQuery.isLoading}
-              saving={saveAnamnesis.isPending}
-              onSave={(payload) =>
-                saveAnamnesis.mutateAsync(payload).then(() => undefined)
-              }
-            />
-          )}
-
-          {activeTab === "goals" && (
-            <GoalsTab
-              goals={goalsQuery.data ?? []}
-              summary={summary}
-              loading={goalsQuery.isLoading}
-              creating={goalMutations.create.isPending}
-              updating={goalMutations.update.isPending}
-              onCreate={(payload) =>
-                goalMutations.create.mutateAsync(payload).then(() => undefined)
-              }
-              onUpdate={(id, payload) =>
-                goalMutations.update
-                  .mutateAsync({ id, payload })
-                  .then(() => undefined)
-              }
-              onArchive={(id) =>
-                goalMutations.archive.mutateAsync(id).then(() => undefined)
-              }
-            />
-          )}
-
           {activeTab === "documents" && (
             <DocumentsTab
               patientId={patientId}
@@ -291,14 +269,14 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
               }
             />
           )}
-        </div>
 
-        <div className="hidden 2xl:block">
-          <RecordSupportPanel
-            summary={summary}
-            onOpenGoal={() => changeTab("goals")}
-            onOpenDocuments={() => changeTab("documents")}
-          />
+          {activeTab === "forms" && (
+            <FormsTab patientId={patientId} />
+          )}
+
+          {activeTab === "exports" && (
+            <ExportsTab patientId={patientId} />
+          )}
         </div>
       </div>
 

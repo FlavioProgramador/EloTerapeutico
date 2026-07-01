@@ -29,7 +29,7 @@ export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
-  const menuItems = [
+  const menuItems: Array<{ name: string; href: string; icon: any; roles?: string[] }> = [
     { name: "Visão geral", href: "/dashboard", icon: Home },
     { name: "Agenda", href: "/dashboard/agenda", icon: Calendar },
     { name: "Pacientes", href: "/dashboard/patients", icon: Users },

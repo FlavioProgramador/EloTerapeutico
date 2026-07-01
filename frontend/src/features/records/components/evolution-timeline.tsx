@@ -568,9 +568,9 @@ export function EvolutionTimeline({
                       >
                         {section.label}
                       </h4>
-                      <p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-muted-foreground">
-                        {section.value || "Não informado."}
-                      </p>
+                      <div className="mt-2">
+                        <SafeMarkdownRenderer content={section.value} />
+                      </div>
                     </article>
                   );
                 })}
@@ -578,25 +578,25 @@ export function EvolutionTimeline({
 
               <div className="grid gap-3 border-t border-sky-400/15 py-4 sm:grid-cols-3">
                 <div className="rounded-lg bg-background/35 p-3">
-                  <div className="flex items-center gap-2 text-emerald-300">
-                    <Target className="h-3.5 w-3.5" />
-                    <strong className="text-[10px]">Metas vinculadas</strong>
-                  </div>
-                  <p className="mt-2 text-[10px] text-muted-foreground">
-                    {selected.linked_goal_ids?.length ?? 0} meta(s) relacionada(s).
-                  </p>
-                </div>
-                <div className="rounded-lg bg-background/35 p-3">
                   <div className="flex items-center gap-2 text-sky-300">
-                    <Paperclip className="h-3.5 w-3.5" />
-                    <strong className="text-[10px]">Anexos</strong>
+                    <UserRound className="h-3.5 w-3.5" />
+                    <strong className="text-[10px]">Autoria</strong>
                   </div>
-                  <p className="mt-2 text-[10px] text-muted-foreground">
-                    {selected.attached_documents_count ?? 0} documento(s) vinculado(s).
+                  <p className="mt-2 text-[10px] text-muted-foreground truncate">
+                    {selected.created_by_name}
                   </p>
                 </div>
                 <div className="rounded-lg bg-background/35 p-3">
                   <div className="flex items-center gap-2 text-violet-300">
+                    <MapPin className="h-3.5 w-3.5" />
+                    <strong className="text-[10px]">Modalidade</strong>
+                  </div>
+                  <p className="mt-2 text-[10px] text-muted-foreground">
+                    {modalityLabel(selected.modality)} · {selected.duration_minutes} min.
+                  </p>
+                </div>
+                <div className="rounded-lg bg-background/35 p-3">
+                  <div className="flex items-center gap-2 text-amber-300">
                     <History className="h-3.5 w-3.5" />
                     <strong className="text-[10px]">Versões</strong>
                   </div>
@@ -622,4 +622,34 @@ export function EvolutionTimeline({
       </div>
     </div>
   );
+}
+
+function SafeMarkdownRenderer({ content }: { content: string }) {
+  if (!content) return <span className="text-xs text-muted-foreground">Não informado.</span>;
+  
+  const escaped = content
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+  let html = escaped
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g, "<em>$1</em>");
+  
+  const lines = html.split("\n");
+  const processedLines = lines.map((line) => {
+    const stripped = line.trim();
+    if (stripped.startsWith("- ")) {
+      return `<li class="list-disc list-inside ml-2 text-xs leading-5">${stripped.substring(2)}</li>`;
+    }
+    if (/^\d+\.\s/.test(stripped)) {
+      return `<li class="list-decimal list-inside ml-2 text-xs leading-5">${stripped.replace(/^\d+\.\s/, "")}</li>`;
+    }
+    return stripped ? `<p class="mt-1 text-xs leading-5">${stripped}</p>` : "";
+  });
+
+  const finalHtml = processedLines.join("");
+  return <div className="text-xs leading-5 text-muted-foreground" dangerouslySetInnerHTML={{ __html: finalHtml }} />;
 }
