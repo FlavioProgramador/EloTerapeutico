@@ -17,4 +17,28 @@ export const PERSONAL_FIELD_CONFIG: PatientFieldConfig[] = [
   { name: "whatsapp", label: "WhatsApp", mask: "phone" },
   { name: "birth_date", label: "Data de nascimento *", type: "date" },
   { name: "treatment_start_date", label: "Início dos atendimentos", type: "date" },
+  {
+    name: "gender",
+    label: "Gênero",
+    type: "select",
+    options: [
+      ["N", "Prefiro não informar"],
+      ["F", "Feminino"],
+      ["M", "Masculino"],
+      ["O", "Outro"],
+    ],
+  },
+  {
+    name: "marital_status",
+    label: "Estado civil",
+    type: "select",
+    options: [
+      ["", "Não informado"],
+      ["single", "Solteiro(a)"],
+      ["married", "Casado(a)"],
+      ["divorced", "Divorciado(a)"],
+      ["widowed", "Viúvo(a)"],
+      ["other", "Outro"],
+    ],
+  },
 ];
