@@ -42,20 +42,22 @@ export function PatientPhotoField(props: Props) {
   );
 
   return (
-    <div className="flex items-center gap-4 sm:col-span-2">
-      <div className="relative grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-primary/10 text-primary">
-        {photoSrc ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={photoSrc}
-            alt="Foto do paciente"
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <UserRound className="h-7 w-7" />
-        )}
-        <label className="absolute bottom-0 right-0 grid h-6 w-6 cursor-pointer place-items-center rounded-full bg-primary text-primary-foreground shadow">
-          <Camera className="h-3 w-3" />
+    <div className="flex items-center gap-4 py-2">
+      <div className="relative h-20 w-20 shrink-0">
+        <div className="grid h-full w-full place-items-center overflow-hidden rounded-full border border-border bg-secondary/40 text-muted-foreground">
+          {photoSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={photoSrc}
+              alt="Foto do paciente"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <UserRound className="h-10 w-10 text-muted-foreground/60" />
+          )}
+        </div>
+        <label className="absolute bottom-0 right-0 grid h-6 w-6 cursor-pointer place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition hover:bg-primary/95">
+          <Camera className="h-3.5 w-3.5" />
           <span className="sr-only">Selecionar foto</span>
           <input
             type="file"
@@ -65,20 +67,20 @@ export function PatientPhotoField(props: Props) {
           />
         </label>
       </div>
-      <div className="text-[11px] text-muted-foreground">
-        <p className="font-medium text-foreground">Foto do paciente (opcional)</p>
-        <p className="mt-1">JPG ou PNG, até 2 MB.</p>
+      <div className="text-xs text-muted-foreground">
+        <p className="font-semibold text-foreground/90">Foto do paciente (opcional)</p>
+        <p className="text-[11px] mt-0.5 text-muted-foreground/75">JPG, PNG até 2MB</p>
         {photoSrc && (
           <button
             type="button"
             onClick={props.onRemove}
-            className="mt-2 inline-flex items-center gap-1 text-destructive hover:underline"
+            className="mt-2 inline-flex items-center gap-1 text-[11px] text-destructive hover:underline"
           >
             <X className="h-3 w-3" /> Remover foto
           </button>
         )}
         {props.error && (
-          <p className="mt-1 text-destructive" role="alert">
+          <p className="mt-1 text-destructive text-[11px]" role="alert">
             {props.error}
           </p>
         )}
