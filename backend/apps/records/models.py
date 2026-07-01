@@ -139,6 +139,11 @@ class Evolution(models.Model):
         verbose_name="Bloqueada em",
         help_text="Data/hora em que a evolução foi bloqueada.",
     )
+    is_confidential = models.BooleanField(
+        default=False,
+        verbose_name="Confidencial",
+        help_text="Marcar como confidencial. Informações visíveis apenas para o autor ou com permissão especial.",
+    )
 
     # ── Autoria e timestamps ──────────────────────────────────────────────────
     created_by = models.ForeignKey(
