@@ -10,8 +10,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from core.audit import AuditLog, log_access
+
 from .dashboard_serializers import PatientDashboardSerializer
+from .form_actions import PatientFormActions
 from .form_serializers import PatientFormSerializer
+from .invite_actions import PatientInviteActions
 from .models import Patient
 from .serializers import PatientDetailSerializer
 
@@ -24,7 +27,7 @@ def _csv_cell(row, key, default=""):
     return str(value).strip()
 
 
-class PatientDashboardActions:
+class PatientDashboardActions(PatientInviteActions, PatientFormActions):
     @action(detail=False, methods=["get"], url_path="dashboard-metrics")
     def dashboard_metrics(self, request):
         queryset = self.get_queryset()
@@ -166,7 +169,7 @@ class PatientDashboardActions:
 
     @action(detail=True, methods=["get"], url_path="form")
     def form(self, request, pk=None):
-        """Retorna todos os campos editáveis sem depender de valores padrão do frontend."""
+        """Retorna todos os campos editáveis sem valores artificiais no frontend."""
         patient = self.get_object()
         detail_data = PatientDetailSerializer(
             patient,
@@ -214,13 +217,17 @@ class PatientDashboardActions:
                     patient, context={"request": request}
                 ).data,
                 "can_access_records": can_access_records,
-                "next_session": None if not next_appointment else {
+                "next_session": None
+                if not next_appointment
+                else {
                     "id": next_appointment.id,
                     "start_time": next_appointment.start_time,
                     "end_time": next_appointment.end_time,
                     "status": next_appointment.status,
                 },
-                "latest_evolution": None if not latest_evolution else {
+                "latest_evolution": None
+                if not latest_evolution
+                else {
                     "id": latest_evolution.id,
                     "session_date": latest_evolution.session_date,
                     "summary": latest_evolution.content[:280],
