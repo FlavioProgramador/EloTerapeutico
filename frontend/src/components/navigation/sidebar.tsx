@@ -33,12 +33,6 @@ export function Sidebar({ className }: SidebarProps) {
     { name: "Visão geral", href: "/dashboard", icon: Home },
     { name: "Agenda", href: "/dashboard/agenda", icon: Calendar },
     { name: "Pacientes", href: "/dashboard/patients", icon: Users },
-    {
-      name: "Prontuários",
-      href: "/dashboard/records",
-      icon: ClipboardList,
-      roles: ["therapist", "admin"],
-    },
     { name: "Financeiro", href: "/dashboard/financeiro", icon: DollarSign },
     { name: "Relatórios", href: "#", icon: BarChart2 },
     { name: "Comunicações", href: "#", icon: MessageSquare },
