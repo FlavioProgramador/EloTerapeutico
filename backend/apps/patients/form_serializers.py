@@ -176,6 +176,10 @@ class PatientFormSerializer(PatientCreateUpdateSerializer):
             attrs["social_name"] = " ".join(attrs["social_name"].split())
         return attrs
 
+    def create(self, validated_data):
+        validated_data.pop("remove_photo", None)
+        return super().create(validated_data)
+
     def update(self, instance, validated_data):
         remove_photo = validated_data.pop("remove_photo", False)
         patient = super().update(instance, validated_data)
