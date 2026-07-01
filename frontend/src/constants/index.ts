@@ -12,7 +12,7 @@ export const QUERY_KEYS = {
 
   // Patients
   patients: ["patients"] as const,
-  patient: (id: number) => ["patients", id] as const,
+  patient: (id: number | undefined) => ["patients", id] as const,
 
   // Agenda
   appointments: ["appointments"] as const,
