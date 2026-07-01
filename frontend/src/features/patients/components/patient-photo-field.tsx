@@ -9,14 +9,42 @@ interface Props {
   onRemove: () => void;
 }
 
+function sanitizeImageSrc(value: string | null): string | null {
+  if (!value) return null;
+
+  const candidate = value.trim();
+  if (!candidate) return null;
+
+  if (candidate.startsWith("/") && !candidate.startsWith("//")) {
+    return candidate;
+  }
+
+  try {
+    const parsed = new URL(candidate);
+    if (
+      parsed.protocol === "blob:" ||
+      parsed.protocol === "https:" ||
+      parsed.protocol === "http:"
+    ) {
+      return parsed.toString();
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 export function PatientPhotoField(props: Props) {
+  const photoSrc = sanitizeImageSrc(props.preview || props.current);
+
   return (
     <div className="flex items-center gap-4 sm:col-span-2">
       <div className="relative grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-primary/10 text-primary">
-        {props.preview || props.current ? (
+        {photoSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={props.preview || props.current || ""}
+            src={photoSrc}
             alt="Foto do paciente"
             className="h-full w-full object-cover"
           />
@@ -37,7 +65,7 @@ export function PatientPhotoField(props: Props) {
       <div className="text-[11px] text-muted-foreground">
         <p className="font-medium text-foreground">Foto do paciente (opcional)</p>
         <p className="mt-1">JPG ou PNG, até 2 MB.</p>
-        {(props.preview || props.current) && (
+        {photoSrc && (
           <button
             type="button"
             onClick={props.onRemove}
