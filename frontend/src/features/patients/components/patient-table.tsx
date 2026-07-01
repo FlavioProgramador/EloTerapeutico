@@ -15,8 +15,11 @@ interface Props {
   canManage: (patient: PatientListItem) => boolean;
   canAccessRecords: (patient: PatientListItem) => boolean;
   onReminderChange: (patient: PatientListItem, enabled: boolean) => void;
-  onArchive: (patient: PatientListItem) => void;
+  onEdit: (patient: PatientListItem) => void;
+  onDeactivate: (patient: PatientListItem) => void;
   onRestore: (patient: PatientListItem) => void;
+  onRemove: (patient: PatientListItem) => void;
+  onRegistrationLink: (patient: PatientListItem) => void;
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
 }
@@ -52,8 +55,11 @@ export function PatientTable({
   canManage,
   canAccessRecords,
   onReminderChange,
-  onArchive,
+  onEdit,
+  onDeactivate,
   onRestore,
+  onRemove,
+  onRegistrationLink,
   onPageChange,
   onPageSizeChange,
 }: Props) {
@@ -63,6 +69,19 @@ export function PatientTable({
   const end = pagination?.count
     ? Math.min(start + patients.length - 1, pagination.count)
     : 0;
+
+  const rowProps = (patient: PatientListItem) => ({
+    patient,
+    canManage: canManage(patient),
+    canAccessRecords: canAccessRecords(patient),
+    reminderPending: reminderPendingId === patient.id,
+    onReminderChange: (enabled: boolean) => onReminderChange(patient, enabled),
+    onEdit: () => onEdit(patient),
+    onDeactivate: () => onDeactivate(patient),
+    onRestore: () => onRestore(patient),
+    onRemove: () => onRemove(patient),
+    onRegistrationLink: () => onRegistrationLink(patient),
+  });
 
   return (
     <section className="overflow-visible rounded-xl border border-border bg-card">
@@ -90,18 +109,7 @@ export function PatientTable({
           </thead>
           <tbody className="divide-y divide-border/70">
             {patients.map((patient) => (
-              <PatientDesktopRow
-                key={patient.id}
-                patient={patient}
-                canManage={canManage(patient)}
-                canAccessRecords={canAccessRecords(patient)}
-                reminderPending={reminderPendingId === patient.id}
-                onReminderChange={(enabled) =>
-                  onReminderChange(patient, enabled)
-                }
-                onArchive={() => onArchive(patient)}
-                onRestore={() => onRestore(patient)}
-              />
+              <PatientDesktopRow key={patient.id} {...rowProps(patient)} />
             ))}
           </tbody>
         </table>
@@ -109,16 +117,7 @@ export function PatientTable({
 
       <div className="divide-y divide-border md:hidden">
         {patients.map((patient) => (
-          <PatientMobileCard
-            key={patient.id}
-            patient={patient}
-            canManage={canManage(patient)}
-            canAccessRecords={canAccessRecords(patient)}
-            reminderPending={reminderPendingId === patient.id}
-            onReminderChange={(enabled) => onReminderChange(patient, enabled)}
-            onArchive={() => onArchive(patient)}
-            onRestore={() => onRestore(patient)}
-          />
+          <PatientMobileCard key={patient.id} {...rowProps(patient)} />
         ))}
       </div>
 
