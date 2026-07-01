@@ -159,6 +159,10 @@ class Evolution(models.Model):
         verbose_name = "Evolução"
         verbose_name_plural = "Evoluções"
         ordering = ["-session_date", "-created_at"]
+        permissions = [
+            ("view_confidential_evolution", "Can view confidential evolution"),
+            ("export_confidential_evolution", "Can export confidential evolution"),
+        ]
         indexes = [
             # Índice composto para a listagem mais comum: evoluções de um paciente por data
             models.Index(

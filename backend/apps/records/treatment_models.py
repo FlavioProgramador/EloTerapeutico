@@ -167,8 +167,12 @@ class ClinicalFormResponse(models.Model):
     form_name = models.CharField(max_length=255, verbose_name="Nome do formulário")
     category = models.CharField(max_length=100, verbose_name="Categoria")
     sent_at = models.DateTimeField(null=True, blank=True, verbose_name="Enviado em")
-    completed_at = models.DateTimeField(null=True, blank=True, verbose_name="Preenchido em")
-    completed_by = models.CharField(max_length=255, blank=True, verbose_name="Preenchido por")
+    completed_at = models.DateTimeField(
+        null=True, blank=True, verbose_name="Preenchido em"
+    )
+    completed_by = models.CharField(
+        max_length=255, blank=True, verbose_name="Preenchido por"
+    )
     therapist = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -181,8 +185,12 @@ class ClinicalFormResponse(models.Model):
         default=Status.COMPLETED,
         verbose_name="Status",
     )
-    answers_count = models.IntegerField(default=0, verbose_name="Quantidade de respostas")
-    form_snapshot = models.JSONField(default=dict, blank=True, verbose_name="Snapshot do formulário")
+    answers_count = models.IntegerField(
+        default=0, verbose_name="Quantidade de respostas"
+    )
+    form_snapshot = models.JSONField(
+        default=dict, blank=True, verbose_name="Snapshot do formulário"
+    )
     answers = models.JSONField(default=dict, blank=True, verbose_name="Respostas")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
@@ -192,13 +200,16 @@ class ClinicalFormResponse(models.Model):
         verbose_name = "Resposta de Formulário"
         verbose_name_plural = "Respostas de Formulários"
         indexes = [
-            models.Index(fields=["patient", "status"], name="form_resp_patient_status_idx")
+            models.Index(
+                fields=["patient", "status"], name="form_resp_patient_status_idx"
+            )
         ]
 
 
 def clinical_export_path(instance, filename: str) -> str:
     from uuid import uuid4
     from pathlib import Path
+
     suffix = Path(filename).suffix.lower()
     return f"clinical_exports/{instance.patient_id}/{uuid4().hex}{suffix}"
 
@@ -219,7 +230,12 @@ class ClinicalExport(models.Model):
     )
     export_type = models.CharField(max_length=100, verbose_name="Tipo de exportação")
     filename = models.CharField(max_length=255, verbose_name="Nome do arquivo")
-    file = models.FileField(upload_to=clinical_export_path, null=True, blank=True, verbose_name="Arquivo gerado")
+    file = models.FileField(
+        upload_to=clinical_export_path,
+        null=True,
+        blank=True,
+        verbose_name="Arquivo gerado",
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -234,12 +250,22 @@ class ClinicalExport(models.Model):
         default=Status.PENDING,
         verbose_name="Status",
     )
-    size_bytes = models.PositiveBigIntegerField(default=0, verbose_name="Tamanho (bytes)")
-    download_url = models.CharField(max_length=255, blank=True, verbose_name="URL de download")
+    size_bytes = models.PositiveBigIntegerField(
+        default=0, verbose_name="Tamanho (bytes)"
+    )
+    download_url = models.CharField(
+        max_length=255, blank=True, verbose_name="URL de download"
+    )
     started_at = models.DateTimeField(null=True, blank=True, verbose_name="Iniciado em")
-    completed_at = models.DateTimeField(null=True, blank=True, verbose_name="Finalizado em")
-    next_attempt_at = models.DateTimeField(null=True, blank=True, verbose_name="Próxima tentativa em")
-    worker_id = models.CharField(max_length=255, blank=True, verbose_name="ID do Worker")
+    completed_at = models.DateTimeField(
+        null=True, blank=True, verbose_name="Finalizado em"
+    )
+    next_attempt_at = models.DateTimeField(
+        null=True, blank=True, verbose_name="Próxima tentativa em"
+    )
+    worker_id = models.CharField(
+        max_length=255, blank=True, verbose_name="ID do Worker"
+    )
     retries = models.IntegerField(default=0, verbose_name="Tentativas")
     error_message = models.TextField(blank=True, verbose_name="Mensagem de erro")
 
@@ -250,5 +276,3 @@ class ClinicalExport(models.Model):
         indexes = [
             models.Index(fields=["patient", "status"], name="export_patient_status_idx")
         ]
-
-

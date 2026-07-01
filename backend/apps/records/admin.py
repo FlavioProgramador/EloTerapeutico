@@ -12,7 +12,6 @@ from django.utils.html import format_html
 
 from .models import Anamnesis, Evolution, EvolutionAddendum
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Inline para aditivos dentro da evolução
 # ─────────────────────────────────────────────────────────────────────────────
@@ -170,8 +169,10 @@ class EvolutionAdmin(admin.ModelAdmin):
         )
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related(
-            "patient", "created_by", "appointment"
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("patient", "created_by", "appointment")
         )
 
     def has_delete_permission(self, request, obj=None):
@@ -216,8 +217,10 @@ class EvolutionAddendumAdmin(admin.ModelAdmin):
     )
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related(
-            "evolution__patient", "created_by"
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("evolution__patient", "created_by")
         )
 
     def has_change_permission(self, request, obj=None):

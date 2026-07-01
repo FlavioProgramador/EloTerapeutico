@@ -1,6 +1,7 @@
 import re
 from django.utils.html import escape
 
+
 def render_markdown_safely(text: str) -> str:
     """
     Sanitiza e converte Markdown básico (apenas negrito, itálico e listas) para HTML.
@@ -9,15 +10,15 @@ def render_markdown_safely(text: str) -> str:
     """
     if not text:
         return ""
-    
+
     # Escapa todo o conteúdo para neutralizar scripts e tags perigosas
     escaped = escape(text)
-    
+
     lines = escaped.split("\n")
     rendered_lines = []
     in_ul = False
     in_ol = False
-    
+
     for line in lines:
         stripped = line.strip()
         # Lista não-ordenada: - item
@@ -49,22 +50,22 @@ def render_markdown_safely(text: str) -> str:
             if in_ol:
                 rendered_lines.append("</ol>")
                 in_ol = False
-            
+
             if stripped:
                 rendered_lines.append(f"<p>{stripped}</p>")
-                
+
     if in_ul:
         rendered_lines.append("</ul>")
     if in_ol:
         rendered_lines.append("</ol>")
-        
+
     html_content = "".join(rendered_lines)
-    
+
     # Converte negrito: **texto**
     html_content = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", html_content)
     # Converte itálico: *texto*
     html_content = re.sub(r"\*(.*?)\*", r"<em>\1</em>", html_content)
-    
+
     return html_content
 
 

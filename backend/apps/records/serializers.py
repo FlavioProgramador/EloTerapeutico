@@ -89,7 +89,9 @@ class AnamnesisSerializer(serializers.ModelSerializer):
         if request and patient and not request.user.is_admin_role:
             if patient.therapist != request.user:
                 raise serializers.ValidationError(
-                    {"patient_id": "Você não tem permissão para criar anamnese para este paciente."}
+                    {
+                        "patient_id": "Você não tem permissão para criar anamnese para este paciente."
+                    }
                 )
         return attrs
 
@@ -173,7 +175,7 @@ class EvolutionDetailSerializer(serializers.ModelSerializer):
             "id",
             "patient",
             "appointment",
-            "content",       # já descriptografado pelo field
+            "content",  # já descriptografado pelo field
             "cid10",
             "session_date",
             "is_locked",
@@ -318,7 +320,7 @@ class EvolutionAddendumSerializer(serializers.ModelSerializer):
             "id",
             "evolution",
             "reason",
-            "content",       # descriptografado pelo EncryptedTextField
+            "content",  # descriptografado pelo EncryptedTextField
             "created_by",
             "created_at",
         )
