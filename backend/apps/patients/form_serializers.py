@@ -16,8 +16,12 @@ class PatientFormSerializer(PatientCreateUpdateSerializer):
     class Meta(PatientCreateUpdateSerializer.Meta):
         fields = PatientCreateUpdateSerializer.Meta.fields + [
             "social_name",
+            "photo",
             "rg",
+            "treatment_start_date",
             "marital_status",
+            "profession",
+            "social_network",
             "whatsapp",
             "attendance_type",
             "modality",
@@ -25,6 +29,8 @@ class PatientFormSerializer(PatientCreateUpdateSerializer):
             "insurance_name",
             "session_value",
             "planned_frequency",
+            "reminders_enabled",
+            "reminder_recipient",
             "tags",
             "emergency_contact_name",
             "emergency_contact_relationship",
@@ -32,6 +38,14 @@ class PatientFormSerializer(PatientCreateUpdateSerializer):
             "guardian_phone",
             "guardian_email",
             "guardian_relationship",
+            "financial_responsible_name",
+            "financial_responsible_cpf",
+            "financial_responsible_phone",
+            "financial_responsible_email",
+            "financial_responsible_marital_status",
+            "financial_responsible_naturality",
+            "financial_responsible_occupation",
+            "financial_responsible_relationship",
             "consent_terms_accepted",
         ]
 
@@ -46,6 +60,7 @@ class PatientFormSerializer(PatientCreateUpdateSerializer):
         return normalized
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         request = self.context.get("request")
         user = getattr(request, "user", None)
         current_therapist = self.instance.therapist if self.instance else None
@@ -67,19 +82,10 @@ class PatientFormSerializer(PatientCreateUpdateSerializer):
             "birth_date",
             self.instance.birth_date if self.instance else None,
         )
-        guardian_name = attrs.get(
-            "guardian_name",
-            self.instance.guardian_name if self.instance else "",
-        )
-        if birth_date:
-            today = date.today()
-            age = today.year - birth_date.year - (
-                (today.month, today.day) < (birth_date.month, birth_date.day)
+        if birth_date and birth_date > date.today():
+            raise serializers.ValidationError(
+                {"birth_date": "A data de nascimento não pode estar no futuro."}
             )
-            if age < 18 and not guardian_name:
-                raise serializers.ValidationError(
-                    {"guardian_name": "Informe o responsável legal."}
-                )
 
         payer_type = attrs.get(
             "payer_type",
