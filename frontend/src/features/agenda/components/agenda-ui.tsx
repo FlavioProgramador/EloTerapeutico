@@ -1,6 +1,6 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgendaPagination, AppointmentStatus } from "../types";
 
@@ -31,8 +31,21 @@ export function SearchInput({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary"
+        className={cn(
+          "h-9 w-full rounded-md border border-border bg-background pl-9 text-sm outline-none transition focus:border-primary",
+          value ? "pr-9" : "pr-3",
+        )}
       />
+      {value && (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          className="absolute right-2 top-1.5 flex items-center justify-center rounded-md p-1 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+          aria-label="Limpar busca"
+        >
+          <X className="size-3.5" />
+        </button>
+      )}
     </div>
   );
 }
