@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:agenda": "node --test tests/agenda-calendar.test.mjs"
+    "test:agenda": "node agenda-calendar.test.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
