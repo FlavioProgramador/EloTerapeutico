@@ -247,14 +247,9 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
         ).first()
 
         if working is None:
-            raise serializers.ValidationError(
-                {
-                    "start_time": (
-                        f"O terapeuta não possui horário de atendimento configurado "
-                        f"para {start_time.strftime('%A')} ({start_time.strftime('%d/%m/%Y')})."
-                    )
-                }
-            )
+            # Terapeuta ainda não configurou horários de atendimento para este dia.
+            # Permitir o agendamento; a validação só se aplica quando há regra cadastrada.
+            return
 
         appt_start = start_time.time()
         appt_end   = end_time.time()
