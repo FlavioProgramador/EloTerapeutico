@@ -1,0 +1,229 @@
+from __future__ import annotations
+
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.db import models
+from django.db.models import Q
+
+from .packages import PatientPackage
+from .rooms import AppointmentRecurrence, Room
+
+ACTIVE_APPOINTMENT_STATUSES = ("scheduled", "confirmed")
+
+
+class Appointment(models.Model):
+    """Consulta ou sessão agendada entre profissional e paciente."""
+
+    class Status(models.TextChoices):
+        SCHEDULED = "scheduled", "Agendada"
+        CONFIRMED = "confirmed", "Confirmada"
+        COMPLETED = "completed", "Realizada"
+        MISSED = "missed", "Faltou"
+        CANCELLED = "cancelled", "Cancelada"
+        RESCHEDULED = "rescheduled", "Reagendada"
+
+    class Modality(models.TextChoices):
+        IN_PERSON = "in_person", "Presencial"
+        ONLINE = "online", "Online"
+        HYBRID = "hybrid", "Híbrida"
+
+    class AppointmentType(models.TextChoices):
+        ASSESSMENT = "assessment", "Avaliação"
+        PSYCHOTHERAPY = "psychotherapy", "Psicoterapia"
+        FOLLOW_UP = "follow_up", "Retorno"
+        GUIDANCE = "guidance", "Orientação"
+        GROUP = "group", "Sessão em grupo"
+        OTHER = "other", "Outro"
+
+    class Origin(models.TextChoices):
+        MANUAL = "manual", "Manual"
+        RECURRENCE = "recurrence", "Recorrência"
+        PACKAGE = "package", "Pacote"
+        RESCHEDULE = "reschedule", "Remarcação"
+
+    class RecurrenceRule(models.TextChoices):
+        WEEKLY = "WEEKLY", "Semanal"
+        BIWEEKLY = "BIWEEKLY", "Quinzenal"
+        MONTHLY = "MONTHLY", "Mensal"
+
+    patient = models.ForeignKey(
+        "patients.Patient", on_delete=models.PROTECT, related_name="appointments"
+    )
+    participants = models.ManyToManyField(
+        "patients.Patient", blank=True, related_name="group_appointments"
+    )
+    therapist = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="appointments",
+        limit_choices_to={"role": "therapist"},
+    )
+    start_time = models.DateTimeField(verbose_name="Início")
+    end_time = models.DateTimeField(verbose_name="Término")
+    duration_minutes = models.PositiveIntegerField(default=50)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.SCHEDULED, db_index=True
+    )
+    modality = models.CharField(
+        max_length=20, choices=Modality.choices, default=Modality.IN_PERSON
+    )
+    appointment_type = models.CharField(
+        max_length=30,
+        choices=AppointmentType.choices,
+        default=AppointmentType.PSYCHOTHERAPY,
+    )
+    room = models.ForeignKey(
+        Room,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="appointments",
+    )
+    notes = models.TextField(blank=True, verbose_name="Observações administrativas")
+    cancellation_reason = models.TextField(blank=True)
+    session_value = models.DecimalField(max_digits=10, decimal_places=2)
+    origin = models.CharField(max_length=20, choices=Origin.choices, default=Origin.MANUAL)
+    is_recurring = models.BooleanField(default=False)
+    recurrence_rule = models.CharField(
+        max_length=20, blank=True, choices=RecurrenceRule.choices
+    )
+    recurrence = models.ForeignKey(
+        AppointmentRecurrence,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="appointments",
+    )
+    parent_appointment = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="recurrences",
+    )
+    package = models.ForeignKey(
+        PatientPackage,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="appointments",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="created_appointments",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="updated_appointments",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-start_time"]
+        indexes = [
+            models.Index(fields=["therapist", "start_time"], name="idx_appt_therapist_start"),
+            models.Index(fields=["patient", "start_time"], name="idx_appt_patient_start"),
+            models.Index(fields=["status"], name="idx_appt_status"),
+            models.Index(fields=["room", "start_time"], name="appt_room_start_idx"),
+            models.Index(fields=["recurrence", "start_time"], name="appt_rec_start_idx"),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(end_time__gt=models.F("start_time")),
+                name="appt_end_after_start",
+            ),
+            models.CheckConstraint(
+                condition=Q(session_value__gte=0), name="appt_value_non_negative"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"Consulta #{self.pk} em {self.start_time:%d/%m/%Y %H:%M}"
+
+    @property
+    def duration_display(self) -> str:
+        return f"{self.duration_minutes} min"
+
+    @classmethod
+    def active_queryset(cls):
+        return cls.objects.filter(status__in=ACTIVE_APPOINTMENT_STATUSES)
+
+    @classmethod
+    def conflict_details(
+        cls,
+        *,
+        therapist,
+        patient,
+        start_time,
+        end_time,
+        room=None,
+        participants=None,
+        exclude_id=None,
+    ) -> dict[str, bool]:
+        base = cls.active_queryset().filter(
+            start_time__lt=end_time,
+            end_time__gt=start_time,
+        )
+        if exclude_id:
+            base = base.exclude(pk=exclude_id)
+
+        participant_ids = [getattr(p, "pk", p) for p in (participants or [])]
+        patient_query = Q()
+        has_patient_filter = patient is not None or bool(participant_ids)
+        if patient is not None:
+            patient_query = Q(patient=patient) | Q(participants=patient)
+        if participant_ids:
+            participant_query = Q(patient_id__in=participant_ids) | Q(
+                participants__id__in=participant_ids
+            )
+            patient_query |= participant_query
+
+        from .support import ScheduleBlock
+
+        return {
+            "therapist": base.filter(therapist=therapist).exists(),
+            "patient": has_patient_filter and base.filter(patient_query).distinct().exists(),
+            "room": bool(room and base.filter(room=room).exists()),
+            "block": ScheduleBlock.objects.filter(
+                therapist=therapist,
+                start_time__lt=end_time,
+                end_time__gt=start_time,
+                is_active=True,
+            ).exists(),
+        }
+
+    @classmethod
+    def check_conflict(cls, therapist, start_time, end_time, exclude_id=None) -> bool:
+        queryset = cls.active_queryset().filter(
+            therapist=therapist,
+            start_time__lt=end_time,
+            end_time__gt=start_time,
+        )
+        if exclude_id is not None:
+            queryset = queryset.exclude(pk=exclude_id)
+        return queryset.exists()
+
+    def clean(self):
+        super().clean()
+        if self.start_time and self.end_time and self.start_time >= self.end_time:
+            raise ValidationError({"end_time": "O término deve ser posterior ao início."})
+        if self.session_value is not None and self.session_value < 0:
+            raise ValidationError({"session_value": "O valor não pode ser negativo."})
+        if self.modality == self.Modality.ONLINE and self.room_id:
+            raise ValidationError({"room": "Consultas online não utilizam sala física."})
+        if self.room_id and not self.room.is_active:
+            raise ValidationError({"room": "A sala selecionada está inativa."})
+
+    def save(self, *args, **kwargs):
+        if self.start_time and self.end_time:
+            self.duration_minutes = max(
+                int((self.end_time - self.start_time).total_seconds() // 60), 1
+            )
+        super().save(*args, **kwargs)
