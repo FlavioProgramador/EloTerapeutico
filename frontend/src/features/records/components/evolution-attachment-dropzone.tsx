@@ -18,8 +18,6 @@ import type {
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_FILES = 10;
-const SAFE_PREVIEW_PROTOCOLS = new Set(["blob:", "https:", "http:"]);
-const PREVIEW_URL_BASE = "https://preview.invalid";
 const ALLOWED = new Map([
   ["image/jpeg", [".jpg", ".jpeg"]],
   ["image/png", [".png"]],
@@ -125,7 +123,6 @@ export function EvolutionAttachmentDropzone({
               name={item.original_name}
               type={item.content_type}
               size={item.size_bytes}
-              previewUrl={item.preview_url ?? undefined}
               onRemove={() => onRemoveExisting(item.id)}
               disabled={disabled}
             />
@@ -136,13 +133,13 @@ export function EvolutionAttachmentDropzone({
               name={item.file.name}
               type={item.file.type}
               size={item.file.size}
-              previewUrl={item.previewUrl}
               progress={item.progress}
               error={item.error}
-              onRemove={() => {
-                if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
-                onPendingChange(pending.filter((candidate) => candidate.id !== item.id));
-              }}
+              onRemove={() =>
+                onPendingChange(
+                  pending.filter((candidate) => candidate.id !== item.id),
+                )
+              }
               disabled={disabled}
             />
           ))}
@@ -171,29 +168,13 @@ function validateFile(file: File): PendingEvolutionAttachment {
     file,
     progress: 0,
     error,
-    previewUrl: file.type.startsWith("image/")
-      ? URL.createObjectURL(file)
-      : undefined,
   };
-}
-
-function toSafePreviewUrl(previewUrl?: string) {
-  if (!previewUrl) return undefined;
-
-  try {
-    const parsed = new URL(previewUrl, PREVIEW_URL_BASE);
-    if (!SAFE_PREVIEW_PROTOCOLS.has(parsed.protocol)) return undefined;
-    return previewUrl;
-  } catch {
-    return undefined;
-  }
 }
 
 function AttachmentRow({
   name,
   type,
   size,
-  previewUrl,
   progress,
   error,
   onRemove,
@@ -202,7 +183,6 @@ function AttachmentRow({
   name: string;
   type: string;
   size: number;
-  previewUrl?: string;
   progress?: number;
   error?: string;
   onRemove: () => void;
@@ -210,7 +190,6 @@ function AttachmentRow({
 }) {
   const isImage = type.startsWith("image/");
   const uploading = progress !== undefined && progress > 0 && progress < 100;
-  const safePreviewUrl = toSafePreviewUrl(previewUrl);
   return (
     <div
       className={cn(
@@ -219,10 +198,7 @@ function AttachmentRow({
       )}
     >
       <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-md bg-secondary text-muted-foreground">
-        {safePreviewUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={safePreviewUrl} alt="" className="size-full object-cover" />
-        ) : isImage ? (
+        {isImage ? (
           <ImageIcon className="size-5" />
         ) : (
           <FileText className="size-5" />
