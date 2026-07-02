@@ -17,7 +17,6 @@ import {
   Paperclip,
   Printer,
   Search,
-  Target,
   UserRound,
 } from "lucide-react";
 
@@ -634,7 +633,7 @@ function SafeMarkdownRenderer({ content }: { content: string }) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 
-  let html = escaped
+  const html = escaped
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.*?)\*/g, "<em>$1</em>");
   

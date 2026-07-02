@@ -18,10 +18,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { recordWorkspaceService } from "../services/record-workspace.service";
 import { toast } from "sonner";
 
-interface FormsTabProps {
-  patientId: number;
-}
-
 // Definições de formulários clínicos simulados
 const AVAILABLE_FORMS = [
   {
