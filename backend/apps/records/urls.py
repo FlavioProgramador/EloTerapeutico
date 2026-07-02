@@ -11,8 +11,6 @@ from .clinical_views import (
     ClinicalDocumentDownloadView,
     ClinicalDocumentListCreateView,
     EvolutionDuplicateView,
-    EvolutionWorkspaceDetailView,
-    PatientEvolutionListCreateView,
     PatientRecordPdfView,
     PatientRecordSummaryView,
     TreatmentGoalDetailView,
@@ -22,6 +20,16 @@ from .clinical_views import (
     ClinicalExportListCreateView,
     ClinicalExportRetryView,
     ClinicalExportDownloadView,
+)
+from .evolution_flow_views import (
+    ClinicalEvolutionTemplateDetailView,
+    ClinicalEvolutionTemplateListCreateView,
+    EvolutionAttachmentDetailView,
+    EvolutionAttachmentDownloadView,
+    EvolutionAttachmentListCreateView,
+    EvolutionFlowDetailView,
+    PatientEvolutionAppointmentOptionsView,
+    PatientEvolutionFlowView,
 )
 from .finalize_views import EvolutionFinalizeFreshView
 from .views import AnamnesisView, EvolutionViewSet
@@ -52,8 +60,13 @@ urlpatterns = [
     ),
     path(
         "patients/<int:patient_id>/clinical-evolutions/",
-        PatientEvolutionListCreateView.as_view(),
+        PatientEvolutionFlowView.as_view(),
         name="clinical-evolutions",
+    ),
+    path(
+        "patients/<int:patient_id>/evolution-appointments/",
+        PatientEvolutionAppointmentOptionsView.as_view(),
+        name="evolution-appointment-options",
     ),
     path(
         "patients/<int:patient_id>/goals/",
@@ -102,7 +115,7 @@ urlpatterns = [
     ),
     path(
         "clinical-evolutions/<int:pk>/",
-        EvolutionWorkspaceDetailView.as_view(),
+        EvolutionFlowDetailView.as_view(),
         name="clinical-evolution-detail",
     ),
     path(
@@ -114,6 +127,31 @@ urlpatterns = [
         "clinical-evolutions/<int:pk>/duplicate/",
         EvolutionDuplicateView.as_view(),
         name="clinical-evolution-duplicate",
+    ),
+    path(
+        "clinical-evolutions/<int:evolution_id>/attachments/",
+        EvolutionAttachmentListCreateView.as_view(),
+        name="clinical-evolution-attachments",
+    ),
+    path(
+        "clinical-evolutions/<int:evolution_id>/attachments/<int:attachment_id>/",
+        EvolutionAttachmentDetailView.as_view(),
+        name="clinical-evolution-attachment-detail",
+    ),
+    path(
+        "clinical-evolutions/<int:evolution_id>/attachments/<int:attachment_id>/download/",
+        EvolutionAttachmentDownloadView.as_view(),
+        name="clinical-evolution-attachment-download",
+    ),
+    path(
+        "clinical-templates/",
+        ClinicalEvolutionTemplateListCreateView.as_view(),
+        name="clinical-evolution-templates",
+    ),
+    path(
+        "clinical-templates/<int:pk>/",
+        ClinicalEvolutionTemplateDetailView.as_view(),
+        name="clinical-evolution-template-detail",
     ),
     path(
         "goals/<int:pk>/",
