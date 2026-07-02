@@ -8,7 +8,7 @@ from .appointment_write import (
     AppointmentUpdateSerializer,
 )
 from .availability import CheckAvailabilitySerializer, ScheduleBlockSerializer
-from .packages import PatientPackageSerializer
+from .packages import PatientPackageSerializer as BasePatientPackageSerializer
 from .recurrences import AppointmentRecurrenceSerializer
 from .summary import (
     AppointmentReminderSerializer,
@@ -17,6 +17,12 @@ from .summary import (
     TelemedicineRoomSerializer,
 )
 from ..models import Appointment
+
+
+def _validation_detail(exc: DjangoValidationError):
+    return getattr(exc, "message_dict", None) or getattr(
+        exc, "messages", [str(exc)]
+    )
 
 
 class AppointmentCreateSerializer(BaseAppointmentCreateSerializer):
@@ -30,7 +36,12 @@ class AppointmentCreateSerializer(BaseAppointmentCreateSerializer):
             therapist = attrs.get("therapist")
             if package.patient_id != patient.id or package.therapist_id != therapist.id:
                 raise serializers.ValidationError(
-                    {"package": "O pacote não pertence ao paciente e profissional selecionados."}
+                    {
+                        "package": (
+                            "O pacote não pertence ao paciente e profissional "
+                            "selecionados."
+                        )
+                    }
                 )
             requested = (
                 attrs.get("recurrence_max_occurrences", 1)
@@ -39,7 +50,12 @@ class AppointmentCreateSerializer(BaseAppointmentCreateSerializer):
             )
             if package.remaining_sessions < requested:
                 raise serializers.ValidationError(
-                    {"package": "O pacote não possui saldo para todas as sessões solicitadas."}
+                    {
+                        "package": (
+                            "O pacote não possui saldo para todas as sessões "
+                            "solicitadas."
+                        )
+                    }
                 )
         return attrs
 
@@ -47,20 +63,31 @@ class AppointmentCreateSerializer(BaseAppointmentCreateSerializer):
         try:
             return super().create(validated_data)
         except DjangoValidationError as exc:
-            detail = getattr(exc, "message_dict", None) or getattr(
-                exc, "messages", [str(exc)]
-            )
-            raise serializers.ValidationError(detail) from exc
+            raise serializers.ValidationError(_validation_detail(exc)) from exc
 
     def to_representation(self, instance):
         return AppointmentDetailSerializer(instance, context=self.context).data
+
+
+class PatientPackageSerializer(BasePatientPackageSerializer):
+    """Converte falhas transacionais do domínio em respostas 400 da API."""
+
+    def create(self, validated_data):
+        try:
+            return super().create(validated_data)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(_validation_detail(exc)) from exc
 
 
 class AppointmentStatusUpdateSerializer(BaseAppointmentStatusUpdateSerializer):
     def validate(self, attrs):
         if self.instance.status == Appointment.Status.CANCELLED:
             raise serializers.ValidationError(
-                {"status": "Uma consulta cancelada não pode ser reativada diretamente."}
+                {
+                    "status": (
+                        "Uma consulta cancelada não pode ser reativada diretamente."
+                    )
+                }
             )
         return super().validate(attrs)
 
