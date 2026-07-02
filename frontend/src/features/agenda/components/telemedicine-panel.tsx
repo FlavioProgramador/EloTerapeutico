@@ -66,9 +66,17 @@ export function TelemedicinePanel() {
       </Toolbar>
 
       {isLoading ? (
-        <TableShell loading empty={false} emptyText="" children={null} />
+        <TableShell loading empty={false} emptyText="">
+          {null}
+        </TableShell>
       ) : grouped.length === 0 ? (
-        <TableShell loading={false} empty emptyText="Nenhuma consulta online encontrada." children={null} />
+        <TableShell
+          loading={false}
+          empty
+          emptyText="Nenhuma consulta online encontrada."
+        >
+          {null}
+        </TableShell>
       ) : (
         grouped.map(([dateKey, items]) => (
           <div key={dateKey} className="rounded-xl border border-border bg-card">
@@ -91,10 +99,13 @@ export function TelemedicinePanel() {
                     </span>
                     <div>
                       <strong className="block text-sm">
-                        {new Date(room.appointment_start).toLocaleTimeString("pt-BR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {new Date(room.appointment_start).toLocaleTimeString(
+                          "pt-BR",
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )}
                       </strong>
                       <span className="text-xs text-muted-foreground">
                         Telemedicina
@@ -102,7 +113,9 @@ export function TelemedicinePanel() {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <strong className="block text-sm">{room.patient_name}</strong>
+                    <strong className="block text-sm">
+                      {room.patient_name}
+                    </strong>
                     <span className="text-xs text-muted-foreground">
                       {room.therapist_name}
                     </span>
@@ -111,7 +124,9 @@ export function TelemedicinePanel() {
                   <div className="flex flex-wrap justify-end gap-1">
                     <Button
                       size="sm"
-                      onClick={() => action.mutate({ id: room.id, action: "open" })}
+                      onClick={() =>
+                        action.mutate({ id: room.id, action: "open" })
+                      }
                       disabled={!room.is_accessible}
                       leftIcon={<Video className="size-3.5" />}
                     >
@@ -120,7 +135,9 @@ export function TelemedicinePanel() {
                     <Button
                       size="icon"
                       variant="ghost"
-                      onClick={() => copy(room.patient_link, "Link do paciente")}
+                      onClick={() =>
+                        copy(room.patient_link, "Link do paciente")
+                      }
                       aria-label="Copiar link do paciente"
                     >
                       <Copy className="size-4" />
@@ -128,7 +145,9 @@ export function TelemedicinePanel() {
                     <Button
                       size="icon"
                       variant="ghost"
-                      onClick={() => copy(room.professional_link, "Link do profissional")}
+                      onClick={() =>
+                        copy(room.professional_link, "Link do profissional")
+                      }
                       aria-label="Copiar link do profissional"
                     >
                       <Copy className="size-4 text-primary" />
