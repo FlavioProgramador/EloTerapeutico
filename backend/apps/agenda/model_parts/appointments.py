@@ -47,7 +47,10 @@ class Appointment(models.Model):
         MONTHLY = "MONTHLY", "Mensal"
 
     patient = models.ForeignKey(
-        "patients.Patient", on_delete=models.PROTECT, related_name="appointments"
+        "patients.Patient",
+        on_delete=models.PROTECT,
+        related_name="appointments",
+        verbose_name="Paciente",
     )
     participants = models.ManyToManyField(
         "patients.Patient", blank=True, related_name="group_appointments"
@@ -57,12 +60,20 @@ class Appointment(models.Model):
         on_delete=models.PROTECT,
         related_name="appointments",
         limit_choices_to={"role": "therapist"},
+        verbose_name="Terapeuta",
     )
     start_time = models.DateTimeField(verbose_name="Início")
     end_time = models.DateTimeField(verbose_name="Término")
-    duration_minutes = models.PositiveIntegerField(default=50)
+    duration_minutes = models.PositiveIntegerField(
+        default=50,
+        verbose_name="Duração (min)",
+        help_text="Preenchido automaticamente a partir do horário de início/fim.",
+    )
     status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.SCHEDULED, db_index=True
+        max_length=20,
+        choices=Status.choices,
+        default=Status.SCHEDULED,
+        db_index=True,
     )
     modality = models.CharField(
         max_length=20, choices=Modality.choices, default=Modality.IN_PERSON
@@ -79,13 +90,27 @@ class Appointment(models.Model):
         on_delete=models.SET_NULL,
         related_name="appointments",
     )
-    notes = models.TextField(blank=True, verbose_name="Observações administrativas")
-    cancellation_reason = models.TextField(blank=True)
+    notes = models.TextField(
+        blank=True,
+        verbose_name="Observações do agendamento",
+        help_text="Observações visíveis para o terapeuta e secretária.",
+    )
+    cancellation_reason = models.TextField(
+        blank=True, verbose_name="Motivo do cancelamento"
+    )
     session_value = models.DecimalField(max_digits=10, decimal_places=2)
-    origin = models.CharField(max_length=20, choices=Origin.choices, default=Origin.MANUAL)
-    is_recurring = models.BooleanField(default=False)
+    origin = models.CharField(
+        max_length=20, choices=Origin.choices, default=Origin.MANUAL
+    )
+    is_recurring = models.BooleanField(
+        default=False, verbose_name="Consulta recorrente"
+    )
     recurrence_rule = models.CharField(
-        max_length=20, blank=True, choices=RecurrenceRule.choices
+        max_length=20,
+        blank=True,
+        choices=RecurrenceRule.choices,
+        verbose_name="Regra de recorrência",
+        help_text="Ex: WEEKLY (semanal), BIWEEKLY (quinzenal), MONTHLY (mensal).",
     )
     recurrence = models.ForeignKey(
         AppointmentRecurrence,
@@ -100,6 +125,7 @@ class Appointment(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
         related_name="recurrences",
+        verbose_name="Consulta-pai (série recorrente)",
     )
     package = models.ForeignKey(
         PatientPackage,
@@ -122,17 +148,25 @@ class Appointment(models.Model):
         on_delete=models.SET_NULL,
         related_name="updated_appointments",
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
 
     class Meta:
+        verbose_name = "Consulta"
+        verbose_name_plural = "Consultas"
         ordering = ["-start_time"]
         indexes = [
-            models.Index(fields=["therapist", "start_time"], name="idx_appt_therapist_start"),
-            models.Index(fields=["patient", "start_time"], name="idx_appt_patient_start"),
+            models.Index(
+                fields=["therapist", "start_time"], name="idx_appt_therapist_start"
+            ),
+            models.Index(
+                fields=["patient", "start_time"], name="idx_appt_patient_start"
+            ),
             models.Index(fields=["status"], name="idx_appt_status"),
             models.Index(fields=["room", "start_time"], name="appt_room_start_idx"),
-            models.Index(fields=["recurrence", "start_time"], name="appt_rec_start_idx"),
+            models.Index(
+                fields=["recurrence", "start_time"], name="appt_rec_start_idx"
+            ),
         ]
         constraints = [
             models.CheckConstraint(
@@ -189,7 +223,8 @@ class Appointment(models.Model):
 
         return {
             "therapist": base.filter(therapist=therapist).exists(),
-            "patient": has_patient_filter and base.filter(patient_query).distinct().exists(),
+            "patient": has_patient_filter
+            and base.filter(patient_query).distinct().exists(),
             "room": bool(room and base.filter(room=room).exists()),
             "block": ScheduleBlock.objects.filter(
                 therapist=therapist,
@@ -213,11 +248,17 @@ class Appointment(models.Model):
     def clean(self):
         super().clean()
         if self.start_time and self.end_time and self.start_time >= self.end_time:
-            raise ValidationError({"end_time": "O término deve ser posterior ao início."})
+            raise ValidationError(
+                {"end_time": "O término deve ser posterior ao início."}
+            )
         if self.session_value is not None and self.session_value < 0:
-            raise ValidationError({"session_value": "O valor não pode ser negativo."})
+            raise ValidationError(
+                {"session_value": "O valor não pode ser negativo."}
+            )
         if self.modality == self.Modality.ONLINE and self.room_id:
-            raise ValidationError({"room": "Consultas online não utilizam sala física."})
+            raise ValidationError(
+                {"room": "Consultas online não utilizam sala física."}
+            )
         if self.room_id and not self.room.is_active:
             raise ValidationError({"room": "A sala selecionada está inativa."})
 
