@@ -107,7 +107,7 @@ def test_impede_consulta_de_outro_paciente(api, patient, therapist):
     )
 
     assert response.status_code == 400
-    assert "appointment" in response.data
+    assert "appointment" in response.data["error"]["details"]
 
 
 @pytest.mark.django_db
