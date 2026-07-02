@@ -18,6 +18,8 @@ import type {
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_FILES = 10;
+const SAFE_PREVIEW_PROTOCOLS = new Set(["blob:", "https:", "http:"]);
+const PREVIEW_URL_BASE = "https://preview.invalid";
 const ALLOWED = new Map([
   ["image/jpeg", [".jpg", ".jpeg"]],
   ["image/png", [".png"]],
@@ -175,6 +177,18 @@ function validateFile(file: File): PendingEvolutionAttachment {
   };
 }
 
+function toSafePreviewUrl(previewUrl?: string) {
+  if (!previewUrl) return undefined;
+
+  try {
+    const parsed = new URL(previewUrl, PREVIEW_URL_BASE);
+    if (!SAFE_PREVIEW_PROTOCOLS.has(parsed.protocol)) return undefined;
+    return previewUrl;
+  } catch {
+    return undefined;
+  }
+}
+
 function AttachmentRow({
   name,
   type,
@@ -196,6 +210,7 @@ function AttachmentRow({
 }) {
   const isImage = type.startsWith("image/");
   const uploading = progress !== undefined && progress > 0 && progress < 100;
+  const safePreviewUrl = toSafePreviewUrl(previewUrl);
   return (
     <div
       className={cn(
@@ -204,9 +219,9 @@ function AttachmentRow({
       )}
     >
       <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-md bg-secondary text-muted-foreground">
-        {previewUrl ? (
+        {safePreviewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={previewUrl} alt="" className="size-full object-cover" />
+          <img src={safePreviewUrl} alt="" className="size-full object-cover" />
         ) : isImage ? (
           <ImageIcon className="size-5" />
         ) : (
