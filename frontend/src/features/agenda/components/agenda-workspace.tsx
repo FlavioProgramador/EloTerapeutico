@@ -42,7 +42,7 @@ const tabs = [
   {
     id: "telemedicine" as const,
     label: "Telemedicina",
-    href: "/dashboard/agenda/telemedicine",
+    href: "/dashboard/agenda/atendimento-online",
     icon: Video,
   },
 ];
@@ -54,7 +54,7 @@ export function AgendaWorkspace({ initialTab = "agenda" }: { initialTab?: Agenda
   const tab = useMemo<AgendaTab>(() => {
     if (pathname.endsWith("/recurrences")) return "recurrences";
     if (pathname.endsWith("/packages")) return "packages";
-    if (pathname.endsWith("/telemedicine")) return "telemedicine";
+    if (pathname.endsWith("/atendimento-online")) return "telemedicine";
     return initialTab;
   }, [initialTab, pathname]);
 
