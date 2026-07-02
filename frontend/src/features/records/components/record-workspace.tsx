@@ -28,9 +28,7 @@ import { ExportsTab } from "./exports-tab";
 import { DocumentsTab } from "./documents-tab";
 import { EvolutionEditor } from "./evolution-editor";
 import { EvolutionTimeline } from "./evolution-timeline";
-import { PatientSelector } from "./patient-selector";
 import { RecordHeader } from "./record-header";
-import { RecordStats } from "./record-overview";
 import { RecordTabsNav } from "./record-tabs-nav";
 
 function isRecordTab(value: string | null): value is RecordTab {
@@ -47,7 +45,6 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
   const [activeTab, setActiveTab] = useState<RecordTab>(
     isRecordTab(requestedTab) ? requestedTab : "evolutions",
   );
-  const [patientDrawerOpen, setPatientDrawerOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingEvolution, setEditingEvolution] =
     useState<EvolutionWorkspace | null>(null);
@@ -201,83 +198,73 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
         onExport={exportPdf}
       />
 
-      <RecordStats summary={summary} />
+      <div className="min-w-0 space-y-4">
+        <RecordTabsNav activeTab={activeTab} onChange={changeTab} />
 
-      <div className="grid items-start gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]">
-        <PatientSelector
-          selectedPatientId={patientId}
-          mobileOpen={patientDrawerOpen}
-          onMobileClose={() => setPatientDrawerOpen(false)}
-        />
+        {activeTab === "appointments" && (
+          <AppointmentsTab
+            patientId={patientId}
+            onNewEvolution={openNewEvolution}
+            onViewEvolution={(evoId) => {
+              setSelectedEvolutionId(evoId);
+              changeTab("evolutions");
+            }}
+          />
+        )}
 
-        <div className="min-w-0 space-y-4">
-          <RecordTabsNav activeTab={activeTab} onChange={changeTab} />
+        {activeTab === "evolutions" && (
+          <EvolutionTimeline
+            evolutions={evolutions}
+            selected={selectedEvolution}
+            loading={
+              evolutionsQuery.isLoading || selectedEvolutionQuery.isLoading
+            }
+            onSelect={setSelectedEvolutionId}
+            onEdit={editEvolution}
+            onDuplicate={async (evolution) => {
+              const date = window.prompt(
+                "Data da nova sessão (AAAA-MM-DD):",
+                new Date().toISOString().slice(0, 10),
+              );
+              if (!date) return;
+              const created = await duplicateEvolution.mutateAsync({
+                id: evolution.id,
+                sessionDate: date,
+              });
+              setSelectedEvolutionId(created.id);
+            }}
+            onExport={exportPdf}
+          />
+        )}
 
-          {activeTab === "appointments" && (
-            <AppointmentsTab
-              patientId={patientId}
-              onNewEvolution={openNewEvolution}
-              onViewEvolution={(evoId) => {
-                setSelectedEvolutionId(evoId);
-                changeTab("evolutions");
-              }}
-            />
-          )}
+        {activeTab === "documents" && (
+          <DocumentsTab
+            patientId={patientId}
+            documents={documentsQuery.data ?? []}
+            loading={documentsQuery.isLoading}
+            uploading={documentMutations.upload.isPending}
+            updating={documentMutations.update.isPending}
+            onUpload={(data) =>
+              documentMutations.upload.mutateAsync(data).then(() => undefined)
+            }
+            onUpdate={(id, payload) =>
+              documentMutations.update
+                .mutateAsync({ id, payload })
+                .then(() => undefined)
+            }
+            onArchive={(id) =>
+              documentMutations.archive.mutateAsync(id).then(() => undefined)
+            }
+          />
+        )}
 
-          {activeTab === "evolutions" && (
-            <EvolutionTimeline
-              evolutions={evolutions}
-              selected={selectedEvolution}
-              loading={
-                evolutionsQuery.isLoading || selectedEvolutionQuery.isLoading
-              }
-              onSelect={setSelectedEvolutionId}
-              onEdit={editEvolution}
-              onDuplicate={async (evolution) => {
-                const date = window.prompt(
-                  "Data da nova sessão (AAAA-MM-DD):",
-                  new Date().toISOString().slice(0, 10),
-                );
-                if (!date) return;
-                const created = await duplicateEvolution.mutateAsync({
-                  id: evolution.id,
-                  sessionDate: date,
-                });
-                setSelectedEvolutionId(created.id);
-              }}
-              onExport={exportPdf}
-            />
-          )}
+        {activeTab === "forms" && (
+          <FormsTab patientId={patientId} />
+        )}
 
-          {activeTab === "documents" && (
-            <DocumentsTab
-              patientId={patientId}
-              documents={documentsQuery.data ?? []}
-              loading={documentsQuery.isLoading}
-              uploading={documentMutations.upload.isPending}
-              updating={documentMutations.update.isPending}
-              onUpload={(data) =>
-                documentMutations.upload.mutateAsync(data).then(() => undefined)
-              }
-              onUpdate={(id, payload) =>
-                documentMutations.update
-                  .mutateAsync({ id, payload })
-                  .then(() => undefined)
-              }
-              onArchive={(id) =>
-                documentMutations.archive.mutateAsync(id).then(() => undefined)
-              }
-            />
-          )}
-
-          {activeTab === "forms" && (
-            <FormsTab patientId={patientId} />
-          )}
-
-          {activeTab === "exports" && (
-            <ExportsTab patientId={patientId} />
-          )}
-        </div>
+        {activeTab === "exports" && (
+          <ExportsTab patientId={patientId} />
+        )}
       </div>
 
       <div className="flex items-center justify-center gap-2 py-2 text-[10px] text-muted-foreground">
