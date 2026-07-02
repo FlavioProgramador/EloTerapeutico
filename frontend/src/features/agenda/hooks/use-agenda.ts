@@ -53,12 +53,19 @@ export function useAppointmentsPage(filters?: AppointmentFilters) {
   });
 }
 
-/** Compatibilidade com o dashboard e consumidores antigos, que esperam um array. */
+/**
+ * Compatibilidade com consumidores antigos, que esperam um array, e com o
+ * workspace novo, que lê `results` e `pagination`.
+ */
 export function useAppointments(filters?: AppointmentFilters) {
   return useQuery({
     queryKey: [...AGENDA_QUERY_KEYS.appointments, filters],
     queryFn: () => agendaService.appointments.list(filters),
-    select: (page) => page.results,
+    select: (page) =>
+      Object.assign(page.results, {
+        results: page.results,
+        pagination: page.pagination,
+      }),
   });
 }
 
