@@ -1,96 +1,219 @@
-/**
- * Hooks TanStack Query para agenda.
- * Centraliza fetching, caching e mutações de agendamentos.
- */
-
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { agendaService, type AppointmentFilters } from "../services/agenda.service";
-import { QUERY_KEYS } from "@/constants";
-import type { CreateAppointmentPayload } from "@/types";
+import { agendaService } from "../services/agenda.service";
+import type {
+  AppointmentFilters,
+  CreateAppointmentPayload,
+  CreatePackagePayload,
+  CreateScheduleBlockPayload,
+} from "../types";
+
+export const AGENDA_QUERY_KEYS = {
+  appointments: ["agenda", "appointments"] as const,
+  appointment: (id: number) => ["agenda", "appointments", id] as const,
+  rooms: ["agenda", "rooms"] as const,
+  blocks: ["agenda", "blocks"] as const,
+  recurrences: ["agenda", "recurrences"] as const,
+  packages: ["agenda", "packages"] as const,
+  telemedicine: ["agenda", "telemedicine"] as const,
+  availability: ["agenda", "availability"] as const,
+};
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (!error || typeof error !== "object" || !("response" in error)) return fallback;
+  const data = (error as { response?: { data?: unknown } }).response?.data;
+  if (!data || typeof data !== "object") return fallback;
+  const record = data as Record<string, unknown>;
+  if (typeof record.detail === "string") return record.detail;
+  for (const value of Object.values(record)) {
+    if (typeof value === "string") return value;
+    if (Array.isArray(value) && typeof value[0] === "string") return value[0];
+  }
+  return fallback;
+}
+
+function useInvalidateAgenda() {
+  const queryClient = useQueryClient();
+  return () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: AGENDA_QUERY_KEYS.appointments }),
+      queryClient.invalidateQueries({ queryKey: AGENDA_QUERY_KEYS.blocks }),
+      queryClient.invalidateQueries({ queryKey: AGENDA_QUERY_KEYS.recurrences }),
+      queryClient.invalidateQueries({ queryKey: AGENDA_QUERY_KEYS.packages }),
+      queryClient.invalidateQueries({ queryKey: AGENDA_QUERY_KEYS.telemedicine }),
+      queryClient.invalidateQueries({ queryKey: AGENDA_QUERY_KEYS.availability }),
+    ]);
+}
+
+/** Resposta paginada para as telas completas da agenda. */
+export function useAppointmentsPage(filters?: AppointmentFilters) {
+  return useQuery({
+    queryKey: [...AGENDA_QUERY_KEYS.appointments, "page", filters],
+    queryFn: () => agendaService.appointments.list(filters),
+  });
+}
 
 /**
- * Hook para listar agendamentos com filtros opcionais.
+ * Compatibilidade com consumidores antigos, que esperam um array, e com o
+ * workspace novo, que lê `results` e `pagination`.
  */
 export function useAppointments(filters?: AppointmentFilters) {
   return useQuery({
-    queryKey: [...QUERY_KEYS.appointments, filters],
-    queryFn: () => agendaService.list(filters),
+    queryKey: [...AGENDA_QUERY_KEYS.appointments, filters],
+    queryFn: () => agendaService.appointments.list(filters),
+    select: (page) =>
+      Object.assign(page.results, {
+        results: page.results,
+        pagination: page.pagination,
+      }),
   });
 }
 
-/**
- * Hook para buscar consultas de hoje.
- */
 export function useTodayAppointments() {
+  const today = new Date();
+  const start = new Date(today);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(today);
+  end.setHours(23, 59, 59, 999);
   return useQuery({
-    queryKey: [...QUERY_KEYS.appointments, "today"],
-    queryFn: () => agendaService.today(),
+    queryKey: [...AGENDA_QUERY_KEYS.appointments, "today"],
+    queryFn: () =>
+      agendaService.appointments.list({
+        start_time_gte: start.toISOString(),
+        start_time_lte: end.toISOString(),
+        page_size: 100,
+      }),
+    select: (page) => page.results,
   });
 }
 
-/**
- * Hook para buscar um agendamento específico.
- */
-export function useAppointment(id: number | undefined) {
+export function useAppointment(id?: number) {
   return useQuery({
-    queryKey: QUERY_KEYS.appointment(id!),
-    queryFn: () => agendaService.getById(id!),
-    enabled: !!id,
+    queryKey: AGENDA_QUERY_KEYS.appointment(id || 0),
+    queryFn: () => agendaService.appointments.get(id!),
+    enabled: Boolean(id),
   });
 }
 
-/**
- * Hook para criar um novo agendamento.
- */
+export function useRooms() {
+  return useQuery({
+    queryKey: AGENDA_QUERY_KEYS.rooms,
+    queryFn: agendaService.rooms.list,
+    staleTime: 60_000,
+  });
+}
+
+export function useScheduleBlocks(filters?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: [...AGENDA_QUERY_KEYS.blocks, filters],
+    queryFn: () => agendaService.blocks.list(filters),
+  });
+}
+
+export function useRecurrences(filters?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: [...AGENDA_QUERY_KEYS.recurrences, filters],
+    queryFn: () => agendaService.recurrences.list(filters),
+  });
+}
+
+export function usePackages(filters?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: [...AGENDA_QUERY_KEYS.packages, filters],
+    queryFn: () => agendaService.packages.list(filters),
+  });
+}
+
+export function useTelemedicine(filters?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: [...AGENDA_QUERY_KEYS.telemedicine, filters],
+    queryFn: () => agendaService.telemedicine.list(filters),
+  });
+}
+
+export function useAvailableSlots(
+  payload: {
+    date: string;
+    duration: number;
+    therapist_id?: number;
+    patient_id?: number;
+    room_id?: number;
+  },
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [...AGENDA_QUERY_KEYS.availability, payload],
+    queryFn: () => agendaService.appointments.checkAvailability(payload),
+    enabled: enabled && Boolean(payload.date && payload.duration),
+    staleTime: 5_000,
+  });
+}
+
 export function useCreateAppointment() {
-  const queryClient = useQueryClient();
-
+  const invalidate = useInvalidateAgenda();
   return useMutation({
-    mutationFn: (data: CreateAppointmentPayload) => agendaService.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.appointments });
+    mutationFn: (payload: CreateAppointmentPayload) =>
+      agendaService.appointments.create(payload),
+    onSuccess: async () => {
+      await invalidate();
       toast.success("Consulta agendada com sucesso.");
     },
-    onError: (error: unknown) => {
-      let serverMsg = "";
-      if (error && typeof error === "object" && "response" in error) {
-        const errObj = (error as { response?: { data?: { start_time?: string[]; detail?: string } } }).response?.data;
-        serverMsg = errObj?.start_time?.[0] || errObj?.detail || "";
-      }
-      toast.error("Erro ao agendar consulta.", {
-        description: serverMsg || "Verifique conflitos de horário com o terapeuta.",
-      });
-    },
+    onError: (error) =>
+      toast.error("Não foi possível agendar.", {
+        description: getErrorMessage(
+          error,
+          "Revise os campos e os conflitos de horário.",
+        ),
+      }),
   });
 }
 
-/**
- * Hook para atualizar um agendamento.
- */
 export function useUpdateAppointment(id: number) {
+  const invalidate = useInvalidateAgenda();
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: (data: Partial<CreateAppointmentPayload>) =>
-      agendaService.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.appointments });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.appointment(id) });
-      toast.success("Consulta atualizada com sucesso.");
+    mutationFn: (payload: Partial<CreateAppointmentPayload>) =>
+      agendaService.appointments.update(id, payload),
+    onSuccess: async () => {
+      await invalidate();
+      await queryClient.invalidateQueries({
+        queryKey: AGENDA_QUERY_KEYS.appointment(id),
+      });
+      toast.success("Consulta atualizada.");
     },
-    onError: () => {
-      toast.error("Erro ao atualizar consulta.");
-    },
+    onError: (error) =>
+      toast.error("Não foi possível atualizar.", {
+        description: getErrorMessage(error, "Verifique os conflitos de horário."),
+      }),
   });
 }
 
-/**
- * Hook para atualizar o status de um agendamento.
- */
-export function useUpdateAppointmentStatus() {
-  const queryClient = useQueryClient();
+export function useAppointmentTransition() {
+  const invalidate = useInvalidateAgenda();
+  return useMutation({
+    mutationFn: ({
+      id,
+      action,
+      payload,
+    }: {
+      id: number;
+      action: "confirm" | "cancel" | "complete" | "mark-no-show";
+      payload?: Record<string, unknown>;
+    }) => agendaService.appointments.transition(id, action, payload),
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Status da consulta atualizado.");
+    },
+    onError: (error) =>
+      toast.error("Não foi possível alterar o status.", {
+        description: getErrorMessage(error, "Tente novamente."),
+      }),
+  });
+}
 
+/** Compatibilidade com o dashboard existente. */
+export function useUpdateAppointmentStatus() {
+  const invalidate = useInvalidateAgenda();
   return useMutation({
     mutationFn: ({
       id,
@@ -100,51 +223,120 @@ export function useUpdateAppointmentStatus() {
       id: number;
       status: string;
       cancellationReason?: string;
-    }) => agendaService.updateStatus(id, status, cancellationReason),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.appointments });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.appointment(variables.id) });
+    }) => {
+      const actions = {
+        confirmed: "confirm",
+        cancelled: "cancel",
+        completed: "complete",
+        missed: "mark-no-show",
+      } as const;
+      const action = actions[status as keyof typeof actions];
+      if (!action) {
+        throw new Error(`Transição de status não suportada: ${status}`);
+      }
+      return agendaService.appointments.transition(
+        id,
+        action,
+        action === "cancel"
+          ? {
+              cancellation_reason:
+                cancellationReason || "Cancelada pelo painel de controle.",
+            }
+          : undefined,
+      );
+    },
+    onSuccess: async () => {
+      await invalidate();
       toast.success("Status do agendamento atualizado.");
     },
-    onError: (error: unknown) => {
-      let serverMsg = "";
-      if (error && typeof error === "object" && "response" in error) {
-        const errObj = (error as { response?: { data?: { status?: string[]; detail?: string } } }).response?.data;
-        serverMsg = errObj?.status?.[0] || errObj?.detail || "";
-      }
-      toast.error("Erro ao atualizar status.", {
-        description: serverMsg || "Não foi possível mudar o status desta consulta.",
-      });
-    },
+    onError: (error) =>
+      toast.error("Não foi possível atualizar o status.", {
+        description: getErrorMessage(error, "Tente novamente."),
+      }),
   });
 }
 
-/**
- * Hook para buscar slots livres disponíveis.
- */
-export function useAvailableSlots(date: string, duration: number, enabled: boolean) {
-  return useQuery({
-    queryKey: ["appointments", "availability", date, duration],
-    queryFn: () => agendaService.checkAvailability(date, duration),
-    enabled: enabled && !!date && !!duration,
-    staleTime: 5000, // cache curto para disponibilidade
-  });
-}
-
-/**
- * Hook para cancelar um agendamento.
- */
 export function useDeleteAppointment() {
-  const queryClient = useQueryClient();
-
+  const invalidate = useInvalidateAgenda();
   return useMutation({
-    mutationFn: (id: number) => agendaService.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.appointments });
-      toast.success("Consulta cancelada com sucesso.");
+    mutationFn: agendaService.appointments.remove,
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Consulta cancelada.");
     },
-    onError: () => {
-      toast.error("Erro ao cancelar consulta.");
+    onError: (error) =>
+      toast.error("Não foi possível cancelar a consulta.", {
+        description: getErrorMessage(error, "Tente novamente."),
+      }),
+  });
+}
+
+export function useCreateScheduleBlock() {
+  const invalidate = useInvalidateAgenda();
+  return useMutation({
+    mutationFn: (payload: CreateScheduleBlockPayload) =>
+      agendaService.blocks.create(payload),
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Horário bloqueado.");
+    },
+    onError: (error) =>
+      toast.error("Não foi possível bloquear o horário.", {
+        description: getErrorMessage(
+          error,
+          "Verifique consultas e bloqueios existentes.",
+        ),
+      }),
+  });
+}
+
+export function useCreatePackage() {
+  const invalidate = useInvalidateAgenda();
+  return useMutation({
+    mutationFn: (payload: CreatePackagePayload) =>
+      agendaService.packages.create(payload),
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Pacote criado com sucesso.");
+    },
+    onError: (error) =>
+      toast.error("Não foi possível criar o pacote.", {
+        description: getErrorMessage(error, "Revise os dados informados."),
+      }),
+  });
+}
+
+export function useRecurrenceAction() {
+  const invalidate = useInvalidateAgenda();
+  return useMutation({
+    mutationFn: ({
+      id,
+      action,
+    }: {
+      id: number;
+      action: "pause" | "reactivate" | "end";
+    }) => agendaService.recurrences.action(id, action),
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Recorrência atualizada.");
+    },
+  });
+}
+
+export function useTelemedicineAction() {
+  const invalidate = useInvalidateAgenda();
+  return useMutation({
+    mutationFn: ({ id, action }: { id: number; action: "regenerate" | "open" }) =>
+      action === "regenerate"
+        ? agendaService.telemedicine.regenerate(id)
+        : agendaService.telemedicine.open(id),
+    onSuccess: async (data, variables) => {
+      await invalidate();
+      if (variables.action === "open" && "professional_link" in data) {
+        window.open(data.professional_link, "_blank", "noopener,noreferrer");
+      } else {
+        toast.success("Link de telemedicina atualizado.");
+      }
     },
   });
 }
