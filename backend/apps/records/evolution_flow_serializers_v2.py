@@ -7,7 +7,30 @@ from .evolution_security import sanitize_clinical_markdown
 
 
 class EvolutionFlowSerializer(BaseSerializer):
-    """Preserva conteúdo existente em PATCH e fixa o formato de saída."""
+    """Preserva contratos legados e conteúdo existente em PATCH parcial."""
+
+    addenda_count = serializers.IntegerField(source="addenda.count", read_only=True)
+    attached_documents_count = serializers.IntegerField(
+        source="documents.count",
+        read_only=True,
+    )
+    linked_goal_ids = serializers.PrimaryKeyRelatedField(
+        source="treatment_goals",
+        many=True,
+        read_only=True,
+    )
+
+    class Meta(BaseSerializer.Meta):
+        fields = BaseSerializer.Meta.fields + (
+            "addenda_count",
+            "attached_documents_count",
+            "linked_goal_ids",
+        )
+        read_only_fields = BaseSerializer.Meta.read_only_fields + (
+            "addenda_count",
+            "attached_documents_count",
+            "linked_goal_ids",
+        )
 
     def validate(self, attrs):
         clinical_data = attrs.get("clinical_data", {})
