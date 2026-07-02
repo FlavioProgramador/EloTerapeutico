@@ -25,14 +25,15 @@ Os componentes ficam em `frontend/src/features/records`:
 As abas disponíveis são:
 
 - `evolutions`: Histórico de evoluções;
-- `anamnesis`: Anamnese;
-- `goals`: Plano terapêutico;
-- `documents`: Documentos.
+- `appointments`: Consultas realizadas e agendadas;
+- `documents`: Arquivos e anexos;
+- `forms`: Formulários clínicos;
+- `exports`: Exportações em PDF geradas.
 
 A aba ativa é persistida na URL, por exemplo:
 
 ```text
-/dashboard/records/42?tab=anamnesis
+/dashboard/records/42?tab=appointments
 ```
 
 A troca utiliza navegação do App Router sem recarregar toda a página e preserva o paciente selecionado. Cada consulta clínica é habilitada somente quando sua respectiva aba está ativa.
@@ -53,44 +54,26 @@ A aba oferece:
 
 Evoluções finalizadas continuam bloqueadas para edição direta. Alterações autorizadas preservam snapshots auditáveis.
 
-## Anamnese
+## Consultas (Appointments)
 
-A anamnese foi organizada em seções compactas:
+A aba de Consultas permite:
+- Visualizar a lista cronológica de consultas (com paginação e busca);
+- Associar ou criar novas evoluções diretamente a partir de um atendimento realizado;
+- Exibir os status da evolução associada (como "Pendente" ou "Finalizada").
 
-- queixa principal;
-- histórico clínico;
-- contexto familiar e social;
-- hábitos e rotina;
-- avaliação inicial;
-- medicamentos;
-- vida acadêmica e profissional;
-- rede de apoio e eventos relevantes.
+## Formulários Clínicos (Forms)
 
-Somente uma seção é exibida em modo detalhado por vez. O componente oferece:
+Esta aba exibe os questionários psicométricos (como o BAI - Inventário de Ansiedade Beck, e BDI - Inventário de Depressão Beck) preenchidos ou pendentes. Ela permite:
+- Visualizar as respostas estruturadas de questionários passados;
+- Responder a novos formulários através de modais interativos integrados com salvamento no backend.
 
-- modo leitura e edição;
-- salvamento por seção;
-- aviso de alterações não salvas;
-- percentual calculado no backend com base nos campos preenchidos;
-- status derivado de preenchimento;
-- identificação do último profissional responsável;
-- histórico de versões;
-- exportação do prontuário em PDF.
+## Exportações e Relatórios (Exports)
 
-## Plano terapêutico
-
-A aba utiliza os dados reais de `TreatmentGoal` e apresenta:
-
-- objetivo principal baseado na primeira meta ativa;
-- próxima sessão ou revisão disponível no resumo do prontuário;
-- metas ordenáveis;
-- prioridade, status, datas, progresso e evoluções vinculadas;
-- cálculo de progresso médio do plano;
-- totais de metas ativas e concluídas;
-- tabela de estratégias e intervenções registradas nas metas;
-- ações de criar, editar, pausar, concluir, reabrir, reordenar e arquivar.
-
-A tabela de intervenções representa as estratégias atualmente armazenadas nas metas. Um modelo dedicado de intervenção, frequência e histórico de progresso permanece uma evolução futura do domínio.
+As exportações de prontuário em PDF utilizam processamento assíncrono em fila persistida e isolamento de locks. A aba permite:
+- Visualizar a listagem de exportações solicitadas, tamanhos dos arquivos e statuses;
+- Iniciar uma nova exportação em segundo plano;
+- Fazer download seguro e autenticado dos PDFs concluídos;
+- Polling controlado pelo frontend que consome recursos de rede apenas quando existem jobs ativamente em processamento.
 
 ## Documentos
 
@@ -115,14 +98,16 @@ A geração por modelos e o fluxo de assinatura continuam desabilitados até exi
 
 ## Estrutura do backend
 
-O app `backend/apps/records` preserva os modelos e endpoints anteriores e utiliza:
+O app `backend/apps/records` utiliza:
 
-- `extended_models.py`: perfil ampliado da anamnese, dados estruturados da evolução e versões imutáveis;
-- `treatment_models.py`: metas terapêuticas e documentos clínicos;
-- `clinical_serializers.py`: validações, metadados das abas e integração dos modelos;
-- `clinical_views.py`: endpoints do espaço clínico;
-- migrations `0003`, `0004` e `0005`;
-- testes em `backend/apps/records/tests`.
+- `models.py`: modelo `Evolution` com campo `is_confidential` e permissões customizadas;
+- `treatment_models.py`: novos modelos `ClinicalFormResponse` e `ClinicalExport` (com dados de rastreamento do worker e FileField privado);
+- `clinical_serializers.py`: serializers das novas entidades e otimização do serializer de agendamentos;
+- `clinical_views.py`: endpoints para formulários e exportações assíncronas com isolamento e controle de privacidade;
+- `utils.py`: utilitários de renderização segura de Markdown (XSS-safe) e fetcher de WeasyPrint seguro (SSRF-safe);
+- `management/commands/run_export_worker.py`: worker persistente com tratamento de jobs presos e locks eficientes;
+- migrations até `0008_alter_evolution_options`;
+- testes robustos em `backend/apps/records/tests/test_clinical_refactor.py`.
 
 A refatoração visual das abas não adicionou migrations.
 

@@ -146,4 +146,42 @@ export const recordWorkspaceService = {
     });
     downloadBlob(response.data, `prontuario-paciente-${patientId}.pdf`);
   },
+
+  listForms: async (patientId: number, search?: string) => {
+    const url = search
+      ? `records/patients/${patientId}/forms/?search=${encodeURIComponent(search)}`
+      : `records/patients/${patientId}/forms/`;
+    const response = await api.get<any[]>(url);
+    return response.data;
+  },
+
+  submitForm: async (patientId: number, payload: any) => {
+    const response = await api.post<any>(`records/patients/${patientId}/forms/`, payload);
+    return response.data;
+  },
+
+  listExports: async (patientId: number) => {
+    const response = await api.get<any[]>(`records/patients/${patientId}/exports/`);
+    return response.data;
+  },
+
+  createExport: async (patientId: number, exportType: string, period: string) => {
+    const response = await api.post<any>(`records/patients/${patientId}/exports/`, {
+      export_type: exportType,
+      period: period,
+    });
+    return response.data;
+  },
+
+  retryExport: async (exportId: number) => {
+    const response = await api.post<any>(`records/exports/${exportId}/retry/`);
+    return response.data;
+  },
+
+  downloadExport: async (exportId: number, filename: string) => {
+    const response = await api.get(`records/exports/${exportId}/download/`, {
+      responseType: "blob",
+    });
+    downloadBlob(response.data, filename);
+  },
 };

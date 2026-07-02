@@ -29,16 +29,10 @@ export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
-  const menuItems = [
+  const menuItems: Array<{ name: string; href: string; icon: any; roles?: string[] }> = [
     { name: "Visão geral", href: "/dashboard", icon: Home },
     { name: "Agenda", href: "/dashboard/agenda", icon: Calendar },
     { name: "Pacientes", href: "/dashboard/patients", icon: Users },
-    {
-      name: "Prontuários",
-      href: "/dashboard/records",
-      icon: ClipboardList,
-      roles: ["therapist", "admin"],
-    },
     { name: "Financeiro", href: "/dashboard/financeiro", icon: DollarSign },
     { name: "Relatórios", href: "#", icon: BarChart2 },
     { name: "Comunicações", href: "#", icon: MessageSquare },

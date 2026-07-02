@@ -139,6 +139,11 @@ class Evolution(models.Model):
         verbose_name="Bloqueada em",
         help_text="Data/hora em que a evolução foi bloqueada.",
     )
+    is_confidential = models.BooleanField(
+        default=False,
+        verbose_name="Confidencial",
+        help_text="Marcar como confidencial. Informações visíveis apenas para o autor ou com permissão especial.",
+    )
 
     # ── Autoria e timestamps ──────────────────────────────────────────────────
     created_by = models.ForeignKey(
@@ -154,6 +159,10 @@ class Evolution(models.Model):
         verbose_name = "Evolução"
         verbose_name_plural = "Evoluções"
         ordering = ["-session_date", "-created_at"]
+        permissions = [
+            ("view_confidential_evolution", "Can view confidential evolution"),
+            ("export_confidential_evolution", "Can export confidential evolution"),
+        ]
         indexes = [
             # Índice composto para a listagem mais comum: evoluções de um paciente por data
             models.Index(

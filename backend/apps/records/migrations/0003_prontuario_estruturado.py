@@ -18,106 +18,376 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="AnamnesisProfile",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("reason_for_care", core.fields.EncryptedTextField(blank=True, default="")),
-                ("physical_health_history", core.fields.EncryptedTextField(blank=True, default="")),
-                ("mental_health_history", core.fields.EncryptedTextField(blank=True, default="")),
-                ("previous_treatments", core.fields.EncryptedTextField(blank=True, default="")),
-                ("habits_and_routine", core.fields.EncryptedTextField(blank=True, default="")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "reason_for_care",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
+                (
+                    "physical_health_history",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
+                (
+                    "mental_health_history",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
+                (
+                    "previous_treatments",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
+                (
+                    "habits_and_routine",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
                 ("sleep", core.fields.EncryptedTextField(blank=True, default="")),
                 ("nutrition", core.fields.EncryptedTextField(blank=True, default="")),
-                ("family_social_relations", core.fields.EncryptedTextField(blank=True, default="")),
-                ("academic_history", core.fields.EncryptedTextField(blank=True, default="")),
-                ("professional_history", core.fields.EncryptedTextField(blank=True, default="")),
-                ("support_network", core.fields.EncryptedTextField(blank=True, default="")),
-                ("relevant_events", core.fields.EncryptedTextField(blank=True, default="")),
-                ("initial_assessment", core.fields.EncryptedTextField(blank=True, default="")),
-                ("clinical_hypotheses", core.fields.EncryptedTextField(blank=True, default="")),
-                ("custom_fields", core.fields.EncryptedTextField(blank=True, default="{}")),
+                (
+                    "family_social_relations",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
+                (
+                    "academic_history",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
+                (
+                    "professional_history",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
+                (
+                    "support_network",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
+                (
+                    "relevant_events",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
+                (
+                    "initial_assessment",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
+                (
+                    "clinical_hypotheses",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
+                (
+                    "custom_fields",
+                    core.fields.EncryptedTextField(blank=True, default="{}"),
+                ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("anamnesis", models.OneToOneField(on_delete=django.db.models.deletion.PROTECT, related_name="profile", to="records.anamnesis")),
-                ("updated_by", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name="anamnesis_profiles_updated", to=settings.AUTH_USER_MODEL)),
+                (
+                    "anamnesis",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="profile",
+                        to="records.anamnesis",
+                    ),
+                ),
+                (
+                    "updated_by",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="anamnesis_profiles_updated",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
             name="AnamnesisVersion",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("version", models.PositiveIntegerField()),
                 ("snapshot", core.fields.EncryptedTextField()),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
-                ("anamnesis", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name="versions", to="records.anamnesis")),
-                ("created_by", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name="anamnesis_versions_created", to=settings.AUTH_USER_MODEL)),
+                (
+                    "anamnesis",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="versions",
+                        to="records.anamnesis",
+                    ),
+                ),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="anamnesis_versions_created",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={"ordering": ["-version"]},
         ),
         migrations.CreateModel(
             name="EvolutionClinicalData",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("session_time", models.TimeField(blank=True, null=True)),
-                ("duration_minutes", models.PositiveSmallIntegerField(default=50, validators=[MinValueValidator(1), MaxValueValidator(600)])),
-                ("modality", models.CharField(choices=[("in_person", "Presencial"), ("online", "Online"), ("hybrid", "Híbrido")], default="in_person", max_length=20)),
-                ("appointment_type", models.CharField(choices=[("individual", "Individual"), ("couple", "Casal"), ("family", "Familiar"), ("group", "Grupo"), ("other", "Outro")], default="individual", max_length=20)),
-                ("emotional_state", core.fields.EncryptedTextField(blank=True, default="")),
-                ("chief_complaint", core.fields.EncryptedTextField(blank=True, default="")),
-                ("patient_report", core.fields.EncryptedTextField(blank=True, default="")),
-                ("therapist_observations", core.fields.EncryptedTextField(blank=True, default="")),
-                ("interventions", core.fields.EncryptedTextField(blank=True, default="")),
-                ("perceived_evolution", core.fields.EncryptedTextField(blank=True, default="")),
+                (
+                    "duration_minutes",
+                    models.PositiveSmallIntegerField(
+                        default=50,
+                        validators=[MinValueValidator(1), MaxValueValidator(600)],
+                    ),
+                ),
+                (
+                    "modality",
+                    models.CharField(
+                        choices=[
+                            ("in_person", "Presencial"),
+                            ("online", "Online"),
+                            ("hybrid", "Híbrido"),
+                        ],
+                        default="in_person",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "appointment_type",
+                    models.CharField(
+                        choices=[
+                            ("individual", "Individual"),
+                            ("couple", "Casal"),
+                            ("family", "Familiar"),
+                            ("group", "Grupo"),
+                            ("other", "Outro"),
+                        ],
+                        default="individual",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "emotional_state",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
+                (
+                    "chief_complaint",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
+                (
+                    "patient_report",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
+                (
+                    "therapist_observations",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
+                (
+                    "interventions",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
+                (
+                    "perceived_evolution",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
                 ("homework", core.fields.EncryptedTextField(blank=True, default="")),
                 ("referrals", core.fields.EncryptedTextField(blank=True, default="")),
                 ("next_steps", core.fields.EncryptedTextField(blank=True, default="")),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("evolution", models.OneToOneField(on_delete=django.db.models.deletion.PROTECT, related_name="clinical_data", to="records.evolution")),
-                ("updated_by", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name="evolution_clinical_data_updated", to=settings.AUTH_USER_MODEL)),
+                (
+                    "evolution",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="clinical_data",
+                        to="records.evolution",
+                    ),
+                ),
+                (
+                    "updated_by",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="evolution_clinical_data_updated",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
             name="EvolutionVersion",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("version", models.PositiveIntegerField()),
                 ("snapshot", core.fields.EncryptedTextField()),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
-                ("created_by", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name="evolution_versions_created", to=settings.AUTH_USER_MODEL)),
-                ("evolution", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name="versions", to="records.evolution")),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="evolution_versions_created",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "evolution",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="versions",
+                        to="records.evolution",
+                    ),
+                ),
             ],
             options={"ordering": ["-version"]},
         ),
         migrations.CreateModel(
             name="TreatmentGoal",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("title", models.CharField(max_length=180)),
                 ("description", core.fields.EncryptedTextField(blank=True, default="")),
                 ("category", models.CharField(blank=True, max_length=80)),
-                ("priority", models.CharField(choices=[("low", "Baixa"), ("medium", "Média"), ("high", "Alta")], default="medium", max_length=12)),
+                (
+                    "priority",
+                    models.CharField(
+                        choices=[
+                            ("low", "Baixa"),
+                            ("medium", "Média"),
+                            ("high", "Alta"),
+                        ],
+                        default="medium",
+                        max_length=12,
+                    ),
+                ),
                 ("start_date", models.DateField()),
                 ("target_date", models.DateField(blank=True, null=True)),
-                ("status", models.CharField(choices=[("active", "Em andamento"), ("paused", "Pausada"), ("completed", "Concluída"), ("archived", "Arquivada")], db_index=True, default="active", max_length=16)),
-                ("progress", models.PositiveSmallIntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("active", "Em andamento"),
+                            ("paused", "Pausada"),
+                            ("completed", "Concluída"),
+                            ("archived", "Arquivada"),
+                        ],
+                        db_index=True,
+                        default="active",
+                        max_length=16,
+                    ),
+                ),
+                (
+                    "progress",
+                    models.PositiveSmallIntegerField(
+                        default=0,
+                        validators=[MinValueValidator(0), MaxValueValidator(100)],
+                    ),
+                ),
                 ("strategies", core.fields.EncryptedTextField(blank=True, default="")),
-                ("evaluation_criteria", core.fields.EncryptedTextField(blank=True, default="")),
-                ("observations", core.fields.EncryptedTextField(blank=True, default="")),
+                (
+                    "evaluation_criteria",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
+                (
+                    "observations",
+                    core.fields.EncryptedTextField(blank=True, default=""),
+                ),
                 ("sort_order", models.PositiveIntegerField(default=0)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("archived_at", models.DateTimeField(blank=True, null=True)),
-                ("created_by", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name="treatment_goals_created", to=settings.AUTH_USER_MODEL)),
-                ("evolutions", models.ManyToManyField(blank=True, related_name="treatment_goals", to="records.evolution")),
-                ("patient", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name="treatment_goals", to="patients.patient")),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="treatment_goals_created",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "evolutions",
+                    models.ManyToManyField(
+                        blank=True,
+                        related_name="treatment_goals",
+                        to="records.evolution",
+                    ),
+                ),
+                (
+                    "patient",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="treatment_goals",
+                        to="patients.patient",
+                    ),
+                ),
             ],
             options={"ordering": ["sort_order", "-priority", "created_at"]},
         ),
         migrations.CreateModel(
             name="ClinicalDocument",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("category", models.CharField(choices=[("consent", "Termo de consentimento"), ("report", "Relatório"), ("referral", "Encaminhamento"), ("certificate", "Atestado"), ("assessment", "Avaliação"), ("scale", "Escala ou teste"), ("patient_file", "Documento do paciente"), ("other", "Outro")], db_index=True, default="other", max_length=24)),
-                ("file", models.FileField(upload_to=apps.records.treatment_models.clinical_document_path)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "category",
+                    models.CharField(
+                        choices=[
+                            ("consent", "Termo de consentimento"),
+                            ("report", "Relatório"),
+                            ("referral", "Encaminhamento"),
+                            ("certificate", "Atestado"),
+                            ("assessment", "Avaliação"),
+                            ("scale", "Escala ou teste"),
+                            ("patient_file", "Documento do paciente"),
+                            ("other", "Outro"),
+                        ],
+                        db_index=True,
+                        default="other",
+                        max_length=24,
+                    ),
+                ),
+                (
+                    "file",
+                    models.FileField(
+                        upload_to=apps.records.treatment_models.clinical_document_path
+                    ),
+                ),
                 ("original_name", models.CharField(max_length=255)),
                 ("description", core.fields.EncryptedTextField(blank=True, default="")),
                 ("content_type", models.CharField(max_length=120)),
@@ -128,26 +398,57 @@ class Migration(migrations.Migration):
                 ("deleted_at", models.DateTimeField(blank=True, null=True)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("evolution", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="documents", to="records.evolution")),
-                ("patient", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name="clinical_documents", to="patients.patient")),
-                ("uploaded_by", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name="clinical_documents_uploaded", to=settings.AUTH_USER_MODEL)),
+                (
+                    "evolution",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="documents",
+                        to="records.evolution",
+                    ),
+                ),
+                (
+                    "patient",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="clinical_documents",
+                        to="patients.patient",
+                    ),
+                ),
+                (
+                    "uploaded_by",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="clinical_documents_uploaded",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={"ordering": ["-created_at"]},
         ),
         migrations.AddConstraint(
             model_name="anamnesisversion",
-            constraint=models.UniqueConstraint(fields=("anamnesis", "version"), name="unique_anamnesis_version"),
+            constraint=models.UniqueConstraint(
+                fields=("anamnesis", "version"), name="unique_anamnesis_version"
+            ),
         ),
         migrations.AddConstraint(
             model_name="evolutionversion",
-            constraint=models.UniqueConstraint(fields=("evolution", "version"), name="unique_evolution_version"),
+            constraint=models.UniqueConstraint(
+                fields=("evolution", "version"), name="unique_evolution_version"
+            ),
         ),
         migrations.AddIndex(
             model_name="treatmentgoal",
-            index=models.Index(fields=["patient", "status"], name="goal_patient_status_idx"),
+            index=models.Index(
+                fields=["patient", "status"], name="goal_patient_status_idx"
+            ),
         ),
         migrations.AddIndex(
             model_name="clinicaldocument",
-            index=models.Index(fields=["patient", "is_archived"], name="document_patient_archive_idx"),
+            index=models.Index(
+                fields=["patient", "is_archived"], name="document_patient_archive_idx"
+            ),
         ),
     ]

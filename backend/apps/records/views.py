@@ -3,8 +3,6 @@ apps/records/views.py
 Views e ViewSets para o app de Prontuários Eletrônicos (Records).
 """
 
-from datetime import timedelta
-from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, viewsets, status
 from rest_framework.decorators import action
@@ -28,20 +26,22 @@ class AnamnesisView(generics.GenericAPIView):
     View para recuperar, criar ou atualizar a anamnese de um paciente.
     Acessível via /api/v1/patients/{patient_id}/anamnesis/
     """
+
     serializer_class = AnamnesisSerializer
     permission_classes = [IsAuthenticated]
 
     def _get_patient(self, patient_id):
         from apps.patients.models import Patient
+
         # Obter o paciente ou retornar 404
         patient = get_object_or_404(Patient, id=patient_id)
-        
+
         # Validar permissão: apenas o terapeuta responsável ou admin
         user = self.request.user
         if not user.is_admin_role and patient.therapist != user:
             self.permission_denied(
                 self.request,
-                message="Você não tem permissão para acessar o prontuário deste paciente."
+                message="Você não tem permissão para acessar o prontuário deste paciente.",
             )
         return patient
 
@@ -52,12 +52,12 @@ class AnamnesisView(generics.GenericAPIView):
         except Anamnesis.DoesNotExist:
             return Response(
                 {"detail": "Anamnese não encontrada para este paciente."},
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_404_NOT_FOUND,
             )
-        
+
         # Auditoria: registrando leitura de anamnese
         log_access(request, AuditLog.Action.VIEW, obj=anamnesis)
-        
+
         serializer = self.get_serializer(anamnesis)
         return Response(serializer.data)
 
@@ -65,46 +65,48 @@ class AnamnesisView(generics.GenericAPIView):
         patient = self._get_patient(patient_id)
         if Anamnesis.objects.filter(patient=patient).exists():
             return Response(
-                {"detail": "Anamnese já existe para este paciente. Use PUT ou PATCH para atualizar."},
-                status=status.HTTP_400_BAD_REQUEST
+                {
+                    "detail": "Anamnese já existe para este paciente. Use PUT ou PATCH para atualizar."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
-            
+
         data = request.data.copy()
         data["patient_id"] = patient.id
-        
+
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         anamnesis = serializer.save(created_by=request.user, patient=patient)
-        
+
         # Auditoria: registrando criação
         log_access(request, AuditLog.Action.CREATE, obj=anamnesis)
-        
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def put(self, request, patient_id, *args, **kwargs):
         patient = self._get_patient(patient_id)
         anamnesis = get_object_or_404(Anamnesis, patient=patient)
-        
+
         serializer = self.get_serializer(anamnesis, data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        
+
         # Auditoria: modificação
         log_access(request, AuditLog.Action.UPDATE, obj=anamnesis)
-        
+
         return Response(serializer.data)
 
     def patch(self, request, patient_id, *args, **kwargs):
         patient = self._get_patient(patient_id)
         anamnesis = get_object_or_404(Anamnesis, patient=patient)
-        
+
         serializer = self.get_serializer(anamnesis, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        
+
         # Auditoria: modificação parcial
         log_access(request, AuditLog.Action.UPDATE, obj=anamnesis)
-        
+
         return Response(serializer.data)
 
 
@@ -113,6 +115,7 @@ class EvolutionViewSet(AuditLogMixin, viewsets.ModelViewSet):
     ViewSet para as evoluções clínicas das sessões.
     Auditoria automática via AuditLogMixin.
     """
+
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -128,15 +131,16 @@ class EvolutionViewSet(AuditLogMixin, viewsets.ModelViewSet):
             return Evolution.objects.filter(created_by=user)
 
         from apps.patients.models import Patient
+
         patient = get_object_or_404(Patient, id=patient_id)
 
         # Apenas o terapeuta dono ou admin pode ver evoluções do paciente
         if not user.is_admin_role and patient.therapist != user:
             self.permission_denied(
                 self.request,
-                message="Você não tem permissão para acessar o prontuário deste paciente."
+                message="Você não tem permissão para acessar o prontuário deste paciente.",
             )
-            
+
         return Evolution.objects.filter(patient=patient)
 
     def get_serializer_class(self):
@@ -158,20 +162,22 @@ class EvolutionViewSet(AuditLogMixin, viewsets.ModelViewSet):
     def perform_update(self, serializer):
         instance = self.get_object()
         user = self.request.user
-        
+
         # Apenas o terapeuta que criou ou admin pode atualizar a evolução
         if not user.is_admin_role and instance.created_by != user:
             self.permission_denied(
                 self.request,
-                message="Somente o terapeuta que criou esta evolução pode editá-la."
+                message="Somente o terapeuta que criou esta evolução pode editá-la.",
             )
-            
+
         if not instance.can_be_edited():
             return Response(
-                {"detail": "Esta evolução está bloqueada para edição (limite de 48h atingido ou bloqueada manualmente)."},
-                status=status.HTTP_400_BAD_REQUEST
+                {
+                    "detail": "Esta evolução está bloqueada para edição (limite de 48h atingido ou bloqueada manualmente)."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
-            
+
         updated_instance = serializer.save()
         log_access(self.request, AuditLog.Action.UPDATE, obj=updated_instance)
 
@@ -179,7 +185,7 @@ class EvolutionViewSet(AuditLogMixin, viewsets.ModelViewSet):
         # Regulamentação CFP/LGPD: evoluções de prontuário não devem ser deletadas do DB
         self.permission_denied(
             self.request,
-            message="Registros de prontuário clínico (evoluções) não podem ser excluídos do sistema."
+            message="Registros de prontuário clínico (evoluções) não podem ser excluídos do sistema.",
         )
 
     @action(detail=True, methods=["post"], url_path="addendum")
@@ -189,32 +195,33 @@ class EvolutionViewSet(AuditLogMixin, viewsets.ModelViewSet):
         POST /api/v1/records/evolutions/{id}/addendum/
         """
         evolution = self.get_object()
-        
+
         # Bloqueia a evolução no momento se já expirou o limite de 48 horas
         if not evolution.is_locked and not evolution.can_be_edited():
             evolution.lock()
-            
+
         # Aditivos só podem ser inseridos se a evolução estiver travada
         if not evolution.is_locked:
             return Response(
-                {"detail": "A evolução ainda não está bloqueada. Edite o conteúdo principal diretamente."},
-                status=status.HTTP_400_BAD_REQUEST
+                {
+                    "detail": "A evolução ainda não está bloqueada. Edite o conteúdo principal diretamente."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
-            
+
         serializer = EvolutionAddendumSerializer(
-            data=request.data,
-            context={"request": request, "evolution": evolution}
+            data=request.data, context={"request": request, "evolution": evolution}
         )
         serializer.is_valid(raise_exception=True)
-        addendum = serializer.save(evolution=evolution, created_by=request.user)
-        
+        serializer.save(evolution=evolution, created_by=request.user)
+
         log_access(
             request,
             AuditLog.Action.UPDATE,
             obj=evolution,
-            obj_repr=f"Aditivo criado por {request.user.full_name} para {evolution}"
+            obj_repr=f"Aditivo criado por {request.user.full_name} para {evolution}",
         )
-        
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["get"], url_path="export_pdf")
@@ -225,6 +232,8 @@ class EvolutionViewSet(AuditLogMixin, viewsets.ModelViewSet):
         """
         # TODO: Integrar com ReportLab/Weasyprint para geração do PDF criptografado
         return Response(
-            {"detail": "Exportação em PDF do Prontuário Clínico em desenvolvimento (501 Not Implemented)."},
-            status=status.HTTP_501_NOT_IMPLEMENTED
+            {
+                "detail": "Exportação em PDF do Prontuário Clínico em desenvolvimento (501 Not Implemented)."
+            },
+            status=status.HTTP_501_NOT_IMPLEMENTED,
         )

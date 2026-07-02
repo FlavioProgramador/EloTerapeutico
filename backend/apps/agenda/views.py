@@ -56,10 +56,10 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         
         # Admin e secretária listam tudo
         if user.is_admin_role or user.is_secretary:
-            return Appointment.objects.all().select_related("patient", "therapist")
+            return Appointment.objects.all().select_related("patient", "therapist", "evolution", "evolution__clinical_data")
             
         # Terapeutas listam apenas suas consultas
-        return Appointment.objects.filter(therapist=user).select_related("patient", "therapist")
+        return Appointment.objects.filter(therapist=user).select_related("patient", "therapist", "evolution", "evolution__clinical_data")
 
     def get_serializer_class(self):
         if self.action == "create":

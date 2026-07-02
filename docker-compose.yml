@@ -54,6 +54,22 @@ services:
       - /app/.next
     command: npm run dev
 
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python manage.py run_export_worker
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    stop_grace_period: 15s
+    volumes:
+      - ./backend:/app
+
 volumes:
   db_data:
   backend_static:
+

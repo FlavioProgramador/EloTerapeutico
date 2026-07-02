@@ -13,8 +13,12 @@ from .extended_models import (
     EvolutionVersion,
 )
 from .models import Anamnesis, Evolution
-from .treatment_models import ClinicalDocument, TreatmentGoal
-
+from .treatment_models import (
+    ClinicalDocument,
+    TreatmentGoal,
+    ClinicalFormResponse,
+    ClinicalExport,
+)
 
 ANAMNESIS_LEGACY_FIELDS = (
     "chief_complaint",
@@ -79,7 +83,9 @@ class ClinicalAnamnesisSerializer(serializers.Serializer):
     relevant_events = serializers.CharField(required=False, allow_blank=True)
     initial_assessment = serializers.CharField(required=False, allow_blank=True)
     clinical_hypotheses = serializers.CharField(required=False, allow_blank=True)
-    custom_fields = serializers.CharField(required=False, allow_blank=True, default="{}")
+    custom_fields = serializers.CharField(
+        required=False, allow_blank=True, default="{}"
+    )
     completion_percentage = serializers.IntegerField(read_only=True)
     status = serializers.CharField(read_only=True)
     status_display = serializers.CharField(read_only=True)
@@ -178,7 +184,9 @@ class ClinicalAnamnesisSerializer(serializers.Serializer):
 
 class EvolutionWorkspaceSerializer(serializers.ModelSerializer):
     content = serializers.CharField(required=False, allow_blank=True)
-    created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
+    created_by_name = serializers.CharField(
+        source="created_by.full_name", read_only=True
+    )
     is_editable = serializers.SerializerMethodField()
     addenda_count = serializers.IntegerField(source="addenda.count", read_only=True)
     attached_documents_count = serializers.IntegerField(
@@ -280,6 +288,7 @@ class EvolutionWorkspaceSerializer(serializers.ModelSerializer):
             "is_locked",
             "locked_at",
             "is_editable",
+            "is_confidential",
             "addenda_count",
             "attached_documents_count",
             "linked_goal_ids",
@@ -302,8 +311,7 @@ class EvolutionWorkspaceSerializer(serializers.ModelSerializer):
 
     def get_is_editable(self, obj):
         return (
-            obj.created_by_id == self.context["request"].user.id
-            and obj.can_be_edited()
+            obj.created_by_id == self.context["request"].user.id and obj.can_be_edited()
         )
 
     def validate_appointment(self, appointment):
@@ -355,6 +363,7 @@ class EvolutionWorkspaceSerializer(serializers.ModelSerializer):
             "content": instance.content,
             "cid10": instance.cid10,
             "session_date": instance.session_date.isoformat(),
+            "is_confidential": instance.is_confidential,
         }
         profile = getattr(instance, "clinical_data", None)
         current.update(
@@ -373,7 +382,10 @@ class EvolutionWorkspaceSerializer(serializers.ModelSerializer):
 
         for field, value in validated_data.items():
             setattr(instance, field, value)
-        if clinical_data.get("therapist_observations") and "content" not in validated_data:
+        if (
+            clinical_data.get("therapist_observations")
+            and "content" not in validated_data
+        ):
             instance.content = clinical_data["therapist_observations"]
         instance.save()
 
@@ -394,7 +406,9 @@ class TreatmentGoalSerializer(serializers.ModelSerializer):
         source="get_priority_display",
         read_only=True,
     )
-    created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
+    created_by_name = serializers.CharField(
+        source="created_by.full_name", read_only=True
+    )
 
     class Meta:
         model = TreatmentGoal
@@ -521,14 +535,86 @@ class ClinicalDocumentSerializer(serializers.ModelSerializer):
         ):
             raise serializers.ValidationError("Tipo de arquivo não permitido.")
         if uploaded_file.size > 10 * 1024 * 1024:
-            raise serializers.ValidationError(
-                "O arquivo deve possuir no máximo 10 MB."
-            )
+            raise serializers.ValidationError("O arquivo deve possuir no máximo 10 MB.")
         return uploaded_file
 
     def validate_evolution(self, evolution):
         if evolution and evolution.patient_id != self.context["patient"].id:
-            raise serializers.ValidationError(
-                "A evolução não pertence ao paciente."
-            )
+            raise serializers.ValidationError("A evolução não pertence ao paciente.")
         return evolution
+
+
+class ClinicalFormResponseSerializer(serializers.ModelSerializer):
+    therapist_name = serializers.CharField(source="therapist.full_name", read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+
+    class Meta:
+        model = ClinicalFormResponse
+        fields = (
+            "id",
+            "patient",
+            "form_name",
+            "category",
+            "sent_at",
+            "completed_at",
+            "completed_by",
+            "therapist",
+            "therapist_name",
+            "status",
+            "status_display",
+            "answers_count",
+            "form_snapshot",
+            "answers",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "patient",
+            "therapist",
+            "therapist_name",
+            "status_display",
+            "created_at",
+            "updated_at",
+        )
+
+
+class ClinicalExportSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.CharField(
+        source="created_by.full_name", read_only=True
+    )
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+
+    class Meta:
+        model = ClinicalExport
+        fields = (
+            "id",
+            "patient",
+            "export_type",
+            "filename",
+            "period",
+            "status",
+            "status_display",
+            "size_bytes",
+            "download_url",
+            "started_at",
+            "completed_at",
+            "created_by",
+            "created_by_name",
+            "created_at",
+            "retries",
+            "error_message",
+        )
+        read_only_fields = (
+            "patient",
+            "filename",
+            "status_display",
+            "size_bytes",
+            "download_url",
+            "started_at",
+            "completed_at",
+            "created_by",
+            "created_by_name",
+            "created_at",
+            "retries",
+            "error_message",
+        )

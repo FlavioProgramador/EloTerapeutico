@@ -154,6 +154,8 @@ export interface Appointment {
   session_value?: string;
   cancellation_reason?: string;
   recurrence_rule?: string | null;
+  evolution_id?: number | null;
+  evolution_status?: string | null;
 }
 
 export interface CreateAppointmentPayload {
