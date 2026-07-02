@@ -45,10 +45,38 @@ function useInvalidateAgenda() {
     ]);
 }
 
+/** Resposta paginada para as telas completas da agenda. */
+export function useAppointmentsPage(filters?: AppointmentFilters) {
+  return useQuery({
+    queryKey: [...AGENDA_QUERY_KEYS.appointments, "page", filters],
+    queryFn: () => agendaService.appointments.list(filters),
+  });
+}
+
+/** Compatibilidade com o dashboard e consumidores antigos, que esperam um array. */
 export function useAppointments(filters?: AppointmentFilters) {
   return useQuery({
     queryKey: [...AGENDA_QUERY_KEYS.appointments, filters],
     queryFn: () => agendaService.appointments.list(filters),
+    select: (page) => page.results,
+  });
+}
+
+export function useTodayAppointments() {
+  const today = new Date();
+  const start = new Date(today);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(today);
+  end.setHours(23, 59, 59, 999);
+  return useQuery({
+    queryKey: [...AGENDA_QUERY_KEYS.appointments, "today"],
+    queryFn: () =>
+      agendaService.appointments.list({
+        start_time_gte: start.toISOString(),
+        start_time_lte: end.toISOString(),
+        page_size: 100,
+      }),
+    select: (page) => page.results,
   });
 }
 
@@ -171,6 +199,66 @@ export function useAppointmentTransition() {
     },
     onError: (error) =>
       toast.error("Não foi possível alterar o status.", {
+        description: getErrorMessage(error, "Tente novamente."),
+      }),
+  });
+}
+
+/** Compatibilidade com o dashboard existente. */
+export function useUpdateAppointmentStatus() {
+  const invalidate = useInvalidateAgenda();
+  return useMutation({
+    mutationFn: ({
+      id,
+      status,
+      cancellationReason,
+    }: {
+      id: number;
+      status: string;
+      cancellationReason?: string;
+    }) => {
+      const actions = {
+        confirmed: "confirm",
+        cancelled: "cancel",
+        completed: "complete",
+        missed: "mark-no-show",
+      } as const;
+      const action = actions[status as keyof typeof actions];
+      if (!action) {
+        throw new Error(`Transição de status não suportada: ${status}`);
+      }
+      return agendaService.appointments.transition(
+        id,
+        action,
+        action === "cancel"
+          ? {
+              cancellation_reason:
+                cancellationReason || "Cancelada pelo painel de controle.",
+            }
+          : undefined,
+      );
+    },
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Status do agendamento atualizado.");
+    },
+    onError: (error) =>
+      toast.error("Não foi possível atualizar o status.", {
+        description: getErrorMessage(error, "Tente novamente."),
+      }),
+  });
+}
+
+export function useDeleteAppointment() {
+  const invalidate = useInvalidateAgenda();
+  return useMutation({
+    mutationFn: agendaService.appointments.remove,
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Consulta cancelada.");
+    },
+    onError: (error) =>
+      toast.error("Não foi possível cancelar a consulta.", {
         description: getErrorMessage(error, "Tente novamente."),
       }),
   });
