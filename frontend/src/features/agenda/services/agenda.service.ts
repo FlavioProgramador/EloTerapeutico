@@ -1,117 +1,217 @@
-/**
- * Serviço de agenda (appointments).
- * Encapsula todas as chamadas de API relacionadas a agendamentos.
- */
-
 import { api } from "@/lib/api";
 import type {
-  Appointment,
+  AgendaAppointment,
+  AgendaRoom,
+  AppointmentFilters,
+  AppointmentRecurrence,
   CreateAppointmentPayload,
-  PaginatedResponse,
-} from "@/types";
+  CreatePackagePayload,
+  CreateScheduleBlockPayload,
+  PaginatedAgendaResponse,
+  PatientPackage,
+  ScheduleBlock,
+  TelemedicineRoom,
+  TimeSlot,
+} from "../types";
 
-export interface AppointmentFilters {
-  date?: string;
-  start_time_gte?: string;
-  start_time_lte?: string;
-  patient?: number;
-  status?: string;
-  page?: number;
+function buildParams(filters?: Record<string, unknown>) {
+  const params = new URLSearchParams();
+  Object.entries(filters || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") return;
+    params.set(key, String(value));
+  });
+  return params.toString();
 }
 
-export interface TimeSlot {
-  start: string;
-  end: string;
-  start_datetime: string;
-  end_datetime: string;
+function normalizePage<T>(
+  data: PaginatedAgendaResponse<T> | T[],
+): PaginatedAgendaResponse<T> {
+  if (Array.isArray(data)) {
+    return {
+      pagination: {
+        count: data.length,
+        total_pages: 1,
+        current_page: 1,
+        next: null,
+        previous: null,
+      },
+      results: data,
+    };
+  }
+  return data;
 }
 
 export const agendaService = {
-  /**
-   * Lista agendamentos com filtros opcionais.
-   */
-  list: async (
-    filters?: AppointmentFilters
-  ): Promise<Appointment[]> => {
-    const params = new URLSearchParams();
-    if (filters?.date) params.set("date", filters.date);
-    if (filters?.start_time_gte) params.set("start_time_gte", filters.start_time_gte);
-    if (filters?.start_time_lte) params.set("start_time_lte", filters.start_time_lte);
-    if (filters?.patient) params.set("patient", String(filters.patient));
-    if (filters?.status) params.set("status", filters.status);
-    if (filters?.page) params.set("page", String(filters.page));
-
-    const response = await api.get<Appointment[] | PaginatedResponse<Appointment>>(
-      `agenda/appointments/?${params.toString()}`
-    );
-    return Array.isArray(response.data) ? response.data : response.data.results || [];
+  appointments: {
+    list: async (filters?: AppointmentFilters) => {
+      const query = buildParams(filters as Record<string, unknown>);
+      const response = await api.get<
+        PaginatedAgendaResponse<AgendaAppointment> | AgendaAppointment[]
+      >(`agenda/appointments/${query ? `?${query}` : ""}`);
+      return normalizePage(response.data);
+    },
+    get: async (id: number) =>
+      (await api.get<AgendaAppointment>(`agenda/appointments/${id}/`)).data,
+    create: async (payload: CreateAppointmentPayload) =>
+      (await api.post<AgendaAppointment>("agenda/appointments/", payload)).data,
+    update: async (id: number, payload: Partial<CreateAppointmentPayload>) =>
+      (await api.patch<AgendaAppointment>(`agenda/appointments/${id}/`, payload)).data,
+    transition: async (
+      id: number,
+      action: "confirm" | "cancel" | "complete" | "mark-no-show",
+      payload?: Record<string, unknown>,
+    ) =>
+      (
+        await api.post<AgendaAppointment>(
+          `agenda/appointments/${id}/${action}/`,
+          payload || {},
+        )
+      ).data,
+    reschedule: async (id: number, payload: Partial<CreateAppointmentPayload>) =>
+      (
+        await api.post<AgendaAppointment>(
+          `agenda/appointments/${id}/reschedule/`,
+          payload,
+        )
+      ).data,
+    remove: async (id: number) => {
+      await api.delete(`agenda/appointments/${id}/`);
+    },
+    checkAvailability: async (payload: {
+      date: string;
+      duration: number;
+      therapist_id?: number;
+      patient_id?: number;
+      room_id?: number;
+    }) =>
+      (
+        await api.post<TimeSlot[]>(
+          "agenda/appointments/check-availability/",
+          payload,
+        )
+      ).data,
+    exportUrl: (filters?: AppointmentFilters) => {
+      const query = buildParams(filters as Record<string, unknown>);
+      return `agenda/appointments/export/${query ? `?${query}` : ""}`;
+    },
   },
 
-  /**
-   * Busca as consultas de hoje.
-   */
-  today: async (): Promise<Appointment[]> => {
-    const response = await api.get<Appointment[]>("agenda/appointments/today/");
-    return response.data;
+  rooms: {
+    list: async () => {
+      const response = await api.get<
+        AgendaRoom[] | PaginatedAgendaResponse<AgendaRoom>
+      >("agenda/rooms/?page_size=100");
+      return Array.isArray(response.data) ? response.data : response.data.results;
+    },
   },
 
-  /**
-   * Busca um agendamento pelo ID.
-   */
-  getById: async (id: number): Promise<Appointment> => {
-    const response = await api.get<Appointment>(`agenda/appointments/${id}/`);
-    return response.data;
+  blocks: {
+    list: async (filters?: Record<string, unknown>) => {
+      const query = buildParams(filters);
+      const response = await api.get<PaginatedAgendaResponse<ScheduleBlock>>(
+        `agenda/schedule-blocks/${query ? `?${query}` : ""}`,
+      );
+      return normalizePage(response.data);
+    },
+    create: async (payload: CreateScheduleBlockPayload) =>
+      (await api.post<ScheduleBlock>("agenda/schedule-blocks/", payload)).data,
+    update: async (id: number, payload: Partial<CreateScheduleBlockPayload>) =>
+      (await api.patch<ScheduleBlock>(`agenda/schedule-blocks/${id}/`, payload)).data,
+    remove: async (id: number) => {
+      await api.delete(`agenda/schedule-blocks/${id}/`);
+    },
   },
 
-  /**
-   * Cria um novo agendamento.
-   */
-  create: async (data: CreateAppointmentPayload): Promise<Appointment> => {
-    const response = await api.post<Appointment>("agenda/appointments/", data);
-    return response.data;
+  recurrences: {
+    list: async (filters?: Record<string, unknown>) => {
+      const query = buildParams(filters);
+      const response = await api.get<
+        PaginatedAgendaResponse<AppointmentRecurrence>
+      >(`agenda/appointment-recurrences/${query ? `?${query}` : ""}`);
+      return normalizePage(response.data);
+    },
+    update: async (id: number, payload: Record<string, unknown>) =>
+      (
+        await api.patch<AppointmentRecurrence>(
+          `agenda/appointment-recurrences/${id}/`,
+          payload,
+        )
+      ).data,
+    action: async (id: number, action: "pause" | "reactivate" | "end") =>
+      (
+        await api.post<AppointmentRecurrence>(
+          `agenda/appointment-recurrences/${id}/${action}/`,
+          {},
+        )
+      ).data,
+    applyChange: async (
+      id: number,
+      payload: {
+        scope: "occurrence" | "following" | "all";
+        occurrence_id: number;
+        changes: Record<string, unknown>;
+      },
+    ) =>
+      (
+        await api.post(
+          `agenda/appointment-recurrences/${id}/apply-change/`,
+          payload,
+        )
+      ).data,
   },
 
-  /**
-   * Atualiza um agendamento existente.
-   */
-  update: async (
-    id: number,
-    data: Partial<CreateAppointmentPayload>
-  ): Promise<Appointment> => {
-    const response = await api.patch<Appointment>(`agenda/appointments/${id}/`, data);
-    return response.data;
+  packages: {
+    list: async (filters?: Record<string, unknown>) => {
+      const query = buildParams(filters);
+      const response = await api.get<PaginatedAgendaResponse<PatientPackage>>(
+        `agenda/patient-packages/${query ? `?${query}` : ""}`,
+      );
+      return normalizePage(response.data);
+    },
+    create: async (payload: CreatePackagePayload) =>
+      (await api.post<PatientPackage>("agenda/patient-packages/", payload)).data,
+    update: async (id: number, payload: Partial<CreatePackagePayload>) =>
+      (await api.patch<PatientPackage>(`agenda/patient-packages/${id}/`, payload)).data,
+    addSession: async (id: number, payload: CreateAppointmentPayload) =>
+      (
+        await api.post<AgendaAppointment>(
+          `agenda/patient-packages/${id}/add-session/`,
+          payload,
+        )
+      ).data,
+    action: async (id: number, action: "cancel" | "renew", payload = {}) =>
+      (
+        await api.post<PatientPackage>(
+          `agenda/patient-packages/${id}/${action}/`,
+          payload,
+        )
+      ).data,
+    removeSession: async (sessionId: number) => {
+      await api.delete(`agenda/package-sessions/${sessionId}/`);
+    },
   },
 
-  /**
-   * Atualiza o status de um agendamento.
-   */
-  updateStatus: async (
-    id: number,
-    status: string,
-    cancellationReason?: string
-  ): Promise<Appointment> => {
-    const response = await api.patch<Appointment>(`agenda/appointments/${id}/status/`, {
-      status,
-      cancellation_reason: cancellationReason,
-    });
-    return response.data;
-  },
-
-  /**
-   * Verifica slots de horários livres disponíveis.
-   */
-  checkAvailability: async (date: string, duration: number): Promise<TimeSlot[]> => {
-    const response = await api.post<TimeSlot[]>("agenda/appointments/check-availability/", {
-      date,
-      duration,
-    });
-    return response.data;
-  },
-
-  /**
-   * Cancela/deleta um agendamento.
-   */
-  delete: async (id: number): Promise<void> => {
-    await api.delete(`agenda/appointments/${id}/`);
+  telemedicine: {
+    list: async (filters?: Record<string, unknown>) => {
+      const query = buildParams(filters);
+      const response = await api.get<PaginatedAgendaResponse<TelemedicineRoom>>(
+        `agenda/telemedicine/${query ? `?${query}` : ""}`,
+      );
+      return normalizePage(response.data);
+    },
+    regenerate: async (id: number) =>
+      (
+        await api.post<TelemedicineRoom>(
+          `agenda/telemedicine/${id}/regenerate-link/`,
+          {},
+        )
+      ).data,
+    open: async (id: number) =>
+      (
+        await api.post<{ professional_link: string }>(
+          `agenda/telemedicine/${id}/open-room/`,
+          {},
+        )
+      ).data,
   },
 };
