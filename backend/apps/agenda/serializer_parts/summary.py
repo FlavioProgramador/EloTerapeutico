@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
@@ -76,9 +77,8 @@ class TelemedicineRoomSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def _build_link(self, role: str, token) -> str:
-        request = self.context.get("request")
-        path = f"/telemedicine/{role}/{token}"
-        return request.build_absolute_uri(path) if request else path
+        base = settings.FRONTEND_URL.rstrip("/")
+        return f"{base}/consulta-online/{role}/{token}"
 
     def get_patient_link(self, obj):
         return self._build_link("patient", obj.patient_token)
