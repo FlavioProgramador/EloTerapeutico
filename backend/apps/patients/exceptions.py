@@ -1,0 +1,2 @@
+class InvalidPatientState(ValueError):
+    pass
