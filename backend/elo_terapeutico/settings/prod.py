@@ -1,47 +1,68 @@
-"""Settings de produção – Azure App Service."""
-from .base import *  # noqa
+"""Settings de produção para Azure App Service."""
+
+from .base import *  # noqa: F401,F403
 
 DEBUG = False
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")  # noqa
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")  # noqa: F405
 
-# ─── Segurança ───────────────────────────────────────────────────────────────
+# Segurança e proxy reverso
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
 SECURE_SSL_REDIRECT = True
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_BROWSER_XSS_FILTER = True
+SECURE_REFERRER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
 SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = "Lax"
 
-# ─── CORS ────────────────────────────────────────────────────────────────────
+# CORS e CSRF
 CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS")  # noqa
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS")  # noqa: F405
+CSRF_TRUSTED_ORIGINS = env.list(  # noqa: F405
+    "CSRF_TRUSTED_ORIGINS",
+    default=[],
+)
 
-# ─── Banco de dados ──────────────────────────────────────────────────────────
-DATABASES = {  # noqa
-    "default": env.db("DATABASE_URL"),  # noqa
+# Banco de dados
+DATABASES = {  # noqa: F405
+    "default": env.db("DATABASE_URL"),  # noqa: F405
 }
-DATABASES["default"]["CONN_MAX_AGE"] = 60  # noqa
+DATABASES["default"].update(
+    {
+        "CONN_MAX_AGE": 60,
+        "CONN_HEALTH_CHECKS": True,
+    }
+)
 
-# ─── Arquivos estáticos (WhiteNoise) ─────────────────────────────────────────
-INSTALLED_APPS = ["whitenoise.runserver_nostatic"] + INSTALLED_APPS  # noqa
-MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# Arquivos estáticos
+INSTALLED_APPS = ["whitenoise.runserver_nostatic"] + INSTALLED_APPS  # noqa: F405
+MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa: F405
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
-# ─── Rate Limiting ───────────────────────────────────────────────────────────
 RATELIMIT_ENABLE = True
 
-# ─── Logging estruturado (JSON para Azure Monitor) ───────────────────────────
+# Logging estruturado para Azure Monitor
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "json": {
             "()": "structlog.stdlib.ProcessorFormatter",
-            "processor": "structlog.dev.ConsoleRenderer",
+            "processor": "structlog.processors.JSONRenderer",
         },
     },
     "handlers": {
@@ -63,10 +84,10 @@ LOGGING = {
     },
 }
 
-# ─── E-mail (SMTP) ───────────────────────────────────────────────────────────
+# E-mail
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = env("EMAIL_HOST", default="smtp.sendgrid.net")
-EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_HOST = env("EMAIL_HOST", default="smtp.sendgrid.net")  # noqa: F405
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)  # noqa: F405
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
-EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")  # noqa: F405
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")  # noqa: F405
