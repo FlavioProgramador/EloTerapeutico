@@ -3,6 +3,20 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
+from .api.evolution_attachment_detail_views import (
+    EvolutionAttachmentDetailView,
+    EvolutionAttachmentDownloadView,
+)
+from .api.evolution_attachment_list_views import EvolutionAttachmentListCreateView
+from .api.evolution_template_views import (
+    ClinicalEvolutionTemplateDetailView,
+    ClinicalEvolutionTemplateListCreateView,
+)
+from .api.evolution_views import (
+    EvolutionFlowDetailView,
+    PatientEvolutionAppointmentOptionsView,
+    PatientEvolutionFlowView,
+)
 from .clinical_views import (
     AnamnesisVersionListView,
     ClinicalAiSummaryStatusView,
@@ -10,26 +24,16 @@ from .clinical_views import (
     ClinicalDocumentDetailView,
     ClinicalDocumentDownloadView,
     ClinicalDocumentListCreateView,
+    ClinicalExportDownloadView,
+    ClinicalExportListCreateView,
+    ClinicalExportRetryView,
+    ClinicalFormResponseDetailView,
+    ClinicalFormResponseListCreateView,
     EvolutionDuplicateView,
     PatientRecordPdfView,
     PatientRecordSummaryView,
     TreatmentGoalDetailView,
     TreatmentGoalListCreateView,
-    ClinicalFormResponseListCreateView,
-    ClinicalFormResponseDetailView,
-    ClinicalExportListCreateView,
-    ClinicalExportRetryView,
-    ClinicalExportDownloadView,
-)
-from .evolution_flow_views_v2 import (
-    ClinicalEvolutionTemplateDetailView,
-    ClinicalEvolutionTemplateListCreateView,
-    EvolutionAttachmentDetailView,
-    EvolutionAttachmentDownloadView,
-    EvolutionAttachmentListCreateView,
-    EvolutionFlowDetailView,
-    PatientEvolutionAppointmentOptionsView,
-    PatientEvolutionFlowView,
 )
 from .finalize_views import EvolutionFinalizeFreshView
 from .views import AnamnesisView, EvolutionViewSet
