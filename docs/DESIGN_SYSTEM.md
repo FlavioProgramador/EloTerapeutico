@@ -4,13 +4,14 @@
 
 > **Acolhimento Seguro:** confiança clínica com aparência tecnológica madura.
 
-A interface deve transmitir profissionalismo, calma e segurança sem parecer fria, excessivamente verde ou produzida por um gerador genérico de dashboards.
+A interface deve transmitir profissionalismo, calma e segurança sem parecer fria ou produzida por um gerador genérico de dashboards.
 
 Princípios:
 
 - clareza antes de decoração;
-- verde somente para ações principais, sucesso e seleção;
-- azul ardósia para informação, segurança e apoio;
+- azul clínico para identidade principal, ações importantes e seleção;
+- azul/ciano luminoso para informação, segurança e apoio;
+- verde/esmeralda apenas para indicação de sucesso/confirmação;
 - superfícies neutras com contraste progressivo;
 - bordas finas e sombras discretas;
 - gradientes apenas quando comunicarem progresso ou seleção;
@@ -26,34 +27,48 @@ A implementação oficial fica em `frontend/src/app/globals.css`. Componentes de
 
 | Token | HSL | HEX aproximado | Uso |
 |---|---:|---:|---|
-| `--background` | `204 33% 97%` | `#F5F8FA` | Fundo geral |
-| `--foreground` | `202 46% 12%` | `#10212B` | Texto principal |
+| `--background` | `220 20% 97%` | `#F1F3F5` | Fundo geral do app |
+| `--background-subtle` | `220 25% 95%` | `#E9ECEF` | Fundo secundário / apoio |
+| `--foreground` | `222 47% 15%` | `#1A2536` | Texto padrão |
 | `--card` | `0 0% 100%` | `#FFFFFF` | Cards e painéis |
-| `--primary` | `168 73% 30%` | `#15856F` | CTA, seleção e sucesso principal |
-| `--primary-foreground` | `0 0% 100%` | `#FFFFFF` | Conteúdo sobre o primário |
-| `--secondary` | `198 31% 94%` | `#EAF1F4` | Ações secundárias e superfícies de apoio |
-| `--muted` | `195 29% 95%` | `#EDF3F5` | Fundos discretos |
-| `--muted-foreground` | `205 15% 44%` | `#5F7280` | Texto secundário |
-| `--accent` | `196 55% 40%` | `#2D7F9D` | Informação e segurança |
-| `--border` | `200 25% 88%` | `#D9E3E8` | Bordas e divisores |
-| `--destructive` | `0 61% 54%` | `#D14343` | Erros e ações destrutivas |
+| `--primary` | `221 83% 53%` | `#2563EB` | Cor primária padrão |
+| `--primary-hover` | `221 84% 48%` | `#1D4ED8` | Hover da cor primária |
+| `--primary-active` | `221 84% 42%` | `#1E40AF` | Clique / ativo da cor primária |
+| `--primary-soft` | `221 95% 94%` | `#EFF6FF` | Fundo suave / tags de seleção |
+| `--secondary` | `220 14% 96%` | `#F1F5F9` | Botões secundários |
+| `--border` | `220 13% 91%` | `#E2E8F0` | Bordas padrão |
+| `--border-strong` | `220 13% 80%` | `#CBD5E1` | Divisores e bordas fortes |
+| `--text-primary` | `222 47% 15%` | `#1E293B` | Texto de alto contraste |
+| `--text-secondary` | `220 16% 36%` | `#475569` | Texto de médio contraste |
+| `--text-muted` | `220 14% 56%` | `#64748B` | Rótulos e placeholders |
+| `--success` | `142 72% 29%` | `#15803D` | Sucesso primário |
+| `--success-soft` | `142 72% 95%` | `#F0FDF4` | Badge / tag de sucesso |
+| `--warning` | `38 92% 44%` | `#B45309` | Alerta primário |
+| `--warning-soft` | `38 92% 95%` | `#FEF3C7` | Badge / tag de alerta |
+| `--danger` | `0 74% 42%` | `#B91C1C` | Erro e destrutivo |
+| `--danger-soft` | `0 74% 96%` | `#FEF2F2` | Badge / tag de erro |
 
 ### Tema escuro
 
 | Token | HSL | HEX aproximado | Uso |
 |---|---:|---:|---|
-| `--background` | `203 60% 7%` | `#07141C` | Fundo azul-petróleo neutro |
-| `--foreground` | `191 35% 94%` | `#EAF3F5` | Texto principal |
-| `--card` | `203 50% 10%` | `#0D1D27` | Cards e painéis |
-| `--popover` | `202 48% 12%` | `#10232E` | Dropdowns e modais |
-| `--primary` | `163 64% 52%` | `#34D3A5` | CTA, foco e seleção |
-| `--primary-foreground` | `162 68% 7%` | `#062018` | Conteúdo sobre o primário |
-| `--secondary` | `200 45% 14%` | `#142A35` | Ações secundárias |
-| `--muted` | `201 46% 12%` | `#11242E` | Superfícies discretas |
-| `--muted-foreground` | `199 19% 63%` | `#8FA7B2` | Texto secundário |
-| `--accent` | `197 62% 61%` | `#5CB6D9` | Informação e segurança |
-| `--border` | `200 38% 19%` | `#1E3642` | Bordas e divisores |
-| `--destructive` | `0 100% 71%` | `#FF6B6B` | Erros e ações destrutivas |
+| `--background` | `222 47% 6%` | `#090D16` | Fundo escuro principal |
+| `--background-subtle` | `222 47% 4%` | `#06090F` | Fundo escuro de apoio |
+| `--foreground` | `210 40% 98%` | `#F8FAFC` | Texto padrão |
+| `--card` | `222 47% 10%` | `#0F172A` | Cards e painéis |
+| `--primary` | `217 91% 65%` | `#60A5FA` | Cor primária padrão no escuro |
+| `--primary-hover` | `217 91% 70%` | `#93C5FD` | Hover da cor primária |
+| `--primary-soft` | `217 91% 15%` | `#1E3A8A` | Fundo suave / tags no escuro |
+| `--secondary` | `222 47% 12%` | `#1E293B` | Ações secundárias |
+| `--border` | `222 47% 15%` | `#1E293B` | Bordas e divisores |
+| `--border-strong` | `222 47% 24%` | `#334155` | Bordas destacadas |
+| `--text-primary` | `210 40% 98%` | `#F8FAFC` | Texto principal |
+| `--text-secondary` | `215 20% 80%` | `#CBD5E1` | Texto de apoio |
+| `--text-muted` | `215 16% 60%` | `#94A3B8` | Textos apagados |
+| `--success` | `142 70% 45%` | `#22C55E` | Sucesso no escuro |
+| `--success-soft` | `142 70% 12%` | `#14532D` | Badge de sucesso no escuro |
+| `--danger` | `0 84% 60%` | `#EF4444` | Erro no escuro |
+| `--danger-soft` | `0 84% 15%` | `#7F1D1D` | Badge de erro no escuro |
 
 ### Estados
 

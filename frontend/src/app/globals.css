@@ -1,101 +1,152 @@
 @import "tailwindcss";
 
 :root {
-  /*
-   * Elo Terapêutico — paleta "Íris Terapêutica"
-   * Base neutra fria, índigo-violeta como identidade principal e azul
-   * luminoso como apoio informativo. O verde deixa de ser cor de marca.
-   */
-  --background: 220 35% 98%;
-  --foreground: 223 34% 14%;
+  /* Fundo suave cool-gray-blue */
+  --background: 220 20% 97%;
+  --foreground: 222 47% 15%;
 
+  /* Superfície para Cards e Dropdowns */
   --card: 0 0% 100%;
-  --card-foreground: 223 34% 14%;
+  --card-foreground: 222 47% 15%;
   --popover: 0 0% 100%;
-  --popover-foreground: 223 34% 14%;
+  --popover-foreground: 222 47% 15%;
 
-  --primary: 246 91% 67%;
+  /* Paleta Primária - Azul Clínico Nobre */
+  --primary: 221 83% 53%;
+  --primary-hover: 221 84% 48%;
+  --primary-active: 221 84% 42%;
+  --primary-soft: 221 95% 94%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 225 29% 95%;
-  --secondary-foreground: 225 29% 20%;
+  /* Secundários */
+  --secondary: 220 14% 96%;
+  --secondary-foreground: 222 47% 20%;
 
-  --muted: 223 24% 95%;
-  --muted-foreground: 224 14% 46%;
+  --muted: 220 14% 94%;
+  --muted-foreground: 220 12% 50%;
 
+  /* Accent */
   --accent: 211 100% 65%;
-  --accent-foreground: 225 42% 9%;
+  --accent-foreground: 222 47% 15%;
 
-  --success: 187 88% 29%;
+  /* Estados Semânticos Clássicos */
+  --success: 142 72% 29%;
+  --success-soft: 142 72% 95%;
   --success-foreground: 0 0% 100%;
-  --warning: 38 92% 50%;
+  
+  --warning: 38 92% 44%;
+  --warning-soft: 38 92% 95%;
   --warning-foreground: 28 90% 12%;
-  --info: 211 100% 65%;
+
+  --info: 199 89% 48%;
+  --info-soft: 199 89% 95%;
   --info-foreground: 225 42% 9%;
-  --destructive: 0 84% 60%;
+
+  --destructive: 0 74% 42%;
+  --destructive-soft: 0 74% 96%;
   --destructive-foreground: 0 0% 100%;
+  
+  /* Danger (mapeado para destrutivo para consistência) */
+  --danger: 0 74% 42%;
+  --danger-soft: 0 74% 96%;
 
-  --border: 224 24% 88%;
-  --input: 224 24% 88%;
-  --ring: 246 91% 67%;
+  /* Geometria e Superfícies */
+  --border: 220 13% 91%;
+  --border-strong: 220 13% 80%;
+  --input: 220 13% 91%;
+  --ring: 221 83% 53%;
 
-  --surface: 224 31% 96%;
+  --background-subtle: 220 25% 95%;
+  --surface: 0 0% 100%;
   --surface-elevated: 0 0% 100%;
 
-  --sidebar: 228 42% 8%;
-  --sidebar-surface: 228 32% 13%;
-  --sidebar-foreground: 220 35% 94%;
-  --sidebar-muted: 224 17% 65%;
-  --sidebar-active: 246 91% 67%;
-  --sidebar-border: 225 22% 21%;
+  /* Textos específicos */
+  --text-primary: 222 47% 15%;
+  --text-secondary: 220 16% 36%;
+  --text-muted: 220 14% 56%;
+
+  /* Sidebar Lateral Escura */
+  --sidebar: 222 47% 7%;
+  --sidebar-surface: 222 40% 12%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-muted: 215 16% 65%;
+  --sidebar-active: 221 83% 53%;
+  --sidebar-border: 222 47% 14%;
 
   --radius: 0.75rem;
 }
 
 .dark {
-  /* Tema escuro principal: índigo profundo com superfícies azul-violeta. */
-  --background: 225 42% 9%;
-  --foreground: 220 35% 94%;
+  /* Tema escuro principal: azul-escuro suave */
+  --background: 222 47% 6%;
+  --foreground: 210 40% 98%;
 
-  --card: 226 36% 13%;
-  --card-foreground: 220 35% 94%;
-  --popover: 226 34% 14%;
-  --popover-foreground: 220 35% 94%;
+  --card: 222 47% 10%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222 47% 11%;
+  --popover-foreground: 210 40% 98%;
 
-  --primary: 246 91% 67%;
+  /* Paleta Primária - Azul Clínico (mais vibrante no escuro) */
+  --primary: 217 91% 65%;
+  --primary-hover: 217 91% 70%;
+  --primary-active: 217 91% 75%;
+  --primary-soft: 217 91% 15%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 225 28% 17%;
-  --secondary-foreground: 220 30% 92%;
+  /* Secundários */
+  --secondary: 222 47% 12%;
+  --secondary-foreground: 210 40% 98%;
 
-  --muted: 225 25% 16%;
-  --muted-foreground: 224 17% 65%;
+  --muted: 222 47% 13%;
+  --muted-foreground: 215 16% 65%;
 
+  /* Accent */
   --accent: 211 100% 65%;
-  --accent-foreground: 225 42% 9%;
+  --accent-foreground: 222 47% 6%;
 
-  --success: 188 86% 53%;
-  --success-foreground: 225 42% 9%;
-  --warning: 38 92% 58%;
+  /* Estados Semânticos no Escuro */
+  --success: 142 70% 45%;
+  --success-soft: 142 70% 12%;
+  --success-foreground: 222 47% 6%;
+  
+  --warning: 38 90% 55%;
+  --warning-soft: 38 90% 12%;
   --warning-foreground: 28 90% 12%;
-  --info: 211 100% 65%;
-  --info-foreground: 225 42% 9%;
-  --destructive: 0 84% 66%;
-  --destructive-foreground: 225 42% 9%;
 
-  --border: 225 22% 23%;
-  --input: 225 22% 23%;
-  --ring: 246 91% 67%;
+  --info: 199 89% 60%;
+  --info-soft: 199 89% 15%;
+  --info-foreground: 222 47% 6%;
 
-  --surface: 225 30% 12%;
-  --surface-elevated: 226 36% 13%;
+  --destructive: 0 84% 60%;
+  --destructive-soft: 0 84% 15%;
+  --destructive-foreground: 0 0% 100%;
+  
+  /* Danger */
+  --danger: 0 84% 60%;
+  --danger-soft: 0 84% 15%;
 
-  --sidebar: 228 42% 8%;
-  --sidebar-surface: 228 32% 13%;
-  --sidebar-foreground: 220 35% 94%;
-  --sidebar-muted: 224 17% 65%;
-  --sidebar-active: 246 91% 67%;
-  --sidebar-border: 225 22% 21%;
+  /* Geometria e Superfícies */
+  --border: 222 47% 15%;
+  --border-strong: 222 47% 24%;
+  --input: 222 47% 15%;
+  --ring: 217 91% 65%;
+
+  --background-subtle: 222 47% 4%;
+  --surface: 222 47% 10%;
+  --surface-elevated: 222 47% 12%;
+
+  /* Textos específicos */
+  --text-primary: 210 40% 98%;
+  --text-secondary: 215 20% 80%;
+  --text-muted: 215 16% 60%;
+
+  /* Sidebar Lateral */
+  --sidebar: 222 47% 7%;
+  --sidebar-surface: 222 40% 12%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-muted: 215 16% 65%;
+  --sidebar-active: 217 91% 65%;
+  --sidebar-border: 222 47% 14%;
 }
 
 @theme {
@@ -108,7 +159,11 @@
   --color-popover-foreground: hsl(var(--popover-foreground));
 
   --color-primary: hsl(var(--primary));
+  --color-primary-hover: hsl(var(--primary-hover));
+  --color-primary-active: hsl(var(--primary-active));
+  --color-primary-soft: hsl(var(--primary-soft));
   --color-primary-foreground: hsl(var(--primary-foreground));
+  
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
   --color-muted: hsl(var(--muted));
@@ -117,19 +172,32 @@
   --color-accent-foreground: hsl(var(--accent-foreground));
 
   --color-success: hsl(var(--success));
+  --color-success-soft: hsl(var(--success-soft));
   --color-success-foreground: hsl(var(--success-foreground));
   --color-warning: hsl(var(--warning));
+  --color-warning-soft: hsl(var(--warning-soft));
   --color-warning-foreground: hsl(var(--warning-foreground));
   --color-info: hsl(var(--info));
+  --color-info-soft: hsl(var(--info-soft));
   --color-info-foreground: hsl(var(--info-foreground));
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
+  
+  --color-danger: hsl(var(--danger));
+  --color-danger-soft: hsl(var(--danger-soft));
 
   --color-border: hsl(var(--border));
+  --color-border-strong: hsl(var(--border-strong));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
+  
+  --color-background-subtle: hsl(var(--background-subtle));
   --color-surface: hsl(var(--surface));
   --color-surface-elevated: hsl(var(--surface-elevated));
+  
+  --color-text-primary: hsl(var(--text-primary));
+  --color-text-secondary: hsl(var(--text-secondary));
+  --color-text-muted: hsl(var(--text-muted));
 
   --color-sidebar: hsl(var(--sidebar));
   --color-sidebar-surface: hsl(var(--sidebar-surface));
@@ -143,41 +211,41 @@
    * emerald/green/teal. As escalas são redirecionadas para a identidade
    * índigo, removendo o verde visual sem quebrar os componentes existentes.
    */
-  --color-emerald-50: #f5f3ff;
-  --color-emerald-100: #ede9fe;
-  --color-emerald-200: #ddd6fe;
-  --color-emerald-300: #c4b5fd;
-  --color-emerald-400: #a78bfa;
-  --color-emerald-500: #6d5ef8;
-  --color-emerald-600: #5b4ae6;
-  --color-emerald-700: #4c3ac7;
-  --color-emerald-800: #3e329f;
-  --color-emerald-900: #332b7c;
-  --color-emerald-950: #1c1748;
+  --color-emerald-50: #eff6ff;
+  --color-emerald-100: #dbeafe;
+  --color-emerald-200: #bfdbfe;
+  --color-emerald-300: #93c5fd;
+  --color-emerald-400: #60a5fa;
+  --color-emerald-500: #3b82f6;
+  --color-emerald-600: #2563eb;
+  --color-emerald-700: #1d4ed8;
+  --color-emerald-800: #1e40af;
+  --color-emerald-900: #1e3a8a;
+  --color-emerald-950: #172554;
 
-  --color-green-50: #f5f3ff;
-  --color-green-100: #ede9fe;
-  --color-green-200: #ddd6fe;
-  --color-green-300: #c4b5fd;
-  --color-green-400: #a78bfa;
-  --color-green-500: #6d5ef8;
-  --color-green-600: #5b4ae6;
-  --color-green-700: #4c3ac7;
-  --color-green-800: #3e329f;
-  --color-green-900: #332b7c;
-  --color-green-950: #1c1748;
+  --color-green-50: #eff6ff;
+  --color-green-100: #dbeafe;
+  --color-green-200: #bfdbfe;
+  --color-green-300: #93c5fd;
+  --color-green-400: #60a5fa;
+  --color-green-500: #3b82f6;
+  --color-green-600: #2563eb;
+  --color-green-700: #1d4ed8;
+  --color-green-800: #1e40af;
+  --color-green-900: #1e3a8a;
+  --color-green-950: #172554;
 
-  --color-teal-50: #f5f3ff;
-  --color-teal-100: #ede9fe;
-  --color-teal-200: #ddd6fe;
-  --color-teal-300: #c4b5fd;
-  --color-teal-400: #a78bfa;
-  --color-teal-500: #6d5ef8;
-  --color-teal-600: #5b4ae6;
-  --color-teal-700: #4c3ac7;
-  --color-teal-800: #3e329f;
-  --color-teal-900: #332b7c;
-  --color-teal-950: #1c1748;
+  --color-teal-50: #eff6ff;
+  --color-teal-100: #dbeafe;
+  --color-teal-200: #bfdbfe;
+  --color-teal-300: #93c5fd;
+  --color-teal-400: #60a5fa;
+  --color-teal-500: #3b82f6;
+  --color-teal-600: #2563eb;
+  --color-teal-700: #1d4ed8;
+  --color-teal-800: #1e40af;
+  --color-teal-900: #1e3a8a;
+  --color-teal-950: #172554;
 
   /* Lime passa a funcionar como escala azul-ciano de apoio. */
   --color-lime-50: #effbff;
