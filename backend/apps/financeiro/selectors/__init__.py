@@ -1,0 +1,1 @@
+"""Selectors do domínio financeiro."""
