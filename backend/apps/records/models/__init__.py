@@ -7,7 +7,6 @@ from .clinical import (
     EvolutionClinicalData,
     EvolutionVersion,
 )
-from .templates import ClinicalEvolutionTemplate
 from .treatment import (
     ClinicalDocument,
     ClinicalExport,
@@ -22,7 +21,6 @@ __all__ = [
     "AnamnesisProfile",
     "AnamnesisVersion",
     "ClinicalDocument",
-    "ClinicalEvolutionTemplate",
     "ClinicalExport",
     "ClinicalFormResponse",
     "Evolution",
