@@ -1,1 +1,3 @@
-from ..dashboard_actions import *  # noqa: F401,F403
+from ..actions.dashboard import PatientDashboardActions
+
+__all__ = ["PatientDashboardActions"]
