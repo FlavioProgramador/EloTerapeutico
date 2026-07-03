@@ -7,6 +7,7 @@ import {
   Sparkles,
   Target,
   UserRound,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -84,8 +85,13 @@ export function PatientDetailPanel({ data, loading, onClose }: Props) {
               {patient.status_display}
             </Badge>
             {onClose && (
-              <button type="button" onClick={onClose} className="rounded-md px-2 py-1 text-muted-foreground hover:bg-secondary" aria-label="Fechar painel">
-                ×
+              <button
+                type="button"
+                onClick={onClose}
+                className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                aria-label="Fechar painel"
+              >
+                <X className="h-4 w-4" />
               </button>
             )}
           </div>
