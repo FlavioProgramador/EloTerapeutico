@@ -168,7 +168,7 @@ export function Sidebar({ className }: SidebarProps) {
           type="button"
           onClick={logout}
           className={cn(
-            "group relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/10 hover:text-red-200",
+            "group relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-semibold text-danger/80 transition hover:bg-danger-soft hover:text-danger",
             isCollapsed && "justify-center px-2",
           )}
         >
@@ -176,7 +176,7 @@ export function Sidebar({ className }: SidebarProps) {
           {!isCollapsed && <span>Sair</span>}
 
           {isCollapsed && (
-            <div className="pointer-events-none absolute left-full z-50 ml-4 whitespace-nowrap rounded-md border border-red-500/20 bg-sidebar-surface px-2.5 py-1.5 text-[10px] font-semibold text-red-300 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+            <div className="pointer-events-none absolute left-full z-50 ml-4 whitespace-nowrap rounded-md border border-danger/20 bg-sidebar-surface px-2.5 py-1.5 text-[10px] font-semibold text-danger opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
               Sair
             </div>
           )}

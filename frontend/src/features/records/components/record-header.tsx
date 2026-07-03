@@ -53,7 +53,7 @@ export function RecordHeader({
           <ChevronLeft className="h-5 w-5" />
         </button>
         <div className="flex items-center gap-2">
-          <BookOpen className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+          <BookOpen className="h-6 w-6 text-primary" />
           <div>
             <h1 className="text-xl font-bold tracking-tight text-foreground">
               Prontuário Clínico
@@ -66,40 +66,40 @@ export function RecordHeader({
       </div>
 
       {/* Card do Paciente com Ações */}
-      <section className="overflow-hidden rounded-xl border border-emerald-500/10 bg-card/60 backdrop-blur-xs p-5 shadow-xs transition-all duration-200 hover:border-emerald-500/20">
+      <section className="overflow-hidden rounded-xl border border-border bg-card/60 backdrop-blur-xs p-5 shadow-xs transition-all duration-200 hover:border-primary/20">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           
           {/* Informações do Paciente */}
           <div className="flex min-w-0 items-center gap-4">
-            <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/5 text-lg font-bold text-emerald-700 dark:text-emerald-300 shadow-inner">
+            <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/5 text-lg font-bold text-primary shadow-inner">
               {initials}
-              <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-card bg-emerald-500" />
+              <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-card bg-success" />
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-lg font-bold text-foreground">
                   {patient.full_name}
                 </h2>
-                <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                <span className="inline-flex items-center rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">
                   {patient.status_display}
                 </span>
               </div>
               
               <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <User className="h-3.5 w-3.5 text-emerald-600/60 dark:text-emerald-400/60" />
+                  <User className="h-3.5 w-3.5 text-primary/60" />
                   {patient.age ? `${patient.age} anos` : "Idade não informada"}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Phone className="h-3.5 w-3.5 text-emerald-600/60 dark:text-emerald-400/60" />
+                  <Phone className="h-3.5 w-3.5 text-primary/60" />
                   {patient.phone || "Sem telefone"}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Mail className="h-3.5 w-3.5 text-emerald-600/60 dark:text-emerald-400/60" />
+                  <Mail className="h-3.5 w-3.5 text-primary/60" />
                   {patient.email || "Sem e-mail"}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5 text-emerald-600/60 dark:text-emerald-400/60" />
+                  <Calendar className="h-3.5 w-3.5 text-primary/60" />
                   Início: {new Date(summary.treatment_start).toLocaleDateString("pt-BR")}
                 </span>
               </div>
@@ -112,7 +112,7 @@ export function RecordHeader({
               size="sm"
               onClick={onNewEvolution}
               leftIcon={<Plus className="h-4 w-4" />}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs"
             >
               Nova Evolução
             </Button>
@@ -121,7 +121,7 @@ export function RecordHeader({
               variant="outline"
               onClick={onFillForm}
               leftIcon={<FileSpreadsheet className="h-4 w-4" />}
-              className="border-emerald-600/20 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20"
+              className="border-primary/20 text-primary hover:bg-primary/10"
             >
               Preencher Formulário
             </Button>
@@ -131,7 +131,7 @@ export function RecordHeader({
               isLoading={exporting}
               onClick={onExport}
               leftIcon={<FileDown className="h-4 w-4" />}
-              className="border-emerald-600/20 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20"
+              className="border-primary/20 text-primary hover:bg-primary/10"
             >
               Gerar Documento
             </Button>

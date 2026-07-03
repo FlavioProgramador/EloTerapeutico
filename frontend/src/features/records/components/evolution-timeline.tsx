@@ -47,7 +47,7 @@ interface DetailSection {
 const PAGE_SIZE = 6;
 
 const dateTones = [
-  "border-emerald-400/30 bg-emerald-500/10 text-emerald-300",
+  "border-primary/20 bg-primary/5 text-primary",
   "border-sky-400/30 bg-sky-500/10 text-sky-300",
   "border-violet-400/30 bg-violet-500/10 text-violet-300",
   "border-amber-400/30 bg-amber-500/10 text-amber-300",
@@ -73,7 +73,7 @@ function modalityLabel(modality: EvolutionModality) {
 
 function statusStyles(status: EvolutionStatus) {
   if (status === "finalized") {
-    return "border-emerald-400/25 bg-emerald-500/10 text-emerald-300";
+    return "border-success/20 bg-success/10 text-success";
   }
   if (status === "archived") {
     return "border-border bg-secondary text-muted-foreground";
@@ -84,8 +84,8 @@ function statusStyles(status: EvolutionStatus) {
 function detailTone(tone: DetailSection["tone"]) {
   return {
     emerald: {
-      card: "border-emerald-400/15 bg-emerald-500/5",
-      title: "text-emerald-300",
+      card: "border-primary/15 bg-primary/5",
+      title: "text-primary",
     },
     sky: {
       card: "border-sky-400/15 bg-sky-500/5",
@@ -175,8 +175,8 @@ export function EvolutionTimeline({
 
   if (evolutions.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-emerald-400/20 bg-emerald-500/5 px-6 py-16 text-center">
-        <CalendarDays className="mx-auto h-7 w-7 text-emerald-300" />
+      <div className="rounded-xl border border-dashed border-primary/20 bg-primary/5 px-6 py-16 text-center">
+        <CalendarDays className="mx-auto h-7 w-7 text-primary" />
         <h3 className="mt-4 text-sm font-bold text-foreground">
           Nenhuma evolução registrada
         </h3>
@@ -335,7 +335,7 @@ export function EvolutionTimeline({
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="text-[9px] font-semibold text-emerald-300 hover:underline"
+                  className="text-[9px] font-semibold text-primary hover:underline"
                 >
                   Limpar filtros
                 </button>
@@ -356,7 +356,7 @@ export function EvolutionTimeline({
               </div>
             </div>
           ) : (
-            <div className="relative mt-3 flex-1 space-y-2 before:absolute before:bottom-3 before:left-[1.45rem] before:top-3 before:w-px before:bg-emerald-400/20">
+            <div className="relative mt-3 flex-1 space-y-2 before:absolute before:bottom-3 before:left-[1.45rem] before:top-3 before:w-px before:bg-primary/20">
               {visibleEvolutions.map((evolution, index) => {
                 const active = selected?.id === evolution.id;
                 const sessionNumber =
@@ -370,7 +370,7 @@ export function EvolutionTimeline({
                     className={cn(
                       "relative z-10 grid w-full grid-cols-[2.9rem_1fr] gap-3 rounded-lg border p-3 text-left transition",
                       active
-                        ? "border-emerald-400/35 bg-gradient-to-r from-emerald-500/15 to-cyan-500/10 shadow-sm"
+                        ? "border-primary/30 bg-gradient-to-r from-primary/10 to-accent/5 shadow-sm"
                         : "border-transparent bg-background/35 hover:border-sky-400/15 hover:bg-sky-500/5",
                     )}
                   >
@@ -378,7 +378,7 @@ export function EvolutionTimeline({
                       className={cn(
                         "grid h-10 w-10 place-items-center rounded-full border text-[10px] font-bold",
                         active
-                          ? "border-emerald-300/40 bg-emerald-500/15 text-emerald-200"
+                          ? "border-primary/30 bg-primary/10 text-primary"
                           : dateTones[index % dateTones.length],
                       )}
                     >
@@ -515,7 +515,7 @@ export function EvolutionTimeline({
                     disabled={!selected.is_editable}
                     onClick={() => onEdit(selected)}
                     leftIcon={<Edit3 className="h-3.5 w-3.5" />}
-                    className="border-emerald-400/20 text-emerald-200 hover:bg-emerald-500/10 hover:text-emerald-100"
+                    className="border-primary/20 text-primary hover:bg-primary/10"
                   >
                     Editar
                   </Button>
