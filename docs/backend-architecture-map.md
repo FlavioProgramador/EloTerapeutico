@@ -1,65 +1,90 @@
-# Mapeamento arquitetural do backend
+# Organização arquitetural do backend
 
-Branch de trabalho: `codex/refatoracao-arquitetura-backend-final`.
+## Princípio
 
-## Estado atual
+Cada app deve manter no nível raiz apenas entrypoints convencionais do Django,
+como `apps.py`, `admin.py`, `urls.py`, `models.py` quando pequeno, `migrations/`
+e `tests/`. Implementações maiores são agrupadas por responsabilidade.
 
-O backend utiliza Django e Django REST Framework. A API pública permanece em `/api/v1/`.
-
-Apps existentes:
-
-- `users`: conta, autenticação e perfil profissional;
-- `patients`: cadastro administrativo, vínculos, lembretes e convites;
-- `records`: anamnese, evoluções, documentos, formulários e exportações;
-- `agenda`: consultas, recorrências, salas, bloqueios, pacotes e teleatendimento;
-- `financeiro`: transações, pagamentos e relatórios;
-- `core`: recursos compartilhados entre domínios.
-
-## Problemas encontrados
-
-1. A refatoração anterior criou diretórios `api/`, mas alguns arquivos apenas reexportam módulos antigos.
-2. Existem imports curinga e módulos temporários mantidos como permanentes.
-3. O domínio clínico mantém arquivos paralelos e variantes `v2`.
-4. Agenda usa pastas genéricas `view_parts`, `serializer_parts` e `model_parts`.
-5. Regras de escrita e consultas complexas ainda aparecem em views.
-6. Há arquivos `.full` deixados por uma refatoração anterior.
-7. Ferramentas de qualidade não estão centralizadas em `pyproject.toml`.
-
-## Decisões
-
-- Preservar apps, labels, tabelas, migrations e endpoints públicos.
-- Manter o pacote global `elo_terapeutico`; renomeá-lo agora aumentaria o risco sem ganho de domínio.
-- Criar `elo_terapeutico/api_urls.py` para centralizar as rotas da API.
-- Tornar `api/` a implementação real, sem wrappers permanentes.
-- Usar services para escrita e selectors somente para consultas complexas reutilizadas.
-- Consolidar o prontuário antes de remover variantes antigas.
-- Manter exportações clínicas dentro de `records`, pois pertencem ao ciclo de vida do prontuário.
-- Não criar apps vazios apenas para reproduzir uma árvore de referência.
-
-## Estrutura-alvo
+## Estrutura adotada
 
 ```text
 backend/
 ├── elo_terapeutico/
-│   ├── api_urls.py
+│   ├── settings/
 │   ├── urls.py
-│   └── settings/
-├── core/
+│   ├── asgi.py
+│   └── wsgi.py
 ├── apps/
-│   ├── users/{api,services,selectors,tests}
-│   ├── patients/{api,serializers,services,selectors,tests}
-│   ├── records/{api,models,serializers,services,selectors,tasks,tests}
-│   ├── agenda/{api,models,serializers,services,selectors,tests}
-│   └── financeiro/{api,serializers,services,selectors,tests}
+│   ├── core/
+│   │   ├── audit.py
+│   │   ├── exceptions.py
+│   │   ├── fields.py
+│   │   ├── pagination.py
+│   │   └── validators.py
+│   ├── users/
+│   │   ├── api/
+│   │   │   ├── serializers.py
+│   │   │   └── views.py
+│   │   ├── models.py
+│   │   ├── urls.py
+│   │   └── tests/
+│   ├── patients/
+│   │   ├── actions/
+│   │   ├── api/
+│   │   ├── selectors/
+│   │   ├── services/
+│   │   ├── models.py
+│   │   └── tests/
+│   ├── records/
+│   │   ├── models/
+│   │   │   ├── base.py
+│   │   │   ├── clinical.py
+│   │   │   └── treatment.py
+│   │   ├── management/
+│   │   ├── migrations/
+│   │   └── tests/
+│   ├── agenda/
+│   │   ├── api/
+│   │   ├── model_parts/
+│   │   ├── serializer_parts/
+│   │   ├── view_parts/
+│   │   └── tests/
+│   └── financeiro/
+│       ├── api/
+│       ├── models.py
+│       └── tests/
+├── core/
+│   └── compatibilidade para migrations e imports históricos
 └── tests/
 ```
 
-## Ordem de implementação
+## Decisões aplicadas
 
-1. configuração global, rotas e ferramentas;
-2. remoção de artefatos comprovadamente sem uso;
-3. API definitiva por recurso;
-4. extração de services e selectors;
-5. consolidação do prontuário;
-6. testes de arquitetura, contratos e desempenho;
-7. documentação final e validação de CI.
+- `apps.core` é a implementação oficial dos recursos compartilhados.
+- O antigo `backend/core` contém somente reexports mínimos para não quebrar
+  migrations já aplicadas.
+- O app `users` concentra a camada HTTP em `api/`.
+- O app `patients` concentra mixins e casos de uso HTTP em `actions/`.
+- O app `records` usa um pacote `models/` em vez de um `models.py` monolítico.
+- O app `financeiro` mantém a implementação em `api/` e remove wrappers do topo.
+- Não são criadas pastas vazias apenas para imitar outra arquitetura.
+- Migrations, app labels, nomes de tabelas e endpoints públicos permanecem
+  preservados.
+
+## Compatibilidade
+
+Alguns módulos antigos permanecem temporariamente quando seus caminhos foram
+serializados por migrations ou podem ser importados por integrações existentes.
+Esses módulos devem conter apenas imports explícitos para a implementação nova.
+Código novo não deve importar de `core.*`, `records.extended_models` ou
+`records.treatment_models`.
+
+## Próximas consolidações
+
+1. renomear gradualmente as pastas genéricas da agenda sem alterar imports em
+   uma única mudança de alto risco;
+2. agrupar serializers clínicos em `records/api/serializers/`;
+3. agrupar views clínicas em `records/api/views/`;
+4. mover operações financeiras transacionais para `services/`;
+5. remover compatibilidades somente após busca de consumidores e CI verde.
