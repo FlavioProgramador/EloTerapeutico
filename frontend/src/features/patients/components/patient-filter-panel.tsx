@@ -52,7 +52,7 @@ export function PatientFilterPanel({
         <button
           type="button"
           onClick={onClose}
-          className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-secondary"
+          className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
           aria-label="Fechar filtros"
         >
           <X className="h-4 w-4" />
