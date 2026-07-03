@@ -9,18 +9,17 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from core.audit import AuditLog, log_access
+from apps.core.audit import AuditLog, log_access
 
-from .dashboard_serializers import PatientDashboardSerializer
-from .form_actions import PatientFormActions
-from .form_serializers import PatientFormSerializer
-from .invite_actions import PatientInviteActions
-from .models import Patient
-from .serializers import PatientDetailSerializer
+from ..dashboard_serializers import PatientDashboardSerializer
+from ..form_serializers import PatientFormSerializer
+from ..models import Patient
+from ..serializers import PatientDetailSerializer
+from .forms import PatientFormActions
+from .invites import PatientInviteActions
 
 
 def _csv_cell(row, key, default=""):
-    """Retorna uma célula CSV normalizada, inclusive quando DictReader devolve None."""
     value = row.get(key, default)
     if value is None:
         return default
@@ -79,7 +78,10 @@ class PatientDashboardActions(PatientInviteActions, PatientFormActions):
         try:
             content = uploaded.read().decode("utf-8-sig")
         except UnicodeDecodeError:
-            return Response({"detail": "Utilize um CSV codificado em UTF-8."}, status=400)
+            return Response(
+                {"detail": "Utilize um CSV codificado em UTF-8."},
+                status=400,
+            )
 
         reader = csv.DictReader(StringIO(content))
         required_columns = {"full_name", "cpf", "birth_date"}
@@ -96,9 +98,15 @@ class PatientDashboardActions(PatientInviteActions, PatientFormActions):
 
         rows = list(reader)
         if not rows:
-            return Response({"detail": "O arquivo CSV não possui registros."}, status=400)
+            return Response(
+                {"detail": "O arquivo CSV não possui registros."},
+                status=400,
+            )
         if len(rows) > 500:
-            return Response({"detail": "Importe no máximo 500 pacientes por vez."}, status=400)
+            return Response(
+                {"detail": "Importe no máximo 500 pacientes por vez."},
+                status=400,
+            )
 
         valid_payloads = []
         errors = []
@@ -169,7 +177,6 @@ class PatientDashboardActions(PatientInviteActions, PatientFormActions):
 
     @action(detail=True, methods=["get"], url_path="form")
     def form(self, request, pk=None):
-        """Retorna todos os campos editáveis sem valores artificiais no frontend."""
         patient = self.get_object()
         detail_data = PatientDetailSerializer(
             patient,
@@ -190,7 +197,8 @@ class PatientDashboardActions(PatientInviteActions, PatientFormActions):
         documents = []
         if can_access_records:
             latest_evolution = patient.evolutions.order_by(
-                "-session_date", "-created_at"
+                "-session_date",
+                "-created_at",
             ).first()
             documents = list(
                 patient.clinical_documents.filter(is_archived=False).order_by(
@@ -198,10 +206,14 @@ class PatientDashboardActions(PatientInviteActions, PatientFormActions):
                 )[:3]
             )
 
-        next_appointment = patient.appointments.filter(
-            start_time__gte=timezone.now(),
-            status__in=["scheduled", "confirmed"],
-        ).order_by("start_time").first()
+        next_appointment = (
+            patient.appointments.filter(
+                start_time__gte=timezone.now(),
+                status__in=["scheduled", "confirmed"],
+            )
+            .order_by("start_time")
+            .first()
+        )
         total = getattr(patient, "total_sessions", 0)
         missed = getattr(patient, "missed_sessions", 0)
         attendance = round((total - missed) / total * 100) if total else None
@@ -214,7 +226,8 @@ class PatientDashboardActions(PatientInviteActions, PatientFormActions):
         return Response(
             {
                 "patient": PatientDashboardSerializer(
-                    patient, context={"request": request}
+                    patient,
+                    context={"request": request},
                 ).data,
                 "can_access_records": can_access_records,
                 "next_session": None

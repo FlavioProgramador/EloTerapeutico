@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from apps.users.models import User
 
-from .professional_serializers import PatientProfessionalOptionSerializer
+from ..professional_serializers import PatientProfessionalOptionSerializer
 
 
 class PatientFormActions:
@@ -16,4 +16,6 @@ class PatientFormActions:
                 role=User.Role.THERAPIST,
                 is_active=True,
             ).order_by("full_name")
-        return Response(PatientProfessionalOptionSerializer(queryset, many=True).data)
+        return Response(
+            PatientProfessionalOptionSerializer(queryset, many=True).data
+        )

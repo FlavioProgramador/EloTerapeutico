@@ -1,27 +1,27 @@
-"""
-apps/users/serializers.py
-Serializers para autenticação, perfil e horários de atendimento.
-"""
+"""Serializers de autenticação, perfil e horários de atendimento."""
 
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.settings import api_settings
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.utils import get_md5_hash_password
 
-from .models import User, WorkingHours
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Autenticação
-# ─────────────────────────────────────────────────────────────────────────────
+from ..models import User, WorkingHours
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-    """Serializer para cadastro de novo terapeuta."""
     password = serializers.CharField(
-        write_only=True, min_length=8, style={"input_type": "password"}
+        write_only=True,
+        min_length=8,
+        style={"input_type": "password"},
     )
     password_confirm = serializers.CharField(
-        write_only=True, style={"input_type": "password"}
+        write_only=True,
+        style={"input_type": "password"},
     )
 
     class Meta:
@@ -48,10 +48,10 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    """Serializer para autenticação e retorno de tokens JWT."""
     email = serializers.EmailField()
     password = serializers.CharField(
-        write_only=True, style={"input_type": "password"}
+        write_only=True,
+        style={"input_type": "password"},
     )
 
     def validate(self, attrs):
@@ -61,16 +61,13 @@ class LoginSerializer(serializers.Serializer):
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            # Executa dummy password hashing para consumir CPU de forma
-            # equivalente
             User().set_password(password)
             raise serializers.ValidationError("E-mail ou senha incorretos.")
 
-        # Verificar bloqueio de conta
         if user.is_locked():
-            locked_time = user.locked_until.strftime('%H:%M')
+            locked_time = user.locked_until.strftime("%H:%M")
             raise serializers.ValidationError(
-                f"Conta bloqueada por tentativas excessivas. "
+                "Conta bloqueada por tentativas excessivas. "
                 f"Tente novamente após {locked_time}."
             )
 
@@ -102,7 +99,6 @@ class LoginSerializer(serializers.Serializer):
 
 
 class ChangePasswordSerializer(serializers.Serializer):
-    """Serializer para troca de senha autenticado."""
     current_password = serializers.CharField(write_only=True)
     new_password = serializers.CharField(write_only=True, min_length=8)
     new_password_confirm = serializers.CharField(write_only=True)
@@ -127,31 +123,35 @@ class ChangePasswordSerializer(serializers.Serializer):
         return user
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Perfil
-# ─────────────────────────────────────────────────────────────────────────────
-
 class UserProfileSerializer(serializers.ModelSerializer):
-    """Serializer completo para leitura do perfil do terapeuta."""
-
     class Meta:
         model = User
         fields = [
-            "id", "email", "full_name", "role", "specialty",
-            "crp_number", "bio", "phone", "avatar",
-            "default_session_duration", "default_session_value",
-            "date_joined", "last_login",
+            "id",
+            "email",
+            "full_name",
+            "role",
+            "specialty",
+            "crp_number",
+            "bio",
+            "phone",
+            "avatar",
+            "default_session_duration",
+            "default_session_value",
+            "date_joined",
+            "last_login",
         ]
         read_only_fields = ["id", "email", "date_joined", "last_login", "role"]
 
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
-    """Serializer para atualização do perfil (campos editáveis)."""
-
     class Meta:
         model = User
         fields = [
-            "full_name", "specialty", "crp_number", "bio",
+            "full_name",
+            "specialty",
+            "crp_number",
+            "bio",
             "phone",
             "avatar",
             "default_session_duration",
@@ -159,13 +159,10 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         ]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Horários de atendimento
-# ─────────────────────────────────────────────────────────────────────────────
-
 class WorkingHoursSerializer(serializers.ModelSerializer):
     weekday_display = serializers.CharField(
-        source="get_weekday_display", read_only=True
+        source="get_weekday_display",
+        read_only=True,
     )
 
     class Meta:
@@ -180,21 +177,18 @@ class WorkingHoursSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
-        if attrs.get("start_time") and attrs.get("end_time"):
-            if attrs["start_time"] >= attrs["end_time"]:
-                raise serializers.ValidationError(
-                    "O horário de início deve ser anterior ao horário de fim."
-                )
+        start_time = attrs.get("start_time")
+        end_time = attrs.get("end_time")
+        if start_time and end_time and start_time >= end_time:
+            raise serializers.ValidationError(
+                "O horário de início deve ser anterior ao horário de fim."
+            )
         return attrs
 
     def create(self, validated_data):
         validated_data["therapist"] = self.context["request"].user
         return super().create(validated_data)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Redefinição de senha
-# ─────────────────────────────────────────────────────────────────────────────
 
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -204,36 +198,30 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     uidb64 = serializers.CharField()
     token = serializers.CharField()
     new_password = serializers.CharField(
-        write_only=True, min_length=8, style={"input_type": "password"}
+        write_only=True,
+        min_length=8,
+        style={"input_type": "password"},
     )
     new_password_confirm = serializers.CharField(
-        write_only=True, style={"input_type": "password"}
+        write_only=True,
+        style={"input_type": "password"},
     )
 
     def validate(self, attrs):
-        from django.utils.http import urlsafe_base64_decode
-        from django.utils.encoding import force_str
-        from django.contrib.auth.tokens import default_token_generator
-
-        uidb64 = attrs["uidb64"]
-        token = attrs["token"]
-        new_password = attrs["new_password"]
-        new_password_confirm = attrs["new_password_confirm"]
-
-        if new_password != new_password_confirm:
+        if attrs["new_password"] != attrs["new_password_confirm"]:
             raise serializers.ValidationError(
                 {"new_password_confirm": "As senhas não conferem."}
             )
 
         try:
-            uid = force_str(urlsafe_base64_decode(uidb64))
+            uid = force_str(urlsafe_base64_decode(attrs["uidb64"]))
             user = User.objects.get(pk=uid)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
             raise serializers.ValidationError(
                 {"token": "O link de redefinição é inválido ou expirou."}
             )
 
-        if not default_token_generator.check_token(user, token):
+        if not default_token_generator.check_token(user, attrs["token"]):
             raise serializers.ValidationError(
                 {"token": "O link de redefinição é inválido ou expirou."}
             )
@@ -249,16 +237,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
 
 class SafeTokenRefreshSerializer(TokenRefreshSerializer):
-    """
-    Custom TokenRefreshSerializer that validates that the refresh token's
-    password hash matches the user's current password.
-    """
     def validate(self, attrs):
-        from rest_framework_simplejwt.exceptions import InvalidToken
-        from rest_framework_simplejwt.tokens import RefreshToken
-        from rest_framework_simplejwt.utils import get_md5_hash_password
-        from .models import User
-
         refresh = RefreshToken(attrs["refresh"])
         token_hash = refresh.get("hash_password")
         user_id = refresh.get("user_id")
@@ -268,7 +247,6 @@ class SafeTokenRefreshSerializer(TokenRefreshSerializer):
         except User.DoesNotExist:
             raise InvalidToken("Usuário não encontrado.")
 
-        # Se o usuário foi desativado nesse meio tempo
         if not user.is_active:
             raise InvalidToken("Conta inativa. Entre em contato com o suporte.")
 
@@ -279,8 +257,6 @@ class SafeTokenRefreshSerializer(TokenRefreshSerializer):
             )
 
         data = {"access": str(refresh.access_token)}
-
-        from rest_framework_simplejwt.settings import api_settings
         if api_settings.ROTATE_REFRESH_TOKENS:
             if api_settings.BLACKLIST_AFTER_ROTATION:
                 try:
@@ -293,3 +269,16 @@ class SafeTokenRefreshSerializer(TokenRefreshSerializer):
             data["refresh"] = str(new_refresh)
 
         return data
+
+
+__all__ = [
+    "ChangePasswordSerializer",
+    "LoginSerializer",
+    "PasswordResetConfirmSerializer",
+    "PasswordResetRequestSerializer",
+    "RegisterSerializer",
+    "SafeTokenRefreshSerializer",
+    "UserProfileSerializer",
+    "UserProfileUpdateSerializer",
+    "WorkingHoursSerializer",
+]

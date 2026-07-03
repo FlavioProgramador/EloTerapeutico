@@ -11,10 +11,11 @@ ignore = ["E203"]
 max-complexity = 10
 
 [tool.ruff.lint.isort]
-known-first-party = ["apps", "core", "elo_terapeutico"]
+known-first-party = ["apps", "elo_terapeutico"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/*" = ["S101"]
+"core/*.py" = ["F401"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -34,8 +35,8 @@ markers = [
 
 [tool.coverage.run]
 branch = true
-source = ["apps", "core", "elo_terapeutico"]
-omit = ["*/migrations/*", "*/tests/*", "manage.py"]
+source = ["apps", "elo_terapeutico"]
+omit = ["*/migrations/*", "*/tests/*", "manage.py", "core/*"]
 
 [tool.coverage.report]
 show_missing = true
@@ -44,7 +45,7 @@ skip_covered = false
 [tool.mypy]
 python_version = "3.11"
 plugins = ["mypy_django_plugin.main"]
-exclude = ["migrations"]
+exclude = ["migrations", "^core/"]
 warn_unused_ignores = true
 warn_redundant_casts = true
 check_untyped_defs = true

@@ -4,7 +4,7 @@ from io import StringIO
 from django.http import HttpResponse
 from rest_framework.decorators import action
 
-from core.audit import AuditLog, log_access
+from apps.core.audit import AuditLog, log_access
 
 
 class PatientExportActions:
@@ -43,6 +43,9 @@ class PatientExportActions:
             AuditLog.Action.EXPORT,
             obj_repr="Exportação autorizada da listagem de pacientes",
         )
-        response = HttpResponse(buffer.getvalue(), content_type="text/csv; charset=utf-8")
+        response = HttpResponse(
+            buffer.getvalue(),
+            content_type="text/csv; charset=utf-8",
+        )
         response["Content-Disposition"] = 'attachment; filename="pacientes.csv"'
         return response

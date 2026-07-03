@@ -7,9 +7,9 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from core.audit import AuditLog, log_access
+from apps.core.audit import AuditLog, log_access
 
-from .models import PatientRegistrationInvite
+from ..models import PatientRegistrationInvite
 
 
 class PatientInviteActions:
