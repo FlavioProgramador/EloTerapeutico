@@ -3,7 +3,7 @@
 from rest_framework import serializers
 
 
-class EvolutionFlowReadFieldsMixin:
+class EvolutionFlowReadFieldsMixin(metaclass=serializers.SerializerMetaclass):
     addenda_count = serializers.IntegerField(source="addenda.count", read_only=True)
     attached_documents_count = serializers.IntegerField(
         source="documents.count",
