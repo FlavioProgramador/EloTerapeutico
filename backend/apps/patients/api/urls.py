@@ -7,9 +7,9 @@ from .export_actions import PatientExportActions
 from .form_serializers import PatientFormSerializer
 from .list_serializers import PatientReferenceListSerializer
 from .models import Patient
+from .patient_viewset import PatientViewSet
 from .reminder_view import PatientReminderView
 from .serializers import PatientDetailSerializer
-from .views import PatientViewSet
 
 
 class PatientDashboardViewSet(
