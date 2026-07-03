@@ -765,10 +765,19 @@ class ClinicalFormResponseDetailView(ClinicalPatientMixin, APIView):
 
 class ClinicalExportListCreateView(ClinicalPatientMixin, APIView):
     def get(self, request, patient_id):
+        if request.user.is_secretary:
+            self.permission_denied(
+                request,
+                message="Secretárias não possuem acesso a exportações clínicas.",
+            )
         patient = self.get_patient(patient_id)
         queryset = ClinicalExport.objects.filter(patient=patient).order_by(
             "-created_at"
         )
+
+        if not request.user.is_admin_role:
+            queryset = queryset.filter(created_by=request.user)
+
         serializer = ClinicalExportSerializer(queryset, many=True)
         log_access(
             request,
@@ -829,6 +838,15 @@ class ClinicalExportRetryView(ClinicalPatientMixin, APIView):
         export_obj = get_object_or_404(ClinicalExport, pk=pk)
         self.get_patient(export_obj.patient_id)
 
+        if (
+            export_obj.created_by_id != request.user.id
+            and not request.user.is_admin_role
+        ):
+            self.permission_denied(
+                request,
+                message="Você não tem permissão para gerenciar esta exportação.",
+            )
+
         if export_obj.status not in [
             ClinicalExport.Status.FAILED,
             ClinicalExport.Status.EXPIRED,
@@ -861,6 +879,15 @@ class ClinicalExportDownloadView(ClinicalPatientMixin, APIView):
     def get(self, request, pk):
         export_obj = get_object_or_404(ClinicalExport, pk=pk)
         self.get_patient(export_obj.patient_id)
+
+        if (
+            export_obj.created_by_id != request.user.id
+            and not request.user.is_admin_role
+        ):
+            self.permission_denied(
+                request,
+                message="Você não tem permissão para baixar esta exportação.",
+            )
 
         if export_obj.status != ClinicalExport.Status.COMPLETED:
             return Response(
