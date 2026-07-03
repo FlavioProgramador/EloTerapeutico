@@ -12,7 +12,7 @@ test:
 	$(PYTHON) -m pytest
 
 coverage:
-	$(PYTHON) -m pytest --cov=apps --cov=core --cov-report=term-missing
+	$(PYTHON) -m pytest --cov=apps --cov-report=term-missing
 
 lint:
 	$(PYTHON) -m ruff check .
@@ -25,6 +25,6 @@ format-check:
 	$(PYTHON) -m ruff format --check .
 
 typecheck:
-	$(PYTHON) -m mypy apps core elo_terapeutico
+	$(PYTHON) -m mypy apps elo_terapeutico
 
 validate: check migrations-check lint format-check test
