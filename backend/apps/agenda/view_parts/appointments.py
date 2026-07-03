@@ -36,6 +36,8 @@ class AppointmentViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
             "recurrence",
             "package",
             "telemedicine_room",
+            "evolution",
+            "evolution__clinical_data",
         ).prefetch_related("participants", "reminders")
         return self.scope_queryset(queryset)
 
