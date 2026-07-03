@@ -1,1 +1,3 @@
-"""Operações de escrita do domínio de pacientes."""
+from .lifecycle import deactivate, restore
+
+__all__ = ["deactivate", "restore"]
