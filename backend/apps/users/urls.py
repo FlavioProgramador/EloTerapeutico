@@ -1,12 +1,12 @@
 from django.urls import path
 
+from .api.password_reset_views import PasswordResetRequestView
 from .api.views import (
     ChangePasswordView,
     LoginView,
     LogoutView,
     MeView,
     PasswordResetConfirmView,
-    PasswordResetRequestView,
     RegisterView,
     SafeTokenRefreshView,
     WorkingHoursDetailView,

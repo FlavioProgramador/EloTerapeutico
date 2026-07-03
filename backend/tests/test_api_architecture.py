@@ -14,16 +14,30 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
         "apps.core.fields",
         "apps.core.pagination",
         "apps.core.validators",
+        "apps.core.integrations.notifications",
         "apps.users.api.serializers",
         "apps.users.api.views",
+        "apps.users.api.password_reset_views",
+        "apps.users.services.password_reset",
         "apps.patients.actions.dashboard",
         "apps.patients.actions.exports",
         "apps.patients.actions.forms",
+        "apps.patients.actions.imports",
         "apps.patients.actions.invites",
+        "apps.patients.actions.metrics",
         "apps.patients.api.urls",
+        "apps.patients.services.imports",
+        "apps.records.api.evolution_serializers",
+        "apps.records.api.evolution_views",
         "apps.records.models",
+        "apps.records.selectors.evolutions",
+        "apps.records.services.evolutions",
         "apps.agenda.api.urls",
+        "apps.financeiro.api.transaction_viewset",
         "apps.financeiro.api.urls",
+        "apps.financeiro.selectors.transactions",
+        "apps.financeiro.services.exports",
+        "apps.financeiro.services.payments",
     ],
 )
 def test_backend_modules_import_without_cycles(module_name):
@@ -36,6 +50,7 @@ def test_backend_modules_import_without_cycles(module_name):
         "apps.users.urls",
         "apps.users.health_urls",
         "apps.patients.urls",
+        "apps.records.urls",
         "apps.agenda.urls",
         "apps.financeiro.urls",
     ],
@@ -73,6 +88,8 @@ def test_api_exports_are_explicit(relative_path):
         "apps/financeiro/serializers.py",
         "apps/financeiro/filters.py",
         "apps/records/evolution_flow_views.py",
+        "apps/records/evolution_flow_views_v2.py",
+        "apps/records/evolution_flow_serializers_v2.py",
     ],
 )
 def test_moved_modules_do_not_return_to_app_root(relative_path):
@@ -89,3 +106,16 @@ def test_core_compatibility_modules_point_to_apps_core():
     ):
         source = (BACKEND_ROOT / "core" / filename).read_text(encoding="utf-8")
         assert "from apps.core" in source
+
+
+def test_new_backend_code_uses_canonical_core_namespace():
+    relative_paths = [
+        "apps/records/api/evolution_views.py",
+        "apps/records/api/evolution_attachment_list_views.py",
+        "apps/records/api/evolution_attachment_detail_views.py",
+        "apps/records/api/evolution_template_views.py",
+        "apps/patients/actions/imports.py",
+    ]
+    for relative_path in relative_paths:
+        source = (BACKEND_ROOT / relative_path).read_text(encoding="utf-8")
+        assert "from core." not in source

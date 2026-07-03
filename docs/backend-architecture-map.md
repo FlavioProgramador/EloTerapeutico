@@ -2,11 +2,14 @@
 
 ## Princípio
 
-Cada app deve manter no nível raiz apenas entrypoints convencionais do Django,
-como `apps.py`, `admin.py`, `urls.py`, `models.py` quando pequeno, `migrations/`
-e `tests/`. Implementações maiores são agrupadas por responsabilidade.
+Cada app mantém na raiz apenas entrypoints convencionais do Django e arquivos que
+representam contratos públicos. Regras transacionais ficam em `services/`, consultas
+reutilizáveis e sensíveis em `selectors/`, e a adaptação HTTP em `api/` ou `actions/`.
 
-## Estrutura adotada
+A divisão é aplicada somente onde existe complexidade real. CRUDs pequenos não recebem
+pastas artificiais.
+
+## Estrutura atual
 
 ```text
 backend/
@@ -20,29 +23,44 @@ backend/
 │   │   ├── audit.py
 │   │   ├── exceptions.py
 │   │   ├── fields.py
+│   │   ├── integrations/
+│   │   │   └── notifications.py
 │   │   ├── pagination.py
 │   │   └── validators.py
 │   ├── users/
 │   │   ├── api/
+│   │   │   ├── password_reset_views.py
 │   │   │   ├── serializers.py
 │   │   │   └── views.py
+│   │   ├── services/
+│   │   │   └── credentials.py
 │   │   ├── models.py
-│   │   ├── urls.py
-│   │   └── tests/
+│   │   └── urls.py
 │   ├── patients/
 │   │   ├── actions/
+│   │   │   ├── imports.py
+│   │   │   └── metrics.py
 │   │   ├── api/
 │   │   ├── selectors/
+│   │   │   ├── dashboard.py
+│   │   │   └── patients.py
 │   │   ├── services/
-│   │   ├── models.py
+│   │   │   ├── imports.py
+│   │   │   └── lifecycle.py
 │   │   └── tests/
 │   ├── records/
+│   │   ├── api/
+│   │   │   ├── evolution_views.py
+│   │   │   ├── evolution_serializers.py
+│   │   │   ├── evolution_attachment_list_views.py
+│   │   │   ├── evolution_attachment_detail_views.py
+│   │   │   └── evolution_template_views.py
 │   │   ├── models/
-│   │   │   ├── base.py
-│   │   │   ├── clinical.py
-│   │   │   └── treatment.py
+│   │   ├── selectors/
+│   │   │   └── evolutions.py
+│   │   ├── services/
+│   │   │   └── evolutions.py
 │   │   ├── management/
-│   │   ├── migrations/
 │   │   └── tests/
 │   ├── agenda/
 │   │   ├── api/
@@ -52,39 +70,95 @@ backend/
 │   │   └── tests/
 │   └── financeiro/
 │       ├── api/
-│       ├── models.py
+│       │   ├── transaction_viewset.py
+│       │   ├── transaction_payment_actions.py
+│       │   ├── transaction_state_actions.py
+│       │   ├── transaction_list_actions.py
+│       │   └── transaction_report_actions.py
+│       ├── selectors/
+│       │   └── transactions.py
+│       ├── services/
+│       │   ├── payments.py
+│       │   ├── cancellations.py
+│       │   ├── reversals.py
+│       │   └── exports.py
 │       └── tests/
 ├── core/
 │   └── compatibilidade para migrations e imports históricos
 └── tests/
 ```
 
-## Decisões aplicadas
+## Services implementados
 
-- `apps.core` é a implementação oficial dos recursos compartilhados.
-- O antigo `backend/core` contém somente reexports mínimos para não quebrar
-  migrations já aplicadas.
-- O app `users` concentra a camada HTTP em `api/`.
-- O app `patients` concentra mixins e casos de uso HTTP em `actions/`.
-- O app `records` usa um pacote `models/` em vez de um `models.py` monolítico.
-- O app `financeiro` mantém a implementação em `api/` e remove wrappers do topo.
-- Não são criadas pastas vazias apenas para imitar outra arquitetura.
-- Migrations, app labels, nomes de tabelas e endpoints públicos permanecem
-  preservados.
+### Prontuário
+
+`apps.records.services.evolutions` centraliza criação, atualização, versionamento,
+arquivamento e anexos. Operações com múltiplas escritas utilizam transações atômicas.
+As views continuam responsáveis por permissões HTTP, serialização e auditoria.
+
+### Pacientes
+
+`apps.patients.services.lifecycle` controla desativação e restauração. A desativação
+preserva o contrato existente: status inativo, cadastro fora das consultas comuns e
+`deleted_at` preenchido.
+
+`apps.patients.services.imports` valida e importa CSVs com limite defensivo, detecção de
+duplicidades, preview e confirmação transacional.
+
+### Financeiro
+
+`apps.financeiro.services.payments` registra pagamento e confirma a consulta associada
+na mesma transação. `apps.financeiro.services.cancellations` e
+`apps.financeiro.services.reversals` centralizam cancelamento e estorno com bloqueio de
+linha. `apps.financeiro.services.exports` produz CSV com proteção contra injeção de
+fórmulas.
+
+### Usuários
+
+`apps.users.services.credentials` gera o token e a URL de recuperação sem expor a
+existência da conta. O envio externo é delegado a
+`apps.core.integrations.notifications`.
+
+## Selectors implementados
+
+- `apps.records.selectors.evolutions`: evoluções autorizadas, opções de consultas e
+  anexos ativos, com `select_related` e `prefetch_related`.
+- `apps.patients.selectors.patients`: isolamento por profissional e suporte a registros
+  arquivados.
+- `apps.patients.selectors.dashboard`: métricas agregadas do painel.
+- `apps.financeiro.selectors.transactions`: visibilidade por função, pendências,
+  resumo mensal e consultas não faturadas.
+
+## Consolidação do prontuário
+
+Os arquivos `evolution_flow_views_v2.py` e `evolution_flow_serializers_v2.py` foram
+consolidados em módulos canônicos dentro de `records/api/` e removidos. As URLs e os
+formatos utilizados pelo frontend foram preservados.
+
+## Segurança
+
+- Querysets de pacientes e transações são restringidos antes da busca por ID.
+- Evoluções confidenciais continuam filtradas por autor ou permissão específica.
+- Downloads de anexos validam o vínculo com a evolução e a autorização clínica.
+- Importação CSV é limitada a terapeutas e executada atomicamente.
+- Pagamento e sincronização da consulta são atômicos.
+- Cancelamento e estorno bloqueiam a linha da transação durante a mudança de estado.
+- Recuperação de senha retorna mensagem neutra para evitar enumeração de usuários.
+- Auditoria permanece na borda HTTP e não registra o conteúdo clínico completo.
 
 ## Compatibilidade
 
-Alguns módulos antigos permanecem temporariamente quando seus caminhos foram
-serializados por migrations ou podem ser importados por integrações existentes.
-Esses módulos devem conter apenas imports explícitos para a implementação nova.
-Código novo não deve importar de `core.*`, `records.extended_models` ou
-`records.treatment_models`.
+- Migrations históricas não foram reescritas.
+- App labels, tabelas e endpoints públicos permanecem iguais.
+- `apps.core` é a implementação oficial da infraestrutura compartilhada.
+- `backend/core` permanece apenas para imports históricos serializados por migrations.
+- `records.extended_models` e `records.treatment_models` permanecem como wrappers de
+  compatibilidade até a remoção segura de todos os consumidores.
 
-## Próximas consolidações
+## Decisões deliberadamente adiadas
 
-1. renomear gradualmente as pastas genéricas da agenda sem alterar imports em
-   uma única mudança de alto risco;
-2. agrupar serializers clínicos em `records/api/serializers/`;
-3. agrupar views clínicas em `records/api/views/`;
-4. mover operações financeiras transacionais para `services/`;
-5. remover compatibilidades somente após busca de consumidores e CI verde.
+- Renomear `elo_terapeutico` para `config`: ganho apenas estético e alto impacto.
+- Reorganizar integralmente `agenda/model_parts`, `serializer_parts` e `view_parts`:
+  deve ocorrer em PR isolada após os fluxos críticos permanecerem verdes.
+- Remover wrappers históricos: somente após confirmar que nenhuma migration ou
+  integração depende dos caminhos antigos.
