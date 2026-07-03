@@ -1,10 +1,17 @@
 """Settings de produção para Azure App Service."""
 
+from django.core.exceptions import ImproperlyConfigured
+
 from .base import *  # noqa: F401,F403
 
 DEBUG = False
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")  # noqa: F405
+
+if FIELD_ENCRYPTION_KEY == LOCAL_FIELD_ENCRYPTION_KEY:  # noqa: F405
+    raise ImproperlyConfigured(
+        "FIELD_ENCRYPTION_KEY deve ser configurada explicitamente em produção."
+    )
 
 # Segurança e proxy reverso
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

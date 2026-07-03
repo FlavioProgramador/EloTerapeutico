@@ -153,7 +153,11 @@ SPECTACULAR_SETTINGS = {
     ],
 }
 
-FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY")
+LOCAL_FIELD_ENCRYPTION_KEY = "elo-terapeutico-local-development-key"
+FIELD_ENCRYPTION_KEY = env(
+    "FIELD_ENCRYPTION_KEY",
+    default=LOCAL_FIELD_ENCRYPTION_KEY,
+)
 
 LANGUAGE_CODE = "pt-br"
 TIME_ZONE = "America/Sao_Paulo"
