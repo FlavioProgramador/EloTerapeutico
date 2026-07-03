@@ -153,10 +153,11 @@ SPECTACULAR_SETTINGS = {
     ],
 }
 
-# O valor é obrigatório em produção e recebe fallback apenas nos settings de
-# desenvolvimento/teste. Isso permite importar o settings base sem encerrar o
-# processo antes de cada ambiente aplicar sua própria política.
-FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY", default="")
+LOCAL_FIELD_ENCRYPTION_KEY = "elo-terapeutico-local-development-key"
+FIELD_ENCRYPTION_KEY = env(
+    "FIELD_ENCRYPTION_KEY",
+    default=LOCAL_FIELD_ENCRYPTION_KEY,
+)
 
 LANGUAGE_CODE = "pt-br"
 TIME_ZONE = "America/Sao_Paulo"
