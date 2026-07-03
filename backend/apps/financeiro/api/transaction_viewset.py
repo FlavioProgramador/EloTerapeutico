@@ -4,11 +4,13 @@ from ..selectors.transactions import transactions_accessible_to
 from .transaction_list_actions import TransactionListActions
 from .transaction_payment_actions import TransactionPaymentActions
 from .transaction_report_actions import TransactionReportActions
+from .transaction_state_actions import TransactionStateActions
 from .views import TransactionViewSet as LegacyTransactionViewSet
 
 
 class TransactionViewSet(
     TransactionPaymentActions,
+    TransactionStateActions,
     TransactionListActions,
     TransactionReportActions,
     LegacyTransactionViewSet,
