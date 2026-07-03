@@ -48,26 +48,26 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type={type}
             id={inputId}
             className={cn(
-              "h-11 w-full rounded-md border border-input bg-background px-3.5 text-base text-foreground transition",
-              "placeholder:text-muted-foreground/60",
-              "focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20",
-              "disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60",
+              "h-11 w-full rounded-lg border border-input bg-card px-3.5 text-base text-text-primary transition-all duration-150",
+              "placeholder:text-text-muted/60",
+              "focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary-soft",
+              "disabled:cursor-not-allowed disabled:bg-background-subtle disabled:text-text-muted disabled:opacity-60",
               leftIcon && "pl-10.5",
               rightIcon && "pr-10.5",
               error &&
-                "border-destructive focus:border-destructive focus:ring-destructive/15",
+                "border-danger focus:border-danger focus:ring-danger-soft",
               className,
             )}
             {...props}
           />
           {rightIcon && (
-            <div className="absolute right-3.5 flex items-center justify-center text-muted-foreground">
+            <div className="absolute right-3.5 flex items-center justify-center text-text-muted">
               {rightIcon}
             </div>
           )}
         </div>
         {error && (
-          <span className="text-sm font-medium text-destructive" role="alert">
+          <span className="text-sm font-medium text-danger" role="alert">
             {error}
           </span>
         )}
@@ -103,18 +103,18 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           id={inputId}
           className={cn(
-            "min-h-[100px] w-full resize-y rounded-md border border-input bg-background p-3.5 text-base text-foreground transition",
-            "placeholder:text-muted-foreground/60",
-            "focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20",
-            "disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60",
+            "min-h-[100px] w-full resize-y rounded-lg border border-input bg-card p-3.5 text-base text-text-primary transition-all duration-150",
+            "placeholder:text-text-muted/60",
+            "focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary-soft",
+            "disabled:cursor-not-allowed disabled:bg-background-subtle disabled:text-text-muted disabled:opacity-60",
             error &&
-              "border-destructive focus:border-destructive focus:ring-destructive/15",
+              "border-danger focus:border-danger focus:ring-danger-soft",
             className,
           )}
           {...props}
         />
         {error && (
-          <span className="text-sm font-medium text-destructive" role="alert">
+          <span className="text-sm font-medium text-danger" role="alert">
             {error}
           </span>
         )}

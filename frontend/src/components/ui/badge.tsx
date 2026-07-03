@@ -18,12 +18,12 @@ interface BadgeProps {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: "border-primary/20 bg-primary/10 text-primary",
+  default: "border-primary-soft bg-primary-soft text-primary",
   primary: "border-transparent bg-primary text-primary-foreground",
-  success: "border-success/20 bg-success/10 text-success",
-  warning: "border-warning/25 bg-warning/10 text-warning",
+  success: "border-success-soft bg-success-soft text-success",
+  warning: "border-warning-soft bg-warning-soft text-warning",
   destructive:
-    "border-destructive/20 bg-destructive/10 text-destructive",
+    "border-danger-soft bg-danger-soft text-danger",
   outline: "border-border bg-transparent text-foreground",
   muted: "border-transparent bg-muted text-muted-foreground",
 };
