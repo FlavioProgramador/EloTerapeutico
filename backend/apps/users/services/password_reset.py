@@ -1,1 +1,1 @@
-credentials.py
+from .credentials import request_password_reset

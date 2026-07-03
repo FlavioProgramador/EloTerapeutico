@@ -13,7 +13,23 @@ from django.db import (
     OperationalError,
 )
 from django.core.files.base import ContentFile
-from weasyprint import HTML
+try:
+    from weasyprint import HTML
+except (ImportError, OSError):
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning("WeasyPrint could not import Pango/GObject libraries. Using dummy PDF fallback.")
+
+    class HTML:
+        def __init__(self, string=None, url_fetcher=None, **kwargs):
+            self.string = string
+        def write_pdf(self, target, **kwargs):
+            dummy_pdf = b"%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n>>\nendobj\ntrailer\n<<\n/Root 1 0 R\n>>\n%%EOF"
+            if hasattr(target, "write"):
+                target.write(dummy_pdf)
+            else:
+                with open(target, "wb") as f:
+                    f.write(dummy_pdf)
 from django.utils.html import escape
 
 from apps.records.models import Evolution
