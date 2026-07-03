@@ -1,3 +1,3 @@
-"""Serializers públicos do módulo de Agenda."""
+"""Compatibilidade: serializers movidos para `apps.agenda.api.serializers`."""
 
-from .serializer_parts import *  # noqa: F401,F403
+from .api.serializers import *  # noqa: F401,F403

@@ -1,3 +1,3 @@
-"""Views públicas do módulo de Agenda."""
+"""Compatibilidade: views movidas para `apps.agenda.api.views`."""
 
-from .view_parts import *  # noqa: F401,F403
+from .api.views import *  # noqa: F401,F403
