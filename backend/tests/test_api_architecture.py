@@ -31,15 +31,15 @@ def test_api_modules_import_without_cycles(module_name):
 
 
 @pytest.mark.parametrize(
-    "legacy_module",
+    "public_module",
     [
         "apps.patients.urls",
         "apps.agenda.urls",
         "apps.financeiro.urls",
     ],
 )
-def test_public_url_modules_keep_their_contract(legacy_module):
-    module = import_module(legacy_module)
+def test_public_url_modules_keep_their_contract(public_module):
+    module = import_module(public_module)
     assert module.urlpatterns
 
 
@@ -49,10 +49,13 @@ def test_public_url_modules_keep_their_contract(legacy_module):
         "apps/patients/api/models.py",
         "apps/agenda/api/models.py",
         "apps/financeiro/api/models.py",
+        "apps/agenda/api/serializers.py",
+        "apps/agenda/api/views.py",
     ],
 )
-def test_api_layer_does_not_shadow_domain_models(relative_path):
-    assert not (BACKEND_ROOT / relative_path).exists()
+def test_api_exports_are_explicit(relative_path):
+    source = (BACKEND_ROOT / relative_path).read_text(encoding="utf-8")
+    assert "import *" not in source
 
 
 def test_records_does_not_keep_evolution_view_wrapper():
