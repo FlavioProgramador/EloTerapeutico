@@ -1,8 +1,12 @@
-"""Testes de fumaça para a organização modular da API."""
+"""Testes de fumaça e limites arquiteturais da API."""
 
 from importlib import import_module
+from pathlib import Path
 
 import pytest
+
+
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.mark.parametrize(
@@ -27,13 +31,33 @@ def test_api_modules_import_without_cycles(module_name):
 
 
 @pytest.mark.parametrize(
-    "legacy_module",
+    "public_module",
     [
         "apps.patients.urls",
         "apps.agenda.urls",
         "apps.financeiro.urls",
     ],
 )
-def test_legacy_url_modules_keep_compatibility(legacy_module):
-    module = import_module(legacy_module)
+def test_public_url_modules_keep_their_contract(public_module):
+    module = import_module(public_module)
     assert module.urlpatterns
+
+
+@pytest.mark.parametrize(
+    "relative_path",
+    [
+        "apps/patients/api/models.py",
+        "apps/agenda/api/models.py",
+        "apps/financeiro/api/models.py",
+        "apps/agenda/api/serializers.py",
+        "apps/agenda/api/views.py",
+    ],
+)
+def test_api_exports_are_explicit(relative_path):
+    source = (BACKEND_ROOT / relative_path).read_text(encoding="utf-8")
+    assert "import *" not in source
+
+
+def test_records_does_not_keep_evolution_view_wrapper():
+    wrapper = BACKEND_ROOT / "apps/records/evolution_flow_views.py"
+    assert not wrapper.exists()

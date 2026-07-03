@@ -1,3 +1,5 @@
-"""Acesso aos models de pacientes a partir da camada API."""
+"""Model de paciente exposto à camada HTTP."""
 
-from ..models import *  # noqa: F401,F403
+from ..models import Patient
+
+__all__ = ["Patient"]

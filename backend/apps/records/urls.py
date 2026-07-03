@@ -21,7 +21,7 @@ from .clinical_views import (
     ClinicalExportRetryView,
     ClinicalExportDownloadView,
 )
-from .evolution_flow_views import (
+from .evolution_flow_views_v2 import (
     ClinicalEvolutionTemplateDetailView,
     ClinicalEvolutionTemplateListCreateView,
     EvolutionAttachmentDetailView,
