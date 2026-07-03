@@ -1,1 +1,0 @@
-Teste de escrita da integração.
