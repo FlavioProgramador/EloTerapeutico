@@ -9,17 +9,11 @@ from pathlib import Path
 
 import environ
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Paths
-# ─────────────────────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Core
-# ─────────────────────────────────────────────────────────────────────────────
 SECRET_KEY = env("SECRET_KEY")
 AUTH_USER_MODEL = "users.User"
 
@@ -83,35 +77,25 @@ TEMPLATES = [
 WSGI_APPLICATION = "elo_terapeutico.wsgi.application"
 ASGI_APPLICATION = "elo_terapeutico.asgi.application"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Banco de Dados
-# ─────────────────────────────────────────────────────────────────────────────
-DATABASES = {
-    "default": env.db("DATABASE_URL"),
-}
-
+DATABASES = {"default": env.db("DATABASE_URL")}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Autenticação
-# ─────────────────────────────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 8},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# Usar Argon2 como hasher de senha principal (mais seguro que bcrypt)
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.Argon2PasswordHasher",
     "django.contrib.auth.hashers.PBKDF2PasswordHasher",
     "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
 ]
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Django REST Framework
-# ─────────────────────────────────────────────────────────────────────────────
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -124,18 +108,19 @@ REST_FRAMEWORK = {
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ],
-    "DEFAULT_PAGINATION_CLASS": "core.pagination.StandardResultsPagination",
+    "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.StandardResultsPagination",
     "PAGE_SIZE": 20,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "EXCEPTION_HANDLER": "core.exceptions.custom_exception_handler",
+    "EXCEPTION_HANDLER": "apps.core.exceptions.custom_exception_handler",
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SimpleJWT
-# ─────────────────────────────────────────────────────────────────────────────
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env.int("JWT_ACCESS_MINUTES", default=30)),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=env.int("JWT_REFRESH_DAYS", default=7)),
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        minutes=env.int("JWT_ACCESS_MINUTES", default=30)
+    ),
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        days=env.int("JWT_REFRESH_DAYS", default=7)
+    ),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
@@ -148,12 +133,8 @@ SIMPLE_JWT = {
     "REVOKE_TOKEN_CLAIM": "hash_password",
 }
 
-# Tempo limite para o token de redefinição de senha (15 minutos = 900 segundos)
 PASSWORD_RESET_TIMEOUT = env.int("PASSWORD_RESET_TIMEOUT", default=900)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# drf-spectacular (Swagger / OpenAPI)
-# ─────────────────────────────────────────────────────────────────────────────
 SPECTACULAR_SETTINGS = {
     "TITLE": "Elo Terapêutico API",
     "DESCRIPTION": "API REST para gestão de consultórios e clínicas de terapia.",
@@ -171,37 +152,27 @@ SPECTACULAR_SETTINGS = {
     ],
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Criptografia de campos sensíveis (prontuários)
-# ─────────────────────────────────────────────────────────────────────────────
 FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY")
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Internacionalização
-# ─────────────────────────────────────────────────────────────────────────────
 LANGUAGE_CODE = "pt-br"
 TIME_ZONE = "America/Sao_Paulo"
 USE_I18N = True
 USE_TZ = True
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Arquivos estáticos e de mídia
-# ─────────────────────────────────────────────────────────────────────────────
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Azure Blob Storage (documentos e anexos)
-# ─────────────────────────────────────────────────────────────────────────────
-AZURE_STORAGE_CONNECTION_STRING = env("AZURE_STORAGE_CONNECTION_STRING", default="")
+AZURE_STORAGE_CONNECTION_STRING = env(
+    "AZURE_STORAGE_CONNECTION_STRING",
+    default="",
+)
 AZURE_CONTAINER_NAME = env("AZURE_CONTAINER_NAME", default="elo-terapeutico")
 
-# ─────────────────────────────────────────────────────────────────────────────
-# E-mail
-# ─────────────────────────────────────────────────────────────────────────────
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@eloterapeutico.com.br")
+DEFAULT_FROM_EMAIL = env(
+    "DEFAULT_FROM_EMAIL",
+    default="noreply@eloterapeutico.com.br",
+)
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-
 FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:3000")
