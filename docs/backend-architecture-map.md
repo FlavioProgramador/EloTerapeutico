@@ -72,6 +72,7 @@ backend/
 │       ├── api/
 │       │   ├── transaction_viewset.py
 │       │   ├── transaction_payment_actions.py
+│       │   ├── transaction_state_actions.py
 │       │   ├── transaction_list_actions.py
 │       │   └── transaction_report_actions.py
 │       ├── selectors/
@@ -79,6 +80,7 @@ backend/
 │       ├── services/
 │       │   ├── payments.py
 │       │   ├── cancellations.py
+│       │   ├── reversals.py
 │       │   └── exports.py
 │       └── tests/
 ├── core/
@@ -106,9 +108,10 @@ duplicidades, preview e confirmação transacional.
 ### Financeiro
 
 `apps.financeiro.services.payments` registra pagamento e confirma a consulta associada
-na mesma transação. `apps.financeiro.services.exports` produz CSV com proteção contra
-injeção de fórmulas. Cancelamento permanece encapsulado em service para migração
-gradual do endpoint legado.
+na mesma transação. `apps.financeiro.services.cancellations` e
+`apps.financeiro.services.reversals` centralizam cancelamento e estorno com bloqueio de
+linha. `apps.financeiro.services.exports` produz CSV com proteção contra injeção de
+fórmulas.
 
 ### Usuários
 
@@ -139,6 +142,7 @@ formatos utilizados pelo frontend foram preservados.
 - Downloads de anexos validam o vínculo com a evolução e a autorização clínica.
 - Importação CSV é limitada a terapeutas e executada atomicamente.
 - Pagamento e sincronização da consulta são atômicos.
+- Cancelamento e estorno bloqueiam a linha da transação durante a mudança de estado.
 - Recuperação de senha retorna mensagem neutra para evitar enumeração de usuários.
 - Auditoria permanece na borda HTTP e não registra o conteúdo clínico completo.
 
@@ -158,6 +162,3 @@ formatos utilizados pelo frontend foram preservados.
   deve ocorrer em PR isolada após os fluxos críticos permanecerem verdes.
 - Remover wrappers históricos: somente após confirmar que nenhuma migration ou
   integração depende dos caminhos antigos.
-- Reescrever todos os endpoints financeiros de uma vez: pagamento, listagens, resumo e
-  exportação já usam as novas camadas; transições legadas restantes serão migradas de
-  forma incremental para reduzir risco.
