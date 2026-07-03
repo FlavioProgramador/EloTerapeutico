@@ -1,15 +1,5 @@
-"""
-apps/financeiro/urls.py
-Configuração de rotas para o app Financeiro.
-"""
+"""Compatibilidade: rotas movidas para `apps.financeiro.api.urls`."""
 
-from django.urls import include, path
-from rest_framework.routers import DefaultRouter
-from .views import TransactionViewSet
+from .api.urls import urlpatterns
 
-router = DefaultRouter()
-router.register(r"", TransactionViewSet, basename="transaction")
-
-urlpatterns = [
-    path("", include(router.urls)),
-]
+__all__ = ["urlpatterns"]
