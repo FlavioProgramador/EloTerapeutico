@@ -1,6 +1,6 @@
+from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
-from django.conf import settings
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
@@ -15,6 +15,7 @@ api_v1_patterns = [
     path("records/", include("apps.records.urls")),
     path("agenda/", include("apps.agenda.urls")),
     path("financeiro/", include("apps.financeiro.urls")),
+    path("documents/", include("apps.documents.urls")),
 ]
 
 urlpatterns = [
@@ -30,7 +31,7 @@ urlpatterns = [
 
 if settings.DEBUG and "debug_toolbar" in settings.INSTALLED_APPS:
     import debug_toolbar
+
     urlpatterns += [
         path("__debug__/", include(debug_toolbar.urls)),
     ]
-

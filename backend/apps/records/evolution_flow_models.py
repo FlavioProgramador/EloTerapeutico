@@ -17,13 +17,19 @@ class ClinicalEvolutionTemplate(models.Model):
         related_name="clinical_evolution_templates",
     )
     name = models.CharField(max_length=120)
+    description = models.CharField(max_length=300, blank=True)
+    category = models.CharField(max_length=100, blank=True, db_index=True)
+    specialty = models.CharField(max_length=120, blank=True, db_index=True)
     content = EncryptedTextField()
     is_active = models.BooleanField(default=True, db_index=True)
+    sort_order = models.PositiveIntegerField(default=0)
+    usage_count = models.PositiveIntegerField(default=0)
+    archived_at = models.DateTimeField(null=True, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["name"]
+        ordering = ["sort_order", "name"]
         constraints = [
             models.UniqueConstraint(
                 fields=["owner", "name"],

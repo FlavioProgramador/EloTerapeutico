@@ -1,13 +1,74 @@
 """Serializer canônico do fluxo de evoluções clínicas."""
 
+from rest_framework import serializers
+
+from ..evolution_flow_models import ClinicalEvolutionTemplate
 from ..evolution_flow_serializers import (
-    ClinicalEvolutionTemplateSerializer,
     EvolutionAppointmentOptionSerializer,
     EvolutionFlowSerializer as BaseEvolutionFlowSerializer,
 )
+from ..evolution_security import sanitize_clinical_markdown
 from ..services.evolutions import create_evolution, update_evolution
 from .evolution_serializer_fields import EvolutionFlowReadFieldsMixin
 from .evolution_serializer_support import preserve_partial_evolution_content
+
+
+class ClinicalEvolutionTemplateSerializer(serializers.ModelSerializer):
+    owner_name = serializers.CharField(source="owner.full_name", read_only=True)
+    is_system = serializers.SerializerMethodField()
+    content_preview = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ClinicalEvolutionTemplate
+        fields = (
+            "id",
+            "name",
+            "description",
+            "category",
+            "specialty",
+            "content",
+            "content_preview",
+            "owner",
+            "owner_name",
+            "is_system",
+            "is_active",
+            "sort_order",
+            "usage_count",
+            "archived_at",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "owner",
+            "owner_name",
+            "is_system",
+            "usage_count",
+            "archived_at",
+            "created_at",
+            "updated_at",
+        )
+
+    def get_is_system(self, obj):
+        return obj.owner_id is None
+
+    def get_content_preview(self, obj):
+        content = " ".join((obj.content or "").split())
+        return content[:180] + ("…" if len(content) > 180 else "")
+
+    def validate_name(self, value):
+        value = " ".join(value.split()).strip()
+        if len(value) < 2:
+            raise serializers.ValidationError("Informe um nome para o template.")
+        return value
+
+    def validate_content(self, value):
+        value = sanitize_clinical_markdown(value)
+        if not value:
+            raise serializers.ValidationError("O template não pode estar vazio.")
+        if len(value) > 50_000:
+            raise serializers.ValidationError("O template deve possuir no máximo 50.000 caracteres.")
+        return value
 
 
 class EvolutionFlowSerializer(
