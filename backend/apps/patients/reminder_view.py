@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from core.audit import AuditLog, log_access
 
 from .models import Patient
+from .selectors.patients import patients_accessible_to
 
 
 class PatientReminderView(APIView):
@@ -20,9 +21,7 @@ class PatientReminderView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        queryset = Patient.objects.all()
-        if user.is_therapist:
-            queryset = queryset.filter(therapist=user)
+        queryset = patients_accessible_to(user)
         patient = get_object_or_404(queryset, pk=pk)
 
         enabled = request.data.get("enabled")
