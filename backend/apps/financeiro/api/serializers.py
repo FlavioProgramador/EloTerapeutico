@@ -1,158 +1,149 @@
-"""
-apps/financeiro/serializers.py
-Serializers do módulo financeiro para listagem, criação, edição e
-ações especiais (resumo mensal, marcar como pago).
-"""
+"""Serializers públicos do módulo financeiro."""
 
 from decimal import Decimal
+from urllib.parse import urlparse
 
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import FinancialTransaction
+from apps.agenda.models import Appointment
+from apps.patients.models import Patient
+
+from ..models import (
+    Charge,
+    ChargeItem,
+    FinancialAuditLog,
+    FinancialCategory,
+    FinancialTransaction,
+    MonthlySubscription,
+    Payment,
+)
 
 
-# ── Serializer auxiliar de paciente (nested) ─────────────────────────────────
 class _PatientNestedSerializer(serializers.Serializer):
-    """Representação mínima do paciente para leitura em contexto financeiro."""
-
     id = serializers.IntegerField(read_only=True)
     full_name = serializers.CharField(read_only=True)
 
 
-# ── Serializer auxiliar de consulta (nested) ─────────────────────────────────
-class _AppointmentNestedSerializer(serializers.Serializer):
-    """Representação mínima da consulta para leitura em contexto financeiro."""
+class _ProfessionalNestedSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    full_name = serializers.CharField(read_only=True)
 
+
+class _AppointmentNestedSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     start_time = serializers.DateTimeField(read_only=True)
     end_time = serializers.DateTimeField(read_only=True)
+    duration_minutes = serializers.IntegerField(read_only=True)
+    session_value = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 1. TransactionListSerializer – campos resumidos para listagem
-# ─────────────────────────────────────────────────────────────────────────────
-class TransactionListSerializer(serializers.ModelSerializer):
-    """
-    Serializer leve para listagem paginada de transações.
-    Expõe apenas os campos essenciais para exibição em tabelas/cards.
-    """
-
-    transaction_type_display = serializers.CharField(
-        source="get_transaction_type_display", read_only=True
-    )
-    category_display = serializers.CharField(
-        source="get_category_display", read_only=True
-    )
+class PaymentSerializer(serializers.ModelSerializer):
     payment_method_display = serializers.CharField(
         source="get_payment_method_display", read_only=True
     )
-    payment_status_display = serializers.CharField(
-        source="get_payment_status_display", read_only=True
-    )
-    patient_name = serializers.SerializerMethodField()
-    is_overdue = serializers.BooleanField(read_only=True)
 
     class Meta:
-        model = FinancialTransaction
+        model = Payment
         fields = (
             "id",
-            "transaction_type",
-            "transaction_type_display",
-            "category",
-            "category_display",
             "amount",
+            "payment_date",
             "payment_method",
             "payment_method_display",
-            "payment_status",
-            "payment_status_display",
-            "patient_name",
-            "due_date",
-            "paid_at",
-            "is_overdue",
+            "reference",
+            "notes",
             "created_at",
+            "reversed_at",
+            "reversal_reason",
         )
         read_only_fields = fields
 
-    def get_patient_name(self, obj) -> str | None:
-        """Retorna o nome do paciente ou None."""
-        if obj.patient_id:
-            return obj.patient.full_name
-        return None
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 2. TransactionDetailSerializer – todos os campos com nested
-# ─────────────────────────────────────────────────────────────────────────────
-class TransactionDetailSerializer(serializers.ModelSerializer):
-    """
-    Serializer completo para exibição do detalhe de uma transação.
-    Inclui objetos nested de paciente e consulta para evitar IDs soltos.
-    """
-
+class TransactionListSerializer(serializers.ModelSerializer):
     transaction_type_display = serializers.CharField(
         source="get_transaction_type_display", read_only=True
     )
-    category_display = serializers.CharField(
-        source="get_category_display", read_only=True
-    )
+    category_display = serializers.SerializerMethodField()
     payment_method_display = serializers.CharField(
         source="get_payment_method_display", read_only=True
     )
     payment_status_display = serializers.CharField(
         source="get_payment_status_display", read_only=True
     )
-
+    patient_name = serializers.CharField(source="patient.full_name", read_only=True)
+    professional_name = serializers.CharField(source="therapist.full_name", read_only=True)
     is_overdue = serializers.BooleanField(read_only=True)
-
-    # Representações nested (somente leitura)
-    patient_detail = _PatientNestedSerializer(source="patient", read_only=True)
-    appointment_detail = _AppointmentNestedSerializer(
-        source="appointment", read_only=True
-    )
+    paid_amount = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    outstanding_amount = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
     class Meta:
         model = FinancialTransaction
         fields = (
             "id",
-            # Tipo e categoria
             "transaction_type",
             "transaction_type_display",
             "category",
+            "category_ref",
             "category_display",
-            # Valor e pagamento
             "amount",
+            "paid_amount",
+            "outstanding_amount",
             "payment_method",
             "payment_method_display",
             "payment_status",
             "payment_status_display",
-            "is_overdue",
-            # Relacionamentos
             "patient",
-            "patient_detail",
-            "appointment",
-            "appointment_detail",
-            # Datas
+            "patient_name",
+            "professional_name",
+            "beneficiary",
             "due_date",
             "paid_at",
-            # Extras
+            "is_overdue",
+            "source",
             "description",
-            "receipt_url",
-            # Auditoria
+            "is_recurring",
             "created_at",
             "updated_at",
         )
         read_only_fields = fields
 
+    def get_category_display(self, obj) -> str:
+        return obj.category_ref.name if obj.category_ref_id else obj.get_category_display()
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 3. TransactionCreateUpdateSerializer – criação e edição
-# ─────────────────────────────────────────────────────────────────────────────
+
+class TransactionDetailSerializer(TransactionListSerializer):
+    patient_detail = _PatientNestedSerializer(source="patient", read_only=True)
+    appointment_detail = _AppointmentNestedSerializer(source="appointment", read_only=True)
+    payments = PaymentSerializer(many=True, read_only=True)
+
+    class Meta(TransactionListSerializer.Meta):
+        fields = TransactionListSerializer.Meta.fields + (
+            "appointment",
+            "patient_detail",
+            "appointment_detail",
+            "payment_link",
+            "notes",
+            "receipt_url",
+            "payments",
+            "canceled_at",
+            "deleted_at",
+        )
+
+
+def _validate_https_url(value: str) -> str:
+    if not value:
+        return value
+    parsed = urlparse(value)
+    if parsed.scheme != "https" or not parsed.netloc:
+        raise serializers.ValidationError("Informe uma URL HTTPS válida.")
+    return value
+
+
 class TransactionCreateUpdateSerializer(serializers.ModelSerializer):
-    """
-    Serializer para criação (POST) e edição (PUT/PATCH) de transações.
-    O campo 'therapist' é preenchido automaticamente com request.user.
-    """
+    mark_as_paid = serializers.BooleanField(write_only=True, required=False, default=False)
+    payment_date = serializers.DateTimeField(write_only=True, required=False, allow_null=True)
 
     class Meta:
         model = FinancialTransaction
@@ -162,126 +153,377 @@ class TransactionCreateUpdateSerializer(serializers.ModelSerializer):
             "appointment",
             "transaction_type",
             "category",
+            "category_ref",
             "amount",
             "payment_method",
             "payment_status",
             "due_date",
             "paid_at",
+            "payment_date",
             "description",
+            "notes",
+            "beneficiary",
+            "payment_link",
             "receipt_url",
+            "source",
+            "is_recurring",
+            "mark_as_paid",
         )
-        read_only_fields = ("id",)
+        read_only_fields = ("id", "source", "payment_status", "paid_at")
+        extra_kwargs = {
+            "description": {"required": True, "allow_blank": False, "max_length": 500},
+        }
 
-    # ── Validações ────────────────────────────────────────────────────────────
     def validate_amount(self, value: Decimal) -> Decimal:
-        """Garante que o valor da transação seja positivo."""
         if value <= 0:
-            raise serializers.ValidationError(
-                "O valor da transação deve ser maior que zero."
-            )
+            raise serializers.ValidationError("O valor deve ser maior que zero.")
         return value
 
-    def validate(self, attrs: dict) -> dict:
-        """
-        Validação cruzada:
-        - Se payment_status='paid', paid_at deve estar preenchido.
-        - Garante que o appointment pertence ao mesmo terapeuta.
-        """
+    def validate_payment_link(self, value: str) -> str:
+        return _validate_https_url(value)
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        user = request.user
+        patient = attrs.get("patient", getattr(self.instance, "patient", None))
+        appointment = attrs.get("appointment", getattr(self.instance, "appointment", None))
+        category_ref = attrs.get("category_ref", getattr(self.instance, "category_ref", None))
+
+        if patient and patient.therapist_id != user.pk and not (
+            user.is_admin_role or user.is_secretary
+        ):
+            raise serializers.ValidationError(
+                {"patient": "Este paciente não pertence ao seu cadastro."}
+            )
+        if appointment and appointment.therapist_id != user.pk and not (
+            user.is_admin_role or user.is_secretary
+        ):
+            raise serializers.ValidationError(
+                {"appointment": "Esta sessão não pertence ao seu cadastro."}
+            )
+        if category_ref and category_ref.therapist_id != user.pk and not (
+            user.is_admin_role or user.is_secretary
+        ):
+            raise serializers.ValidationError(
+                {"category_ref": "Esta categoria não está disponível para este usuário."}
+            )
+        if appointment and patient and appointment.patient_id != patient.pk:
+            raise serializers.ValidationError(
+                {"appointment": "A sessão selecionada não pertence ao paciente informado."}
+            )
+
+        mark_as_paid = attrs.pop("mark_as_paid", False)
+        payment_date = attrs.pop("payment_date", None)
         status = attrs.get(
             "payment_status",
-            getattr(self.instance, "payment_status", None),
+            getattr(self.instance, "payment_status", FinancialTransaction.PaymentStatus.PENDING),
         )
-        paid_at = attrs.get(
-            "paid_at",
-            getattr(self.instance, "paid_at", None),
-        )
-
-        if status == FinancialTransaction.PaymentStatus.PAID and not paid_at:
-            # Se marcando como pago sem informar paid_at, seta automaticamente
+        if mark_as_paid:
+            attrs["payment_status"] = FinancialTransaction.PaymentStatus.PAID
+            attrs["paid_at"] = payment_date or timezone.now()
+        elif status == FinancialTransaction.PaymentStatus.PAID and not attrs.get(
+            "paid_at", getattr(self.instance, "paid_at", None)
+        ):
             attrs["paid_at"] = timezone.now()
-
-        # Valida que o appointment pertence ao terapeuta autenticado
-        appointment = attrs.get("appointment")
-        if appointment:
-            request = self.context.get("request")
-            if request and appointment.therapist_id != request.user.pk:
-                raise serializers.ValidationError(
-                    {"appointment": "Esta consulta não pertence ao seu cadastro."}
-                )
-
-        # Valida que o patient pertence ao terapeuta autenticado
-        patient = attrs.get("patient")
-        if patient:
-            request = self.context.get("request")
-            if request and patient.therapist_id != request.user.pk:
-                raise serializers.ValidationError(
-                    {"patient": "Este paciente não pertence ao seu cadastro."}
-                )
-
+        if attrs.get("paid_at") and attrs["paid_at"] > timezone.now():
+            raise serializers.ValidationError(
+                {"paid_at": "A data de pagamento não pode estar no futuro."}
+            )
         return attrs
 
-    def create(self, validated_data: dict) -> FinancialTransaction:
-        """Associa automaticamente o terapeuta ao usuário autenticado."""
+    def create(self, validated_data):
+        actor = self.context["request"].user
+        validated_data.update(therapist=actor, created_by=actor, updated_by=actor)
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        validated_data["updated_by"] = self.context["request"].user
+        return super().update(instance, validated_data)
+
+
+class MarkAsPaidSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
+    payment_method = serializers.ChoiceField(
+        choices=FinancialTransaction.PaymentMethod.choices,
+        required=False,
+        default=FinancialTransaction.PaymentMethod.PIX,
+    )
+    paid_at = serializers.DateTimeField(required=False, allow_null=True)
+    reference = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    notes = serializers.CharField(required=False, allow_blank=True, max_length=500)
+
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("O valor deve ser maior que zero.")
+        return value
+
+    def validate_paid_at(self, value):
+        if value and value > timezone.now():
+            raise serializers.ValidationError("A data de pagamento não pode estar no futuro.")
+        return value
+
+
+class ReversePaymentSerializer(serializers.Serializer):
+    reason = serializers.CharField(min_length=3, max_length=255)
+
+
+class FinancialSummarySerializer(serializers.Serializer):
+    year = serializers.IntegerField(required=False)
+    month = serializers.IntegerField(required=False)
+    start_date = serializers.DateField()
+    end_date = serializers.DateField()
+    received_period = serializers.DecimalField(max_digits=14, decimal_places=2)
+    received_count = serializers.IntegerField()
+    paid_expenses = serializers.DecimalField(max_digits=14, decimal_places=2)
+    paid_expenses_count = serializers.IntegerField()
+    receivable_total = serializers.DecimalField(max_digits=14, decimal_places=2)
+    receivable_count = serializers.IntegerField()
+    payable_total = serializers.DecimalField(max_digits=14, decimal_places=2)
+    payable_count = serializers.IntegerField()
+    overdue_total = serializers.DecimalField(max_digits=14, decimal_places=2)
+    overdue_receivable_count = serializers.IntegerField()
+    overdue_payable_count = serializers.IntegerField()
+    projected_balance = serializers.DecimalField(max_digits=14, decimal_places=2)
+    total_income = serializers.DecimalField(max_digits=14, decimal_places=2)
+    total_expense = serializers.DecimalField(max_digits=14, decimal_places=2)
+    balance = serializers.DecimalField(max_digits=14, decimal_places=2)
+    total_pending = serializers.DecimalField(max_digits=14, decimal_places=2)
+    transaction_count = serializers.IntegerField()
+
+
+MonthlySummarySerializer = FinancialSummarySerializer
+
+
+class FinancialCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FinancialCategory
+        fields = ("id", "name", "category_type", "color", "active", "created_at")
+        read_only_fields = ("id", "created_at")
+
+    def create(self, validated_data):
         validated_data["therapist"] = self.context["request"].user
         return super().create(validated_data)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 4. MonthlySummarySerializer – resumo mensal
-# ─────────────────────────────────────────────────────────────────────────────
-class MonthlySummarySerializer(serializers.Serializer):
-    """
-    Serializer de saída para o endpoint GET /financeiro/summary/.
-    Descreve o resumo financeiro de um mês específico.
-    """
-
-    year = serializers.IntegerField(read_only=True)
-    month = serializers.IntegerField(read_only=True)
-    total_income = serializers.DecimalField(
-        max_digits=12, decimal_places=2, read_only=True
-    )
-    total_expense = serializers.DecimalField(
-        max_digits=12, decimal_places=2, read_only=True
-    )
-    balance = serializers.DecimalField(
-        max_digits=12, decimal_places=2, read_only=True
-    )
-    total_pending = serializers.DecimalField(
-        max_digits=12, decimal_places=2, read_only=True
-    )
-    transaction_count = serializers.IntegerField(read_only=True)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 5. MarkAsPaidSerializer – apenas paid_at e payment_method
-# ─────────────────────────────────────────────────────────────────────────────
-class MarkAsPaidSerializer(serializers.ModelSerializer):
-    """
-    Serializer para a ação PATCH /financeiro/{id}/pay/.
-    Permite informar apenas o método de pagamento e, opcionalmente,
-    a data/hora do pagamento (padrão: agora).
-    """
-
-    paid_at = serializers.DateTimeField(
-        required=False,
-        allow_null=True,
-        help_text="Data/hora do pagamento. Se omitido, usa o momento atual.",
-    )
+class EligibleAppointmentSerializer(serializers.ModelSerializer):
+    patient_name = serializers.CharField(source="patient.full_name", read_only=True)
+    professional_name = serializers.CharField(source="therapist.full_name", read_only=True)
 
     class Meta:
-        model = FinancialTransaction
-        fields = ("payment_method", "paid_at")
+        model = Appointment
+        fields = (
+            "id",
+            "patient",
+            "patient_name",
+            "professional_name",
+            "start_time",
+            "end_time",
+            "duration_minutes",
+            "session_value",
+        )
+        read_only_fields = fields
 
-    def validate_paid_at(self, value):
-        """Não permite data de pagamento no futuro."""
-        if value and value > timezone.now():
+
+class ChargeItemSerializer(serializers.ModelSerializer):
+    appointment_detail = EligibleAppointmentSerializer(source="appointment", read_only=True)
+
+    class Meta:
+        model = ChargeItem
+        fields = (
+            "id",
+            "appointment",
+            "appointment_detail",
+            "description",
+            "quantity",
+            "unit_amount",
+            "total_amount",
+        )
+        read_only_fields = fields
+
+
+class ChargeListSerializer(serializers.ModelSerializer):
+    patient_name = serializers.CharField(source="patient.full_name", read_only=True)
+    professional_name = serializers.CharField(source="professional.full_name", read_only=True)
+    amount = serializers.DecimalField(source="transaction.amount", max_digits=12, decimal_places=2, read_only=True)
+    due_date = serializers.DateField(source="transaction.due_date", read_only=True)
+    payment_status = serializers.CharField(source="transaction.payment_status", read_only=True)
+    description = serializers.CharField(source="transaction.description", read_only=True)
+    items_count = serializers.IntegerField(source="items.count", read_only=True)
+
+    class Meta:
+        model = Charge
+        fields = (
+            "id",
+            "patient",
+            "patient_name",
+            "professional",
+            "professional_name",
+            "transaction",
+            "description",
+            "amount",
+            "due_date",
+            "payment_status",
+            "reference_month",
+            "whatsapp_status",
+            "items_count",
+            "created_at",
+        )
+        read_only_fields = fields
+
+
+class ChargeDetailSerializer(ChargeListSerializer):
+    transaction_detail = TransactionDetailSerializer(source="transaction", read_only=True)
+    items = ChargeItemSerializer(many=True, read_only=True)
+
+    class Meta(ChargeListSerializer.Meta):
+        fields = ChargeListSerializer.Meta.fields + ("transaction_detail", "items")
+
+
+class ChargeCreateSerializer(serializers.Serializer):
+    patient = serializers.PrimaryKeyRelatedField(queryset=Patient.objects.all())
+    professional = serializers.PrimaryKeyRelatedField(
+        queryset=get_user_model().objects.filter(role="therapist", is_active=True),
+        required=False,
+        allow_null=True,
+    )
+    appointment_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1), min_length=1
+    )
+    due_date = serializers.DateField()
+    description = serializers.CharField(required=False, allow_blank=True, max_length=500)
+    payment_link = serializers.CharField(required=False, allow_blank=True, max_length=500)
+    notes = serializers.CharField(required=False, allow_blank=True, max_length=1000)
+    send_whatsapp = serializers.BooleanField(required=False, default=False)
+
+    def validate_payment_link(self, value):
+        return _validate_https_url(value)
+
+    def validate(self, attrs):
+        user = self.context["request"].user
+        patient = attrs["patient"]
+        professional = attrs.get("professional") or patient.therapist
+        attrs["professional"] = professional
+        if patient.therapist_id != professional.pk:
             raise serializers.ValidationError(
-                "A data de pagamento não pode ser no futuro."
+                {"professional": "O profissional não é responsável pelo paciente selecionado."}
             )
+        if not (user.is_admin_role or user.is_secretary or user.pk == professional.pk):
+            raise serializers.ValidationError("Você não pode criar cobranças para este profissional.")
+        return attrs
+
+
+class GenerateMonthlyChargesSerializer(serializers.Serializer):
+    year = serializers.IntegerField(min_value=2020, max_value=2100)
+    month = serializers.IntegerField(min_value=1, max_value=12)
+    due_date = serializers.DateField()
+    appointment_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1), required=False, allow_empty=True
+    )
+
+
+class MonthlySubscriptionSerializer(serializers.ModelSerializer):
+    patient_name = serializers.CharField(source="patient.full_name", read_only=True)
+    professional_name = serializers.CharField(source="professional.full_name", read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    frequency_display = serializers.CharField(source="get_frequency_display", read_only=True)
+
+    class Meta:
+        model = MonthlySubscription
+        fields = (
+            "id",
+            "patient",
+            "patient_name",
+            "professional",
+            "professional_name",
+            "amount",
+            "status",
+            "status_display",
+            "frequency",
+            "frequency_display",
+            "weekday",
+            "time",
+            "duration_minutes",
+            "first_appointment_date",
+            "billing_day",
+            "first_charge_due_date",
+            "payment_method",
+            "payment_link",
+            "whatsapp_reminder_days",
+            "start_date",
+            "end_date",
+            "next_appointment_date",
+            "next_charge_due_date",
+            "generated_until",
+            "notes",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "status",
+            "next_appointment_date",
+            "next_charge_due_date",
+            "generated_until",
+            "created_at",
+            "updated_at",
+        )
+        extra_kwargs = {"professional": {"required": False, "allow_null": True}}
+
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("O valor deve ser maior que zero.")
         return value
 
-    def validate(self, attrs: dict) -> dict:
-        """Garante que paid_at seja preenchido, usando agora() como fallback."""
-        if not attrs.get("paid_at"):
-            attrs["paid_at"] = timezone.now()
+    def validate_billing_day(self, value):
+        if not 1 <= value <= 28:
+            raise serializers.ValidationError("Use um dia entre 1 e 28.")
+        return value
+
+    def validate_payment_link(self, value):
+        return _validate_https_url(value)
+
+    def validate(self, attrs):
+        patient = attrs.get("patient", getattr(self.instance, "patient", None))
+        professional = attrs.get(
+            "professional", getattr(self.instance, "professional", None)
+        )
+        if patient and professional is None:
+            professional = patient.therapist
+            attrs["professional"] = professional
+        request = self.context["request"]
+        if patient and professional and patient.therapist_id != professional.pk:
+            raise serializers.ValidationError(
+                {"professional": "O profissional não é responsável por este paciente."}
+            )
+        if professional and not (
+            request.user.is_admin_role
+            or request.user.is_secretary
+            or request.user.pk == professional.pk
+        ):
+            raise serializers.ValidationError("Profissional fora do seu escopo de acesso.")
+        first_date = attrs.get(
+            "first_appointment_date",
+            getattr(self.instance, "first_appointment_date", None),
+        )
+        if first_date and first_date < timezone.localdate():
+            raise serializers.ValidationError(
+                {"first_appointment_date": "A primeira data não pode estar no passado."}
+            )
         return attrs
+
+
+class FinancialAuditLogSerializer(serializers.ModelSerializer):
+    actor_name = serializers.CharField(source="actor.full_name", read_only=True)
+
+    class Meta:
+        model = FinancialAuditLog
+        fields = (
+            "id",
+            "actor_name",
+            "action",
+            "entity_type",
+            "entity_id",
+            "metadata",
+            "created_at",
+        )
+        read_only_fields = fields
