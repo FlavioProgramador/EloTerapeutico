@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from ..selectors.patients import patients_accessible_to
 from .dashboard_actions import PatientDashboardActions
-from .dashboard_queries import annotate_dashboard
+from .dashboard_queries import annotate_dashboard, annotate_essential
 from .export_actions import PatientExportActions
 from .form_serializers import PatientFormSerializer
 from .list_serializers import PatientReferenceListSerializer
@@ -26,6 +26,12 @@ class PatientDashboardViewSet(
             self.request.user,
             include_deleted=include_deleted,
         )
+
+        # Otimização: Aplicar anotações pesadas apenas quando necessário.
+        # A listagem e exportação usam apenas anotações essenciais.
+        if self.action in ["list", "export_csv"]:
+            return annotate_essential(queryset.order_by("full_name"))
+
         return annotate_dashboard(queryset.order_by("full_name"))
 
     def get_serializer_class(self):
