@@ -101,6 +101,7 @@ export function PatientBrowserReference() {
         <PatientListEmpty
           onAction={filtered ? clearAll : goToNew}
           label={filtered ? "Limpar pesquisa e filtros" : "Novo paciente"}
+          isFiltered={filtered}
         />
       ) : (
         <PatientTable
