@@ -48,6 +48,7 @@ export function FinanceiroTransactionModal({ open, mode, patients, onClose }: Pr
         payment_method: "pix",
         description: "",
         patient: undefined,
+        appointment: undefined,
         notes: "",
       });
     }
@@ -59,6 +60,7 @@ export function FinanceiroTransactionModal({ open, mode, patients, onClose }: Pr
         ...data,
         amount: Number(data.amount.replace(",", ".")),
         patient: data.patient ? Number(data.patient) : undefined,
+        appointment: data.appointment ? Number(data.appointment) : undefined,
         payment_date: data.status === "paid" ? data.payment_date || today : undefined,
       },
       { onSuccess: onClose },
