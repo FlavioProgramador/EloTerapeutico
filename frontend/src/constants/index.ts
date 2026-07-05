@@ -3,37 +3,26 @@
  * Centraliza strings reutilizadas para evitar magic strings espalhadas pelo código.
  */
 
-// ─── Query Keys (TanStack Query) ─────────────────────────────────────────────
-// Usa objetos para garantir tipagem e facilitar invalidação por prefixo.
-
 export const QUERY_KEYS = {
-  // Auth
   me: ["auth", "me"] as const,
-
-  // Patients
   patients: ["patients"] as const,
   patient: (id: number | undefined) => ["patients", id] as const,
-
-  // Agenda
   appointments: ["appointments"] as const,
   appointmentsByDate: (date: string) => ["appointments", "date", date] as const,
   appointment: (id: number) => ["appointments", id] as const,
-
-  // Records
   records: ["records"] as const,
   recordsByPatient: (patientId: number) =>
     ["records", "patient", patientId] as const,
   record: (id: number) => ["records", id] as const,
   anamnesis: (patientId: number) => ["records", "anamnesis", patientId] as const,
-
-
-  // Financeiro
   transactions: ["transactions"] as const,
   transactionsSummary: ["transactions", "summary"] as const,
   transaction: (id: number) => ["transactions", id] as const,
+  documentTemplates: ["documents", "templates"] as const,
+  generatedDocuments: ["documents", "generated"] as const,
+  documentLibrary: ["documents", "library"] as const,
+  evolutionTemplates: ["documents", "evolution-templates"] as const,
 } as const;
-
-// ─── Status Labels ────────────────────────────────────────────────────────────
 
 export const PATIENT_STATUS_LABELS: Record<string, string> = {
   active: "Ativo",
@@ -68,8 +57,6 @@ export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   boleto: "Boleto",
 };
 
-// ─── Rotas ────────────────────────────────────────────────────────────────────
-
 export const ROUTES = {
   home: "/",
   login: "/login",
@@ -79,9 +66,8 @@ export const ROUTES = {
   agenda: "/dashboard/agenda",
   records: "/dashboard/records",
   financeiro: "/dashboard/financeiro",
+  documents: "/dashboard/documentos",
 } as const;
-
-// ─── Roles ────────────────────────────────────────────────────────────────────
 
 export const ROLE_LABELS: Record<string, string> = {
   therapist: "Terapeuta",

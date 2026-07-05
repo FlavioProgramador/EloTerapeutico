@@ -42,6 +42,7 @@ LOCAL_APPS = [
     "apps.records",
     "apps.agenda",
     "apps.financeiro",
+    "apps.documents",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -150,6 +151,7 @@ SPECTACULAR_SETTINGS = {
         {"name": "records", "description": "Prontuário eletrônico e evoluções"},
         {"name": "agenda", "description": "Agendamentos e consultas"},
         {"name": "financeiro", "description": "Financeiro e pagamentos"},
+        {"name": "documents", "description": "Templates e documentos gerados"},
     ],
 }
 
@@ -181,3 +183,8 @@ DEFAULT_FROM_EMAIL = env(
 )
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:3000")
+
+# Identificação opcional usada somente na renderização de documentos.
+DOCUMENT_CLINIC_NAME = env("DOCUMENT_CLINIC_NAME", default="Elo Terapêutico")
+DOCUMENT_CLINIC_ADDRESS = env("DOCUMENT_CLINIC_ADDRESS", default="")
+DOCUMENT_CLINIC_PHONE = env("DOCUMENT_CLINIC_PHONE", default="")

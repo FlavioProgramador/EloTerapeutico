@@ -8,8 +8,8 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
-  ClipboardList,
   DollarSign,
+  FileText,
   Home,
   LogOut,
   MessageSquare,
@@ -29,10 +29,21 @@ export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
-  const menuItems: Array<{ name: string; href: string; icon: any; roles?: string[] }> = [
+  const menuItems: Array<{
+    name: string;
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+    roles?: string[];
+  }> = [
     { name: "Visão geral", href: "/dashboard", icon: Home },
     { name: "Agenda", href: "/dashboard/agenda", icon: Calendar },
     { name: "Pacientes", href: "/dashboard/patients", icon: Users },
+    {
+      name: "Documentos",
+      href: "/dashboard/documentos",
+      icon: FileText,
+      roles: ["therapist", "admin"],
+    },
     { name: "Financeiro", href: "/dashboard/financeiro", icon: DollarSign },
     { name: "Relatórios", href: "#", icon: BarChart2 },
     { name: "Comunicações", href: "#", icon: MessageSquare },
