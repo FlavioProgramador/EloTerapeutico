@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from django.core.files.storage import default_storage
 from django.test import override_settings
@@ -63,7 +63,7 @@ class DocumentModuleApiTests(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("content", response.data)
+        self.assertIn("content", response.data["error"]["details"])
 
     def test_does_not_allow_generating_for_another_therapists_patient(self):
         response = self.client.post(
@@ -75,7 +75,7 @@ class DocumentModuleApiTests(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("patient_id", response.data)
+        self.assertIn("patient_id", response.data["error"]["details"])
 
     def test_creation_is_idempotent_and_stores_snapshot(self):
         payload = {
