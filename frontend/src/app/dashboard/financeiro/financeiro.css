@@ -1,0 +1,188 @@
+.financeiro-shell {
+  --finance-panel: color-mix(in srgb, hsl(var(--card)) 94%, transparent);
+  --finance-border: color-mix(in srgb, hsl(var(--border)) 84%, transparent);
+  isolation: isolate;
+}
+
+.financeiro-shell > .space-y-6 {
+  gap: 1rem;
+  padding-bottom: 2.5rem;
+}
+
+.financeiro-shell > .space-y-6 > :first-child {
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.financeiro-shell > .space-y-6 > :first-child h1 {
+  font-size: 0;
+  line-height: 1;
+}
+
+.financeiro-shell > .space-y-6 > :first-child h1::before {
+  content: "Financeiro";
+  font-size: 1.5rem;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+}
+
+.financeiro-shell > .space-y-6 > :first-child h1 + p {
+  max-width: 36rem;
+  font-size: 0;
+}
+
+.financeiro-shell > .space-y-6 > :first-child h1 + p::before {
+  content: "Controle financeiro da clínica";
+  font-size: 0.875rem;
+}
+
+.financeiro-shell > .space-y-6 > :first-child > div:last-child {
+  gap: 0.5rem;
+}
+
+.financeiro-shell > .space-y-6 > :first-child button,
+.financeiro-shell > .space-y-6 > :first-child [role="button"] {
+  min-height: 2.5rem;
+  border-radius: 0.5rem;
+}
+
+.financeiro-shell > .space-y-6 > .grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4 {
+  gap: 0.75rem;
+}
+
+.financeiro-shell > .space-y-6 > .grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4 > * {
+  min-height: 8rem;
+  overflow: hidden;
+  border-color: var(--finance-border);
+  border-radius: 0.75rem;
+  background: var(--finance-panel);
+  box-shadow: none;
+}
+
+.financeiro-shell > .space-y-6 > .grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4 > * > div {
+  padding: 1.25rem;
+}
+
+.financeiro-shell > .space-y-6 > .grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4 span[class*="uppercase"] {
+  color: hsl(var(--foreground));
+  font-size: 0.75rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.financeiro-shell > .space-y-6 > .grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4 h3 {
+  margin-top: 0.35rem;
+  font-family: inherit;
+  font-size: 1.35rem;
+}
+
+.financeiro-shell > .space-y-6 > .grid.grid-cols-1.md\:grid-cols-2.gap-6 {
+  display: none;
+}
+
+.financeiro-shell [class*="border-amber-500/20"][class*="bg-amber-500/5"] {
+  border-radius: 0.75rem;
+  box-shadow: none;
+}
+
+.financeiro-shell .border-border\/80.bg-card.shadow-xs.p-4 {
+  padding: 1rem;
+  border-color: var(--finance-border);
+  border-radius: 0.75rem;
+  background: var(--finance-panel);
+  box-shadow: none;
+}
+
+.financeiro-shell .border-border\/80.bg-card.shadow-xs.p-4 > div {
+  gap: 0.5rem;
+}
+
+.financeiro-shell select {
+  min-height: 2.5rem;
+  border-color: var(--finance-border) !important;
+  border-radius: 0.5rem !important;
+  background: hsl(var(--background)) !important;
+}
+
+.financeiro-shell table {
+  overflow: hidden;
+  border: 1px solid var(--finance-border);
+  border-radius: 0.75rem;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--finance-panel);
+}
+
+.financeiro-shell thead {
+  background: color-mix(in srgb, hsl(var(--muted)) 42%, transparent);
+}
+
+.financeiro-shell th {
+  height: 2.75rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.financeiro-shell th,
+.financeiro-shell td {
+  padding-inline: 1rem;
+  border-color: var(--finance-border);
+}
+
+.financeiro-shell tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.financeiro-shell tbody tr:hover {
+  background: color-mix(in srgb, hsl(var(--muted)) 32%, transparent);
+}
+
+.financeiro-shell tbody button {
+  border-radius: 0.45rem;
+}
+
+.financeiro-shell .fixed.inset-0.z-50 > div:last-child {
+  border-color: var(--finance-border);
+  border-radius: 0.9rem;
+  background: hsl(var(--background));
+  box-shadow: 0 24px 70px rgb(0 0 0 / 0.34);
+}
+
+.financeiro-shell .fixed.inset-0.z-50 > div:last-child > div:first-child {
+  padding: 1.25rem 1.5rem;
+  border-color: var(--finance-border);
+}
+
+.financeiro-shell .fixed.inset-0.z-50 > div:last-child > div:last-child {
+  padding: 1.5rem;
+}
+
+.financeiro-shell .fixed.inset-0.z-50 input,
+.financeiro-shell .fixed.inset-0.z-50 textarea,
+.financeiro-shell .fixed.inset-0.z-50 select {
+  border-color: var(--finance-border);
+  background: hsl(var(--background));
+}
+
+@media (min-width: 1280px) {
+  .financeiro-shell > .space-y-6 > .grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .financeiro-shell > .space-y-6 > :first-child > div:last-child {
+    width: 100%;
+  }
+
+  .financeiro-shell > .space-y-6 > :first-child > div:last-child > * {
+    flex: 1 1 auto;
+  }
+
+  .financeiro-shell table {
+    min-width: 760px;
+  }
+}
