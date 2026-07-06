@@ -1,1 +1,169 @@
-.value-section{position:relative;padding:8rem 1.25rem;border-block:1px solid hsl(var(--border)/.6);background:linear-gradient(180deg,hsl(var(--secondary)/.18),transparent 30%,transparent 70%,hsl(var(--secondary)/.16))}.value-section__inner{max-width:80rem;margin:auto}.value-section__heading{display:grid;grid-template-columns:minmax(0,1fr) minmax(20rem,.72fr);gap:3rem;align-items:end;margin-bottom:3.5rem}.value-section__heading h2{margin:1.3rem 0 0;font-size:clamp(2.4rem,5vw,4.2rem);line-height:1.05;letter-spacing:-.045em}.value-section__heading p{margin:0;color:hsl(var(--muted-foreground));line-height:1.8}.value-comparison{position:relative;display:grid;grid-template-columns:1fr 5rem 1fr;gap:0;align-items:stretch}.value-comparison__side{border:1px solid hsl(var(--border));padding:2rem;min-height:22rem}.value-comparison__side--manual{border-radius:1.5rem 0 0 1.5rem;background:hsl(var(--card)/.55)}.value-comparison__side--connected{border-radius:0 1.5rem 1.5rem 0;background:linear-gradient(145deg,hsl(var(--card)),hsl(var(--accent)/.07));box-shadow:0 28px 70px rgba(0,0,0,.22)}.value-comparison__label{display:inline-flex;border-radius:999px;padding:.38rem .65rem;background:hsl(var(--secondary));color:hsl(var(--muted-foreground));font-size:.62rem;font-weight:850;letter-spacing:.09em;text-transform:uppercase}.value-comparison__side--connected .value-comparison__label{background:hsl(var(--accent)/.1);color:hsl(var(--accent))}.value-comparison__side h3{margin:1.2rem 0 1.5rem;font-size:1.7rem}.value-comparison__side ul{display:grid;gap:.85rem;margin:0;padding:0;list-style:none}.value-comparison__side li{display:flex;align-items:flex-start;gap:.6rem;color:hsl(var(--muted-foreground));font-size:.82rem;line-height:1.6}.value-comparison__side li svg{flex:none;width:1rem;height:1rem;margin-top:.18rem}.value-comparison__side--manual li svg{color:hsl(0 60% 58%)}.value-comparison__side--connected li svg{color:hsl(var(--accent))}.value-comparison__bridge{display:grid;place-items:center;border-block:1px solid hsl(var(--border));background:hsl(var(--background)/.55)}.value-comparison__bridge span{display:grid;place-items:center;width:3rem;height:3rem;border:1px solid hsl(var(--accent)/.28);border-radius:50%;background:hsl(var(--background));color:hsl(var(--accent));box-shadow:0 0 28px hsl(var(--accent)/.12)}.value-comparison__bridge svg{width:1.1rem;height:1.1rem}.value-numbers{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1rem}.value-numbers article{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:.75rem;border:1px solid hsl(var(--border));border-radius:1rem;background:hsl(var(--card)/.52);padding:1rem 1.2rem}.value-numbers svg{width:1rem;height:1rem;color:hsl(var(--accent))}.value-numbers strong{font-size:1.45rem}.value-numbers span{color:hsl(var(--muted-foreground));font-size:.68rem;line-height:1.5}
+.value-section {
+    position: relative;
+    padding: 8rem 1.25rem;
+    border-block: 1px solid hsl(var(--border)/.6);
+    background: linear-gradient(180deg, hsl(var(--secondary)/.18), transparent 30%, transparent 70%, hsl(var(--secondary)/.16))
+}
+
+.value-section__inner {
+    max-width: 80rem;
+    margin: auto
+}
+
+.value-section__heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, .72fr);
+    gap: 3rem;
+    align-items: end;
+    margin-bottom: 3.5rem
+}
+
+.value-section__heading h2 {
+    margin: 1.3rem 0 0;
+    font-size: clamp(2.4rem, 5vw, 4.2rem);
+    line-height: 1.05;
+    letter-spacing: -.045em
+}
+
+.value-section__heading p {
+    margin: 0;
+    color: hsl(var(--muted-foreground));
+    line-height: 1.8
+}
+
+.value-comparison {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 5rem 1fr;
+    gap: 0;
+    align-items: stretch
+}
+
+.value-comparison__side {
+    border: 1px solid hsl(var(--border));
+    padding: 2rem;
+    min-height: 22rem
+}
+
+.value-comparison__side--manual {
+    border-radius: 1.5rem 0 0 1.5rem;
+    background: hsl(var(--card)/.55)
+}
+
+.value-comparison__side--connected {
+    border-radius: 0 1.5rem 1.5rem 0;
+    background: linear-gradient(145deg, hsl(var(--card)), hsl(var(--accent)/.07));
+    box-shadow: 0 28px 70px rgba(0, 0, 0, .22)
+}
+
+.value-comparison__label {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: .38rem .65rem;
+    background: hsl(var(--secondary));
+    color: hsl(var(--muted-foreground));
+    font-size: .62rem;
+    font-weight: 850;
+    letter-spacing: .09em;
+    text-transform: uppercase
+}
+
+.value-comparison__side--connected .value-comparison__label {
+    background: hsl(var(--accent)/.1);
+    color: hsl(var(--accent))
+}
+
+.value-comparison__side h3 {
+    margin: 1.2rem 0 1.5rem;
+    font-size: 1.7rem
+}
+
+.value-comparison__side ul {
+    display: grid;
+    gap: .85rem;
+    margin: 0;
+    padding: 0;
+    list-style: none
+}
+
+.value-comparison__side li {
+    display: flex;
+    align-items: flex-start;
+    gap: .6rem;
+    color: hsl(var(--muted-foreground));
+    font-size: .82rem;
+    line-height: 1.6
+}
+
+.value-comparison__side li svg {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+    margin-top: .18rem
+}
+
+.value-comparison__side--manual li svg {
+    color: hsl(0 60% 58%)
+}
+
+.value-comparison__side--connected li svg {
+    color: hsl(var(--accent))
+}
+
+.value-comparison__bridge {
+    display: grid;
+    place-items: center;
+    border-block: 1px solid hsl(var(--border));
+    background: hsl(var(--background)/.55)
+}
+
+.value-comparison__bridge span {
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    border: 1px solid hsl(var(--accent)/.28);
+    border-radius: 50%;
+    background: hsl(var(--background));
+    color: hsl(var(--accent));
+    box-shadow: 0 0 28px hsl(var(--accent)/.12)
+}
+
+.value-comparison__bridge svg {
+    width: 1.1rem;
+    height: 1.1rem
+}
+
+.value-numbers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 1rem
+}
+
+.value-numbers article {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    align-items: center;
+    gap: .75rem;
+    border: 1px solid hsl(var(--border));
+    border-radius: 1rem;
+    background: hsl(var(--card)/.52);
+    padding: 1rem 1.2rem
+}
+
+.value-numbers svg {
+    width: 1rem;
+    height: 1rem;
+    color: hsl(var(--accent))
+}
+
+.value-numbers strong {
+    font-size: 1.45rem
+}
+
+.value-numbers span {
+    color: hsl(var(--muted-foreground));
+    font-size: .68rem;
+    line-height: 1.5
+}
