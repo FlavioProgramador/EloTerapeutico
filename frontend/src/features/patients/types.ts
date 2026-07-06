@@ -1,1 +1,1 @@
-export type PatientStatus = "active";
+export type PatientStatus = "active" | "inactive";
