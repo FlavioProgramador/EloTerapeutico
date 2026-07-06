@@ -1,0 +1,14 @@
+[run]
+branch = True
+source = apps,core
+omit = */migrations/*,*/tests/*,*/__init__.py,*/admin.py,*/apps.py,manage.py
+
+[report]
+show_missing = True
+precision = 2
+
+[html]
+directory = htmlcov
+
+[xml]
+output = coverage.xml
