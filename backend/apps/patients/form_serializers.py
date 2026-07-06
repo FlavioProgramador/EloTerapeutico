@@ -1,7 +1,10 @@
+import re
 from datetime import date
 from pathlib import Path
 
 from rest_framework import serializers
+
+from core.validators import validate_cpf as validate_cpf_value
 
 from .models import Patient
 from .patient_professionals import serialize_patient_professionals
@@ -11,6 +14,13 @@ from .serializers import PatientCreateUpdateSerializer
 class PatientFormSerializer(PatientCreateUpdateSerializer):
     """Contrato completo utilizado pelo drawer de criação e edição."""
 
+    # O modelo permite CPF nulo/vazio, então o formulário não deve exigi-lo.
+    cpf = serializers.CharField(
+        max_length=14,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+    )
     photo = serializers.ImageField(required=False, allow_null=True)
     remove_photo = serializers.BooleanField(write_only=True, required=False)
     tags = serializers.ListField(
@@ -90,6 +100,20 @@ class PatientFormSerializer(PatientCreateUpdateSerializer):
         if len(normalized) > 12:
             raise serializers.ValidationError("Utilize no máximo 12 etiquetas.")
         return normalized
+
+    def validate_cpf(self, value):
+        if not value or not value.strip():
+            return None
+        validate_cpf_value(value)
+        clean_cpf = re.sub(r"\D", "", value)
+        queryset = Patient.all_objects.filter(cpf=clean_cpf)
+        if self.instance:
+            queryset = queryset.exclude(id=self.instance.id)
+        if queryset.exists():
+            raise serializers.ValidationError(
+                "Um paciente com este CPF já está cadastrado."
+            )
+        return clean_cpf
 
     def validate_financial_responsible_cpf(self, value):
         return self.validate_guardian_cpf(value)

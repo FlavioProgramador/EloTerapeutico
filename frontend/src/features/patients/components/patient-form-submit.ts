@@ -16,13 +16,19 @@ export function toPatientRequest(data: PatientFormData): PatientFormRequest {
     session_value,
     therapist,
     treatment_start_date,
+    birth_date,
+    cpf,
     ...rest
   } = data;
   return {
     ...rest,
     full_name: data.full_name.trim().replace(/\s+/g, " "),
-    email: data.email?.trim().toLowerCase(),
+    email: data.email?.trim().toLowerCase() || "",
+    // Datas: enviar null quando vazio para evitar erro 400 com string vazia
+    birth_date: birth_date || undefined,
     treatment_start_date: treatment_start_date || null,
+    // CPF: enviar apenas se preenchido (o backend aceita CPF opcional)
+    cpf: cpf ? cpf.trim() : undefined,
     session_value: currencyToDecimal(session_value),
     therapist: therapist ? Number(therapist) : undefined,
     insurance_name: data.payer_type === "insurance" ? data.insurance_name : "",
@@ -38,6 +44,7 @@ export function toPatientRequest(data: PatientFormData): PatientFormRequest {
     },
   };
 }
+
 
 export function toPatientMultipart(request: PatientFormRequest, photo: File) {
   const form = new FormData();
