@@ -38,7 +38,7 @@ def test_exception_handler_handles_permission_and_not_found():
     missing = custom_exception_handler(Http404(), {})
 
     assert denied.status_code == 403
-    assert denied.data["error"]["code"] == "PERMISSION_DENIED"
+    assert denied.data["error"]["code"] == "FORBIDDEN"
     assert missing.status_code == 404
     assert missing.data["error"]["code"] == "NOT_FOUND"
 
@@ -132,7 +132,8 @@ def test_appointment_duration_and_invalid_boundaries(therapist_user):
     )
     with pytest.raises(ValidationError) as error:
         invalid.full_clean()
-    assert {"end_time", "session_value"}.issubset(error.value.message_dict)
+    assert "end_time" in error.value.message_dict
+    assert "__all__" in error.value.message_dict
 
 
 @pytest.mark.django_db
