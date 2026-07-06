@@ -1,2 +1,1 @@
-export type PatientStatus = "active" | "inactive" | "archived";
-export type PatientDashboardItem = Record<"id", number> & Record<"full_name", string>;
+export type PatientStatus = "active" | "evaluation" | "waiting_return" | "discharged" | "inactive" | "archived";
