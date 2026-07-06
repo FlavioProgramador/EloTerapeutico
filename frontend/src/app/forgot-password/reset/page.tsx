@@ -150,8 +150,6 @@ function ResetPasswordForm() {
               placeholder="••••••••"
               type={showPassword ? "text" : "password"}
               autoComplete="new-password"
-              aria-invalid={!!errors.password}
-              aria-describedby={errors.password ? "reset-password-error" : undefined}
               leftIcon={<Lock className="h-4.5 w-4.5 text-muted-foreground" />}
               rightIcon={
                 <button
@@ -170,11 +168,6 @@ function ResetPasswordForm() {
               error={errors.password?.message}
               {...register("password")}
             />
-            {errors.password && (
-              <p id="reset-password-error" className="text-xs text-destructive" role="alert">
-                {errors.password.message}
-              </p>
-            )}
           </div>
 
           <div className="space-y-1">
@@ -184,8 +177,6 @@ function ResetPasswordForm() {
               placeholder="••••••••"
               type={showConfirmPassword ? "text" : "password"}
               autoComplete="new-password"
-              aria-invalid={!!errors.confirm_password}
-              aria-describedby={errors.confirm_password ? "reset-confirm-password-error" : undefined}
               leftIcon={<Lock className="h-4.5 w-4.5 text-muted-foreground" />}
               rightIcon={
                 <button
@@ -204,11 +195,6 @@ function ResetPasswordForm() {
               error={errors.confirm_password?.message}
               {...register("confirm_password")}
             />
-            {errors.confirm_password && (
-              <p id="reset-confirm-password-error" className="text-xs text-destructive" role="alert">
-                {errors.confirm_password.message}
-              </p>
-            )}
           </div>
 
           <Button

@@ -202,17 +202,10 @@ export default function RegisterPage() {
                     label="Nome Completo"
                     placeholder="Seu nome completo"
                     autoComplete="name"
-                    aria-invalid={!!errors.full_name}
-                    aria-describedby={errors.full_name ? "register-name-error" : undefined}
                     leftIcon={<User className="h-4.5 w-4.5 text-muted-foreground" />}
                     error={errors.full_name?.message}
                     {...register("full_name")}
                   />
-                  {errors.full_name && (
-                    <p id="register-name-error" className="text-xs text-destructive mt-1" role="alert">
-                      {errors.full_name.message}
-                    </p>
-                  )}
                 </div>
 
                 <div>
@@ -222,16 +215,10 @@ export default function RegisterPage() {
                     placeholder="seuemail@exemplo.com"
                     type="email"
                     autoComplete="email"
-                    aria-invalid={!!errors.email}
                     leftIcon={<Mail className="h-4.5 w-4.5 text-muted-foreground" />}
                     error={errors.email?.message}
                     {...register("email")}
                   />
-                  {errors.email && (
-                    <p className="text-xs text-destructive mt-1" role="alert">
-                      {errors.email.message}
-                    </p>
-                  )}
                 </div>
 
                 <div>
@@ -241,7 +228,6 @@ export default function RegisterPage() {
                     placeholder="Mínimo de 8 caracteres"
                     type={showPassword ? "text" : "password"}
                     autoComplete="new-password"
-                    aria-invalid={!!errors.password}
                     leftIcon={<Lock className="h-4.5 w-4.5 text-muted-foreground" />}
                     rightIcon={
                       <button
@@ -260,11 +246,6 @@ export default function RegisterPage() {
                     error={errors.password?.message}
                     {...register("password")}
                   />
-                  {errors.password && (
-                    <p className="text-xs text-destructive mt-1" role="alert">
-                      {errors.password.message}
-                    </p>
-                  )}
                 </div>
 
                 <div>
@@ -274,7 +255,6 @@ export default function RegisterPage() {
                     placeholder="Repita a senha"
                     type={showConfirmPassword ? "text" : "password"}
                     autoComplete="new-password"
-                    aria-invalid={!!errors.confirm_password}
                     leftIcon={<Lock className="h-4.5 w-4.5 text-muted-foreground" />}
                     rightIcon={
                       <button
@@ -293,11 +273,6 @@ export default function RegisterPage() {
                     error={errors.confirm_password?.message}
                     {...register("confirm_password")}
                   />
-                  {errors.confirm_password && (
-                    <p className="text-xs text-destructive mt-1" role="alert">
-                      {errors.confirm_password.message}
-                    </p>
-                  )}
                 </div>
 
                 <Button
@@ -316,16 +291,10 @@ export default function RegisterPage() {
                     id="register-crp"
                     label="Registro Profissional (CRP / CRM / Registro)"
                     placeholder="Ex: CRP 06/123456"
-                    aria-invalid={!!errors.crp}
                     leftIcon={<FileText className="h-4.5 w-4.5 text-muted-foreground" />}
                     error={errors.crp?.message}
                     {...register("crp")}
                   />
-                  {errors.crp && (
-                    <p className="text-xs text-destructive mt-1" role="alert">
-                      {errors.crp.message}
-                    </p>
-                  )}
                 </div>
 
                 <div>
@@ -333,16 +302,10 @@ export default function RegisterPage() {
                     id="register-specialty"
                     label="Especialidade Principal"
                     placeholder="Ex: Psicologia Clínica, TCC, Psicanálise"
-                    aria-invalid={!!errors.specialty}
                     leftIcon={<Briefcase className="h-4.5 w-4.5 text-muted-foreground" />}
                     error={errors.specialty?.message}
                     {...register("specialty")}
                   />
-                  {errors.specialty && (
-                    <p className="text-xs text-destructive mt-1" role="alert">
-                      {errors.specialty.message}
-                    </p>
-                  )}
                 </div>
 
                 <div className="flex gap-4 mt-6">

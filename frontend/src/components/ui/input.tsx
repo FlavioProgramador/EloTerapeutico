@@ -26,6 +26,13 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ) => {
     const generatedId = React.useId();
     const inputId = id ?? generatedId;
+    const errorId = `${inputId}-error`;
+    const ariaDescribedBy = [
+      props["aria-describedby"],
+      error ? errorId : null,
+    ]
+      .filter(Boolean)
+      .join(" ");
 
     return (
       <div className="flex w-full flex-col gap-1.5">
@@ -47,6 +54,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             type={type}
             id={inputId}
+            aria-describedby={ariaDescribedBy || undefined}
+            aria-invalid={error ? "true" : props["aria-invalid"]}
             className={cn(
               "h-11 w-full rounded-lg border border-input bg-card px-3.5 text-base text-text-primary transition-all duration-150",
               "placeholder:text-text-muted/60",
@@ -67,7 +76,11 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
         {error && (
-          <span className="text-sm font-medium text-danger" role="alert">
+          <span
+            id={errorId}
+            className="text-sm font-medium text-danger"
+            role="alert"
+          >
             {error}
           </span>
         )}
@@ -88,6 +101,13 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className, label, error, id, ...props }, ref) => {
     const generatedId = React.useId();
     const inputId = id ?? generatedId;
+    const errorId = `${inputId}-error`;
+    const ariaDescribedBy = [
+      props["aria-describedby"],
+      error ? errorId : null,
+    ]
+      .filter(Boolean)
+      .join(" ");
 
     return (
       <div className="flex w-full flex-col gap-1.5">
@@ -102,6 +122,8 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         <textarea
           ref={ref}
           id={inputId}
+          aria-describedby={ariaDescribedBy || undefined}
+          aria-invalid={error ? "true" : props["aria-invalid"]}
           className={cn(
             "min-h-[100px] w-full resize-y rounded-lg border border-input bg-card p-3.5 text-base text-text-primary transition-all duration-150",
             "placeholder:text-text-muted/60",
@@ -114,7 +136,11 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           {...props}
         />
         {error && (
-          <span className="text-sm font-medium text-danger" role="alert">
+          <span
+            id={errorId}
+            className="text-sm font-medium text-danger"
+            role="alert"
+          >
             {error}
           </span>
         )}
