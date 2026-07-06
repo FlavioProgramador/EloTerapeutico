@@ -15,11 +15,8 @@ class TransactionPaymentActions:
         serializer.is_valid(raise_exception=True)
         current = apply_payment(
             financial_transaction=current,
-            payment_method=serializer.validated_data.get(
-                "payment_method",
-                current.payment_method,
-            ),
+            payment_method=serializer.validated_data.get("payment_method", current.payment_method),
             paid_at=serializer.validated_data.get("paid_at"),
+            amount=serializer.validated_data.get("amount"),
         )
-        output = TransactionDetailSerializer(current, context={"request": request})
-        return Response(output.data)
+        return Response(TransactionDetailSerializer(current, context={"request": request}).data)
