@@ -128,6 +128,7 @@ class DocumentModuleApiTests(APITestCase):
         )
         self.assertEqual(download.status_code, status.HTTP_200_OK)
         self.assertEqual(download["Cache-Control"], "private, no-store, max-age=0")
+        download.close()
 
     def test_library_import_creates_private_copy_only_once(self):
         library = DocumentTemplate.objects.create(
