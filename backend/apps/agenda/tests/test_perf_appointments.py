@@ -62,9 +62,11 @@ def test_appointment_list_optimized_queries(api_client, therapist, patient, djan
 
     url = reverse("appointment-list")
 
-    # Com a otimização select_related('evolution', 'evolution__clinical_data'),
-    # o número total de queries deve ser 4 (User, Count, Main List + Prefetches).
-    with django_assert_num_queries(4):
+    # Com a otimização select_related('evolution', 'evolution__clinical_data')
+    # e remoção de prefetches desnecessários (participants, reminders),
+    # o número total de queries caiu de 4 para 2 (Count + Main List).
+    # (O User é autenticado via force_authenticate e não gera query se já carregado no fixture).
+    with django_assert_num_queries(2):
         response = api_client.get(url)
 
     assert response.status_code == status.HTTP_200_OK
