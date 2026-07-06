@@ -1,522 +1,99 @@
 "use client";
 
-import React, { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQueries } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import {
-  Users,
-  Calendar,
-  DollarSign,
-  TrendingUp,
-  Activity,
-  Plus,
-  Check,
-  X,
-  Clock,
-  ArrowRight,
-  ChevronRight,
-  AlertCircle,
-  AlertTriangle,
-  UserCheck,
-  Percent,
-  ClipboardCheck,
-  TrendingDown,
-  Bell,
-  Search,
-} from "lucide-react";
-import { useAuth } from "@/contexts/auth";
-import { toast } from "sonner";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { AlertTriangle, CalendarDays, ChevronRight, DollarSign, Eye, EyeOff, RefreshCw, WalletCards, X } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/contexts/auth";
+import { useAppointments, useTodayAppointments } from "@/features/agenda/hooks/use-agenda";
+import { useFinancialSummary, useTransactions } from "@/features/financeiro/hooks/use-financeiro";
+import { financeiroService } from "@/features/financeiro/services/financeiro.service";
 import { cn } from "@/lib/utils";
 
-import { usePatients } from "@/features/patients/hooks/use-patients";
-import { useTodayAppointments, useAppointments, useUpdateAppointmentStatus } from "@/features/agenda/hooks/use-agenda";
-import { useRecords } from "@/features/records/hooks/use-records";
-import { useTransactions } from "@/features/financeiro/hooks/use-financeiro";
+const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const numberValue = (value?: string | number | null) => Number(value ?? 0) || 0;
+const monthAt = (offset: number) => {
+  const today = new Date();
+  return new Date(today.getFullYear(), today.getMonth() + offset, 1);
+};
+
+function Metric({ title, value, note, icon: Icon, tone = "primary" }: {
+  title: string; value: string; note: string; icon: typeof DollarSign;
+  tone?: "primary" | "success" | "warning" | "danger";
+}) {
+  const tones = { primary: "bg-primary/10 text-primary", success: "bg-success/10 text-success", warning: "bg-warning/10 text-warning", danger: "bg-danger/10 text-danger" };
+  return <Card><CardContent className="flex min-h-32 justify-between p-5"><div><p className="text-xs font-semibold text-muted-foreground">{title}</p><p className="mt-4 text-2xl font-bold text-foreground">{value}</p><p className="mt-1 text-[11px] text-muted-foreground">{note}</p></div><span className={cn("grid h-9 w-9 place-items-center rounded-lg", tones[tone])}><Icon className="h-4 w-4" /></span></CardContent></Card>;
+}
+
+function Bars({ values, labels }: { values: number[]; labels: string[] }) {
+  const max = Math.max(1, ...values);
+  return <div className="mt-5 flex h-52 items-end gap-3 border-b border-l border-border px-3 pb-7">{values.map((value, index) => <div key={`${labels[index]}-${index}`} className="relative flex h-full flex-1 items-end justify-center"><div className="w-7 rounded-t bg-primary/75" style={{ height: `${Math.max(2, value / max * 100)}%` }} title={String(value)} /><span className="absolute -bottom-6 text-[10px] text-muted-foreground">{labels[index]}</span></div>)}</div>;
+}
 
 export default function DashboardPage() {
-  const { user } = useAuth();
   const router = useRouter();
-
+  const { user } = useAuth();
+  const [showValues, setShowValues] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   const now = useMemo(() => new Date(), []);
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const startOfMonth = useMemo(() => new Date(year, month, 1).toISOString(), [year, month]);
-  const endOfMonth = useMemo(() => new Date(year, month + 1, 0, 23, 59, 59).toISOString(), [year, month]);
+  const start = useMemo(() => new Date(now.getFullYear(), now.getMonth(), 1).toISOString(), [now]);
+  const end = useMemo(() => new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString(), [now]);
+  const references = useMemo(() => [-5, -4, -3, -2, -1, 0].map(monthAt), []);
 
-  // TanStack Query
-  const { data: appointmentsToday = [], isLoading: loadingToday, refetch: refetchToday } = useTodayAppointments();
-  const { data: patientsData, isLoading: loadingPatients } = usePatients();
-  const { data: monthlyAppointments = [], isLoading: loadingMonthly } = useAppointments({
-    start_time_gte: startOfMonth,
-    start_time_lte: endOfMonth,
-  });
-  const { data: evolutions = [], isLoading: loadingEvolutions } = useRecords();
-  const { data: transactions = [], isLoading: loadingFinance } = useTransactions();
+  const today = useTodayAppointments();
+  const appointments = useAppointments({ start_time_gte: start, start_time_lte: end, page_size: 100 });
+  const pending = useTransactions({ payment_status: "pending" });
+  const summary = useFinancialSummary(now.getFullYear(), now.getMonth() + 1);
+  const history = useQueries({ queries: references.map((date) => ({
+    queryKey: ["dashboard", "summary", date.getFullYear(), date.getMonth() + 1],
+    queryFn: () => financeiroService.getSummary(date.getFullYear(), date.getMonth() + 1),
+    staleTime: 60_000,
+  })) });
 
-  const updateStatusMutation = useUpdateAppointmentStatus();
+  useEffect(() => setDismissed(localStorage.getItem("dashboard-setup-dismissed") === "true"), []);
+  const hideSetup = () => { localStorage.setItem("dashboard-setup-dismissed", "true"); setDismissed(true); };
+  const displayMoney = (value: number) => showValues ? money.format(value) : "R$ ••••";
+  const completed = (appointments.data ?? []).filter((item) => item.status === "completed");
+  const overdue = (pending.data ?? []).filter((item) => item.due_date && new Date(`${item.due_date}T00:00:00`) < new Date());
+  const overdueTotal = overdue.reduce((total, item) => total + numberValue(item.amount), 0);
+  const weekdayCounts = useMemo(() => {
+    const counts = [0, 0, 0, 0, 0, 0, 0];
+    completed.forEach((item) => { counts[new Date(item.start_time).getDay()] += 1; });
+    return [counts[1], counts[2], counts[3], counts[4], counts[5], counts[6], counts[0]];
+  }, [completed]);
+  const incomeHistory = history.map((item) => numberValue(item.data?.total_income));
+  const monthLabels = references.map((date) => date.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""));
+  const setup = [
+    { title: "Personalize sua clínica", note: "Nome, telefone e registro profissional", done: Boolean(user?.full_name && user?.phone && (user.role !== "therapist" || user.crp)) },
+    { title: "Adicione dados bancários", note: "PIX e/ou conta para cobranças", done: (pending.data ?? []).some((item) => Boolean(item.payment_method)), action: "/dashboard/financeiro" },
+    { title: "Conecte o WhatsApp", note: "Lembretes automáticos e cobrança", done: false },
+    { title: "Crie templates de documentos", note: "Recibos, declarações e relatórios", done: false, action: "/dashboard/documentos" },
+  ];
+  const setupDone = setup.filter((item) => item.done).length;
+  const loading = today.isLoading || appointments.isLoading || pending.isLoading || summary.isLoading || history.some((item) => item.isLoading);
+  const failed = today.isError || appointments.isError || pending.isError || summary.isError || history.some((item) => item.isError);
 
-  const patientCount = patientsData?.results?.length || 0;
+  if (loading) return <div className="h-[42rem] animate-pulse rounded-xl border border-border bg-card" />;
+  if (failed) return <div className="grid min-h-[28rem] place-items-center rounded-xl border border-dashed border-border bg-card p-8 text-center"><div><AlertTriangle className="mx-auto h-8 w-8 text-warning" /><h1 className="mt-4 text-lg font-bold">Não foi possível carregar o Dashboard</h1><p className="mt-2 text-sm text-muted-foreground">Verifique a conexão com a API e tente novamente.</p><Button className="mt-5" onClick={() => window.location.reload()} leftIcon={<RefreshCw className="h-4 w-4" />}>Recarregar</Button></div></div>;
 
-  // Cálculos dos KPIs Clínicos e Financeiros
-  const kpis = useMemo(() => {
-    // A. Ocupação Semanal
-    const startOfWeek = new Date(now);
-    const day = startOfWeek.getDay();
-    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
-    startOfWeek.setDate(diff);
-    startOfWeek.setHours(0, 0, 0, 0);
+  return <div className="space-y-5">
+    <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h1 className="text-2xl font-bold tracking-tight">Dashboard</h1><p className="mt-1 text-sm text-muted-foreground">Visão geral da sua clínica</p></div><Button variant="outline" size="sm" onClick={() => setShowValues((value) => !value)} leftIcon={showValues ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}>{showValues ? "Ocultar valores" : "Mostrar valores"}</Button></header>
 
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
+    {!dismissed && <Card className="border-primary/20 bg-primary/5"><CardHeader className="flex flex-row items-start justify-between pb-3"><div><CardTitle className="text-base">Configure sua clínica</CardTitle><p className="mt-1 text-xs text-muted-foreground">{setupDone} de {setup.length} passos concluídos</p></div><button type="button" onClick={hideSetup} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /> Dispensar</button></CardHeader><CardContent><div className="mb-4 h-1.5 overflow-hidden rounded-full bg-secondary"><div className="h-full rounded-full bg-primary" style={{ width: `${setupDone / setup.length * 100}%` }} /></div><div className="divide-y divide-border">{setup.map((item) => <button type="button" key={item.title} disabled={!item.action} onClick={() => item.action && router.push(item.action)} className="flex w-full items-center gap-3 py-3 text-left disabled:cursor-default"><span className={cn("h-4 w-4 rounded-full border", item.done ? "border-success bg-success" : "border-border-strong")} /><span className="flex-1"><strong className="block text-xs">{item.title}</strong><span className="block text-[11px] text-muted-foreground">{item.note}</span></span>{item.action && <ChevronRight className="h-4 w-4 text-muted-foreground" />}</button>)}</div></CardContent></Card>}
 
-    const weeklyAppts = monthlyAppointments.filter(appt => {
-      const d = new Date(appt.start_time);
-      return d >= startOfWeek && d <= endOfWeek && appt.status !== "cancelled";
-    });
+    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <Metric title="Faturamento mensal" value={displayMoney(numberValue(summary.data?.total_income))} note="Receitas pagas neste mês" icon={DollarSign} />
+      <Metric title="Consultas realizadas" value={String(completed.length)} note="Concluídas neste mês" icon={CalendarDays} tone="success" />
+      <Metric title="A receber" value={displayMoney(numberValue(summary.data?.total_pending))} note="Pendente neste mês" icon={WalletCards} tone="warning" />
+      <Metric title="Inadimplência" value={displayMoney(overdueTotal)} note={`${overdue.length} cobrança(s) vencida(s)`} icon={AlertTriangle} tone="danger" />
+    </section>
 
-    const occupiedHours = weeklyAppts.length;
-    const weeklyTarget = 30;
-    const occupancyRate = Math.min(Math.round((occupiedHours / weeklyTarget) * 100), 100);
+    <section className="grid gap-4 xl:grid-cols-2"><Card><CardHeader><CardTitle className="text-base">Fluxo de caixa</CardTitle><p className="text-xs text-muted-foreground">Receitas pagas nos últimos 6 meses</p></CardHeader><CardContent><Bars values={incomeHistory} labels={monthLabels} /></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Consultas por dia</CardTitle><p className="text-xs text-muted-foreground">Atendimentos concluídos neste mês</p></CardHeader><CardContent><Bars values={weekdayCounts} labels={["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]} /></CardContent></Card></section>
 
-    // B. Receita Mensal
-    let faturamentoFaturado = 0;
-    let faturamentoRecebido = 0;
-
-    transactions.forEach((tx) => {
-      const amount = parseFloat(tx.amount || "0");
-      const txDate = new Date(tx.due_date || tx.created_at);
-      if (txDate.getMonth() === month && txDate.getFullYear() === year) {
-        if (tx.type === "income") {
-          faturamentoFaturado += amount;
-          if (tx.status === "paid") {
-            faturamentoRecebido += amount;
-          }
-        }
-      }
-    });
-
-    return {
-      occupancyRate,
-      occupiedHours,
-      weeklyTarget,
-      faturamentoFaturado,
-      faturamentoRecebido,
-    };
-  }, [monthlyAppointments, transactions, now, month, year]);
-
-  const isLoadingData = loadingToday || loadingPatients || loadingMonthly || loadingEvolutions || loadingFinance;
-
-  const handleUpdateStatus = (appointmentId: number, newStatus: string, statusLabel: string) => {
-    updateStatusMutation.mutate(
-      { id: appointmentId, status: newStatus },
-      {
-        onSuccess: () => {
-          refetchToday();
-        },
-      }
-    );
-  };
-
-  const formatTime = (isoString: string) => {
-    try {
-      const date = new Date(isoString);
-      return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    } catch (e) {
-      return "--:--";
-    }
-  };
-
-  return (
-    <div className="space-y-6 text-left">
-      {/* Cabeçalho de Boas-Vindas */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[hsl(40,20%,94%)] font-sans">
-            Visão geral
-          </h1>
-          <p className="text-xs text-[hsl(163,8%,68%)] mt-0.5">
-            Bem-vinda de volta, {user?.full_name || "Juliana Martins"} 🍂
-          </p>
-        </div>
-        
-        {/* Ações Rápidas de Topo */}
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            onClick={() => router.push("/dashboard/patients")}
-            className="bg-[hsl(38,25%,87%)] hover:bg-[hsl(38,22%,83%)] text-[hsl(165,40%,7%)] font-bold rounded-lg px-4 py-2 flex items-center gap-1.5 transition-all text-xs"
-          >
-            <Plus className="h-4 w-4" /> Cadastrar Paciente
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="border-[hsl(165,27%,16%)] hover:bg-[hsl(165,27%,12%)] text-[hsl(40,20%,94%)] rounded-lg px-4 py-2 flex items-center gap-1.5 transition-all text-xs"
-            onClick={() => router.push("/dashboard/agenda")}
-          >
-            <Calendar className="h-4 w-4" /> Agendar Sessão
-          </Button>
-        </div>
-      </div>
-
-      {/* Grid de Cards de Indicadores (Métricas) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        {/* 1. Atendimentos */}
-        <Card className="border-[hsl(165,27%,16%)] bg-[hsl(165,38%,10%)] shadow-sm">
-          <CardContent className="p-5 flex flex-col justify-between h-32 relative overflow-hidden">
-            <div>
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold text-[hsl(163,8%,68%)] uppercase tracking-wider">
-                  Atendimentos
-                </span>
-                <div className="h-7 w-7 rounded-lg bg-[hsl(163,27%,62%)]/10 flex items-center justify-center text-[hsl(163,27%,62%)]">
-                  <Calendar className="h-3.5 w-3.5" />
-                </div>
-              </div>
-              <h3 className="text-3xl font-bold tracking-tight text-[hsl(40,20%,94%)] mt-2">
-                23
-              </h3>
-            </div>
-            <div className="flex items-center justify-between mt-2 z-10">
-              <span className="text-[9px] text-[hsl(163,27%,62%)] font-semibold flex items-center gap-1">
-                ↑ 12% <span className="text-[hsl(163,8%,68%)]">vs semana passada</span>
-              </span>
-              {/* Mini Sparkline SVG */}
-              <svg className="w-16 h-6 text-[hsl(163,27%,62%)]" viewBox="0 0 100 30" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M0 25 Q15 5 30 18 T60 8 T90 20 T100 5" />
-              </svg>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 2. Novos Pacientes */}
-        <Card className="border-[hsl(165,27%,16%)] bg-[hsl(165,38%,10%)] shadow-sm">
-          <CardContent className="p-5 flex flex-col justify-between h-32 relative overflow-hidden">
-            <div>
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold text-[hsl(163,8%,68%)] uppercase tracking-wider">
-                  Novos pacientes
-                </span>
-                <div className="h-7 w-7 rounded-lg bg-[hsl(163,27%,62%)]/10 flex items-center justify-center text-[hsl(163,27%,62%)]">
-                  <Users className="h-3.5 w-3.5" />
-                </div>
-              </div>
-              <h3 className="text-3xl font-bold tracking-tight text-[hsl(40,20%,94%)] mt-2">
-                4
-              </h3>
-            </div>
-            <div className="flex items-center justify-between mt-2 z-10">
-              <span className="text-[9px] text-[hsl(163,27%,62%)] font-semibold flex items-center gap-1">
-                ↑ 8% <span className="text-[hsl(163,8%,68%)]">vs semana passada</span>
-              </span>
-              {/* Mini Sparkline SVG */}
-              <svg className="w-16 h-6 text-[hsl(163,27%,62%)]" viewBox="0 0 100 30" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M0 20 Q20 25 40 10 T70 15 T100 5" />
-              </svg>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 3. Receita */}
-        <Card className="border-[hsl(165,27%,16%)] bg-[hsl(165,38%,10%)] shadow-sm">
-          <CardContent className="p-5 flex flex-col justify-between h-32 relative overflow-hidden">
-            <div>
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold text-[hsl(163,8%,68%)] uppercase tracking-wider">
-                  Receita
-                </span>
-                <div className="h-7 w-7 rounded-lg bg-[hsl(163,27%,62%)]/10 flex items-center justify-center text-[hsl(163,27%,62%)]">
-                  <DollarSign className="h-3.5 w-3.5" />
-                </div>
-              </div>
-              <h3 className="text-xl md:text-2xl font-bold tracking-tight text-[hsl(40,20%,94%)] mt-2">
-                R$ 8.540,00
-              </h3>
-            </div>
-            <div className="flex items-center justify-between mt-2 z-10">
-              <span className="text-[9px] text-[hsl(163,27%,62%)] font-semibold flex items-center gap-1">
-                ↑ 15% <span className="text-[hsl(163,8%,68%)]">vs semana passada</span>
-              </span>
-              {/* Mini Sparkline SVG */}
-              <svg className="w-16 h-6 text-[hsl(163,27%,62%)]" viewBox="0 0 100 30" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M0 25 Q15 15 30 5 T60 12 T90 2 T100 8" />
-              </svg>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 4. Taxa de ocupação */}
-        <Card className="border-[hsl(165,27%,16%)] bg-[hsl(165,38%,10%)] shadow-sm">
-          <CardContent className="p-5 flex flex-col justify-between h-32 relative overflow-hidden">
-            <div>
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold text-[hsl(163,8%,68%)] uppercase tracking-wider">
-                  Taxa de ocupação
-                </span>
-                <div className="h-7 w-7 rounded-lg bg-[hsl(163,27%,62%)]/10 flex items-center justify-center text-[hsl(163,27%,62%)]">
-                  <Percent className="h-3.5 w-3.5" />
-                </div>
-              </div>
-              <h3 className="text-3xl font-bold tracking-tight text-[hsl(40,20%,94%)] mt-2">
-                82%
-              </h3>
-            </div>
-            <div className="flex items-center justify-between mt-2 z-10">
-              <span className="text-[9px] text-[hsl(163,27%,62%)] font-semibold flex items-center gap-1">
-                ↑ 4% <span className="text-[hsl(163,8%,68%)]">vs semana passada</span>
-              </span>
-              {/* Mini Sparkline SVG */}
-              <svg className="w-16 h-6 text-[hsl(163,27%,62%)]" viewBox="0 0 100 30" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M0 15 Q20 5 45 20 T80 8 T100 12" />
-              </svg>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Grid Principal - Agenda, Financeiro e Atividades (3 Colunas conforme Imagem) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Agenda de hoje */}
-        <Card className="border-[hsl(165,27%,16%)] bg-[hsl(165,38%,10%)] shadow-sm">
-          <CardHeader className="pb-3 border-b border-[hsl(165,27%,16%)]/40 flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-sm font-bold text-[hsl(40,20%,94%)]">Agenda de hoje</CardTitle>
-              <CardDescription className="text-[10px] text-[hsl(163,8%,68%)]">
-                23 de maio, sexta-feira
-              </CardDescription>
-            </div>
-            <Button variant="ghost" className="text-xs text-[hsl(163,27%,62%)] p-0 hover:bg-transparent">
-              Ver agenda completa ▾
-            </Button>
-          </CardHeader>
-          
-          <CardContent className="p-5">
-            {loadingToday ? (
-              <div className="py-12 flex flex-col items-center justify-center gap-2">
-                <Activity className="h-6 w-6 text-[hsl(163,27%,62%)] animate-spin" />
-                <span className="text-xs text-[hsl(163,8%,68%)]">Buscando consultas de hoje...</span>
-              </div>
-            ) : appointmentsToday.length === 0 ? (
-              <div className="py-12 text-center flex flex-col items-center justify-center gap-3">
-                <Calendar className="h-8 w-8 text-[hsl(163,8%,68%)] opacity-40" />
-                <div>
-                  <h4 className="font-semibold text-xs text-[hsl(40,20%,94%)]">Nenhuma consulta agendada</h4>
-                  <p className="text-[10px] text-[hsl(163,8%,68%)] mt-1 max-w-xs mx-auto">
-                    Sua agenda de hoje está livre de atendimentos registrados.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="divide-y divide-[hsl(165,27%,16%)]/40">
-                {appointmentsToday.map((appt) => (
-                  <div
-                    key={appt.id}
-                    className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0"
-                  >
-                    <div className="flex items-center gap-4">
-                      {/* Horário */}
-                      <div className="text-center min-w-[50px]">
-                        <span className="font-bold text-xs text-[hsl(40,20%,94%)]">
-                          {formatTime(appt.start_time)}
-                        </span>
-                        <span className="block text-[8px] text-[hsl(163,8%,68%)]">
-                          {formatTime(appt.end_time)}
-                        </span>
-                      </div>
-
-                      {/* Detalhes */}
-                      <div>
-                        <h4 className="font-bold text-xs text-[hsl(40,20%,94%)]">
-                          {appt.patient_name}
-                        </h4>
-                        <span className="text-[9px] text-[hsl(163,8%,68%)]">
-                          Terapia individual
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Badge Status */}
-                    <div className="flex items-center gap-3">
-                      <span className={cn(
-                        "px-2 py-0.5 rounded-full text-[9px] font-bold border",
-                        appt.status === "confirmed" || appt.status === "completed"
-                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                          : "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                      )}>
-                        {appt.status === "confirmed" || appt.status === "completed" ? "Confirmada" : "Pendente"}
-                      </span>
-                      
-                      {/* Ações rápidas */}
-                      {appt.status === "scheduled" && (
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => handleUpdateStatus(appt.id, "confirmed", "Confirmada")}
-                            className="h-6 w-6 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 flex items-center justify-center cursor-pointer"
-                            title="Confirmar Presença"
-                          >
-                            <Check className="h-3 w-3" />
-                          </button>
-                          <button
-                            onClick={() => handleUpdateStatus(appt.id, "cancelled", "Cancelada")}
-                            className="h-6 w-6 rounded bg-destructive/20 hover:bg-destructive/30 text-destructive flex items-center justify-center cursor-pointer"
-                            title="Cancelar Consulta"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Resumo financeiro */}
-        <Card className="border-[hsl(165,27%,16%)] bg-[hsl(165,38%,10%)] shadow-sm">
-          <CardHeader className="pb-3 border-b border-[hsl(165,27%,16%)]/40">
-            <CardTitle className="text-sm font-bold text-[hsl(40,20%,94%)]">Resumo financeiro</CardTitle>
-            <CardDescription className="text-[10px] text-[hsl(163,8%,68%)]">Este mês</CardDescription>
-          </CardHeader>
-          <CardContent className="p-5 space-y-6">
-            
-            {/* Barra de Receitas e Despesas */}
-            <div className="space-y-4">
-              {/* Receitas */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className="text-[hsl(163,8%,68%)]">Receitas</span>
-                  <span className="font-bold text-[hsl(40,20%,94%)]">R$ 12.450,00</span>
-                </div>
-                <div className="w-full bg-[hsl(165,27%,12%)] rounded-full h-1.5">
-                  <div className="bg-emerald-400 h-1.5 rounded-full" style={{ width: "75%" }} />
-                </div>
-                <span className="block text-[9px] text-[hsl(163,8%,68%)] text-right">75% do esperado</span>
-              </div>
-
-              {/* Despesas */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className="text-[hsl(163,8%,68%)]">Despesas</span>
-                  <span className="font-bold text-[hsl(40,20%,94%)]">R$ 3.210,00</span>
-                </div>
-                <div className="w-full bg-[hsl(165,27%,12%)] rounded-full h-1.5">
-                  <div className="bg-red-400 h-1.5 rounded-full" style={{ width: "25%" }} />
-                </div>
-                <span className="block text-[9px] text-[hsl(163,8%,68%)] text-right">25% das receitas</span>
-              </div>
-            </div>
-
-            {/* Lucro Líquido e Sparkline Principal */}
-            <div className="pt-4 border-t border-[hsl(165,27%,16%)]/40 flex flex-col items-start gap-4">
-              <div>
-                <span className="text-[10px] text-[hsl(163,8%,68%)] uppercase tracking-wider block">Lucro líquido</span>
-                <span className="text-xl font-bold text-[hsl(40,20%,94%)]">R$ 9.240,00</span>
-              </div>
-
-              {/* Gráfico SVG Grande */}
-              <div className="w-full h-20 relative">
-                <svg className="w-full h-full text-[hsl(163,27%,62%)]" viewBox="0 0 300 60" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="netGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="currentColor" stopOpacity="0.2" />
-                      <stop offset="100%" stopColor="currentColor" stopOpacity="0.0" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M0 50 C30 40 60 55 90 35 C120 15 150 45 180 20 C210 -5 240 18 270 5 L300 25" stroke="currentColor" strokeWidth="2.5" />
-                  <path d="M0 50 C30 40 60 55 90 35 C120 15 150 45 180 20 C210 -5 240 18 270 5 L300 25 V60 H0 Z" fill="url(#netGrad)" />
-                </svg>
-                <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[8px] text-[hsl(163,8%,68%)]/60 px-1 font-mono pt-1.5">
-                  <span>1 Mai</span>
-                  <span>8 Mai</span>
-                  <span>15 Mai</span>
-                  <span>22 Mai</span>
-                  <span>29 Mai</span>
-                </div>
-              </div>
-            </div>
-
-          </CardContent>
-        </Card>
-
-        {/* Atividades recentes */}
-        <Card className="border-[hsl(165,27%,16%)] bg-[hsl(165,38%,10%)] h-full shadow-sm">
-          <CardHeader className="pb-3 border-b border-[hsl(165,27%,16%)]/40 flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-sm font-bold text-[hsl(40,20%,94%)]">Atividades recentes</CardTitle>
-              <CardDescription className="text-[10px] text-[hsl(163,8%,68%)]">Movimentações da clínica</CardDescription>
-            </div>
-          </CardHeader>
-          
-          <CardContent className="p-5">
-            <div className="relative border-l border-[hsl(165,27%,16%)]/80 ml-3.5 pl-5 space-y-6 py-2">
-              
-              {/* Atividade 1 */}
-              <div className="relative">
-                {/* Círculo */}
-                <div className="absolute -left-[29px] top-0.5 h-4.5 w-4.5 rounded-full bg-[hsl(165,27%,12%)] border-2 border-[hsl(163,27%,62%)] flex items-center justify-center text-[hsl(163,27%,62%)]">
-                  <Users className="h-2 w-2" />
-                </div>
-                <div className="space-y-0.5">
-                  <h5 className="font-bold text-xs text-[hsl(40,20%,94%)]">Novo paciente cadastrado</h5>
-                  <p className="text-[10px] text-[hsl(163,8%,68%)]">Ana Clara Sousa</p>
-                  <span className="block text-[8px] text-[hsl(163,8%,68%)]/50 pt-0.5">Há 20 min</span>
-                </div>
-              </div>
-
-              {/* Atividade 2 */}
-              <div className="relative">
-                {/* Círculo */}
-                <div className="absolute -left-[29px] top-0.5 h-4.5 w-4.5 rounded-full bg-[hsl(165,27%,12%)] border-2 border-emerald-400 flex items-center justify-center text-emerald-400">
-                  <DollarSign className="h-2 w-2" />
-                </div>
-                <div className="space-y-0.5">
-                  <h5 className="font-bold text-xs text-[hsl(40,20%,94%)]">Pagamento recebido</h5>
-                  <p className="text-[10px] text-[hsl(163,8%,68%)]">R$ 250,00 de Marcos Lima</p>
-                  <span className="block text-[8px] text-[hsl(163,8%,68%)]/50 pt-0.5">Há 2h</span>
-                </div>
-              </div>
-
-              {/* Atividade 3 */}
-              <div className="relative">
-                {/* Círculo */}
-                <div className="absolute -left-[29px] top-0.5 h-4.5 w-4.5 rounded-full bg-[hsl(165,27%,12%)] border-2 border-amber-400 flex items-center justify-center text-amber-400">
-                  <ClipboardCheck className="h-2 w-2" />
-                </div>
-                <div className="space-y-0.5">
-                  <h5 className="font-bold text-xs text-[hsl(40,20%,94%)]">Prontuário atualizado</h5>
-                  <p className="text-[10px] text-[hsl(163,8%,68%)]">Juliana Rocha</p>
-                  <span className="block text-[8px] text-[hsl(163,8%,68%)]/50 pt-0.5">Há 3h</span>
-                </div>
-              </div>
-
-              {/* Atividade 4 */}
-              <div className="relative">
-                {/* Círculo */}
-                <div className="absolute -left-[29px] top-0.5 h-4.5 w-4.5 rounded-full bg-[hsl(165,27%,12%)] border-2 border-[hsl(38,25%,87%)] flex items-center justify-center text-[hsl(38,25%,87%)]">
-                  <Check className="h-2 w-2" />
-                </div>
-                <div className="space-y-0.5">
-                  <h5 className="font-bold text-xs text-[hsl(40,20%,94%)]">Nova mensagem</h5>
-                  <p className="text-[10px] text-[hsl(163,8%,68%)]">De: Ana Clara Sousa</p>
-                  <span className="block text-[8px] text-[hsl(163,8%,68%)]/50 pt-0.5">Há 5h</span>
-                </div>
-              </div>
-
-            </div>
-
-            <Button variant="ghost" className="w-full text-xs text-[hsl(163,8%,68%)] hover:text-[hsl(40,20%,94%)] pt-4 border-t border-[hsl(165,27%,16%)]/40 mt-4 justify-between hover:bg-transparent">
-              Ver todas atividades <ChevronRight className="h-4 w-4" />
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
+    <section className="grid gap-4 xl:grid-cols-2"><Card><CardHeader className="flex flex-row items-center justify-between"><div><CardTitle className="text-base">Consultas de hoje</CardTitle><p className="mt-1 text-xs text-muted-foreground">Agenda do dia</p></div><Button size="sm" variant="outline" onClick={() => router.push("/dashboard/agenda")}>Ver agenda</Button></CardHeader><CardContent>{(today.data ?? []).length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">Nenhuma consulta hoje.</p> : <div className="divide-y divide-border">{(today.data ?? []).slice(0, 6).map((item) => <button type="button" key={item.id} onClick={() => router.push(`/dashboard/agenda?appointment=${item.id}`)} className="flex w-full items-center gap-3 py-3 text-left hover:bg-secondary/40"><strong className="w-12 text-xs">{new Date(item.start_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</strong><span className="flex-1 text-xs font-semibold">{item.patient_name || "Paciente"}</span><span className="text-[10px] text-muted-foreground">{item.status_display || item.status}</span><ChevronRight className="h-4 w-4 text-muted-foreground" /></button>)}</div>}</CardContent></Card>
+    <Card><CardHeader><CardTitle className="flex items-center justify-between text-base">Alertas <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">{overdue.length}</span></CardTitle><p className="text-xs text-muted-foreground">Cobranças vencidas</p></CardHeader><CardContent>{overdue.length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">Nenhum alerta pendente.</p> : <div className="divide-y divide-border">{overdue.slice(0, 6).map((item) => <button type="button" key={item.id} onClick={() => router.push(`/dashboard/financeiro?transaction=${item.id}`)} className="flex w-full items-center gap-3 py-3 text-left hover:bg-secondary/40"><AlertTriangle className="h-4 w-4 text-warning" /><span className="flex-1"><strong className="block text-xs">{item.patient_name || item.description}</strong><span className="block text-[10px] text-muted-foreground">Venceu em {new Date(`${item.due_date}T00:00:00`).toLocaleDateString("pt-BR")}</span></span><strong className="text-xs">{displayMoney(numberValue(item.amount))}</strong></button>)}</div>}</CardContent></Card></section>
+  </div>;
 }
