@@ -1,0 +1,40 @@
+name: Test Coverage
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-coverage:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///coverage-ci.sqlite3
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: python -m pip install -r requirements.txt
+      - run: cp .env.example .env
+      - run: python manage.py check
+      - run: pytest --cov-config=.coveragerc --cov=apps --cov=core --cov-report=term-missing --cov-report=xml --cov-report=html --cov-fail-under=80
+      - run: python scripts/coverage_by_module.py
+      - run: cat coverage-by-module.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm --prefix ../frontend ci
+      - run: npm --prefix ../frontend run lint
+      - run: npm --prefix ../frontend run typecheck
+      - run: npm --prefix ../frontend run test:coverage 2>&1 | tee ../frontend/coverage-output.txt
+      - run: node ../frontend/scripts/coverage-summary.mjs ../frontend/coverage-output.txt ../frontend/coverage-summary.json
+      - run: cat ../frontend/coverage-summary.json >> "$GITHUB_STEP_SUMMARY"
