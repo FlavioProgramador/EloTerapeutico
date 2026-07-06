@@ -26,3 +26,6 @@ jobs:
       - run: python manage.py check
       - run: pytest --cov-config=.coveragerc --cov=apps --cov=core --cov-report=term-missing --cov-report=xml --cov-report=html --cov-fail-under=80
       - run: python scripts/coverage_by_module.py
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
