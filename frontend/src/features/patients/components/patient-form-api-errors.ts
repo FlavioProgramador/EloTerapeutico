@@ -13,7 +13,18 @@ export function applyPatientFormApiErrors(
     toast.error("Não foi possível salvar. Verifique sua conexão.");
     return;
   }
-  const payload = error.response.data as Record<string, unknown>;
+  let payload = error.response.data as Record<string, unknown>;
+  
+  // Unwrap backend custom exception handler envelope: {"error": {"details": {...}, "message": "..."}}
+  if (payload.error && typeof payload.error === "object") {
+    const errorObj = payload.error as Record<string, unknown>;
+    if (errorObj.details && typeof errorObj.details === "object") {
+      payload = errorObj.details as Record<string, unknown>;
+    } else if (errorObj.message && typeof errorObj.message === "string") {
+      toast.error(errorObj.message);
+      return;
+    }
+  }
   let first: FieldPath<PatientFormData> | undefined;
   Object.entries(payload).forEach(([key, value]) => {
     const message = Array.isArray(value)
@@ -26,8 +37,11 @@ export function applyPatientFormApiErrors(
       const name = key as FieldPath<PatientFormData>;
       form.setError(name, { type: "server", message });
       first ??= name;
-    } else if (key === "detail") {
+    } else if (key === "detail" || key === "non_field_errors") {
       toast.error(message);
+    } else {
+      // Show unmapped errors so they aren't swallowed silently
+      toast.error(`Erro em ${key}: ${message}`);
     }
   });
   if (first) form.setFocus(first);
