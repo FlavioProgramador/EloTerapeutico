@@ -7,7 +7,8 @@ permissions:
   contents: read
 
 jobs:
-  placeholder:
+  backend-coverage:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
       - run: echo coverage
