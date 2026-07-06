@@ -1,0 +1,1 @@
+.landing-page{min-height:100vh}
