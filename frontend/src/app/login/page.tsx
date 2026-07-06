@@ -96,17 +96,10 @@ export default function LoginPage() {
                   placeholder="seuemail@exemplo.com"
                   type="email"
                   autoComplete="email"
-                  aria-invalid={!!errors.email}
-                  aria-describedby={errors.email ? "login-email-error" : undefined}
                   leftIcon={<Mail className="h-4.5 w-4.5 text-muted-foreground" />}
                   error={errors.email?.message}
                   {...register("email")}
                 />
-                {errors.email && (
-                  <p id="login-email-error" className="text-xs text-destructive" role="alert">
-                    {errors.email.message}
-                  </p>
-                )}
               </div>
 
               <div className="space-y-1">
@@ -116,8 +109,6 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
-                  aria-invalid={!!errors.password}
-                  aria-describedby={errors.password ? "login-password-error" : undefined}
                   leftIcon={<Lock className="h-4.5 w-4.5 text-muted-foreground" />}
                   rightIcon={
                     <button
@@ -136,11 +127,6 @@ export default function LoginPage() {
                   error={errors.password?.message}
                   {...register("password")}
                 />
-                {errors.password && (
-                  <p id="login-password-error" className="text-xs text-destructive" role="alert">
-                    {errors.password.message}
-                  </p>
-                )}
               </div>
 
               <div className="flex items-center justify-between text-xs pt-1">

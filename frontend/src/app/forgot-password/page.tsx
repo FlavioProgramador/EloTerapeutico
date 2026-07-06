@@ -120,17 +120,10 @@ export default function ForgotPasswordPage() {
                     placeholder="seuemail@exemplo.com"
                     type="email"
                     autoComplete="email"
-                    aria-invalid={!!errors.email}
-                    aria-describedby={errors.email ? "forgot-email-error" : undefined}
                     leftIcon={<Mail className="h-4.5 w-4.5 text-muted-foreground" />}
                     error={errors.email?.message}
                     {...register("email")}
                   />
-                  {errors.email && (
-                    <p id="forgot-email-error" className="text-xs text-destructive" role="alert">
-                      {errors.email.message}
-                    </p>
-                  )}
                 </div>
 
                 <Button
