@@ -13,9 +13,7 @@ def deactivate(instance):
     instance.is_active = False
     instance.status = instance.Status.INACTIVE
     instance.deleted_at = timezone.now()
-    instance.save(
-        update_fields=["is_active", "status", "deleted_at", "updated_at"]
-    )
+    instance.save(update_fields=["is_active", "status", "deleted_at", "updated_at"])
     return instance
 
 
