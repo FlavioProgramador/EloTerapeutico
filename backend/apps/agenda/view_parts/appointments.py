@@ -38,7 +38,12 @@ class AppointmentViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
             "telemedicine_room",
             "evolution",
             "evolution__clinical_data",
-        ).prefetch_related("participants", "reminders")
+        )
+        # Otimização: Evita prefetches pesados em listagens e exportações
+        # que não utilizam participantes ou lembretes.
+        if self.action not in ["list", "today", "export"]:
+            queryset = queryset.prefetch_related("participants", "reminders")
+
         return self.scope_queryset(queryset)
 
     def get_serializer_class(self):
