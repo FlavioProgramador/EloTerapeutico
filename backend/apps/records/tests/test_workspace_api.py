@@ -64,7 +64,7 @@ def test_cria_e_finaliza_evolucao(client, patient):
         },
         format="json",
     )
-    assert created.status_code == 201
+    assert created.status_code == 201, created.data
     assert created.data["status"] == "draft"
     assert created.data["attached_documents_count"] == 0
     assert created.data["linked_goal_ids"] == []
