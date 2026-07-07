@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangle, CalendarDays, ChevronRight, DollarSign, Eye, EyeOff, RefreshCw, WalletCards, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/auth";
 import { useAppointments, useTodayAppointments } from "@/features/agenda/hooks/use-agenda";
 import { useFinancialSummary, useTransactions } from "@/features/financeiro/hooks/use-financeiro";
 import { financeiroService } from "@/features/financeiro/services/financeiro.service";
+import { ReportsDashboard } from "@/features/reports/reports-dashboard";
 import { cn } from "@/lib/utils";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -35,6 +36,7 @@ function Bars({ values, labels }: { values: number[]; labels: string[] }) {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const [showValues, setShowValues] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -42,6 +44,10 @@ export default function DashboardPage() {
   const start = useMemo(() => new Date(now.getFullYear(), now.getMonth(), 1).toISOString(), [now]);
   const end = useMemo(() => new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString(), [now]);
   const references = useMemo(() => [-5, -4, -3, -2, -1, 0].map(monthAt), []);
+
+  if (searchParams.get("view") === "reports") {
+    return <ReportsDashboard />;
+  }
 
   const today = useTodayAppointments();
   const appointments = useAppointments({ start_time_gte: start, start_time_lte: end, page_size: 100 });
