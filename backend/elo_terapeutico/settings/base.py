@@ -43,6 +43,7 @@ LOCAL_APPS = [
     "apps.agenda",
     "apps.financeiro",
     "apps.documents",
+    "apps.reports",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -73,7 +74,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
             ],
         },
-    },
+    }
 ]
 
 WSGI_APPLICATION = "elo_terapeutico.wsgi.application"
@@ -152,6 +153,7 @@ SPECTACULAR_SETTINGS = {
         {"name": "agenda", "description": "Agendamentos e consultas"},
         {"name": "financeiro", "description": "Financeiro e pagamentos"},
         {"name": "documents", "description": "Templates e documentos gerados"},
+        {"name": "reports", "description": "Relatórios gerenciais"},
     ],
 }
 
