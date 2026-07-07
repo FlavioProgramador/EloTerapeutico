@@ -1,7 +1,8 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { PatientDashboardItem } from "../types";
 
 interface Props {
@@ -80,7 +81,12 @@ export function PatientListPanel({
 
   if (loading) {
     return (
-      <div className="space-y-2 rounded-xl border border-border bg-card p-3">
+      <div
+        role="status"
+        aria-busy="true"
+        aria-label="Carregando lista de pacientes"
+        className="space-y-2 rounded-xl border border-border bg-card p-3"
+      >
         {Array.from({ length: pageSize }).map((_, index) => (
           <div key={index} className="h-24 animate-pulse rounded-lg bg-secondary" />
         ))}
@@ -90,15 +96,12 @@ export function PatientListPanel({
 
   if (!patients.length) {
     return (
-      <div className="grid min-h-72 place-items-center rounded-xl border border-dashed border-border bg-card p-8 text-center">
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">
-            Nenhum paciente encontrado
-          </h2>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Ajuste a busca ou remova os filtros ativos.
-          </p>
-        </div>
+      <div className="rounded-xl border border-dashed border-border bg-card">
+        <EmptyState
+          icon={<Search className="h-6 w-6 text-muted-foreground" />}
+          title="Nenhum paciente encontrado"
+          description="Ajuste a busca ou remova os filtros ativos."
+        />
       </div>
     );
   }
@@ -125,6 +128,7 @@ export function PatientListPanel({
                   key={patient.id}
                   tabIndex={0}
                   role="button"
+                  aria-label={`Selecionar paciente ${patient.display_name}`}
                   aria-selected={selected}
                   onClick={() => onSelect(patient.id)}
                   onKeyDown={(event) => {
@@ -193,6 +197,7 @@ export function PatientListPanel({
             <button
               key={patient.id}
               type="button"
+              aria-label={`Selecionar paciente ${patient.display_name}`}
               onClick={() => onSelect(patient.id)}
               aria-pressed={selected}
               className={`w-full p-4 text-left transition-colors ${
