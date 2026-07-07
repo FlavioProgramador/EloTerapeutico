@@ -5,12 +5,10 @@ from io import StringIO
 from typing import Any
 
 from django.http import HttpResponse
-from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from weasyprint import HTML
 
 from .services import (
     appointments_report,
@@ -19,12 +17,18 @@ from .services import (
     patients_report,
 )
 
-
 REPORT_BUILDERS = {
     "appointments": appointments_report,
     "patients": patients_report,
     "financial": financial_report,
     "online-scheduling": online_scheduling_report,
+}
+
+INVALID_PERIOD_RESPONSE = {
+    "detail": "Periodo invalido. Confira a data inicial e a data final informadas."
+}
+PDF_UNAVAILABLE_RESPONSE = {
+    "detail": "Exportacao em PDF temporariamente indisponivel. Use CSV neste momento."
 }
 
 
@@ -34,8 +38,8 @@ class BaseReportView(APIView):
     def build_response(self, request, builder):
         try:
             return Response(builder(request.user, request.query_params))
-        except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response(INVALID_PERIOD_RESPONSE, status=status.HTTP_400_BAD_REQUEST)
 
 
 class AppointmentsReportView(BaseReportView):
@@ -69,14 +73,14 @@ class ReportExportView(APIView):
             return Response({"detail": "Tipo de relatorio invalido."}, status=status.HTTP_400_BAD_REQUEST)
         if export_format not in {"csv", "pdf"}:
             return Response({"detail": "Formato de exportacao invalido."}, status=status.HTTP_400_BAD_REQUEST)
+        if export_format == "pdf":
+            return Response(PDF_UNAVAILABLE_RESPONSE, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         try:
             payload = builder(request.user, request.query_params)
-        except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response(INVALID_PERIOD_RESPONSE, status=status.HTTP_400_BAD_REQUEST)
 
-        if export_format == "pdf":
-            return self._pdf_response(report_type, payload)
         return self._csv_response(report_type, payload)
 
     def _csv_response(self, report_type: str, payload: dict[str, Any]) -> HttpResponse:
@@ -103,49 +107,4 @@ class ReportExportView(APIView):
 
         response = HttpResponse("\ufeff" + output.getvalue(), content_type="text/csv; charset=utf-8")
         response["Content-Disposition"] = f'attachment; filename="relatorio-{report_type}.csv"'
-        return response
-
-    def _pdf_response(self, report_type: str, payload: dict[str, Any]) -> HttpResponse:
-        period = payload.get("period", {})
-        generated_at = timezone.localtime().strftime("%d/%m/%Y %H:%M")
-        html = [
-            "<html><head><meta charset='utf-8'>",
-            "<style>body{font-family:Arial,sans-serif;color:#111827}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #d1d5db;padding:8px;font-size:12px;text-align:left}th{background:#f3f4f6}.metric{display:inline-block;margin:6px 10px 6px 0;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px}</style>",
-            "</head><body>",
-            f"<h1>Relatorio {report_type}</h1>",
-            f"<p>Periodo: {period.get('start_date')} ate {period.get('end_date')}<br>Gerado em: {generated_at}</p>",
-        ]
-        for key, value in payload.get("kpis", {}).items():
-            html.append(f"<div class='metric'><strong>{key}</strong><br>{value}</div>")
-
-        rows = []
-        headers = []
-        if report_type == "financial":
-            headers = ["Indicador", "Valor"]
-            dre = payload.get("dre", {})
-            rows = list(dre.items())
-        elif report_type == "appointments":
-            headers = ["Data", "Paciente", "Status", "Sala", "Valor"]
-            rows = [(r["date"], r["patient"], r["status_display"], r["room"], r["amount"]) for r in payload.get("table", {}).get("results", [])]
-        elif report_type == "patients":
-            headers = ["Paciente", "Profissional", "Dias sem consulta", "Status"]
-            rows = [(r["patient"], r["professional"], r["days_without_appointment"], r["status_display"]) for r in payload.get("risk", {}).get("results", [])]
-
-        if headers:
-            html.append("<table><thead><tr>")
-            html.extend(f"<th>{header}</th>" for header in headers)
-            html.append("</tr></thead><tbody>")
-            if rows:
-                for row in rows:
-                    html.append("<tr>")
-                    html.extend(f"<td>{value}</td>" for value in row)
-                    html.append("</tr>")
-            else:
-                html.append(f"<tr><td colspan='{len(headers)}'>Nenhum registro encontrado.</td></tr>")
-            html.append("</tbody></table>")
-
-        html.append("</body></html>")
-        pdf = HTML(string="".join(html)).write_pdf()
-        response = HttpResponse(pdf, content_type="application/pdf")
-        response["Content-Disposition"] = f'attachment; filename="relatorio-{report_type}.pdf"'
         return response
