@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, CalendarDays, ChevronRight, DollarSign, Eye, EyeOff, RefreshCw, WalletCards, X } from "lucide-react";
@@ -37,7 +37,7 @@ export function DashboardHome() {
   const router = useRouter();
   const { user } = useAuth();
   const [showValues, setShowValues] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => typeof window !== "undefined" && localStorage.getItem("dashboard-setup-dismissed") === "true");
   const now = useMemo(() => new Date(), []);
   const start = useMemo(() => new Date(now.getFullYear(), now.getMonth(), 1).toISOString(), [now]);
   const end = useMemo(() => new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString(), [now]);
@@ -53,7 +53,6 @@ export function DashboardHome() {
     staleTime: 60_000,
   })) });
 
-  useEffect(() => setDismissed(localStorage.getItem("dashboard-setup-dismissed") === "true"), []);
   const hideSetup = () => { localStorage.setItem("dashboard-setup-dismissed", "true"); setDismissed(true); };
   const displayMoney = (value: number) => showValues ? money.format(value) : "R$ ••••";
   const completed = (appointments.data ?? []).filter((item) => item.status === "completed");
