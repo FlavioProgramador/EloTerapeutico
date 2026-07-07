@@ -1,6 +1,5 @@
-from datetime import date
-
 import pytest
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.patients.models import Patient
@@ -24,7 +23,7 @@ def patient(therapist):
     return Patient.objects.create(
         full_name="Paciente de Teste",
         cpf="52998224725",
-        birth_date=date(1995, 4, 12),
+        birth_date=timezone.localdate().replace(year=1995),
         therapist=therapist,
         status=Patient.Status.ACTIVE,
     )
@@ -58,13 +57,13 @@ def test_cria_e_finaliza_evolucao(client, patient):
     created = client.post(
         f"/api/v1/records/patients/{patient.id}/clinical-evolutions/",
         {
-            "session_date": "2026-06-29",
+            "session_date": timezone.localdate().isoformat(),
             "modality": "online",
             "therapist_observations": "Registro de teste.",
         },
         format="json",
     )
-    assert created.status_code == 201, created.data
+    assert created.status_code == 201
     assert created.data["status"] == "draft"
     assert created.data["attached_documents_count"] == 0
     assert created.data["linked_goal_ids"] == []
