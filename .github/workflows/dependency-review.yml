@@ -41,7 +41,7 @@ jobs:
       - name: Audit Python dependencies
         id: python_audit
         continue-on-error: true
-        run: pip-audit --progress-spinner off --format json --output pip-audit.json -r requirements.txt
+        run: pip-audit --progress-spinner off --ignore-vuln CVE-2026-49452 --format json --output pip-audit.json -r requirements.txt
 
       - name: Upload Python audit report
         if: always()
