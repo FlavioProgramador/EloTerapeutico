@@ -33,7 +33,9 @@ def load_report(path: Path) -> dict[str, dict[str, float | int]]:
         module = module_name(filename)
         lines = class_node.findall("./lines/line")
         totals[module]["lines_valid"] += len(lines)
-        totals[module]["lines_covered"] += sum(int(line.attrib.get("hits", "0")) > 0 for line in lines)
+        totals[module]["lines_covered"] += sum(
+            int(line.attrib.get("hits", "0")) > 0 for line in lines
+        )
 
         for line in lines:
             if line.attrib.get("branch") != "true":
@@ -53,8 +55,12 @@ def load_report(path: Path) -> dict[str, dict[str, float | int]]:
         branch_total = values["branches_valid"]
         report[module] = {
             **values,
-            "line_rate": round(values["lines_covered"] / line_total * 100, 2) if line_total else 100.0,
-            "branch_rate": round(values["branches_covered"] / branch_total * 100, 2) if branch_total else 100.0,
+            "line_rate": round(values["lines_covered"] / line_total * 100, 2)
+            if line_total
+            else 100.0,
+            "branch_rate": round(values["branches_covered"] / branch_total * 100, 2)
+            if branch_total
+            else 100.0,
         }
     return report
 

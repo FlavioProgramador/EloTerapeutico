@@ -42,21 +42,21 @@ def test_create_and_list_evolution_templates(client, therapist):
         "name": "Template de Avaliação",
         "description": "Uma avaliação completa",
         "category": "evaluation",
-        "content": {"blocks": []}
+        "content": "# Avaliação\nConteúdo."
     }
     # Criar
-    response = client.post(reverse("evolution-template-list-create"), payload, format="json")
+    response = client.post(reverse("clinical-evolution-templates"), payload, format="json")
     assert response.status_code == status.HTTP_201_CREATED
     template_id = response.data["id"]
 
     # Listar
-    list_response = client.get(reverse("evolution-template-list-create"))
+    list_response = client.get(reverse("clinical-evolution-templates"))
     assert list_response.status_code == status.HTTP_200_OK
     assert len(list_response.data) >= 1
 
     # Atualizar
     patch_response = client.patch(
-        reverse("evolution-template-detail", args=[template_id]),
+        reverse("clinical-evolution-template-detail", args=[template_id]),
         {"name": "Template Modificado"},
         format="json"
     )
@@ -65,7 +65,7 @@ def test_create_and_list_evolution_templates(client, therapist):
 
     # Duplicar
     dup_response = client.post(
-        reverse("evolution-template-detail", args=[template_id]),
+        reverse("clinical-evolution-template-detail", args=[template_id]),
         {"action": "duplicate"},
         format="json"
     )
@@ -73,7 +73,7 @@ def test_create_and_list_evolution_templates(client, therapist):
 
     # Desativar (action)
     deact_response = client.post(
-        reverse("evolution-template-detail", args=[template_id]),
+        reverse("clinical-evolution-template-detail", args=[template_id]),
         {"action": "deactivate"},
         format="json"
     )
@@ -81,10 +81,10 @@ def test_create_and_list_evolution_templates(client, therapist):
     assert deact_response.data["is_active"] is False
 
     # Apagar (soft delete)
-    del_response = client.delete(reverse("evolution-template-detail", args=[template_id]))
+    del_response = client.delete(reverse("clinical-evolution-template-detail", args=[template_id]))
     assert del_response.status_code == status.HTTP_204_NO_CONTENT
 
 @pytest.mark.django_db
 def test_secretary_cannot_access_templates(secretary_client):
-    response = secretary_client.get(reverse("evolution-template-list-create"))
+    response = secretary_client.get(reverse("clinical-evolution-templates"))
     assert response.status_code == status.HTTP_403_FORBIDDEN

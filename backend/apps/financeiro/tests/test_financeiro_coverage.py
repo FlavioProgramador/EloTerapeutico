@@ -39,7 +39,7 @@ def test_transaction_list_actions_coverage(client, patient, therapist):
     FinancialTransaction.objects.create(
         therapist=therapist,
         patient=patient,
-        type="entrada",
+        transaction_type="income",
         category="sessao",
         amount=Decimal("150.00"),
         payment_method="pix",
@@ -48,7 +48,7 @@ def test_transaction_list_actions_coverage(client, patient, therapist):
         paid_at=timezone.now(),
     )
     # Lista
-    response = client.get(reverse("financialtransaction-list"))
+    response = client.get(reverse("transaction-list"))
     assert response.status_code == status.HTTP_200_OK
 
     # Billing - pode ter action especifica

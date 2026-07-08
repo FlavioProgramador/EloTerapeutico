@@ -11,6 +11,7 @@ from rest_framework.test import APIClient
 
 from apps.patients.models import Patient
 from apps.users.models import User
+
 from ..models import (
     Appointment,
     AppointmentRecurrence,
@@ -86,9 +87,7 @@ def appointment_payload(patient, start=None, **overrides):
 
 @pytest.mark.django_db
 def test_create_appointment(client, patient):
-    response = client.post(
-        reverse("appointment-list"), appointment_payload(patient), format="json"
-    )
+    response = client.post(reverse("appointment-list"), appointment_payload(patient), format="json")
     assert response.status_code == status.HTTP_201_CREATED
     appointment = Appointment.objects.get(pk=response.data["id"])
     assert appointment.patient == patient
@@ -114,9 +113,7 @@ def test_blocks_therapist_overlap(client, patient):
 
 
 @pytest.mark.django_db
-def test_blocks_patient_overlap_with_other_professional(
-    client, patient, other_therapist
-):
+def test_blocks_patient_overlap_with_other_professional(client, patient, other_therapist):
     start = timezone.now() + timedelta(days=4)
     Appointment.objects.create(
         patient=patient,
@@ -233,9 +230,7 @@ def test_online_appointment_creates_secure_room(client, patient):
 
 
 @pytest.mark.django_db
-def test_therapist_cannot_use_another_professionals_patient(
-    client, other_patient
-):
+def test_therapist_cannot_use_another_professionals_patient(client, other_patient):
     response = client.post(
         reverse("appointment-list"),
         appointment_payload(other_patient),
@@ -245,9 +240,7 @@ def test_therapist_cannot_use_another_professionals_patient(
 
 
 @pytest.mark.django_db
-def test_queryset_isolated_by_professional(
-    client, patient, other_patient, other_therapist
-):
+def test_queryset_isolated_by_professional(client, patient, other_patient, other_therapist):
     own_start = timezone.now() + timedelta(days=30)
     own = Appointment.objects.create(
         patient=patient,
@@ -271,9 +264,7 @@ def test_queryset_isolated_by_professional(
 
 
 @pytest.mark.django_db
-def test_block_requires_confirmation_when_consultations_are_affected(
-    client, patient, therapist
-):
+def test_block_requires_confirmation_when_consultations_are_affected(client, patient, therapist):
     start = timezone.now() + timedelta(days=40)
     Appointment.objects.create(
         patient=patient,
@@ -288,14 +279,10 @@ def test_block_requires_confirmation_when_consultations_are_affected(
         "end_time": (start + timedelta(hours=1)).isoformat(),
         "reason": "meeting",
     }
-    response = client.post(
-        reverse("schedule-block-list"), payload, format="json"
-    )
+    response = client.post(reverse("schedule-block-list"), payload, format="json")
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     payload["confirm_conflicts"] = True
-    response = client.post(
-        reverse("schedule-block-list"), payload, format="json"
-    )
+    response = client.post(reverse("schedule-block-list"), payload, format="json")
     assert response.status_code == status.HTTP_201_CREATED
 
 

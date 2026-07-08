@@ -1,13 +1,13 @@
 import pytest
+from django.core.files.base import ContentFile
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
-from datetime import date
-from django.core.files.base import ContentFile
 
-from apps.users.models import User
 from apps.patients.models import Patient, PatientProfessional
 from apps.records.treatment_models import ClinicalExport
+from apps.users.models import User
+
 
 @pytest.fixture
 def therapist_a(db):
@@ -18,6 +18,7 @@ def therapist_a(db):
         role=User.Role.THERAPIST,
     )
 
+
 @pytest.fixture
 def therapist_b(db):
     return User.objects.create_user(
@@ -27,6 +28,7 @@ def therapist_b(db):
         role=User.Role.THERAPIST,
     )
 
+
 @pytest.fixture
 def patient(therapist_a):
     return Patient.objects.create(
@@ -35,25 +37,26 @@ def patient(therapist_a):
         status=Patient.Status.ACTIVE,
     )
 
+
 @pytest.fixture
 def linked_therapist_b(patient, therapist_b, therapist_a):
     return PatientProfessional.objects.create(
-        patient=patient,
-        professional=therapist_b,
-        is_active=True,
-        assigned_by=therapist_a
+        patient=patient, professional=therapist_b, is_active=True, assigned_by=therapist_a
     )
+
 
 @pytest.mark.django_db
 class TestClinicalExportSecurity:
-    def test_linked_therapist_cannot_list_others_exports(self, therapist_a, therapist_b, patient, linked_therapist_b):
+    def test_linked_therapist_cannot_list_others_exports(
+        self, therapist_a, therapist_b, patient, linked_therapist_b
+    ):
         # Therapist A creates an export
         export_a = ClinicalExport.objects.create(
             patient=patient,
             export_type="pdf",
             filename="export_a.pdf",
             created_by=therapist_a,
-            status=ClinicalExport.Status.COMPLETED
+            status=ClinicalExport.Status.COMPLETED,
         )
 
         client = APIClient()
@@ -66,14 +69,16 @@ class TestClinicalExportSecurity:
         export_ids = [e["id"] for e in response.data]
         assert export_a.id not in export_ids
 
-    def test_linked_therapist_cannot_download_others_exports(self, therapist_a, therapist_b, patient, linked_therapist_b):
+    def test_linked_therapist_cannot_download_others_exports(
+        self, therapist_a, therapist_b, patient, linked_therapist_b
+    ):
         # Therapist A creates an export with a dummy file
         export_a = ClinicalExport.objects.create(
             patient=patient,
             export_type="pdf",
             filename="export_a.pdf",
             created_by=therapist_a,
-            status=ClinicalExport.Status.COMPLETED
+            status=ClinicalExport.Status.COMPLETED,
         )
         export_a.file.save("export_a.pdf", ContentFile(b"dummy content"))
 
@@ -85,14 +90,16 @@ class TestClinicalExportSecurity:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_linked_therapist_cannot_retry_others_exports(self, therapist_a, therapist_b, patient, linked_therapist_b):
+    def test_linked_therapist_cannot_retry_others_exports(
+        self, therapist_a, therapist_b, patient, linked_therapist_b
+    ):
         # Therapist A creates a failed export
         export_a = ClinicalExport.objects.create(
             patient=patient,
             export_type="pdf",
             filename="export_a.pdf",
             created_by=therapist_a,
-            status=ClinicalExport.Status.FAILED
+            status=ClinicalExport.Status.FAILED,
         )
 
         client = APIClient()
@@ -109,7 +116,7 @@ class TestClinicalExportSecurity:
             export_type="pdf",
             filename="export_a.pdf",
             created_by=therapist_a,
-            status=ClinicalExport.Status.COMPLETED
+            status=ClinicalExport.Status.COMPLETED,
         )
         export_a.file.save("export_a.pdf", ContentFile(b"dummy content"))
 
@@ -136,7 +143,7 @@ class TestClinicalExportSecurity:
             export_type="pdf",
             filename="export_a.pdf",
             created_by=therapist_a,
-            status=ClinicalExport.Status.COMPLETED
+            status=ClinicalExport.Status.COMPLETED,
         )
 
         client = APIClient()
@@ -162,7 +169,7 @@ class TestClinicalExportSecurity:
             export_type="pdf",
             filename="export_a.pdf",
             created_by=therapist_a,
-            status=ClinicalExport.Status.COMPLETED
+            status=ClinicalExport.Status.COMPLETED,
         )
         export_a.file.save("export_a.pdf", ContentFile(b"dummy content"))
 

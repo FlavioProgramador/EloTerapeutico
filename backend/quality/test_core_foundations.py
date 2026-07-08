@@ -8,8 +8,8 @@ from django.utils import timezone
 from rest_framework.exceptions import MethodNotAllowed
 
 from apps.agenda.models import Appointment
-from apps.core.exceptions import custom_exception_handler
-from apps.core.pagination import StandardResultsPagination
+from core.exceptions import custom_exception_handler
+from core.pagination import StandardResultsPagination
 from apps.documents.models import DocumentTemplate, GeneratedDocument
 from apps.financeiro.models import FinancialTransaction
 from apps.financeiro.selectors.transactions import transactions_accessible_to
@@ -180,9 +180,7 @@ def test_financial_partial_payment_and_tenant_scope(therapist_user, admin_user):
     assert own.payment_status == FinancialTransaction.PaymentStatus.PAID
     assert own.outstanding_amount == Decimal("0.00")
 
-    therapist_ids = set(
-        transactions_accessible_to(therapist_user).values_list("id", flat=True)
-    )
+    therapist_ids = set(transactions_accessible_to(therapist_user).values_list("id", flat=True))
     assert own.id in therapist_ids
     assert other.id not in therapist_ids
     assert transactions_accessible_to(admin_user).filter(id__in=[own.id, other.id]).count() == 2

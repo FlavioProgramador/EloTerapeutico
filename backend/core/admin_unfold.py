@@ -29,8 +29,8 @@ UNFOLD = {
     "SITE_SYMBOL": "psychology",
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": False,
-    "DASHBOARD_CALLBACK": "apps.core.admin_dashboard.dashboard_callback",
-    "ENVIRONMENT": "apps.core.admin_dashboard.environment_callback",
+    "DASHBOARD_CALLBACK": "core.admin_dashboard.dashboard_callback",
+    "ENVIRONMENT": "core.admin_dashboard.environment_callback",
     "SIDEBAR": {
         "show_search": True,
         "show_all_applications": False,

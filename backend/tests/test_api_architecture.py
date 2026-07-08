@@ -11,10 +11,10 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 @pytest.mark.parametrize(
     "module_name",
     [
-        "apps.core.fields",
-        "apps.core.pagination",
-        "apps.core.validators",
-        "apps.core.integrations.notifications",
+        "core.fields",
+        "core.pagination",
+        "core.validators",
+        "infrastructure.notifications",
         "apps.users.api.serializers",
         "apps.users.api.views",
         "apps.users.services.password_reset",
@@ -95,26 +95,4 @@ def test_moved_modules_do_not_return_to_app_root(relative_path):
     assert not (BACKEND_ROOT / relative_path).exists()
 
 
-def test_core_compatibility_modules_point_to_apps_core():
-    for filename in (
-        "audit.py",
-        "exceptions.py",
-        "fields.py",
-        "pagination.py",
-        "validators.py",
-    ):
-        source = (BACKEND_ROOT / "core" / filename).read_text(encoding="utf-8")
-        assert "from apps.core" in source
 
-
-def test_new_backend_code_uses_canonical_core_namespace():
-    relative_paths = [
-        "apps/records/api/evolution_views.py",
-        "apps/records/api/evolution_attachment_list_views.py",
-        "apps/records/api/evolution_attachment_detail_views.py",
-        "apps/records/api/evolution_template_views.py",
-        "apps/patients/actions/imports.py",
-    ]
-    for relative_path in relative_paths:
-        source = (BACKEND_ROOT / relative_path).read_text(encoding="utf-8")
-        assert "from core." not in source

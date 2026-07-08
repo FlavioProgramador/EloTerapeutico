@@ -52,7 +52,7 @@ def test_telemedicine_room_list(client, appointment):
         appointment=appointment,
         patient_token=uuid.uuid4(),
         professional_token=uuid.uuid4(),
-        is_accessible=True,
+        expires_at=timezone.now() + timedelta(hours=1),
     )
     response = client.get(reverse("telemedicine-list"))
     assert response.status_code == status.HTTP_200_OK
@@ -65,12 +65,12 @@ def test_telemedicine_access_view(appointment):
         appointment=appointment,
         patient_token=uuid.uuid4(),
         professional_token=uuid.uuid4(),
-        is_accessible=True,
+        expires_at=timezone.now() + timedelta(hours=1),
     )
     # Token do paciente
     response = api.get(reverse("telemedicine-access", args=["patient", room.patient_token]))
     assert response.status_code == status.HTTP_200_OK
-    assert "token" in response.data
+    assert "patient_name" in response.data
 
     # Token invalido
     bad_response = api.get(reverse("telemedicine-access", args=["patient", uuid.uuid4()]))
