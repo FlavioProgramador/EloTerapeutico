@@ -1,9 +1,13 @@
-.module-stories {
+.module-stories-section {
+    position: relative;
+    padding: 8rem 1.25rem
+}
+
+.module-stories__inner {
     display: grid;
     gap: 3rem;
     max-width: 80rem;
-    margin: auto;
-    padding: 8rem 1.25rem
+    margin: auto
 }
 
 .module-stories__intro {
@@ -34,7 +38,7 @@
     scroll-snap-type: x proximity;
     border: 1px solid hsl(var(--border));
     border-radius: 999px;
-    background: #F6F7F2;
+    background: hsl(var(--card));
     padding: .35rem;
     box-shadow: 0 18px 55px hsl(var(--primary) / 0.08);
     scrollbar-width: none
@@ -105,7 +109,7 @@
     min-height: 40rem;
     border: 1px solid hsl(var(--border));
     border-radius: 2rem;
-    background: #F6F7F2;
+    background: hsl(var(--card));
     padding: 1rem;
     box-shadow: 0 32px 80px rgba(18, 60, 59, 0.14);
     overflow: hidden
