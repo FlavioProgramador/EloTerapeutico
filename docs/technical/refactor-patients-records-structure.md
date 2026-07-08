@@ -55,7 +55,7 @@ A implementação foi separada em:
 - `backend/apps/records/models/exports.py`
 - `backend/apps/records/models/paths.py`
 
-Os imports públicos antigos continuam funcionando via fachadas.
+Os imports públicos antigos continuam funcionando via fachadas. Os novos arquivos clínicos usam o import canônico `core.fields.EncryptedTextField`, alinhado à estrutura atual do backend.
 
 ## Validação recomendada
 
