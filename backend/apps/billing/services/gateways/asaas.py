@@ -15,11 +15,11 @@ logger = logging.getLogger(__name__)
 class AsaasGateway(PaymentGateway):
     gateway_name = "ASAAS"
 
-    def __init__(self) -> None:
+    def __init__(self, *, require_api_key: bool = True) -> None:
         self.api_key = settings.ASAAS_API_KEY
         self.base_url = settings.ASAAS_BASE_URL.rstrip("/")
         self.timeout = 20.0
-        if not self.api_key:
+        if require_api_key and not self.api_key:
             raise GatewayConfigurationError("ASAAS_API_KEY não está configurada.")
 
     @property
