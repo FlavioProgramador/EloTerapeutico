@@ -29,9 +29,14 @@ def _payload_hash(payload: dict) -> str:
 
 
 def _event_id(payload: dict) -> str | None:
+    explicit_id = payload.get("id") or payload.get("eventId")
+    if explicit_id:
+        return explicit_id
+    event_type = payload.get("event", "UNKNOWN")
     payment = payload.get("payment") or {}
     subscription = payload.get("subscription") or {}
-    return payload.get("id") or payload.get("eventId") or payment.get("id") or subscription.get("id")
+    related_id = payment.get("id") or subscription.get("id")
+    return f"{event_type}:{related_id}" if related_id else None
 
 
 def _parse_paid_at(payment_data: dict):
