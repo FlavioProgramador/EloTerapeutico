@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import (
+from apps.forms.api.views.forms_views import (
     FormArchiveView,
     FormDetailView,
     FormDuplicateView,

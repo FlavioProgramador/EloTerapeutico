@@ -103,7 +103,7 @@ class DocumentModuleApiTests(APITestCase):
         self.assertIn("Paciente Exemplo", document.rendered_content)
         self.assertNotEqual(document.template_content_snapshot, self.template.content)
 
-    @patch("apps.documents.services.HTML")
+    @patch("apps.documents.services.core_services.HTML")
     def test_generates_private_pdf_and_hash(self, html_mock):
         html_mock.return_value.write_pdf.return_value = b"%PDF-safe-test"
         create_response = self.client.post(

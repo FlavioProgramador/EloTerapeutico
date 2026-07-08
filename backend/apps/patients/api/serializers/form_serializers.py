@@ -4,11 +4,10 @@ from pathlib import Path
 
 from rest_framework import serializers
 
-from core.validators import validate_cpf as validate_cpf_value
-
-from apps.patients.models import Patient
-from apps.patients.api.serializers.patient_professionals import serialize_patient_professionals
 from apps.patients.api.serializers.legacy_serializers import PatientCreateUpdateSerializer
+from apps.patients.api.serializers.patient_professionals import serialize_patient_professionals
+from apps.patients.models import Patient
+from core.validators import validate_cpf as validate_cpf_value
 
 
 class PatientFormSerializer(PatientCreateUpdateSerializer):

@@ -4,9 +4,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.audit import AuditLog, log_access
-
 from apps.patients.selectors.patients import patients_accessible_to
+from core.audit import AuditLog, log_access
 
 
 class PatientReminderView(APIView):

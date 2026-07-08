@@ -8,6 +8,7 @@ from apps.patients.exceptions import InvalidPatientState
 from apps.patients.selectors.patients import patients_accessible_to
 from apps.patients.services.lifecycle import deactivate as deactivate_patient
 from apps.patients.services.lifecycle import restore as restore_patient
+
 from .legacy_views import PatientViewSet as LegacyPatientViewSet
 
 

@@ -10,15 +10,14 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from core.audit import AuditLogMixin
-
 from apps.patients.api.filters import PatientFilter
-from apps.patients.models import Patient
 from apps.patients.api.serializers.legacy_serializers import (
     PatientCreateUpdateSerializer,
     PatientDetailSerializer,
     PatientListSerializer,
 )
+from apps.patients.models import Patient
+from core.audit import AuditLogMixin
 
 
 class PatientPermission(IsAuthenticated):

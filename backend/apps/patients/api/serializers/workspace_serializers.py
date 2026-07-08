@@ -7,10 +7,9 @@ from pathlib import Path
 from django.db import transaction
 from rest_framework import serializers
 
+from apps.patients.models import Patient, PatientProfessional
 from apps.users.models import User
 from core.validators import validate_cpf, validate_phone
-
-from apps.patients.models import Patient, PatientProfessional
 
 
 class PatientProfessionalSerializer(serializers.ModelSerializer):
