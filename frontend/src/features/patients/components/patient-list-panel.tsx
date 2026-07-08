@@ -80,7 +80,12 @@ export function PatientListPanel({
 
   if (loading) {
     return (
-      <div className="space-y-2 rounded-xl border border-border bg-card p-3">
+      <div
+        role="status"
+        aria-busy="true"
+        aria-label="Carregando lista de pacientes"
+        className="space-y-2 rounded-xl border border-border bg-card p-3"
+      >
         {Array.from({ length: pageSize }).map((_, index) => (
           <div key={index} className="h-24 animate-pulse rounded-lg bg-secondary" />
         ))}
@@ -126,6 +131,7 @@ export function PatientListPanel({
                   tabIndex={0}
                   role="button"
                   aria-selected={selected}
+                  aria-label={`Selecionar paciente ${patient.display_name}`}
                   onClick={() => onSelect(patient.id)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
@@ -195,6 +201,7 @@ export function PatientListPanel({
               type="button"
               onClick={() => onSelect(patient.id)}
               aria-pressed={selected}
+              aria-label={`Selecionar paciente ${patient.display_name}`}
               className={`w-full p-4 text-left transition-colors ${
                 selected
                   ? "bg-primary/8 shadow-[inset_3px_0_0_hsl(var(--primary))]"
