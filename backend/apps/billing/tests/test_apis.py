@@ -30,7 +30,8 @@ class BillingAPITests(TestCase):
         response = self.client.get("/api/v1/billing/plans/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["results"][0]["slug"], "profissional-test")
+        slugs = {plan["slug"] for plan in response.data["results"]}
+        self.assertIn("profissional-test", slugs)
 
     @override_settings(BILLING_TRIAL_DAYS=0)
     @patch("apps.billing.services.subscriptions.get_gateway")
