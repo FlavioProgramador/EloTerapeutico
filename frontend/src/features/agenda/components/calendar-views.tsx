@@ -14,10 +14,10 @@ import { StatusBadge } from "./agenda-ui";
 const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 function eventTone(status: string) {
-  if (status === "confirmed") return "border-emerald-500/30 bg-emerald-500/10 text-emerald-700";
-  if (status === "completed") return "border-sky-500/30 bg-sky-500/10 text-sky-700";
+  if (status === "confirmed") return "border-primary/30 bg-primary/10 text-primary";
+  if (status === "completed") return "border-success/30 bg-success/10 text-success";
   if (status === "missed" || status === "cancelled") return "border-destructive/30 bg-destructive/10 text-destructive";
-  return "border-amber-500/30 bg-amber-500/10 text-amber-700";
+  return "border-warning/30 bg-warning/10 text-warning";
 }
 
 export function MonthView({

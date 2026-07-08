@@ -8,6 +8,21 @@ def _admin_link(route_name: str):
 
 
 UNFOLD = {
+    "COLORS": {
+        "primary": {
+            "50": "254 243 199",
+            "100": "253 230 138",
+            "200": "252 211 77",
+            "300": "251 191 36",
+            "400": "245 158 11",
+            "500": "217 142 63",  # #D98E3F (Brand Amber)
+            "600": "180 83 9",
+            "700": "146 64 14",
+            "800": "120 53 4",
+            "900": "78 35 9",
+            "950": "45 20 4",
+        },
+    },
     "SITE_TITLE": "Elo Terapêutico Admin",
     "SITE_HEADER": "Elo Terapêutico",
     "SITE_SUBHEADER": "Painel interno da plataforma",
@@ -28,6 +43,11 @@ UNFOLD = {
                         "title": "Dashboard",
                         "icon": "dashboard",
                         "link": _admin_link("admin:index"),
+                    },
+                    {
+                        "title": "SQL Explorer",
+                        "icon": "database",
+                        "link": _admin_link("sql_explorer"),
                     },
                 ],
             },

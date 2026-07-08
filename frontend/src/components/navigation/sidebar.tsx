@@ -7,6 +7,7 @@ import { BarChart2, Calendar, ChevronLeft, ChevronRight, ClipboardList, DollarSi
 
 import { useAuth } from "@/contexts/auth";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface SidebarProps {
   className?: string;
@@ -50,10 +51,28 @@ export function Sidebar({ className }: SidebarProps) {
             const reportsActive = item.href.includes("view=reports") && pathname === "/dashboard" && searchParams.get("view") === "reports";
             const isActive = reportsActive || pathname === item.href || (item.href !== "/dashboard" && item.href !== "#" && !item.href.includes("?") && pathname?.startsWith(`${item.href}/`));
             return (
-              <Link key={item.name} href={item.href} className={cn("group relative flex items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-xs font-semibold transition", isActive ? "border-sidebar-active/15 bg-sidebar-active/10 text-sidebar-foreground" : "text-sidebar-muted hover:bg-sidebar-surface hover:text-sidebar-foreground", isCollapsed && "justify-center px-2")} aria-current={isActive ? "page" : undefined}>
-                {isActive && <span className="absolute bottom-2 left-0 top-2 w-0.5 rounded-full bg-sidebar-active" />}
-                <Icon className={cn("h-4 w-4 shrink-0 transition-colors", isActive ? "text-sidebar-active" : "text-sidebar-muted group-hover:text-sidebar-foreground")} />
-                {!isCollapsed && <span>{item.name}</span>}
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-semibold transition-colors duration-200",
+                  isActive
+                    ? "text-sidebar-foreground font-bold"
+                    : "text-sidebar-muted hover:text-sidebar-foreground",
+                  isCollapsed && "justify-center px-2"
+                )}
+                aria-current={isActive ? "page" : undefined}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="activeNav"
+                    className="absolute inset-0 rounded-lg border border-sidebar-active/15 bg-sidebar-active/10"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+                {isActive && <span className="absolute bottom-2.5 left-0 top-2.5 w-0.5 rounded-full bg-sidebar-active z-10" />}
+                <Icon className={cn("relative z-10 h-4 w-4 shrink-0 transition-colors", isActive ? "text-sidebar-active" : "text-sidebar-muted group-hover:text-sidebar-foreground")} />
+                {!isCollapsed && <span className="relative z-10">{item.name}</span>}
               </Link>
             );
           })}

@@ -84,6 +84,25 @@ def dashboard_callback(request, context):
             | Q(professional_links__professional=request.user)
         ).distinct()
 
+    search_query = request.GET.get("q", "").strip()
+    found_patients = []
+    found_therapists = []
+
+    if search_query:
+        found_patients = patients.filter(
+            Q(full_name__icontains=search_query) |
+            Q(social_name__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(phone__icontains=search_query) |
+            Q(cpf__icontains=search_query)
+        )[:10]
+
+        found_therapists = users.filter(
+            Q(full_name__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(phone__icontains=search_query)
+        )[:10]
+
     appointments = _scoped_queryset(
         Appointment.objects.all(),
         request,
@@ -105,12 +124,30 @@ def dashboard_callback(request, context):
         owner_field="owner",
     )
 
-    monthly_revenue = transactions.filter(
+    monthly_paid = transactions.filter(
         transaction_type=FinancialTransaction.TransactionType.INCOME,
         payment_status=FinancialTransaction.PaymentStatus.PAID,
         due_date__gte=month_start,
         due_date__lt=next_month,
-    ).aggregate(total=Sum("amount"))["total"]
+    ).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+
+    monthly_pending = transactions.filter(
+        transaction_type=FinancialTransaction.TransactionType.INCOME,
+        payment_status__in=[
+            FinancialTransaction.PaymentStatus.PENDING,
+            FinancialTransaction.PaymentStatus.PARTIAL,
+        ],
+        due_date__gte=month_start,
+        due_date__lt=next_month,
+    ).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+
+    monthly_total_income = monthly_paid + monthly_pending
+    if monthly_total_income > 0:
+        monthly_percentage = int((monthly_paid / monthly_total_income) * 100)
+    else:
+        monthly_percentage = 0
+
+    monthly_revenue = monthly_paid
 
     pending_amount = transactions.filter(
         payment_status__in=[
@@ -196,6 +233,12 @@ def dashboard_callback(request, context):
                 },
             ],
             "dashboard_generated_at": timezone.now(),
+            "search_query": search_query,
+            "found_patients": found_patients,
+            "found_therapists": found_therapists,
+            "monthly_paid_formatted": _format_currency(monthly_paid),
+            "monthly_total_formatted": _format_currency(monthly_total_income),
+            "monthly_percentage": monthly_percentage,
         }
     )
     return context

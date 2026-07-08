@@ -35,6 +35,151 @@
                 {% endfor %}
             </div>
 
+            <!-- Progresso Financeiro do Mês -->
+            <article class="mt-8 border border-base-200 rounded-default bg-white p-6 shadow-sm dark:border-base-800 dark:bg-base-900 max-w-3xl">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2 text-primary-600 dark:text-primary-500">
+                        <span class="material-symbols-outlined text-xl">insights</span>
+                        <strong class="text-xs font-medium uppercase tracking-wide">
+                            Progresso Financeiro do Mês
+                        </strong>
+                    </div>
+                    <span class="text-xs font-semibold px-2 py-1 bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-300 rounded-full">
+                        {{ monthly_percentage }}% Realizado
+                    </span>
+                </div>
+                <div class="relative w-full h-4 bg-base-100 rounded-full overflow-hidden dark:bg-base-800 mb-3 border border-base-200 dark:border-base-700">
+                    <div class="h-full bg-primary-500 rounded-full transition-all duration-500" style="width: {{ monthly_percentage }}%;"></div>
+                </div>
+                <div class="flex justify-between text-xs text-font-subtle-light dark:text-font-subtle-dark">
+                    <span>Pago: <strong class="text-font-important-light dark:text-font-important-dark">{{ monthly_paid_formatted }}</strong></span>
+                    <span>Total Lançado: <strong class="text-font-important-light dark:text-font-important-dark">{{ monthly_total_formatted }}</strong></span>
+                </div>
+            </article>
+
+            <div class="mt-8 mb-6">
+                <h2 class="font-semibold text-lg text-font-important-light dark:text-font-important-dark">
+                    Busca Rápida
+                </h2>
+                <p class="mt-2 text-sm text-font-subtle-light dark:text-font-subtle-dark">
+                    Pesquise pacientes ou terapeutas por nome, e-mail, telefone ou CPF.
+                </p>
+            </div>
+            <form method="get" action="" class="flex gap-2 max-w-xl mb-8">
+                <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Digite o termo de busca..." class="border border-base-200 rounded-default bg-white px-4 py-2 text-sm w-full dark:border-base-800 dark:bg-base-900 text-font-important-light dark:text-font-important-dark focus:outline-none focus:border-primary-500">
+                <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-default text-sm font-medium transition dark:bg-primary-500 dark:hover:bg-primary-600">
+                    Buscar
+                </button>
+                {% if search_query %}
+                    <a href="?" class="border border-base-200 hover:bg-base-100 text-font-important-light px-4 py-2 rounded-default text-sm font-medium transition dark:border-base-800 dark:bg-base-900 dark:hover:bg-base-800 dark:text-font-important-dark flex items-center">
+                        Limpar
+                    </a>
+                {% endif %}
+            </form>
+
+            {% if search_query %}
+                <div class="space-y-6 mb-8">
+                    <!-- Pacientes Encontrados -->
+                    <div>
+                        <h3 class="font-semibold text-sm text-font-important-light dark:text-font-important-dark mb-3">
+                            Pacientes Encontrados ({{ found_patients|length }})
+                        </h3>
+                        {% if found_patients %}
+                            <div class="border border-base-200 rounded-default overflow-hidden dark:border-base-800">
+                                <table class="w-full text-left border-collapse text-sm">
+                                    <thead>
+                                        <tr class="bg-base-50 dark:bg-base-800 text-font-subtle-light dark:text-font-subtle-dark font-medium border-b border-base-200 dark:border-base-800">
+                                            <th class="p-3">Nome</th>
+                                            <th class="p-3">E-mail</th>
+                                            <th class="p-3">Telefone</th>
+                                            <th class="p-3">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-base-200 dark:divide-base-800 bg-white dark:bg-base-900">
+                                        {% for p in found_patients %}
+                                            <tr class="text-font-important-light dark:text-font-important-dark hover:bg-base-50 dark:hover:bg-base-800">
+                                                <td class="p-3 font-medium">{{ p.full_name }}</td>
+                                                <td class="p-3">{{ p.email|default:"—" }}</td>
+                                                <td class="p-3">{{ p.phone|default:"—" }}</td>
+                                                <td class="p-3">
+                                                    <a href="{% url 'admin:patients_patient_change' p.id %}" class="text-primary-600 dark:text-primary-500 hover:underline">Ver Ficha</a>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <p class="text-sm text-font-subtle-light dark:text-font-subtle-dark">Nenhum paciente encontrado.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Terapeutas Encontrados -->
+                    <div>
+                        <h3 class="font-semibold text-sm text-font-important-light dark:text-font-important-dark mb-3">
+                            Profissionais/Terapeutas Encontrados ({{ found_therapists|length }})
+                        </h3>
+                        {% if found_therapists %}
+                            <div class="border border-base-200 rounded-default overflow-hidden dark:border-base-800">
+                                <table class="w-full text-left border-collapse text-sm">
+                                    <thead>
+                                        <tr class="bg-base-50 dark:bg-base-800 text-font-subtle-light dark:text-font-subtle-dark font-medium border-b border-base-200 dark:border-base-800">
+                                            <th class="p-3">Nome</th>
+                                            <th class="p-3">E-mail</th>
+                                            <th class="p-3">Papel</th>
+                                            <th class="p-3">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-base-200 dark:divide-base-800 bg-white dark:bg-base-900">
+                                        {% for t in found_therapists %}
+                                            <tr class="text-font-important-light dark:text-font-important-dark hover:bg-base-50 dark:hover:bg-base-800">
+                                                <td class="p-3 font-medium">{{ t.full_name }}</td>
+                                                <td class="p-3">{{ t.email }}</td>
+                                                <td class="p-3">{{ t.get_role_display }}</td>
+                                                <td class="p-3">
+                                                    <a href="{% url 'admin:users_user_change' t.id %}" class="text-primary-600 dark:text-primary-500 hover:underline">Ver Cadastro</a>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <p class="text-sm text-font-subtle-light dark:text-font-subtle-dark">Nenhum terapeuta/usuário encontrado.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="mt-8 mb-6">
+                <h2 class="font-semibold text-lg text-font-important-light dark:text-font-important-dark">
+                    Ações Rápidas
+                </h2>
+            </div>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-8">
+                <a href="{% url 'admin:patients_patient_add' %}" class="flex items-center gap-3 border border-base-200 rounded-default bg-white p-4 shadow-sm hover:border-primary-500 transition dark:border-base-800 dark:bg-base-900 dark:hover:border-primary-500">
+                    <span class="material-symbols-outlined text-2xl text-primary-600 dark:text-primary-500">person_add</span>
+                    <div>
+                        <strong class="block text-sm font-medium text-font-important-light dark:text-font-important-dark">Cadastrar Paciente</strong>
+                        <span class="text-xs text-font-subtle-light dark:text-font-subtle-dark">Adicionar nova ficha clínica</span>
+                    </div>
+                </a>
+                <a href="{% url 'admin:agenda_appointment_add' %}" class="flex items-center gap-3 border border-base-200 rounded-default bg-white p-4 shadow-sm hover:border-primary-500 transition dark:border-base-800 dark:bg-base-900 dark:hover:border-primary-500">
+                    <span class="material-symbols-outlined text-2xl text-primary-600 dark:text-primary-500">calendar_today</span>
+                    <div>
+                        <strong class="block text-sm font-medium text-font-important-light dark:text-font-important-dark">Marcar Consulta</strong>
+                        <span class="text-xs text-font-subtle-light dark:text-font-subtle-dark">Agendar horário de atendimento</span>
+                    </div>
+                </a>
+                <a href="{% url 'admin:financeiro_financialtransaction_add' %}" class="flex items-center gap-3 border border-base-200 rounded-default bg-white p-4 shadow-sm hover:border-primary-500 transition dark:border-base-800 dark:bg-base-900 dark:hover:border-primary-500">
+                    <span class="material-symbols-outlined text-2xl text-primary-600 dark:text-primary-500">add_card</span>
+                    <div>
+                        <strong class="block text-sm font-medium text-font-important-light dark:text-font-important-dark">Lançar Transação</strong>
+                        <span class="text-xs text-font-subtle-light dark:text-font-subtle-dark">Registrar receita ou despesa</span>
+                    </div>
+                </a>
+            </div>
+
             {% if dashboard_generated_at %}
                 <p class="mt-4 text-xs text-font-subtle-light dark:text-font-subtle-dark">
                     Atualizado em {{ dashboard_generated_at|date:"d/m/Y H:i" }}.

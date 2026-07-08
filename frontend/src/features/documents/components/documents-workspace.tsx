@@ -69,11 +69,11 @@ const tabs: Array<{ value: Tab; label: string; icon: typeof FileText }> = [
 
 function StatusBadge({ status, label }: { status: string; label: string }) {
   const styles: Record<string, string> = {
-    active: "border-emerald-400/20 bg-emerald-500/10 text-emerald-300",
-    completed: "border-emerald-400/20 bg-emerald-500/10 text-emerald-300",
-    draft: "border-amber-400/20 bg-amber-500/10 text-amber-300",
-    processing: "border-sky-400/20 bg-sky-500/10 text-sky-300",
-    failed: "border-danger/20 bg-danger/10 text-danger",
+    active: "border-success/20 bg-success/10 text-success",
+    completed: "border-success/20 bg-success/10 text-success",
+    draft: "border-warning/20 bg-warning/10 text-warning",
+    processing: "border-primary/20 bg-primary/10 text-primary",
+    failed: "border-destructive/20 bg-destructive/10 text-destructive",
     cancelled: "border-border bg-secondary text-muted-foreground",
     inactive: "border-border bg-secondary text-muted-foreground",
     archived: "border-border bg-secondary text-muted-foreground",
@@ -117,6 +117,7 @@ function EmptyState({
   secondaryLabel,
   onPrimary,
   onSecondary,
+  icon: Icon = FileText,
 }: {
   title: string;
   description: string;
@@ -124,11 +125,14 @@ function EmptyState({
   secondaryLabel?: string;
   onPrimary: () => void;
   onSecondary?: () => void;
+  icon?: typeof FileText;
 }) {
   return (
     <div className="rounded-xl border border-border bg-card px-6 py-14 text-center">
-      <FileText className="mx-auto h-9 w-9 text-muted-foreground" />
-      <h3 className="mt-4 text-sm font-bold text-foreground">{title}</h3>
+      <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-primary/12 text-primary">
+        <Icon className="h-8 w-8" />
+      </span>
+      <h3 className="mt-5 text-sm font-bold text-foreground">{title}</h3>
       <p className="mx-auto mt-2 max-w-lg text-xs leading-5 text-muted-foreground">
         {description}
       </p>
@@ -441,6 +445,7 @@ export function DocumentsWorkspace() {
                 setTypeFilter("");
                 setSpecialtyFilter("");
               }}
+              icon={Search}
             />
           ) : (
             <div className="grid gap-3 lg:grid-cols-2">
@@ -527,6 +532,7 @@ export function DocumentsWorkspace() {
               primaryLabel="Criar template"
               onSecondary={() => navigate("templates", { library: true })}
               onPrimary={() => openTemplateEditor()}
+              icon={Library}
             />
           ) : (
             <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -666,6 +672,7 @@ export function DocumentsWorkspace() {
               description="Documentos emitidos pelos profissionais aparecerão aqui com histórico e status."
               primaryLabel="Gerar primeiro documento"
               onPrimary={() => setGenerateModalOpen(true)}
+              icon={FileText}
             />
           ) : (
             <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -808,6 +815,7 @@ export function DocumentsWorkspace() {
               description="Crie textos-base para inserir no editor clínico sem apagar conteúdo já digitado."
               primaryLabel="Criar template"
               onPrimary={() => setEvolutionModalOpen(true)}
+              icon={ClipboardList}
             />
           ) : (
             <div className="overflow-hidden rounded-xl border border-border bg-card">

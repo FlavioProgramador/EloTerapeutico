@@ -13,9 +13,48 @@ from datetime import date
 
 from django.contrib import admin, messages
 from django.utils.html import format_html
-from unfold.admin import ModelAdmin
+from unfold.admin import ModelAdmin, TabularInline
+from unfold.contrib.filters.admin import ChoicesDropdownFilter, RelatedDropdownFilter, RangeDateFilter
+from apps.agenda.models import Appointment
+from apps.financeiro.models import FinancialTransaction
 
 from .models import Patient
+
+
+class AppointmentInline(TabularInline):
+    model = Appointment
+    extra = 0
+    fields = ("therapist", "start_time", "end_time", "status", "session_value", "edit_link")
+    readonly_fields = ("edit_link",)
+    tab = True
+    verbose_name = "Consulta"
+    verbose_name_plural = "Consultas"
+
+    def edit_link(self, obj):
+        if obj.pk:
+            from django.urls import reverse
+            url = reverse("admin:agenda_appointment_change", args=[obj.pk])
+            return format_html('<a href="{}" class="font-medium text-primary-600 dark:text-primary-500 hover:underline">Editar Completo</a>', url)
+        return "—"
+    edit_link.short_description = "Ação"
+
+
+class FinancialTransactionInline(TabularInline):
+    model = FinancialTransaction
+    extra = 0
+    fields = ("therapist", "transaction_type", "category", "amount", "payment_status", "due_date", "edit_link")
+    readonly_fields = ("edit_link",)
+    tab = True
+    verbose_name = "Transação Financeira"
+    verbose_name_plural = "Transações Financeiras"
+
+    def edit_link(self, obj):
+        if obj.pk:
+            from django.urls import reverse
+            url = reverse("admin:financeiro_financialtransaction_change", args=[obj.pk])
+            return format_html('<a href="{}" class="font-medium text-primary-600 dark:text-primary-500 hover:underline">Editar Completo</a>', url)
+        return "—"
+    edit_link.short_description = "Ação"
 
 
 class SoftDeletedFilter(admin.SimpleListFilter):
@@ -69,7 +108,10 @@ class IsMinorFilter(admin.SimpleListFilter):
 class PatientAdmin(ModelAdmin):
     """Admin CRM para pacientes, com foco em LGPD e suporte interno."""
 
+    inlines = [AppointmentInline, FinancialTransactionInline]
+
     list_display = [
+        "photo_avatar",
         "display_name_display",
         "masked_cpf_display",
         "age_display",
@@ -82,14 +124,14 @@ class PatientAdmin(ModelAdmin):
     ]
     list_filter = [
         SoftDeletedFilter,
-        "status",
-        "gender",
-        "attendance_type",
-        "modality",
-        "payer_type",
+        ("status", ChoicesDropdownFilter),
+        ("gender", ChoicesDropdownFilter),
+        ("attendance_type", ChoicesDropdownFilter),
+        ("modality", ChoicesDropdownFilter),
+        ("payer_type", ChoicesDropdownFilter),
         IsMinorFilter,
-        "therapist",
-        "created_at",
+        ("therapist", RelatedDropdownFilter),
+        ("created_at", RangeDateFilter),
     ]
     search_fields = [
         "full_name",
@@ -290,6 +332,19 @@ class PatientAdmin(ModelAdmin):
             patient.deactivate()
             count += 1
         self.message_user(request, f"{count} paciente(s) inativado(s).", messages.WARNING)
+
+    @admin.display(description="Foto")
+    def photo_avatar(self, obj: Patient):
+        if obj.photo:
+            return format_html('<img src="{}" style="width: 28px; height: 28px; border-radius: 9999px; object-fit: cover;" />', obj.photo.url)
+        initials = obj.display_name[:2].upper() if obj.display_name else "PA"
+        return format_html(
+            '<div style="width: 28px; height: 28px; border-radius: 9999px; '
+            'background-color: #f3f4f6; color: #4b5563; display: flex; '
+            'align-items: center; justify-content: center; font-size: 10px; '
+            'font-weight: 600; border: 1px solid #e5e7eb;">{}</div>',
+            initials
+        )
 
     @admin.display(description="Paciente", ordering="full_name")
     def display_name_display(self, obj: Patient) -> str:

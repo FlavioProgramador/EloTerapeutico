@@ -1,152 +1,152 @@
 @import "tailwindcss";
 
 :root {
-  /* Fundo suave cool-gray-blue */
-  --background: 220 20% 97%;
-  --foreground: 222 47% 15%;
+  /* Fundo suave Papel Névoa (#EFF1EC) - tom natural, sutil e elegante */
+  --background: 84 10% 95%;
+  --foreground: 159 24% 11%;
 
   /* Superfície para Cards e Dropdowns */
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 15%;
+  --card-foreground: 159 24% 11%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 15%;
+  --popover-foreground: 159 24% 11%;
 
-  /* Paleta Primária - Azul Clínico Nobre */
-  --primary: 221 83% 53%;
-  --primary-hover: 221 84% 48%;
-  --primary-active: 221 84% 42%;
-  --primary-soft: 221 95% 94%;
+  /* Paleta Primária - Âmbar Terroso (Laranja da Landing Page) */
+  --primary: 31 67% 50%; /* #D98E3F */
+  --primary-hover: 31 67% 43%;
+  --primary-active: 31 67% 38%;
+  --primary-soft: 31 67% 95%;
   --primary-foreground: 0 0% 100%;
 
   /* Secundários */
-  --secondary: 220 14% 96%;
-  --secondary-foreground: 222 47% 20%;
+  --secondary: 142 24% 92%;
+  --secondary-foreground: 159 24% 11%;
 
-  --muted: 220 14% 94%;
-  --muted-foreground: 220 12% 50%;
+  --muted: 84 10% 90%;
+  --muted-foreground: 147 12% 42%;
 
-  /* Accent */
-  --accent: 211 100% 65%;
-  --accent-foreground: 222 47% 15%;
+  /* Accent - Âmbar Terroso (#D98E3F) */
+  --accent: 31 67% 55%;
+  --accent-foreground: 0 0% 100%;
 
   /* Estados Semânticos Clássicos */
-  --success: 142 72% 29%;
-  --success-soft: 142 72% 95%;
+  --success: 149 32% 36%;
+  --success-soft: 149 32% 95%;
   --success-foreground: 0 0% 100%;
   
-  --warning: 38 92% 44%;
-  --warning-soft: 38 92% 95%;
+  --warning: 31 67% 55%;
+  --warning-soft: 31 67% 95%;
   --warning-foreground: 28 90% 12%;
 
   --info: 199 89% 48%;
   --info-soft: 199 89% 95%;
   --info-foreground: 225 42% 9%;
 
-  --destructive: 0 74% 42%;
-  --destructive-soft: 0 74% 96%;
+  --destructive: 15 59% 45%;
+  --destructive-soft: 15 59% 95%;
   --destructive-foreground: 0 0% 100%;
   
   /* Danger (mapeado para destrutivo para consistência) */
-  --danger: 0 74% 42%;
-  --danger-soft: 0 74% 96%;
+  --danger: 15 59% 45%;
+  --danger-soft: 15 59% 95%;
 
   /* Geometria e Superfícies */
-  --border: 220 13% 91%;
-  --border-strong: 220 13% 80%;
-  --input: 220 13% 91%;
-  --ring: 221 83% 53%;
+  --border: 147 18% 88%;
+  --border-strong: 147 18% 78%;
+  --input: 147 18% 88%;
+  --ring: 171 50% 35%;
 
-  --background-subtle: 220 25% 95%;
+  --background-subtle: 84 10% 92%;
   --surface: 0 0% 100%;
   --surface-elevated: 0 0% 100%;
 
   /* Textos específicos */
-  --text-primary: 222 47% 15%;
-  --text-secondary: 220 16% 36%;
-  --text-muted: 220 14% 56%;
+  --text-primary: 159 24% 11%;
+  --text-secondary: 147 12% 42%;
+  --text-muted: 147 12% 55%;
 
-  /* Sidebar Lateral Escura */
-  --sidebar: 222 47% 7%;
-  --sidebar-surface: 222 40% 12%;
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-muted: 215 16% 65%;
-  --sidebar-active: 221 83% 53%;
-  --sidebar-border: 222 47% 14%;
+  /* Sidebar Lateral Escura em Tinta Elo (#123C3B) para alto contraste e sofisticação */
+  --sidebar: 177 57% 15%;
+  --sidebar-surface: 177 57% 12%;
+  --sidebar-foreground: 130 10% 93%;
+  --sidebar-muted: 142 24% 75%;
+  --sidebar-active: 31 67% 55%;
+  --sidebar-border: 177 57% 22%;
 
   --radius: 0.75rem;
 }
 
 .dark {
-  /* Tema escuro principal: azul-escuro suave */
-  --background: 222 47% 6%;
-  --foreground: 210 40% 98%;
+  /* Tema escuro principal: cinza-carvão neutro e sofisticado, evitando repetição excessiva de verde */
+  --background: 220 15% 10%; /* #16191B - Fundo geral */
+  --foreground: 220 10% 94%; /* #EFF1F2 - Texto principal de alto contraste */
 
-  --card: 222 47% 10%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222 47% 11%;
-  --popover-foreground: 210 40% 98%;
+  --card: 220 12% 14%; /* #202427 - Superfície dos cards destacada do fundo */
+  --card-foreground: 220 10% 94%;
+  --popover: 220 12% 14%;
+  --popover-foreground: 220 10% 94%;
 
-  /* Paleta Primária - Azul Clínico (mais vibrante no escuro) */
-  --primary: 217 91% 65%;
-  --primary-hover: 217 91% 70%;
-  --primary-active: 217 91% 75%;
-  --primary-soft: 217 91% 15%;
-  --primary-foreground: 0 0% 100%;
+  /* Paleta Primária - Âmbar Terroso ativa de alto contraste */
+  --primary: 31 75% 55%; /* #D98E3F */
+  --primary-hover: 31 75% 62%;
+  --primary-active: 31 75% 67%;
+  --primary-soft: 31 75% 15%;
+  --primary-foreground: 220 15% 10%;
 
   /* Secundários */
-  --secondary: 222 47% 12%;
-  --secondary-foreground: 210 40% 98%;
+  --secondary: 220 12% 12%; /* #1A1D20 */
+  --secondary-foreground: 220 10% 94%;
 
-  --muted: 222 47% 13%;
-  --muted-foreground: 215 16% 65%;
+  --muted: 220 10% 16%; /* #24292D */
+  --muted-foreground: 220 8% 68%; /* #A6AEB2 */
 
-  /* Accent */
-  --accent: 211 100% 65%;
-  --accent-foreground: 222 47% 6%;
+  /* Accent - Âmbar Terroso */
+  --accent: 31 75% 55%;
+  --accent-foreground: 220 15% 10%;
 
   /* Estados Semânticos no Escuro */
-  --success: 142 70% 45%;
-  --success-soft: 142 70% 12%;
-  --success-foreground: 222 47% 6%;
+  --success: 149 32% 42%; /* Sálvia suave */
+  --success-soft: 149 32% 12%;
+  --success-foreground: 220 15% 10%;
   
-  --warning: 38 90% 55%;
-  --warning-soft: 38 90% 12%;
+  --warning: 31 75% 55%;
+  --warning-soft: 31 75% 12%;
   --warning-foreground: 28 90% 12%;
 
   --info: 199 89% 60%;
   --info-soft: 199 89% 15%;
-  --info-foreground: 222 47% 6%;
+  --info-foreground: 220 15% 10%;
 
-  --destructive: 0 84% 60%;
-  --destructive-soft: 0 84% 15%;
+  --destructive: 15 67% 55%;
+  --destructive-soft: 15 67% 15%;
   --destructive-foreground: 0 0% 100%;
   
   /* Danger */
-  --danger: 0 84% 60%;
-  --danger-soft: 0 84% 15%;
+  --danger: 15 67% 55%;
+  --danger-soft: 15 67% 15%;
 
-  /* Geometria e Superfícies */
-  --border: 222 47% 15%;
-  --border-strong: 222 47% 24%;
-  --input: 222 47% 15%;
-  --ring: 217 91% 65%;
+  /* Geometria e Superfícies com excelente definição */
+  --border: 220 10% 18%; /* #2A3035 - Bordas visíveis mas sutis */
+  --border-strong: 220 10% 25%; /* #3B444A */
+  --input: 220 10% 18%;
+  --ring: 31 75% 55%;
 
-  --background-subtle: 222 47% 4%;
-  --surface: 222 47% 10%;
-  --surface-elevated: 222 47% 12%;
+  --background-subtle: 220 15% 8%; /* #111415 */
+  --surface: 220 12% 14%;
+  --surface-elevated: 220 12% 16%;
 
   /* Textos específicos */
-  --text-primary: 210 40% 98%;
-  --text-secondary: 215 20% 80%;
-  --text-muted: 215 16% 60%;
+  --text-primary: 220 10% 94%;
+  --text-secondary: 220 8% 68%;
+  --text-muted: 220 8% 55%;
 
-  /* Sidebar Lateral */
-  --sidebar: 222 47% 7%;
-  --sidebar-surface: 222 40% 12%;
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-muted: 215 16% 65%;
-  --sidebar-active: 217 91% 65%;
-  --sidebar-border: 222 47% 14%;
+  /* Sidebar Lateral - Mais escuro para marcar a divisão de tela */
+  --sidebar: 220 18% 7%; /* #0F1214 */
+  --sidebar-surface: 220 18% 10%;
+  --sidebar-foreground: 220 10% 94%;
+  --sidebar-muted: 220 8% 68%;
+  --sidebar-active: 31 75% 55%;
+  --sidebar-border: 220 18% 11%;
 }
 
 @theme {
@@ -207,58 +207,70 @@
   --color-sidebar-border: hsl(var(--sidebar-border));
 
   /*
-   * Compatibilidade cromática: componentes antigos ainda usam classes
-   * emerald/green/teal. As escalas são redirecionadas para a identidade
-   * índigo, removendo o verde visual sem quebrar os componentes existentes.
+   * Compatibilidade cromática: as classes antigas emerald/green/teal/lime
+   * são redirecionadas para tons de Sálvia (success) e Accent (primary)
+   * para dar coesão visual imediata a todo o produto.
    */
-  --color-emerald-50: #eff6ff;
-  --color-emerald-100: #dbeafe;
-  --color-emerald-200: #bfdbfe;
-  --color-emerald-300: #93c5fd;
-  --color-emerald-400: #60a5fa;
-  --color-emerald-500: #3b82f6;
-  --color-emerald-600: #2563eb;
-  --color-emerald-700: #1d4ed8;
-  --color-emerald-800: #1e40af;
-  --color-emerald-900: #1e3a8a;
-  --color-emerald-950: #172554;
+  --color-emerald-50: hsl(var(--success) / 0.05);
+  --color-emerald-100: hsl(var(--success) / 0.12);
+  --color-emerald-200: hsl(var(--success) / 0.22);
+  --color-emerald-300: hsl(var(--success) / 0.4);
+  --color-emerald-400: hsl(var(--success) / 0.7);
+  --color-emerald-500: hsl(var(--success));
+  --color-emerald-600: hsl(var(--success) / 0.9);
+  --color-emerald-700: hsl(var(--success) / 0.8);
+  --color-emerald-800: hsl(var(--success) / 0.7);
+  --color-emerald-900: hsl(var(--success) / 0.6);
+  --color-emerald-950: hsl(var(--success) / 0.5);
 
-  --color-green-50: #eff6ff;
-  --color-green-100: #dbeafe;
-  --color-green-200: #bfdbfe;
-  --color-green-300: #93c5fd;
-  --color-green-400: #60a5fa;
-  --color-green-500: #3b82f6;
-  --color-green-600: #2563eb;
-  --color-green-700: #1d4ed8;
-  --color-green-800: #1e40af;
-  --color-green-900: #1e3a8a;
-  --color-green-950: #172554;
+  --color-green-50: hsl(var(--success) / 0.05);
+  --color-green-100: hsl(var(--success) / 0.12);
+  --color-green-200: hsl(var(--success) / 0.22);
+  --color-green-300: hsl(var(--success) / 0.4);
+  --color-green-400: hsl(var(--success) / 0.7);
+  --color-green-500: hsl(var(--success));
+  --color-green-600: hsl(var(--success) / 0.9);
+  --color-green-700: hsl(var(--success) / 0.8);
+  --color-green-800: hsl(var(--success) / 0.7);
+  --color-green-900: hsl(var(--success) / 0.6);
+  --color-green-950: hsl(var(--success) / 0.5);
 
-  --color-teal-50: #eff6ff;
-  --color-teal-100: #dbeafe;
-  --color-teal-200: #bfdbfe;
-  --color-teal-300: #93c5fd;
-  --color-teal-400: #60a5fa;
-  --color-teal-500: #3b82f6;
-  --color-teal-600: #2563eb;
-  --color-teal-700: #1d4ed8;
-  --color-teal-800: #1e40af;
-  --color-teal-900: #1e3a8a;
-  --color-teal-950: #172554;
+  --color-blue-50: hsl(var(--primary) / 0.05);
+  --color-blue-100: hsl(var(--primary) / 0.12);
+  --color-blue-200: hsl(var(--primary) / 0.22);
+  --color-blue-300: hsl(var(--primary) / 0.4);
+  --color-blue-400: hsl(var(--primary) / 0.7);
+  --color-blue-500: hsl(var(--primary));
+  --color-blue-600: hsl(var(--primary) / 0.9);
+  --color-blue-700: hsl(var(--primary) / 0.8);
+  --color-blue-800: hsl(var(--primary) / 0.7);
+  --color-blue-900: hsl(var(--primary) / 0.6);
+  --color-blue-950: hsl(var(--primary) / 0.5);
 
-  /* Lime passa a funcionar como escala azul-ciano de apoio. */
-  --color-lime-50: #effbff;
-  --color-lime-100: #d9f6ff;
-  --color-lime-200: #b8ecff;
-  --color-lime-300: #7fdeff;
-  --color-lime-400: #45c8f5;
-  --color-lime-500: #1ea7e1;
-  --color-lime-600: #1386ba;
-  --color-lime-700: #146b95;
-  --color-lime-800: #175978;
-  --color-lime-900: #184b65;
-  --color-lime-950: #0b3044;
+  --color-teal-50: hsl(var(--primary) / 0.05);
+  --color-teal-100: hsl(var(--primary) / 0.12);
+  --color-teal-200: hsl(var(--primary) / 0.22);
+  --color-teal-300: hsl(var(--primary) / 0.4);
+  --color-teal-400: hsl(var(--primary) / 0.7);
+  --color-teal-500: hsl(var(--primary));
+  --color-teal-600: hsl(var(--primary) / 0.9);
+  --color-teal-700: hsl(var(--primary) / 0.8);
+  --color-teal-800: hsl(var(--primary) / 0.7);
+  --color-teal-900: hsl(var(--primary) / 0.6);
+  --color-teal-950: hsl(var(--primary) / 0.5);
+
+  /* Lime passa a funcionar como escala da cor primária. */
+  --color-lime-50: hsl(var(--primary) / 0.05);
+  --color-lime-100: hsl(var(--primary) / 0.12);
+  --color-lime-200: hsl(var(--primary) / 0.22);
+  --color-lime-300: hsl(var(--primary) / 0.4);
+  --color-lime-400: hsl(var(--primary) / 0.7);
+  --color-lime-500: hsl(var(--primary));
+  --color-lime-600: hsl(var(--primary) / 0.9);
+  --color-lime-700: hsl(var(--primary) / 0.8);
+  --color-lime-800: hsl(var(--primary) / 0.7);
+  --color-lime-900: hsl(var(--primary) / 0.6);
+  --color-lime-950: hsl(var(--primary) / 0.5);
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -395,14 +407,14 @@ body {
  * ============================================================
  */
 .landing-page {
-  --background: 87 22% 95%;          /* Papel Névoa #F6F7F2 */
+  --background: 87 14% 89%;          /* Papel Névoa mais contrastado #DFE5DA */
   --background-dark: 172 46% 11%;    /* Tinta Elo Escura #0B2725 */
   --foreground: 147 30% 12%;         /* Grafite-Musgo #16241F */
-  --card: 87 14% 97%;
+  --card: 0 0% 100%;                 /* Branco puro para destacar os cards */
   --card-foreground: 147 30% 12%;
-  --secondary: 142 24% 90%;          /* Sálvia suave */
+  --secondary: 142 24% 86%;          /* Sálvia suave slightly richer */
   --secondary-foreground: 147 30% 18%;
-  --muted: 87 16% 92%;
+  --muted: 87 12% 86%;
   --muted-foreground: 147 12% 42%;
   --primary: 177 57% 15%;            /* Tinta Elo #123C3B */
   --primary-hover: 177 57% 20%;
@@ -410,6 +422,7 @@ body {
   --accent: 31 67% 55%;              /* Âmbar Terroso #D98E3F */
   --accent-foreground: 147 30% 12%;
   --sage: 142 24% 57%;               /* Sálvia #7FA592 */
+  --sage-deep: 155 21% 39%;          /* Sálvia Profunda #4F7867 */
   --blush: 12 58% 79%;               /* Argila Rosada #E8B4A8 */
   --text-on-dark: 130 10% 93%;       /* #EFF3EE */
   --border: 147 18% 88%;

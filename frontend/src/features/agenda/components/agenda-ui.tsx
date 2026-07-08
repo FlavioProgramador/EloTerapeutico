@@ -185,11 +185,11 @@ export function StatusBadge({ status }: { status: string | AppointmentStatus }) 
       className={cn(
         "inline-flex w-fit items-center rounded-full border px-2 py-1 text-[11px] font-semibold",
         status === "confirmed" || status === "active" || status === "available"
-          ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-600"
+          ? "border-primary/25 bg-primary/10 text-primary"
           : status === "scheduled" || status === "pending"
-            ? "border-amber-500/25 bg-amber-500/10 text-amber-600"
+            ? "border-warning/25 bg-warning/10 text-warning"
             : status === "completed" || status === "finished"
-              ? "border-sky-500/25 bg-sky-500/10 text-sky-600"
+              ? "border-success/25 bg-success/10 text-success"
               : status === "missed" || status === "cancelled" || status === "expired"
                 ? "border-destructive/25 bg-destructive/10 text-destructive"
                 : "border-border bg-secondary text-muted-foreground",

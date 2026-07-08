@@ -335,99 +335,101 @@ export function ModuleStories({ modules = landingModules }: ModuleStoriesProps) 
   };
 
   return (
-    <section id="modulos" className="module-stories">
-      <Reveal className="module-stories__intro">
-        <span className="landing-eyebrow">Módulos que compartilham contexto</span>
-        <h2>Cada área tem sua função. O valor aparece quando elas se conectam.</h2>
-      </Reveal>
+    <section id="modulos" className="module-stories-section">
+      <div className="module-stories__inner">
+        <Reveal className="module-stories__intro">
+          <span className="landing-eyebrow">Módulos que compartilham contexto</span>
+          <h2>Cada área tem sua função. O valor aparece quando elas se conectam.</h2>
+        </Reveal>
 
-      <Reveal className="module-selector" delay={0.08}>
-        <div className="module-tabs" role="tablist" aria-label="Módulos do Elo Terapêutico" ref={tablistRef}>
-          <span
-            className="module-tabs__indicator"
-            aria-hidden="true"
-            style={{
-              opacity: indicator.opacity,
-              transform: `translateX(${indicator.left}px)`,
-              width: indicator.width,
-            }}
-          />
-          {moduleList.map((module, index) => (
-            <button
-              key={module.id}
-              id={`module-tab-${module.id}`}
-              ref={(element) => {
-                tabRefs.current[index] = element;
+        <Reveal className="module-selector" delay={0.08}>
+          <div className="module-tabs" role="tablist" aria-label="Módulos do Elo Terapêutico" ref={tablistRef}>
+            <span
+              className="module-tabs__indicator"
+              aria-hidden="true"
+              style={{
+                opacity: indicator.opacity,
+                transform: `translateX(${indicator.left}px)`,
+                width: indicator.width,
               }}
-              type="button"
-              role="tab"
-              aria-selected={active.id === module.id}
-              aria-controls="module-panel"
-              tabIndex={rovingIndex === index ? 0 : -1}
-              onClick={() => selectTab(index)}
-              onFocus={() => setFocusedIndex(index)}
-              onKeyDown={(event) => handleKeyDown(event, index)}
-            >
-              {module.nome}
-            </button>
-          ))}
-        </div>
-        <span
-          className="module-selector__connector"
-          aria-hidden="true"
-          style={{ left: indicator.center, opacity: indicator.opacity }}
-        />
-
-        <div className="module-selector__stage">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.article
-              key={active.id}
-              id="module-panel"
-              role="tabpanel"
-              aria-labelledby={`module-tab-${active.id}`}
-              className="module-selector__panel"
-              initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <motion.div
-                className="module-selector__copy"
-                initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-                animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-                transition={{ duration: 0.28, delay: reduceMotion ? 0 : 0.06, ease: [0.22, 1, 0.36, 1] }}
+            />
+            {moduleList.map((module, index) => (
+              <button
+                key={module.id}
+                id={`module-tab-${module.id}`}
+                ref={(element) => {
+                  tabRefs.current[index] = element;
+                }}
+                type="button"
+                role="tab"
+                aria-selected={active.id === module.id}
+                aria-controls="module-panel"
+                tabIndex={rovingIndex === index ? 0 : -1}
+                onClick={() => selectTab(index)}
+                onFocus={() => setFocusedIndex(index)}
+                onKeyDown={(event) => handleKeyDown(event, index)}
               >
-                <span className="module-story__index">
-                  {String(selectedIndex + 1).padStart(2, "0")} · {active.nome}
-                </span>
-                <h3>{active.beneficio}</h3>
-                <p>{active.descricao}</p>
-                <ul>
-                  {active.benefits.map((benefit) => (
-                    <li key={benefit}><CheckCircle2 aria-hidden="true" />{benefit}</li>
-                  ))}
-                </ul>
-              </motion.div>
+                {module.nome}
+              </button>
+            ))}
+          </div>
+          <span
+            className="module-selector__connector"
+            aria-hidden="true"
+            style={{ left: indicator.center, opacity: indicator.opacity }}
+          />
 
-              <motion.div
-                className="module-selector__screen"
-                aria-label={`Mockup do módulo ${active.nome}`}
-                initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+          <div className="module-selector__stage">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.article
+                key={active.id}
+                id="module-panel"
+                role="tabpanel"
+                aria-labelledby={`module-tab-${active.id}`}
+                className="module-selector__panel"
+                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
                 animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
                 transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               >
-                <div className="module-selector__bar" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
-                  <small>{active.nome}</small>
-                </div>
-                <ActiveVisual />
-              </motion.div>
-            </motion.article>
-          </AnimatePresence>
-        </div>
-      </Reveal>
+                <motion.div
+                  className="module-selector__copy"
+                  initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                  animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                  transition={{ duration: 0.28, delay: reduceMotion ? 0 : 0.06, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <span className="module-story__index">
+                    {String(selectedIndex + 1).padStart(2, "0")} · {active.nome}
+                  </span>
+                  <h3>{active.beneficio}</h3>
+                  <p>{active.descricao}</p>
+                  <ul>
+                    {active.benefits.map((benefit) => (
+                      <li key={benefit}><CheckCircle2 aria-hidden="true" />{benefit}</li>
+                    ))}
+                  </ul>
+                </motion.div>
+
+                <motion.div
+                  className="module-selector__screen"
+                  aria-label={`Mockup do módulo ${active.nome}`}
+                  initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+                  animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <div className="module-selector__bar" aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                    <small>{active.nome}</small>
+                  </div>
+                  <ActiveVisual />
+                </motion.div>
+              </motion.article>
+            </AnimatePresence>
+          </div>
+        </Reveal>
+      </div>
     </section>
   );
 }

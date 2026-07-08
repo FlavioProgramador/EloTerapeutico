@@ -10,6 +10,7 @@ from django.db.models import Q, Sum
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin
+from unfold.contrib.filters.admin import BooleanRadioFilter, ChoicesDropdownFilter, RangeDateFilter
 
 from .models import FinancialTransaction
 
@@ -35,14 +36,14 @@ class FinancialTransactionAdmin(ModelAdmin):
     )
     list_display_links = ("id", "therapist_name")
     list_filter = (
-        "transaction_type",
-        "payment_status",
-        "payment_method",
-        "category",
-        "source",
-        "is_recurring",
-        "due_date",
-        "created_at",
+        ("transaction_type", ChoicesDropdownFilter),
+        ("payment_status", ChoicesDropdownFilter),
+        ("payment_method", ChoicesDropdownFilter),
+        ("category", ChoicesDropdownFilter),
+        ("source", ChoicesDropdownFilter),
+        ("is_recurring", BooleanRadioFilter),
+        ("due_date", RangeDateFilter),
+        ("created_at", RangeDateFilter),
     )
     search_fields = (
         "therapist__full_name",
@@ -57,7 +58,7 @@ class FinancialTransactionAdmin(ModelAdmin):
     autocomplete_fields = ("therapist", "patient")
     raw_id_fields = ("appointment",)
     readonly_fields = ("created_at", "updated_at", "outstanding_amount_display")
-    actions = ("action_cancel_pending",)
+    actions = ("action_cancel_pending", "action_mark_paid")
 
     fieldsets = (
         (
@@ -121,6 +122,27 @@ class FinancialTransactionAdmin(ModelAdmin):
             request,
             _("%(count)s transação(ões) cancelada(s).") % {"count": count},
             messages.WARNING,
+        )
+
+    @admin.action(description=_("Marcar transações selecionadas como Pagas"))
+    def action_mark_paid(self, request, queryset):
+        if not request.user.has_perm("financeiro.change_financialtransaction"):
+            self.message_user(request, _("Permissão insuficiente."), messages.ERROR)
+            return
+
+        count = 0
+        from django.utils import timezone
+        for transaction in queryset:
+            if transaction.payment_status != "paid":
+                transaction.payment_status = "paid"
+                transaction.paid_amount = transaction.amount
+                transaction.paid_at = timezone.now()
+                transaction.save()
+                count += 1
+        self.message_user(
+            request,
+            _("%(count)s transação(ões) marcada(s) como paga(s).") % {"count": count},
+            messages.SUCCESS,
         )
 
     @admin.display(description=_("Terapeuta"), ordering="therapist__full_name")
