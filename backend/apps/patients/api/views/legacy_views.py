@@ -3,13 +3,16 @@ apps/patients/views.py
 Views/ViewSets para o app de Pacientes.
 """
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from apps.billing.services.features import enforce_patient_limit
 from apps.patients.api.filters import PatientFilter
 from apps.patients.api.serializers.legacy_serializers import (
     PatientCreateUpdateSerializer,
@@ -69,6 +72,10 @@ class PatientViewSet(AuditLogMixin, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         if getattr(self.request.user, "is_therapist", False):
+            try:
+                enforce_patient_limit(self.request.user)
+            except DjangoValidationError as exc:
+                raise DRFValidationError({"detail": exc.messages[0]})
             serializer.save(therapist=self.request.user)
         else:
             serializer.save()
