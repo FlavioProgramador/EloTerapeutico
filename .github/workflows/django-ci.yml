@@ -61,6 +61,9 @@ jobs:
       - name: Apply migrations
         run: python manage.py migrate --noinput
 
+      - name: Run pre-commit checks (Linting & Quality)
+        run: pre-commit run --all-files
+
       - name: Run tests
         shell: bash
         run: |
