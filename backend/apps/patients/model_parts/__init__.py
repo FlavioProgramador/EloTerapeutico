@@ -11,6 +11,7 @@ from .choices import (
     PatientStatus,
 )
 from .managers import AllPatientsManager, PatientManager
+from .mixins import PatientComputedPropertiesMixin, PatientLifecycleMixin
 from .paths import patient_photo_path
 from .patient import Patient
 from .professional import PatientProfessional
@@ -20,7 +21,9 @@ __all__ = [
     "AllPatientsManager",
     "Patient",
     "PatientAttendanceType",
+    "PatientComputedPropertiesMixin",
     "PatientGender",
+    "PatientLifecycleMixin",
     "PatientManager",
     "PatientMaritalStatus",
     "PatientModality",
