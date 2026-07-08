@@ -188,7 +188,10 @@ class FinancialTransaction(models.Model):
 
     @property
     def outstanding_amount(self) -> Decimal:
-        return max(self.amount - self.paid_amount, Decimal("0.00"))
+        if self.amount is None:
+            return Decimal("0.00")
+        paid = self.paid_amount or Decimal("0.00")
+        return max(self.amount - paid, Decimal("0.00"))
 
     def clean(self) -> None:
         super().clean()
