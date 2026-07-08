@@ -77,6 +77,7 @@ module = [
     "apps.patients.api.urls",
     "apps.records.secure_document_views",
     "apps.patients.admin",
+    "apps.patients.admin_parts.*",
     "apps.documents.services",
     "apps.agenda.services",
     "apps.forms.migrations.*",
