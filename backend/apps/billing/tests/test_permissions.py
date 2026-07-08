@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.test import TestCase
@@ -40,7 +42,7 @@ class BillingPermissionTests(TestCase):
             user=self.user,
             plan=self.basic_plan,
             status=Subscription.Status.ACTIVE,
-            current_period_end=timezone.now() + timezone.timedelta(days=30),
+            current_period_end=timezone.now() + timedelta(days=30),
         )
         self.assertFalse(can_use_feature(self.user, "financial"))
 
@@ -49,7 +51,7 @@ class BillingPermissionTests(TestCase):
             user=self.user,
             plan=self.pro_plan,
             status=Subscription.Status.ACTIVE,
-            current_period_end=timezone.now() + timezone.timedelta(days=30),
+            current_period_end=timezone.now() + timedelta(days=30),
         )
         self.assertTrue(can_use_feature(self.user, "financial"))
 
@@ -58,7 +60,7 @@ class BillingPermissionTests(TestCase):
             user=self.user,
             plan=self.basic_plan,
             status=Subscription.Status.ACTIVE,
-            current_period_end=timezone.now() + timezone.timedelta(days=30),
+            current_period_end=timezone.now() + timedelta(days=30),
         )
         Patient.objects.create(full_name="Paciente Um", therapist=self.user)
 
