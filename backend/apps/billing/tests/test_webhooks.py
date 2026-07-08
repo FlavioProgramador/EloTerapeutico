@@ -1,0 +1,127 @@
+from django.contrib.auth import get_user_model
+from django.test import TestCase, override_settings
+from django.utils import timezone
+from rest_framework.test import APIRequestFactory
+
+from apps.billing.models import Payment, Plan, Subscription, WebhookEvent
+from apps.billing.views import AsaasWebhookView
+
+
+class AsaasWebhookTests(TestCase):
+    def setUp(self):
+        self.factory = APIRequestFactory()
+        self.user = get_user_model().objects.create_user(
+            email="terapeuta@example.com",
+            full_name="Terapeuta Teste",
+            password="SenhaForte123",
+        )
+        self.plan = Plan.objects.create(name="Profissional", slug="profissional-test", price="89.90")
+        self.subscription = Subscription.objects.create(
+            user=self.user,
+            plan=self.plan,
+            status=Subscription.Status.PENDING,
+            gateway_subscription_id="sub_123",
+        )
+
+    def post_webhook(self, payload):
+        request = self.factory.post(
+            "/api/v1/billing/webhooks/asaas/",
+            payload,
+            format="json",
+            HTTP_X_WEBHOOK_TOKEN="token-dev",
+        )
+        return AsaasWebhookView.as_view()(request)
+
+    @override_settings(ASAAS_WEBHOOK_TOKEN="token-dev", ASAAS_API_KEY="")
+    def test_payment_confirmed_activates_subscription(self):
+        response = self.post_webhook(
+            {
+                "event": "PAYMENT_CONFIRMED",
+                "payment": {
+                    "id": "pay_123",
+                    "subscription": "sub_123",
+                    "value": 89.9,
+                    "dueDate": "2026-07-08",
+                    "confirmedDate": timezone.now().isoformat(),
+                },
+            }
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.subscription.refresh_from_db()
+        self.assertEqual(self.subscription.status, Subscription.Status.ACTIVE)
+        self.assertTrue(Payment.objects.filter(gateway_payment_id="pay_123", status=Payment.Status.CONFIRMED).exists())
+
+    @override_settings(ASAAS_WEBHOOK_TOKEN="token-dev", ASAAS_API_KEY="")
+    def test_payment_received_activates_subscription(self):
+        response = self.post_webhook(
+            {
+                "event": "PAYMENT_RECEIVED",
+                "payment": {
+                    "id": "pay_124",
+                    "subscription": "sub_123",
+                    "value": 89.9,
+                    "dueDate": "2026-07-08",
+                    "paymentDate": timezone.now().isoformat(),
+                },
+            }
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.subscription.refresh_from_db()
+        self.assertEqual(self.subscription.status, Subscription.Status.ACTIVE)
+
+    @override_settings(ASAAS_WEBHOOK_TOKEN="token-dev", ASAAS_API_KEY="")
+    def test_payment_overdue_marks_subscription_past_due(self):
+        self.subscription.status = Subscription.Status.ACTIVE
+        self.subscription.save(update_fields=["status"])
+        response = self.post_webhook(
+            {
+                "event": "PAYMENT_OVERDUE",
+                "payment": {
+                    "id": "pay_125",
+                    "subscription": "sub_123",
+                    "value": 89.9,
+                    "dueDate": "2026-07-08",
+                },
+            }
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.subscription.refresh_from_db()
+        self.assertEqual(self.subscription.status, Subscription.Status.PAST_DUE)
+
+    @override_settings(ASAAS_WEBHOOK_TOKEN="token-dev", ASAAS_API_KEY="")
+    def test_duplicate_event_is_idempotent(self):
+        payload = {
+            "event": "PAYMENT_CONFIRMED",
+            "payment": {
+                "id": "pay_126",
+                "subscription": "sub_123",
+                "value": 89.9,
+                "dueDate": "2026-07-08",
+                "confirmedDate": timezone.now().isoformat(),
+            },
+        }
+        self.post_webhook(payload)
+        self.post_webhook(payload)
+
+        self.assertEqual(WebhookEvent.objects.count(), 1)
+        self.assertEqual(Payment.objects.filter(gateway_payment_id="pay_126").count(), 1)
+
+    @override_settings(ASAAS_WEBHOOK_TOKEN="token-dev", ASAAS_API_KEY="")
+    def test_event_without_subscription_does_not_break(self):
+        response = self.post_webhook(
+            {
+                "event": "PAYMENT_CONFIRMED",
+                "payment": {
+                    "id": "pay_127",
+                    "value": 89.9,
+                    "dueDate": "2026-07-08",
+                },
+            }
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(WebhookEvent.objects.count(), 1)
+        self.assertIn("sem subscription", WebhookEvent.objects.first().error_message)
