@@ -1,6 +1,7 @@
 import hashlib
 import json
 import logging
+from datetime import datetime
 from decimal import Decimal
 
 from django.db import transaction
@@ -38,9 +39,12 @@ def _parse_paid_at(payment_data: dict):
     if not paid_at:
         return None
     try:
-        return timezone.datetime.fromisoformat(paid_at).replace(tzinfo=timezone.get_current_timezone())
+        parsed = datetime.fromisoformat(paid_at)
     except ValueError:
         return timezone.now()
+    if timezone.is_naive(parsed):
+        return timezone.make_aware(parsed, timezone.get_current_timezone())
+    return parsed
 
 
 def _parse_due_date(payment_data: dict):
@@ -48,7 +52,7 @@ def _parse_due_date(payment_data: dict):
     if not due_date:
         return None
     try:
-        return timezone.datetime.fromisoformat(due_date).date()
+        return datetime.fromisoformat(due_date).date()
     except ValueError:
         return None
 
@@ -114,7 +118,7 @@ def _process_subscription_event(event_type: str, subscription_data: dict) -> str
 
 @transaction.atomic
 def handle_asaas_webhook(request) -> WebhookEvent:
-    payload = AsaasGateway().parse_webhook(request)
+    payload = AsaasGateway(require_api_key=False).parse_webhook(request)
     event_type = payload.get("event", "UNKNOWN")
     event_hash = _payload_hash(payload)
     webhook_event, created = WebhookEvent.objects.get_or_create(
