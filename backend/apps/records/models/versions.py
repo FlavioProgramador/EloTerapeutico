@@ -3,7 +3,7 @@
 from django.conf import settings
 from django.db import models
 
-from apps.core.fields import EncryptedTextField
+from core.fields import EncryptedTextField
 
 
 class AnamnesisVersion(models.Model):
