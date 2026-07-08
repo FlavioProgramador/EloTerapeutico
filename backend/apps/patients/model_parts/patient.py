@@ -23,6 +23,10 @@ def patient_photo_path(instance, filename: str) -> str:
     return f"patient_photos/{owner}/{uuid4().hex}{suffix}"
 
 
+# Mantém o caminho serializado em migrations antigas mesmo após mover o código.
+patient_photo_path.__module__ = "apps.patients.models"
+
+
 class Patient(models.Model):
     class Gender(models.TextChoices):
         MALE = "M", "Masculino"
