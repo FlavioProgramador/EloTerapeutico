@@ -1,6 +1,6 @@
 # Diretrizes de Conformidade LGPD - Elo Terapêutico
 
-Este documento detalha as medidas técnicas e administrativas adotadas no **Elo Terapêutico** para garantir a total conformidade com a **Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018)**. 
+Este documento detalha as medidas técnicas e administrativas adotadas no **Elo Terapêutico** para garantir a total conformidade com a **Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018)**.
 
 Dado que o sistema armazena prontuários, evoluções clínicas e anamneses, lidamos diretamente com **dados pessoais sensíveis** (Art. 5º, II da LGPD). Portanto, a privacidade e a segurança das informações são tratadas como requisitos de arquitetura prioritários desde o primeiro dia de desenvolvimento.
 

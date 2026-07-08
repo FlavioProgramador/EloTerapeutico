@@ -154,13 +154,13 @@ export function PatientFormDrawer(props: Props) {
         </div>
       ) : (
         <form onSubmit={submit.submit} className="space-y-6 pb-8" noValidate>
-          
+
           {/* 1. DADOS PESSOAIS */}
           <div className="space-y-4">
             <div className="border-b border-border/60 pb-1.5">
               <h3 className="text-sm font-bold text-foreground/90">Dados Pessoais</h3>
             </div>
-            
+
             <PatientPhotoField
               preview={state.preview}
               current={state.patientQuery.data?.photo ?? null}
@@ -484,7 +484,7 @@ export function PatientFormDrawer(props: Props) {
               <AlertTriangle className="h-4 w-4" />
               <span>Contato de Emergência</span>
             </div>
-            
+
             <div className="grid gap-3 sm:grid-cols-2">
               <FormField label="Nome do Contato" error={errors.emergency_contact_name?.message}>
                 <input

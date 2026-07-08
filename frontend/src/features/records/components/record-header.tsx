@@ -68,7 +68,7 @@ export function RecordHeader({
       {/* Card do Paciente com Ações */}
       <section className="overflow-hidden rounded-xl border border-border bg-card/60 backdrop-blur-xs p-5 shadow-xs transition-all duration-200 hover:border-primary/20">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          
+
           {/* Informações do Paciente */}
           <div className="flex min-w-0 items-center gap-4">
             <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/5 text-lg font-bold text-primary shadow-inner">
@@ -84,7 +84,7 @@ export function RecordHeader({
                   {patient.status_display}
                 </span>
               </div>
-              
+
               <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <User className="h-3.5 w-3.5 text-primary/60" />
@@ -136,7 +136,7 @@ export function RecordHeader({
               Gerar Documento
             </Button>
           </div>
-          
+
         </div>
       </section>
     </div>

@@ -625,7 +625,7 @@ export function EvolutionTimeline({
 
 function SafeMarkdownRenderer({ content }: { content: string }) {
   if (!content) return <span className="text-xs text-muted-foreground">Não informado.</span>;
-  
+
   const escaped = content
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -636,7 +636,7 @@ function SafeMarkdownRenderer({ content }: { content: string }) {
   const html = escaped
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.*?)\*/g, "<em>$1</em>");
-  
+
   const lines = html.split("\n");
   const processedLines = lines.map((line) => {
     const stripped = line.trim();

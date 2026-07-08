@@ -169,7 +169,7 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
                 <option value="Apenas Documentos">Apenas Arquivos & Anexos</option>
               </select>
             </div>
-            
+
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Período</label>
               <select

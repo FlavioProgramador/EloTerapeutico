@@ -54,10 +54,10 @@ export function extractApiError(error: unknown): string {
 
   if (details) {
     if (typeof details === "string") return details;
-    
+
     const dataObj = details as Record<string, unknown>;
     if (typeof dataObj.detail === "string") return dataObj.detail;
-    
+
     const errObj = dataObj.error as Record<string, unknown> | undefined;
     if (errObj && typeof errObj.message === "string") return errObj.message;
 

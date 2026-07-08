@@ -14,7 +14,7 @@ export function applyPatientFormApiErrors(
     return;
   }
   let payload = error.response.data as Record<string, unknown>;
-  
+
   // Unwrap backend custom exception handler envelope: {"error": {"details": {...}, "message": "..."}}
   if (payload.error && typeof payload.error === "object") {
     const errorObj = payload.error as Record<string, unknown>;

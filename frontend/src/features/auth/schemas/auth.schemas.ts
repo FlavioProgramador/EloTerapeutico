@@ -80,4 +80,3 @@ export const resetPasswordSchema = z
   });
 
 export type ResetPasswordFormData = z.input<typeof resetPasswordSchema>;
-

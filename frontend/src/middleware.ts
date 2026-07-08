@@ -6,7 +6,7 @@ const publicRoutes = ["/login", "/register", "/forgot-password"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+
   // Obtém os cookies de autenticação
   const token = request.cookies.get("auth_token")?.value;
   const role = request.cookies.get("auth_role")?.value;
