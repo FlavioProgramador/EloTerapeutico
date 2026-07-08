@@ -92,7 +92,7 @@ class PaymentListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Payment.objects.filter(user=self.request.user).order_by("-due_date", "-created_at")
+        return Payment.objects.filter(user_id=self.request.user.pk).order_by("-due_date", "-created_at")
 
 
 class AsaasWebhookView(APIView):
