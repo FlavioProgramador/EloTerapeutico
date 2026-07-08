@@ -1,6 +1,7 @@
-"""Fachada de compatibilidade para serializers financeiros da API."""
+"""Serializers públicos do módulo financeiro."""
 
-from ..serializers import (
+from .subscriptions import MonthlySubscriptionSerializer
+from .transactions import (
     AppointmentNestedSerializer,
     MarkAsPaidSerializer,
     MonthlySummarySerializer,
@@ -13,6 +14,7 @@ from ..serializers import (
 __all__ = [
     "AppointmentNestedSerializer",
     "MarkAsPaidSerializer",
+    "MonthlySubscriptionSerializer",
     "MonthlySummarySerializer",
     "PatientNestedSerializer",
     "TransactionCreateUpdateSerializer",

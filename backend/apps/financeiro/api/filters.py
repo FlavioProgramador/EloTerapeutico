@@ -1,31 +1,5 @@
-"""
-apps/financeiro/filters.py
-Filtros de consulta para as transações financeiras.
-"""
+"""Fachada de compatibilidade para filtros financeiros da API."""
 
-from django_filters import rest_framework as filters
-from .models import FinancialTransaction
+from ..filters import FinancialTransactionFilter
 
-
-class FinancialTransactionFilter(filters.FilterSet):
-    """
-    Filtro para transações financeiras.
-    """
-    created_at_gte = filters.IsoDateTimeFilter(field_name="created_at", lookup_expr="gte")
-    created_at_lte = filters.IsoDateTimeFilter(field_name="created_at", lookup_expr="lte")
-    due_date_gte = filters.DateFilter(field_name="due_date", lookup_expr="gte")
-    due_date_lte = filters.DateFilter(field_name="due_date", lookup_expr="lte")
-
-    class Meta:
-        model = FinancialTransaction
-        fields = [
-            "transaction_type",
-            "payment_status",
-            "payment_method",
-            "category",
-            "patient",
-            "created_at_gte",
-            "created_at_lte",
-            "due_date_gte",
-            "due_date_lte",
-        ]
+__all__ = ["FinancialTransactionFilter"]
