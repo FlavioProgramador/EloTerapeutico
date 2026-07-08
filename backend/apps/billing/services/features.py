@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
@@ -77,6 +78,8 @@ def get_plan_limits(user) -> dict[str, int | None]:
 
 
 def enforce_patient_limit(user) -> None:
+    if not getattr(settings, "BILLING_ENFORCE_PATIENT_LIMITS", True):
+        return
     if getattr(user, "is_superuser", False) or getattr(user, "is_admin_role", False):
         return
     if not can_use_feature(user, "patients"):
