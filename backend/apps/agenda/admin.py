@@ -114,10 +114,17 @@ class AppointmentAdmin(ModelAdmin):
             self.message_user(request, "Permissão insuficiente.", messages.ERROR)
             return
 
-        updated = queryset.exclude(status=Appointment.Status.CANCELLED).update(
-            status=Appointment.Status.CANCELLED
+        count = 0
+        for appointment in queryset.exclude(status=Appointment.Status.CANCELLED):
+            appointment.status = Appointment.Status.CANCELLED
+            appointment.updated_by = request.user
+            appointment.save(update_fields=["status", "updated_by", "updated_at"])
+            count += 1
+        self.message_user(
+            request,
+            f"{count} agendamento(s) cancelado(s).",
+            messages.WARNING,
         )
-        self.message_user(request, f"{updated} agendamento(s) cancelado(s).", messages.WARNING)
 
 
 @admin.register(AppointmentRecurrence)
