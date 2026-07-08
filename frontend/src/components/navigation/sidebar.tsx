@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { BarChart2, Calendar, ChevronLeft, ChevronRight, DollarSign, FileText, Home, LogOut, MessageSquare, Settings, Users } from "lucide-react";
+import { BarChart2, Calendar, ChevronLeft, ChevronRight, ClipboardList, DollarSign, FileText, Home, LogOut, MessageSquare, Settings, Users } from "lucide-react";
 
 import { useAuth } from "@/contexts/auth";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ const items: Array<{ name: string; href: string; icon: React.ComponentType<{ cla
   { name: "Agenda", href: "/dashboard/agenda", icon: Calendar },
   { name: "Pacientes", href: "/dashboard/patients", icon: Users },
   { name: "Documentos", href: "/dashboard/documentos", icon: FileText, roles: ["therapist", "admin"] },
+  { name: "Formulários", href: "/dashboard/formularios", icon: ClipboardList, roles: ["therapist", "admin"] },
   { name: "Financeiro", href: "/dashboard/financeiro", icon: DollarSign },
   { name: "Relatórios", href: "/dashboard?view=reports", icon: BarChart2 },
   { name: "Comunicações", href: "#", icon: MessageSquare },
