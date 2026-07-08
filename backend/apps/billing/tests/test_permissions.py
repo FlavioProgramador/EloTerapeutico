@@ -15,7 +15,6 @@ class BillingPermissionTests(TestCase):
         self.user = get_user_model().objects.create_user(
             email="terapeuta@example.com",
             full_name="Terapeuta Teste",
-            password="SenhaForte123",
         )
         self.basic_plan = Plan.objects.create(
             name="Essencial",
