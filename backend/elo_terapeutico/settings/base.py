@@ -15,6 +15,7 @@ AUTH_USER_MODEL = "users.User"
 
 UNFOLD_APPS = [
     "unfold",
+    "unfold.contrib.filters",
 ]
 DJANGO_APPS = [
     *UNFOLD_APPS,
