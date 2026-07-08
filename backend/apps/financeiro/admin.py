@@ -58,7 +58,7 @@ class FinancialTransactionAdmin(ModelAdmin):
     autocomplete_fields = ("therapist", "patient")
     raw_id_fields = ("appointment",)
     readonly_fields = ("created_at", "updated_at", "outstanding_amount_display")
-    actions = ("action_cancel_pending",)
+    actions = ("action_cancel_pending", "action_mark_paid")
 
     fieldsets = (
         (
@@ -122,6 +122,27 @@ class FinancialTransactionAdmin(ModelAdmin):
             request,
             _("%(count)s transação(ões) cancelada(s).") % {"count": count},
             messages.WARNING,
+        )
+
+    @admin.action(description=_("Marcar transações selecionadas como Pagas"))
+    def action_mark_paid(self, request, queryset):
+        if not request.user.has_perm("financeiro.change_financialtransaction"):
+            self.message_user(request, _("Permissão insuficiente."), messages.ERROR)
+            return
+
+        count = 0
+        from django.utils import timezone
+        for transaction in queryset:
+            if transaction.payment_status != "paid":
+                transaction.payment_status = "paid"
+                transaction.paid_amount = transaction.amount
+                transaction.paid_at = timezone.now()
+                transaction.save()
+                count += 1
+        self.message_user(
+            request,
+            _("%(count)s transação(ões) marcada(s) como paga(s).") % {"count": count},
+            messages.SUCCESS,
         )
 
     @admin.display(description=_("Terapeuta"), ordering="therapist__full_name")
