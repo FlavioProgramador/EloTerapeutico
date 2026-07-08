@@ -12,7 +12,6 @@ from django.db.models import Q
 from django.utils import timezone
 from django_filters import rest_framework as filters
 
-
 PATIENT_STATUS_CHOICES = (
     ("active", "Ativo"),
     ("evaluation", "Em avaliação"),
@@ -104,20 +103,13 @@ class PatientFilter(filters.FilterSet):
         if digits:
             phone_variants = {digits}
             if len(digits) == 10:
-                phone_variants.add(
-                    f"({digits[:2]}) {digits[2:6]}-{digits[6:]}"
-                )
+                phone_variants.add(f"({digits[:2]}) {digits[2:6]}-{digits[6:]}")
             elif len(digits) == 11:
-                phone_variants.add(
-                    f"({digits[:2]}) {digits[2:7]}-{digits[7:]}"
-                )
+                phone_variants.add(f"({digits[:2]}) {digits[2:7]}-{digits[7:]}")
 
             criteria |= Q(cpf__icontains=digits)
             for phone_value in phone_variants:
-                criteria |= (
-                    Q(phone__icontains=phone_value)
-                    | Q(whatsapp__icontains=phone_value)
-                )
+                criteria |= Q(phone__icontains=phone_value) | Q(whatsapp__icontains=phone_value)
 
         return queryset.filter(criteria).distinct()
 

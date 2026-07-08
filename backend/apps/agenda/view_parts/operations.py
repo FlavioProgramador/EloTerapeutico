@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from core.audit import AuditLog, log_access
+
 from ..filters import PackageFilter, ScheduleBlockFilter
 from ..models import Appointment, PackageSession, PatientPackage, Room, ScheduleBlock
 from ..serializers import (
@@ -22,9 +23,7 @@ class ScheduleBlockViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
     filterset_class = ScheduleBlockFilter
 
     def get_queryset(self):
-        return self.scope_queryset(
-            ScheduleBlock.objects.select_related("therapist", "created_by")
-        )
+        return self.scope_queryset(ScheduleBlock.objects.select_related("therapist", "created_by"))
 
     def perform_create(self, serializer):
         item = serializer.save()
@@ -68,9 +67,9 @@ class PatientPackageViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
     ordering_fields = ["created_at", "valid_until", "sessions_used"]
 
     def get_queryset(self):
-        queryset = PatientPackage.objects.select_related(
-            "patient", "therapist", "created_by"
-        ).prefetch_related("package_sessions__appointment")
+        queryset = PatientPackage.objects.select_related("patient", "therapist", "created_by").prefetch_related(
+            "package_sessions__appointment"
+        )
         return self.scope_queryset(queryset)
 
     def perform_create(self, serializer):
@@ -90,9 +89,7 @@ class PatientPackageViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
             "therapist": package.therapist_id,
             "package": package.id,
         }
-        serializer = AppointmentCreateSerializer(
-            data=payload, context={"request": request}
-        )
+        serializer = AppointmentCreateSerializer(data=payload, context={"request": request})
         serializer.is_valid(raise_exception=True)
         appointment = serializer.save()
         log_access(
@@ -102,9 +99,7 @@ class PatientPackageViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
             "Sessão adicionada ao pacote",
         )
         return Response(
-            AppointmentDetailSerializer(
-                appointment, context={"request": request}
-            ).data,
+            AppointmentDetailSerializer(appointment, context={"request": request}).data,
             status=status.HTTP_201_CREATED,
         )
 
@@ -122,9 +117,7 @@ class PatientPackageViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
         ):
             appointment.status = Appointment.Status.CANCELLED
             appointment.cancellation_reason = "Pacote cancelado."
-            appointment.save(
-                update_fields=["status", "cancellation_reason", "updated_at"]
-            )
+            appointment.save(update_fields=["status", "cancellation_reason", "updated_at"])
         log_access(request, AuditLog.Action.UPDATE, package, "Pacote cancelado")
         return Response(self.get_serializer(package).data)
 
@@ -136,9 +129,7 @@ class PatientPackageViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
             "therapist": current.therapist_id,
             "name": request.data.get("name", f"Renovação - {current.name}"),
             "description": request.data.get("description", current.description),
-            "sessions_contracted": request.data.get(
-                "sessions_contracted", current.sessions_contracted
-            ),
+            "sessions_contracted": request.data.get("sessions_contracted", current.sessions_contracted),
             "total_value": request.data.get("total_value", current.total_value),
             "valid_from": request.data.get("valid_from", timezone.localdate()),
             "valid_until": request.data.get("valid_until"),
@@ -158,9 +149,7 @@ class PackageSessionViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
     serializer_class = PackageSessionSerializer
 
     def get_queryset(self):
-        queryset = PackageSession.objects.select_related(
-            "package", "package__therapist", "appointment"
-        )
+        queryset = PackageSession.objects.select_related("package", "package__therapist", "appointment")
         return self.scope_queryset(queryset, therapist_field="package__therapist")
 
     def destroy(self, request, *args, **kwargs):
@@ -173,9 +162,7 @@ class PackageSessionViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
         if item.appointment:
             item.appointment.status = Appointment.Status.CANCELLED
             item.appointment.cancellation_reason = "Sessão removida do pacote."
-            item.appointment.save(
-                update_fields=["status", "cancellation_reason", "updated_at"]
-            )
+            item.appointment.save(update_fields=["status", "cancellation_reason", "updated_at"])
         if item.consumed:
             item.package.release()
         log_access(

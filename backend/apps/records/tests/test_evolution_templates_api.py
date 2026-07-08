@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.users.models import User
-from apps.records.evolution_flow_models import ClinicalEvolutionTemplate
+
 
 @pytest.fixture
 def therapist(db):
@@ -15,6 +15,7 @@ def therapist(db):
         role=User.Role.THERAPIST,
     )
 
+
 @pytest.fixture
 def secretary(db):
     return User.objects.create_user(
@@ -24,11 +25,13 @@ def secretary(db):
         role=User.Role.SECRETARY,
     )
 
+
 @pytest.fixture
 def client(therapist):
     api = APIClient()
     api.force_authenticate(therapist)
     return api
+
 
 @pytest.fixture
 def secretary_client(secretary):
@@ -36,13 +39,14 @@ def secretary_client(secretary):
     api.force_authenticate(secretary)
     return api
 
+
 @pytest.mark.django_db
 def test_create_and_list_evolution_templates(client, therapist):
     payload = {
         "name": "Template de Avaliação",
         "description": "Uma avaliação completa",
         "category": "evaluation",
-        "content": "# Avaliação\nConteúdo."
+        "content": "# Avaliação\nConteúdo.",
     }
     # Criar
     response = client.post(reverse("clinical-evolution-templates"), payload, format="json")
@@ -58,7 +62,7 @@ def test_create_and_list_evolution_templates(client, therapist):
     patch_response = client.patch(
         reverse("clinical-evolution-template-detail", args=[template_id]),
         {"name": "Template Modificado"},
-        format="json"
+        format="json",
     )
     assert patch_response.status_code == status.HTTP_200_OK
     assert patch_response.data["name"] == "Template Modificado"
@@ -67,7 +71,7 @@ def test_create_and_list_evolution_templates(client, therapist):
     dup_response = client.post(
         reverse("clinical-evolution-template-detail", args=[template_id]),
         {"action": "duplicate"},
-        format="json"
+        format="json",
     )
     assert dup_response.status_code == status.HTTP_201_CREATED
 
@@ -75,7 +79,7 @@ def test_create_and_list_evolution_templates(client, therapist):
     deact_response = client.post(
         reverse("clinical-evolution-template-detail", args=[template_id]),
         {"action": "deactivate"},
-        format="json"
+        format="json",
     )
     assert deact_response.status_code == status.HTTP_200_OK
     assert deact_response.data["is_active"] is False
@@ -83,6 +87,7 @@ def test_create_and_list_evolution_templates(client, therapist):
     # Apagar (soft delete)
     del_response = client.delete(reverse("clinical-evolution-template-detail", args=[template_id]))
     assert del_response.status_code == status.HTTP_204_NO_CONTENT
+
 
 @pytest.mark.django_db
 def test_secretary_cannot_access_templates(secretary_client):

@@ -8,9 +8,7 @@ class AgendaPermission(IsAuthenticated):
 
     def has_permission(self, request, view):
         return super().has_permission(request, view) and (
-            request.user.is_admin_role
-            or request.user.is_secretary
-            or request.user.is_therapist
+            request.user.is_admin_role or request.user.is_secretary or request.user.is_therapist
         )
 
     def has_object_permission(self, request, view, obj):

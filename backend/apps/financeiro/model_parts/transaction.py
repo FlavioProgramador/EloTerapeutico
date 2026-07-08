@@ -217,10 +217,16 @@ class FinancialTransaction(models.Model):
         self.paid_amount += paid_value
         self.payment_method = payment_method
         self.paid_at = paid_at or timezone.now()
-        self.payment_status = (
-            self.PaymentStatus.PAID if self.paid_amount == self.amount else self.PaymentStatus.PARTIAL
+        self.payment_status = self.PaymentStatus.PAID if self.paid_amount == self.amount else self.PaymentStatus.PARTIAL
+        self.save(
+            update_fields=[
+                "paid_amount",
+                "payment_method",
+                "paid_at",
+                "payment_status",
+                "updated_at",
+            ]
         )
-        self.save(update_fields=["paid_amount", "payment_method", "paid_at", "payment_status", "updated_at"])
 
         if self.appointment and self.payment_status == self.PaymentStatus.PAID:
             appointment = self.appointment
@@ -246,9 +252,15 @@ class FinancialTransaction(models.Model):
         end = date(year, month, monthrange(year, month)[1])
         queryset = cls.objects.filter(therapist=therapist, due_date__range=(start, end))
         paid = queryset.filter(payment_status=cls.PaymentStatus.PAID)
-        income = paid.filter(transaction_type=cls.TransactionType.INCOME).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
-        expense = paid.filter(transaction_type=cls.TransactionType.EXPENSE).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
-        pending = queryset.filter(payment_status__in=[cls.PaymentStatus.PENDING, cls.PaymentStatus.PARTIAL]).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+        income = paid.filter(transaction_type=cls.TransactionType.INCOME).aggregate(total=Sum("amount"))[
+            "total"
+        ] or Decimal("0.00")
+        expense = paid.filter(transaction_type=cls.TransactionType.EXPENSE).aggregate(total=Sum("amount"))[
+            "total"
+        ] or Decimal("0.00")
+        pending = queryset.filter(payment_status__in=[cls.PaymentStatus.PENDING, cls.PaymentStatus.PARTIAL]).aggregate(
+            total=Sum("amount")
+        )["total"] or Decimal("0.00")
         return {
             "year": year,
             "month": month,

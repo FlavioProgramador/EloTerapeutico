@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.audit import AuditLog, log_access
+
 from ..models import AppointmentReminder, TelemedicineRoom
 from ..serializers import AppointmentReminderSerializer, TelemedicineRoomSerializer
 from .base import ScopedAgendaMixin
@@ -21,9 +22,7 @@ class TelemedicineRoomViewSet(ScopedAgendaMixin, viewsets.ReadOnlyModelViewSet):
             "appointment__patient",
             "appointment__therapist",
         )
-        queryset = self.scope_queryset(
-            queryset, therapist_field="appointment__therapist"
-        )
+        queryset = self.scope_queryset(queryset, therapist_field="appointment__therapist")
         search = self.request.query_params.get("search", "").strip()
         status_value = self.request.query_params.get("status", "").strip()
         date_value = self.request.query_params.get("date", "").strip()
@@ -78,12 +77,8 @@ class AppointmentReminderViewSet(ScopedAgendaMixin, viewsets.ReadOnlyModelViewSe
     serializer_class = AppointmentReminderSerializer
 
     def get_queryset(self):
-        queryset = AppointmentReminder.objects.select_related(
-            "appointment", "appointment__therapist"
-        )
-        return self.scope_queryset(
-            queryset, therapist_field="appointment__therapist"
-        )
+        queryset = AppointmentReminder.objects.select_related("appointment", "appointment__therapist")
+        return self.scope_queryset(queryset, therapist_field="appointment__therapist")
 
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
@@ -106,12 +101,8 @@ class TelemedicineAccessView(APIView):
 
     def get(self, request, role, token):
         if role not in {"patient", "professional"}:
-            return Response(
-                {"detail": "Papel inválido."}, status=status.HTTP_404_NOT_FOUND
-            )
-        token_field = (
-            "patient_token" if role == "patient" else "professional_token"
-        )
+            return Response({"detail": "Papel inválido."}, status=status.HTTP_404_NOT_FOUND)
+        token_field = "patient_token" if role == "patient" else "professional_token"
         room = get_object_or_404(
             TelemedicineRoom.objects.select_related(
                 "appointment",
@@ -128,9 +119,7 @@ class TelemedicineAccessView(APIView):
         if role == "professional":
             user = request.user
             if not user.is_authenticated or not (
-                user.is_admin_role
-                or user.is_secretary
-                or user.id == room.appointment.therapist_id
+                user.is_admin_role or user.is_secretary or user.id == room.appointment.therapist_id
             ):
                 return Response(
                     {"detail": "Autenticação profissional obrigatória."},

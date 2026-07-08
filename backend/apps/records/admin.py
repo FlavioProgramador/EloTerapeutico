@@ -57,8 +57,7 @@ class AnamnesisAdmin(ModelAdmin):
                     "observations",
                 ),
                 "description": (
-                    "Campos clínicos criptografados. Evite abrir ou editar sem necessidade "
-                    "operacional legítima."
+                    "Campos clínicos criptografados. Evite abrir ou editar sem necessidade " "operacional legítima."
                 ),
             },
         ),

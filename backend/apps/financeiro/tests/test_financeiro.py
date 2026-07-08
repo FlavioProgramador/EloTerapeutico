@@ -172,9 +172,7 @@ def test_create_transaction_other_patient_validation(auth_client, patient_of_oth
 
 
 @pytest.mark.django_db
-def test_create_transaction_other_appointment_validation(
-    auth_client, appointment_of_other_therapist
-):
+def test_create_transaction_other_appointment_validation(auth_client, appointment_of_other_therapist):
     """Impede a criação de transação vinculada a consulta de outro terapeuta."""
     url = reverse("transaction-list")
     payload = {
@@ -314,9 +312,7 @@ def test_transaction_refund_invalid_state(auth_client, therapist_user):
 
 
 @pytest.mark.django_db
-def test_transaction_list_isolation(
-    auth_client, auth_other_client, therapist_user, other_therapist
-):
+def test_transaction_list_isolation(auth_client, auth_other_client, therapist_user, other_therapist):
     """Garante que a listagem de transações exibe apenas registros do terapeuta logado."""
     FinancialTransaction.objects.create(
         therapist=therapist_user,

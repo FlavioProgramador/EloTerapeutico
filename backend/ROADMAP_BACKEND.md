@@ -119,23 +119,23 @@ class Patient(models.Model):
     cpf             = models.CharField(max_length=14, unique=True)
     birth_date      = models.DateField()
     gender          = models.CharField(max_length=20, choices=GenderChoices)
-    
+
     # Contato
     email           = models.EmailField(blank=True)
     phone           = models.CharField(max_length=20)
-    
+
     # Endereço
     address         = models.JSONField(default=dict)  # CEP, rua, cidade, estado
-    
+
     # Relacionamento terapêutico
     therapist       = models.ForeignKey(CustomUser, on_delete=models.PROTECT)
     status          = models.CharField(choices=PatientStatus)  # ativo, inativo, alta
     referral_source = models.CharField(max_length=100, blank=True)
-    
+
     # Responsável legal (menores)
     guardian_name   = models.CharField(max_length=255, blank=True)
     guardian_cpf    = models.CharField(max_length=14, blank=True)
-    
+
     # Controle
     created_at      = models.DateTimeField(auto_now_add=True)
     updated_at      = models.DateTimeField(auto_now=True)

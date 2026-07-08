@@ -32,15 +32,40 @@ PLACEHOLDER_DEFINITIONS = (
     PlaceholderDefinition("paciente.data_nascimento", "Data de nascimento", "Paciente", "Data no formato brasileiro."),
     PlaceholderDefinition("paciente.idade", "Idade", "Paciente", "Idade calculada na data de emissão."),
     PlaceholderDefinition("paciente.responsavel_nome", "Responsável legal", "Paciente", "Nome do responsável legal."),
-    PlaceholderDefinition("profissional.nome", "Nome do profissional", "Profissional", "Nome completo do profissional emissor."),
-    PlaceholderDefinition("profissional.registro_profissional", "Registro profissional", "Profissional", "Número de registro cadastrado."),
+    PlaceholderDefinition(
+        "profissional.nome",
+        "Nome do profissional",
+        "Profissional",
+        "Nome completo do profissional emissor.",
+    ),
+    PlaceholderDefinition(
+        "profissional.registro_profissional",
+        "Registro profissional",
+        "Profissional",
+        "Número de registro cadastrado.",
+    ),
     PlaceholderDefinition("profissional.especialidade", "Especialidade", "Profissional", "Especialidade cadastrada."),
     PlaceholderDefinition("clinica.nome", "Nome da clínica", "Clínica", "Nome configurado para emissão de documentos."),
     PlaceholderDefinition("clinica.endereco", "Endereço da clínica", "Clínica", "Endereço configurado no ambiente."),
     PlaceholderDefinition("clinica.telefone", "Telefone da clínica", "Clínica", "Telefone configurado no ambiente."),
-    PlaceholderDefinition("documento.data_emissao", "Data de emissão", "Documento", "Data atual no formato brasileiro."),
-    PlaceholderDefinition("documento.local_emissao", "Local de emissão", "Documento", "Local informado no momento da geração."),
-    PlaceholderDefinition("documento.numero", "Número do documento", "Documento", "Identificador único dentro do escopo do profissional."),
+    PlaceholderDefinition(
+        "documento.data_emissao",
+        "Data de emissão",
+        "Documento",
+        "Data atual no formato brasileiro.",
+    ),
+    PlaceholderDefinition(
+        "documento.local_emissao",
+        "Local de emissão",
+        "Documento",
+        "Local informado no momento da geração.",
+    ),
+    PlaceholderDefinition(
+        "documento.numero",
+        "Número do documento",
+        "Documento",
+        "Identificador único dentro do escopo do profissional.",
+    ),
 )
 
 ALLOWED_PLACEHOLDERS = {definition.key for definition in PLACEHOLDER_DEFINITIONS}
@@ -68,14 +93,10 @@ def validate_template_content(content: str) -> str:
     if not content:
         raise ValidationError("O conteúdo do template é obrigatório.")
     if len(content) > MAX_TEMPLATE_LENGTH:
-        raise ValidationError(
-            f"O conteúdo deve possuir no máximo {MAX_TEMPLATE_LENGTH} caracteres."
-        )
+        raise ValidationError(f"O conteúdo deve possuir no máximo {MAX_TEMPLATE_LENGTH} caracteres.")
     unknown = sorted(extract_placeholders(content) - ALLOWED_PLACEHOLDERS)
     if unknown:
-        raise ValidationError(
-            "Marcadores não reconhecidos: " + ", ".join(f"{{{{{item}}}}}" for item in unknown)
-        )
+        raise ValidationError("Marcadores não reconhecidos: " + ", ".join(f"{{{{{item}}}}}" for item in unknown))
     return content
 
 

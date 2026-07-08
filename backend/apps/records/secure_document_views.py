@@ -31,9 +31,7 @@ class SecureClinicalDocumentMixin(ClinicalPatientMixin):
             deleted_at__isnull=True,
         )
         self.get_patient(document.patient_id)
-        if document.evolution_id and not can_view_confidential_evolution(
-            self.request.user, document.evolution
-        ):
+        if document.evolution_id and not can_view_confidential_evolution(self.request.user, document.evolution):
             self.permission_denied(
                 self.request,
                 message="Você não pode acessar documentos desta evolução confidencial.",
@@ -52,9 +50,7 @@ class SecureClinicalDocumentListCreateView(SecureClinicalDocumentMixin, APIView)
         ).select_related("evolution", "evolution__created_by", "uploaded_by")
         if not request.user.has_perm("records.view_confidential_evolution"):
             queryset = queryset.filter(
-                Q(evolution__isnull=True)
-                | Q(evolution__is_confidential=False)
-                | Q(evolution__created_by=request.user)
+                Q(evolution__isnull=True) | Q(evolution__is_confidential=False) | Q(evolution__created_by=request.user)
             )
         category = request.query_params.get("category")
         if category:

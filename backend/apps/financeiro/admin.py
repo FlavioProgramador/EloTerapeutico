@@ -132,6 +132,7 @@ class FinancialTransactionAdmin(ModelAdmin):
 
         count = 0
         from django.utils import timezone
+
         for transaction in queryset:
             if transaction.payment_status != "paid":
                 transaction.payment_status = "paid"
@@ -160,8 +161,7 @@ class FinancialTransactionAdmin(ModelAdmin):
         color = "#15803d" if obj.transaction_type == "income" else "#b91c1c"
         label = obj.get_transaction_type_display()
         return format_html(
-            '<span style="background:{};color:#fff;padding:2px 8px;'
-            'border-radius:999px;font-size:11px;">{}</span>',
+            '<span style="background:{};color:#fff;padding:2px 8px;' 'border-radius:999px;font-size:11px;">{}</span>',
             color,
             label,
         )
@@ -203,8 +203,7 @@ class FinancialTransactionAdmin(ModelAdmin):
         color, text_color = colors.get(obj.payment_status, ("#6b7280", "#fff"))
         label = obj.get_payment_status_display()
         return format_html(
-            '<span style="background:{};color:{};padding:2px 8px;'
-            'border-radius:999px;font-size:11px;">{}</span>',
+            '<span style="background:{};color:{};padding:2px 8px;' 'border-radius:999px;font-size:11px;">{}</span>',
             color,
             text_color,
             label,
@@ -224,11 +223,9 @@ class FinancialTransactionAdmin(ModelAdmin):
         )
         total_income = totals["total_income"] or Decimal("0.00")
         total_expense = totals["total_expense"] or Decimal("0.00")
-        total_pending = (
-            qs.filter(payment_status__in=["pending", "partial"])
-            .aggregate(total=Sum("amount"))["total"]
-            or Decimal("0.00")
-        )
+        total_pending = qs.filter(payment_status__in=["pending", "partial"]).aggregate(total=Sum("amount"))[
+            "total"
+        ] or Decimal("0.00")
 
         response.context_data["summary"] = {
             "total_income": total_income,

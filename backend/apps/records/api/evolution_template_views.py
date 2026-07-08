@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.core.audit import AuditLog, log_access
+from core.audit import AuditLog, log_access
 
 from ..evolution_flow_models import ClinicalEvolutionTemplate
 from .evolution_serializers import ClinicalEvolutionTemplateSerializer
@@ -61,9 +61,7 @@ class ClinicalEvolutionTemplateListCreateView(APIView):
         serializer = ClinicalEvolutionTemplateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         wants_system = bool(request.data.get("is_system"))
-        if wants_system and not request.user.has_perm(
-            "records.manage_system_clinical_templates"
-        ):
+        if wants_system and not request.user.has_perm("records.manage_system_clinical_templates"):
             self.permission_denied(
                 request,
                 message="Você não pode criar templates globais.",
@@ -102,8 +100,10 @@ class ClinicalEvolutionTemplateDetailView(APIView):
             )
         if template.owner_id not in (None, request.user.id):
             self.permission_denied(request, message="Template não autorizado.")
-        if write and template.owner_id is None and not request.user.has_perm(
-            "records.manage_system_clinical_templates"
+        if (
+            write
+            and template.owner_id is None
+            and not request.user.has_perm("records.manage_system_clinical_templates")
         ):
             self.permission_denied(request, message="Template global protegido.")
         return template
@@ -192,9 +192,7 @@ class ClinicalEvolutionTemplateDetailView(APIView):
             template.is_active = False
             template.archived_at = timezone.now()
         elif action == "mark_used":
-            ClinicalEvolutionTemplate.objects.filter(pk=template.pk).update(
-                usage_count=F("usage_count") + 1
-            )
+            ClinicalEvolutionTemplate.objects.filter(pk=template.pk).update(usage_count=F("usage_count") + 1)
             template.refresh_from_db()
         else:
             return Response(

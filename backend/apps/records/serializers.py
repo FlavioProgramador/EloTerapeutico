@@ -20,6 +20,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from apps.patients.permissions import can_access_patient
+
 from .models import Anamnesis, Evolution, EvolutionAddendum
 
 User = get_user_model()
@@ -57,9 +58,7 @@ class AnamnesisSerializer(serializers.ModelSerializer):
     # Campo auxiliar write-only para receber apenas o ID do patient na criação
     patient_id = serializers.PrimaryKeyRelatedField(
         source="patient",
-        queryset=__import__(
-            "apps.patients.models", fromlist=["Patient"]
-        ).Patient.objects.all(),
+        queryset=__import__("apps.patients.models", fromlist=["Patient"]).Patient.objects.all(),
         write_only=True,
         label="ID do Paciente",
     )
@@ -89,9 +88,7 @@ class AnamnesisSerializer(serializers.ModelSerializer):
         patient = attrs.get("patient")
         if request and patient and not can_access_patient(request.user, patient):
             raise serializers.ValidationError(
-                {
-                    "patient_id": "Você não tem permissão para criar anamnese para este paciente."
-                }
+                {"patient_id": "Você não tem permissão para criar anamnese para este paciente."}
             )
         return attrs
 
@@ -241,12 +238,7 @@ class EvolutionCreateSerializer(serializers.ModelSerializer):
         # Verificação 1: o usuário tem acesso ao paciente
         if request and patient and not can_access_patient(request.user, patient):
             raise serializers.ValidationError(
-                {
-                    "patient": (
-                        "Você não tem permissão para registrar evoluções "
-                        "para este paciente."
-                    )
-                }
+                {"patient": ("Você não tem permissão para registrar evoluções para este paciente.")}
             )
 
         # Verificação 2: duplicata por data

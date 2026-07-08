@@ -12,8 +12,4 @@ from .telemedicine import (
     TelemedicineRoomViewSet,
 )
 
-__all__ = [
-    name
-    for name in globals()
-    if name.endswith("ViewSet") or name.endswith("View")
-]
+__all__ = [name for name in globals() if name.endswith("ViewSet") or name.endswith("View")]

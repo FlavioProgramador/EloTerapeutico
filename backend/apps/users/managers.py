@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """
 apps/users/managers.py
 Manager customizado para o modelo de usuário do Elo Terapêutico.

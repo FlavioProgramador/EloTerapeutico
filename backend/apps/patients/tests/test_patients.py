@@ -3,14 +3,15 @@ Testes de integridade, validação e isolamento de dados do
 módulo de Pacientes (CRM).
 """
 
-import pytest
 import random
-from django.urls import reverse
-from rest_framework import status
 from datetime import date, timedelta
 
-from apps.users.models import User
+import pytest
+from django.urls import reverse
+from rest_framework import status
+
 from apps.patients.models import Patient
+from apps.users.models import User
 
 
 def generate_valid_cpf() -> str:
@@ -114,14 +115,10 @@ class TestPatientCreation:
         assert response.data["full_name"] == patient_data["full_name"]
 
         # CPF deve ser armazenado limpo (apenas dígitos)
-        expected_clean_cpf = (
-            patient_data["cpf"].replace(".", "").replace("-", "")
-        )
+        expected_clean_cpf = patient_data["cpf"].replace(".", "").replace("-", "")
         assert response.data["cpf"] == expected_clean_cpf
 
-    def test_create_patient_minor_requires_guardian(
-        self, auth_client, patient_data
-    ):
+    def test_create_patient_minor_requires_guardian(self, auth_client, patient_data):
         url = reverse("patient-list")
         data = patient_data.copy()
 
@@ -134,9 +131,7 @@ class TestPatientCreation:
         # Tentar salvar sem dados do responsável legal deve
         # falhar (regra de negócio)
         response = auth_client.post(url, data, format="json")
-        assert (
-            response.status_code == status.HTTP_400_BAD_REQUEST
-        ), response.data
+        assert response.status_code == status.HTTP_400_BAD_REQUEST, response.data
         assert "guardian_name" in response.data["error"]["details"]
 
     def test_create_patient_minor_success(self, auth_client, patient_data):
@@ -165,37 +160,27 @@ class TestPatientIsolationAndPermissions:
     de permissões (RBAC).
     """
 
-    def test_therapist_cannot_access_other_therapist_patient(
-        self, auth_client, patient_of_other_therapist
-    ):
+    def test_therapist_cannot_access_other_therapist_patient(self, auth_client, patient_of_other_therapist):
         # Tenta visualizar o paciente de outro terapeuta
-        url = reverse(
-            "patient-detail", kwargs={"pk": patient_of_other_therapist.pk}
-        )
+        url = reverse("patient-detail", kwargs={"pk": patient_of_other_therapist.pk})
         response = auth_client.get(url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
         # Tenta editar o paciente de outro terapeuta
-        response = auth_client.patch(
-            url, {"full_name": "Nome Alterado"}, format="json"
-        )
+        response = auth_client.patch(url, {"full_name": "Nome Alterado"}, format="json")
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
         # Tenta deletar/arquivar o paciente de outro terapeuta
         response = auth_client.delete(url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_therapist_can_access_own_patient(
-        self, auth_client, patient_of_therapist
-    ):
+    def test_therapist_can_access_own_patient(self, auth_client, patient_of_therapist):
         url = reverse("patient-detail", kwargs={"pk": patient_of_therapist.pk})
         response = auth_client.get(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.data["full_name"] == patient_of_therapist.full_name
 
-    def test_secretary_permissions(
-        self, api_client, secretary_user, patient_of_therapist, therapist_user
-    ):
+    def test_secretary_permissions(self, api_client, secretary_user, patient_of_therapist, therapist_user):
         api_client.force_authenticate(user=secretary_user)
 
         # Secretária pode listar
@@ -204,9 +189,7 @@ class TestPatientIsolationAndPermissions:
         assert response.status_code == status.HTTP_200_OK
 
         # Secretária pode detalhar cadastro
-        detail_url = reverse(
-            "patient-detail", kwargs={"pk": patient_of_therapist.pk}
-        )
+        detail_url = reverse("patient-detail", kwargs={"pk": patient_of_therapist.pk})
         response = api_client.get(detail_url)
         assert response.status_code == status.HTTP_200_OK
 
@@ -249,9 +232,7 @@ class TestPatientSoftDeleteAndRestore:
         assert patient_of_therapist.deleted_at is None
 
         # Realiza soft delete chamando a rota de deactivate
-        url = reverse(
-            "patient-deactivate", kwargs={"pk": patient_of_therapist.pk}
-        )
+        url = reverse("patient-deactivate", kwargs={"pk": patient_of_therapist.pk})
         response = auth_client.post(url)
         assert response.status_code == status.HTTP_200_OK
 
@@ -272,9 +253,7 @@ class TestPatientSoftDeleteAndRestore:
         patient_of_therapist.soft_delete()
 
         # Restaura chamando a rota de restore
-        url = reverse(
-            "patient-restore", kwargs={"pk": patient_of_therapist.pk}
-        )
+        url = reverse("patient-restore", kwargs={"pk": patient_of_therapist.pk})
         response = auth_client.post(url)
         assert response.status_code == status.HTTP_200_OK
 

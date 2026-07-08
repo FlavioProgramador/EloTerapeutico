@@ -8,13 +8,13 @@ from django.utils import timezone
 from rest_framework.exceptions import MethodNotAllowed
 
 from apps.agenda.models import Appointment
-from core.exceptions import custom_exception_handler
-from core.pagination import StandardResultsPagination
 from apps.documents.models import DocumentTemplate, GeneratedDocument
 from apps.financeiro.models import FinancialTransaction
 from apps.financeiro.selectors.transactions import transactions_accessible_to
 from apps.patients.models import Patient
 from apps.records.models import Evolution
+from core.exceptions import custom_exception_handler
+from core.pagination import StandardResultsPagination
 
 
 def test_exception_handler_wraps_method_not_allowed():
@@ -44,9 +44,7 @@ def test_exception_handler_handles_permission_and_not_found():
 
 
 def test_pagination_schema_exposes_metadata_contract():
-    schema = StandardResultsPagination().get_paginated_response_schema(
-        {"type": "array", "items": {"type": "object"}}
-    )
+    schema = StandardResultsPagination().get_paginated_response_schema({"type": "array", "items": {"type": "object"}})
 
     assert schema["type"] == "object"
     assert set(schema["properties"]) == {"pagination", "results"}
@@ -202,9 +200,5 @@ def test_document_template_archive_and_hash(therapist_user):
     assert template.status == DocumentTemplate.Status.ARCHIVED
     assert template.archived_at is not None
 
-    assert GeneratedDocument.calculate_hash(b"conteudo") == GeneratedDocument.calculate_hash(
-        b"conteudo"
-    )
-    assert GeneratedDocument.calculate_hash(b"conteudo") != GeneratedDocument.calculate_hash(
-        b"outro"
-    )
+    assert GeneratedDocument.calculate_hash(b"conteudo") == GeneratedDocument.calculate_hash(b"conteudo")
+    assert GeneratedDocument.calculate_hash(b"conteudo") != GeneratedDocument.calculate_hash(b"outro")

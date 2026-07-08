@@ -61,27 +61,21 @@ class MonthlySubscriptionSerializer(serializers.ModelSerializer):
         request = self.context["request"]
         patient = attrs.get("patient", getattr(self.instance, "patient", None))
         if patient and request.user.is_therapist and patient.therapist_id != request.user.pk:
-            raise serializers.ValidationError(
-                {"patient": "Este paciente não pertence ao seu cadastro."}
-            )
+            raise serializers.ValidationError({"patient": "Este paciente não pertence ao seu cadastro."})
         first_date = attrs.get(
             "first_appointment_date",
             getattr(self.instance, "first_appointment_date", None),
         )
         end_date = attrs.get("end_date", getattr(self.instance, "end_date", None))
         if first_date and end_date and end_date < first_date:
-            raise serializers.ValidationError(
-                {"end_date": "A data final deve ser posterior ao primeiro atendimento."}
-            )
+            raise serializers.ValidationError({"end_date": "A data final deve ser posterior ao primeiro atendimento."})
         return attrs
 
     @transaction.atomic
     def create(self, validated_data):
         request = self.context["request"]
         patient = validated_data["patient"]
-        validated_data["therapist"] = (
-            request.user if request.user.is_therapist else patient.therapist
-        )
+        validated_data["therapist"] = request.user if request.user.is_therapist else patient.therapist
         subscription = super().create(validated_data)
         if subscription.first_due_date:
             FinancialTransaction.objects.get_or_create(

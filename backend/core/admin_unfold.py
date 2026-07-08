@@ -157,9 +157,7 @@ UNFOLD = {
                     {
                         "title": "Transações financeiras",
                         "icon": "payments",
-                        "link": _admin_link(
-                            "admin:financeiro_financialtransaction_changelist"
-                        ),
+                        "link": _admin_link("admin:financeiro_financialtransaction_changelist"),
                     },
                 ],
             },

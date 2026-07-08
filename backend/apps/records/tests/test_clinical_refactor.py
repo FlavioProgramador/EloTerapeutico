@@ -81,9 +81,7 @@ def test_safe_url_fetcher_blocks_everything():
 
 
 @pytest.mark.django_db
-def test_confidential_evolution_isolation(
-    api_client, therapist_user, other_therapist_user, patient_obj
-):
+def test_confidential_evolution_isolation(api_client, therapist_user, other_therapist_user, patient_obj):
     # Cria evolução confidencial pelo therapist_user
     evolution = Evolution.objects.create(
         patient=patient_obj,
@@ -125,9 +123,7 @@ def test_confidential_evolution_isolation(
 
 
 @pytest.mark.django_db
-def test_export_confidential_evolution_permission(
-    api_client, therapist_user, other_therapist_user, patient_obj
-):
+def test_export_confidential_evolution_permission(api_client, therapist_user, other_therapist_user, patient_obj):
     # Cria evolução confidencial pelo therapist_user
     Evolution.objects.create(
         patient=patient_obj,

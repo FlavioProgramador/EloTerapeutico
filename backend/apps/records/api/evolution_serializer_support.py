@@ -11,9 +11,7 @@ def preserve_partial_evolution_content(*, instance, attrs):
     supplied_content = attrs.get("content")
     supplied_observation = clinical_data.get("therapist_observations")
     existing_content = getattr(instance, "content", "") if instance else ""
-    existing_observation = (
-        getattr(profile, "therapist_observations", "") if profile else ""
-    )
+    existing_observation = getattr(profile, "therapist_observations", "") if profile else ""
     source = (
         supplied_content
         if supplied_content is not None
@@ -22,9 +20,7 @@ def preserve_partial_evolution_content(*, instance, attrs):
         else existing_content or existing_observation
     )
     if not sanitize_clinical_markdown(source):
-        raise serializers.ValidationError(
-            {"content": "Informe a evolução ou as anotações clínicas."}
-        )
+        raise serializers.ValidationError({"content": "Informe a evolução ou as anotações clínicas."})
     if supplied_content is None and instance:
         attrs["content"] = existing_content
     if supplied_observation is None and instance:

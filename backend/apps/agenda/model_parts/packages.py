@@ -18,9 +18,7 @@ class PatientPackage(models.Model):
         EXPIRED = "expired", "Expirado"
         CANCELLED = "cancelled", "Cancelado"
 
-    patient = models.ForeignKey(
-        "patients.Patient", on_delete=models.PROTECT, related_name="session_packages"
-    )
+    patient = models.ForeignKey("patients.Patient", on_delete=models.PROTECT, related_name="session_packages")
     therapist = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -72,11 +70,7 @@ class PatientPackage(models.Model):
         return bool(self.valid_until and self.valid_until < timezone.localdate())
 
     def can_consume(self) -> bool:
-        return (
-            self.status == self.Status.ACTIVE
-            and not self.is_expired
-            and self.remaining_sessions > 0
-        )
+        return self.status == self.Status.ACTIVE and not self.is_expired and self.remaining_sessions > 0
 
     def consume(self) -> None:
         with transaction.atomic():

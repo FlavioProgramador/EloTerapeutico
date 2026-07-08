@@ -93,6 +93,3 @@ def test_api_exports_are_explicit(relative_path):
 )
 def test_moved_modules_do_not_return_to_app_root(relative_path):
     assert not (BACKEND_ROOT / relative_path).exists()
-
-
-

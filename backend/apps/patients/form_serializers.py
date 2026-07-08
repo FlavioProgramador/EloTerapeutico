@@ -110,9 +110,7 @@ class PatientFormSerializer(PatientCreateUpdateSerializer):
         if self.instance:
             queryset = queryset.exclude(id=self.instance.id)
         if queryset.exists():
-            raise serializers.ValidationError(
-                "Um paciente com este CPF já está cadastrado."
-            )
+            raise serializers.ValidationError("Um paciente com este CPF já está cadastrado.")
         return clean_cpf
 
     def validate_financial_responsible_cpf(self, value):
@@ -128,32 +126,24 @@ class PatientFormSerializer(PatientCreateUpdateSerializer):
         if user and user.is_authenticated:
             if user.is_therapist:
                 if therapist and therapist != user:
-                    raise serializers.ValidationError(
-                        {"therapist": "Não é permitido selecionar outro profissional."}
-                    )
+                    raise serializers.ValidationError({"therapist": "Não é permitido selecionar outro profissional."})
                 attrs["therapist"] = user
             elif not therapist:
-                raise serializers.ValidationError(
-                    {"therapist": "Selecione o terapeuta responsável."}
-                )
+                raise serializers.ValidationError({"therapist": "Selecione o terapeuta responsável."})
 
         birth_date = attrs.get(
             "birth_date",
             self.instance.birth_date if self.instance else None,
         )
         if birth_date and birth_date > date.today():
-            raise serializers.ValidationError(
-                {"birth_date": "A data de nascimento não pode estar no futuro."}
-            )
+            raise serializers.ValidationError({"birth_date": "A data de nascimento não pode estar no futuro."})
 
         treatment_start = attrs.get(
             "treatment_start_date",
             self.instance.treatment_start_date if self.instance else None,
         )
         if treatment_start and treatment_start > date.today():
-            raise serializers.ValidationError(
-                {"treatment_start_date": "A data não pode estar no futuro."}
-            )
+            raise serializers.ValidationError({"treatment_start_date": "A data não pode estar no futuro."})
 
         payer_type = attrs.get(
             "payer_type",
@@ -168,9 +158,7 @@ class PatientFormSerializer(PatientCreateUpdateSerializer):
 
         recipient = attrs.get(
             "reminder_recipient",
-            self.instance.reminder_recipient
-            if self.instance
-            else Patient.ReminderRecipient.PATIENT,
+            self.instance.reminder_recipient if self.instance else Patient.ReminderRecipient.PATIENT,
         )
         if recipient in {
             Patient.ReminderRecipient.FINANCIAL_RESPONSIBLE,

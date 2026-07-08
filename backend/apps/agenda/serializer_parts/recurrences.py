@@ -16,13 +16,33 @@ class AppointmentRecurrenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = AppointmentRecurrence
         fields = [
-            "id", "patient", "patient_name", "therapist", "therapist_name",
-            "frequency", "frequency_display", "interval", "weekdays", "starts_on",
-            "ends_on", "max_occurrences", "start_time", "duration_minutes",
-            "timezone_name", "modality", "appointment_type", "room",
-            "session_value", "notes", "status", "occurrences_count",
-            "completed_count", "next_occurrence_id", "next_occurrence_at",
-            "created_at", "updated_at",
+            "id",
+            "patient",
+            "patient_name",
+            "therapist",
+            "therapist_name",
+            "frequency",
+            "frequency_display",
+            "interval",
+            "weekdays",
+            "starts_on",
+            "ends_on",
+            "max_occurrences",
+            "start_time",
+            "duration_minutes",
+            "timezone_name",
+            "modality",
+            "appointment_type",
+            "room",
+            "session_value",
+            "notes",
+            "status",
+            "occurrences_count",
+            "completed_count",
+            "next_occurrence_id",
+            "next_occurrence_at",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = ["created_at", "updated_at"]
 
@@ -30,10 +50,14 @@ class AppointmentRecurrenceSerializer(serializers.ModelSerializer):
         return obj.appointments.filter(status=Appointment.Status.COMPLETED).count()
 
     def _next(self, obj):
-        return obj.appointments.filter(
-            start_time__gte=timezone.now(),
-            status__in=[Appointment.Status.SCHEDULED, Appointment.Status.CONFIRMED],
-        ).order_by("start_time").first()
+        return (
+            obj.appointments.filter(
+                start_time__gte=timezone.now(),
+                status__in=[Appointment.Status.SCHEDULED, Appointment.Status.CONFIRMED],
+            )
+            .order_by("start_time")
+            .first()
+        )
 
     def get_next_occurrence_id(self, obj):
         item = self._next(obj)

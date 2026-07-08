@@ -1,9 +1,10 @@
-
 import pytest
 from django.urls import reverse
 from rest_framework import status
-from apps.users.models import User
+
 from apps.patients.models import Patient, PatientProfessional
+from apps.users.models import User
+
 
 @pytest.fixture
 def therapist_primary(db):
@@ -14,6 +15,7 @@ def therapist_primary(db):
         role=User.Role.THERAPIST,
     )
 
+
 @pytest.fixture
 def therapist_shared(db):
     return User.objects.create_user(
@@ -22,6 +24,7 @@ def therapist_shared(db):
         password="password123",
         role=User.Role.THERAPIST,
     )
+
 
 @pytest.fixture
 def therapist_unlinked(db):
@@ -32,6 +35,7 @@ def therapist_unlinked(db):
         role=User.Role.THERAPIST,
     )
 
+
 @pytest.fixture
 def patient(therapist_primary):
     return Patient.objects.create(
@@ -40,14 +44,16 @@ def patient(therapist_primary):
         status=Patient.Status.ACTIVE,
     )
 
+
 @pytest.fixture
 def shared_link(patient, therapist_shared, therapist_primary):
     return PatientProfessional.objects.create(
         patient=patient,
         professional=therapist_shared,
         assigned_by=therapist_primary,
-        is_active=True
+        is_active=True,
     )
+
 
 @pytest.mark.django_db
 class TestPatientReminderSecurity:

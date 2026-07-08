@@ -15,9 +15,9 @@ from .extended_models import (
 from .models import Anamnesis, Evolution
 from .treatment_models import (
     ClinicalDocument,
-    TreatmentGoal,
-    ClinicalFormResponse,
     ClinicalExport,
+    ClinicalFormResponse,
+    TreatmentGoal,
 )
 
 ANAMNESIS_LEGACY_FIELDS = (
@@ -83,9 +83,7 @@ class ClinicalAnamnesisSerializer(serializers.Serializer):
     relevant_events = serializers.CharField(required=False, allow_blank=True)
     initial_assessment = serializers.CharField(required=False, allow_blank=True)
     clinical_hypotheses = serializers.CharField(required=False, allow_blank=True)
-    custom_fields = serializers.CharField(
-        required=False, allow_blank=True, default="{}"
-    )
+    custom_fields = serializers.CharField(required=False, allow_blank=True, default="{}")
     completion_percentage = serializers.IntegerField(read_only=True)
     status = serializers.CharField(read_only=True)
     status_display = serializers.CharField(read_only=True)
@@ -104,9 +102,7 @@ class ClinicalAnamnesisSerializer(serializers.Serializer):
                 instance.updated_at,
                 profile.updated_at if profile else instance.updated_at,
             ),
-            "updated_by_name": (
-                profile.updated_by.full_name if profile and profile.updated_by else ""
-            ),
+            "updated_by_name": (profile.updated_by.full_name if profile and profile.updated_by else ""),
             "version_count": instance.versions.count(),
         }
         for field in ANAMNESIS_LEGACY_FIELDS:
@@ -115,20 +111,14 @@ class ClinicalAnamnesisSerializer(serializers.Serializer):
             values[field] = getattr(profile, field, "") if profile else ""
 
         completed_fields = [
-            value
-            for key, value in values.items()
-            if key in ANAMNESIS_LEGACY_FIELDS + ANAMNESIS_PROFILE_FIELDS
+            value for key, value in values.items() if key in ANAMNESIS_LEGACY_FIELDS + ANAMNESIS_PROFILE_FIELDS
         ]
         completion_percentage = round(
-            sum(bool(str(value).strip()) for value in completed_fields)
-            / len(completed_fields)
-            * 100
+            sum(bool(str(value).strip()) for value in completed_fields) / len(completed_fields) * 100
         )
         values["completion_percentage"] = completion_percentage
         values["status"] = "complete" if completion_percentage == 100 else "draft"
-        values["status_display"] = (
-            "Completa" if completion_percentage == 100 else "Rascunho"
-        )
+        values["status_display"] = "Completa" if completion_percentage == 100 else "Rascunho"
         return super().to_representation(values)
 
     @transaction.atomic
@@ -148,16 +138,8 @@ class ClinicalAnamnesisSerializer(serializers.Serializer):
         )
 
         if not created:
-            snapshot = {
-                field: getattr(anamnesis, field, "") or ""
-                for field in ANAMNESIS_LEGACY_FIELDS
-            }
-            snapshot.update(
-                {
-                    field: getattr(profile, field, "") or ""
-                    for field in ANAMNESIS_PROFILE_FIELDS
-                }
-            )
+            snapshot = {field: getattr(anamnesis, field, "") or "" for field in ANAMNESIS_LEGACY_FIELDS}
+            snapshot.update({field: getattr(profile, field, "") or "" for field in ANAMNESIS_PROFILE_FIELDS})
             latest = anamnesis.versions.first()
             AnamnesisVersion.objects.create(
                 anamnesis=anamnesis,
@@ -184,9 +166,7 @@ class ClinicalAnamnesisSerializer(serializers.Serializer):
 
 class EvolutionWorkspaceSerializer(serializers.ModelSerializer):
     content = serializers.CharField(required=False, allow_blank=True)
-    created_by_name = serializers.CharField(
-        source="created_by.full_name", read_only=True
-    )
+    created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
     is_editable = serializers.SerializerMethodField()
     addenda_count = serializers.IntegerField(source="addenda.count", read_only=True)
     attached_documents_count = serializers.IntegerField(
@@ -310,20 +290,14 @@ class EvolutionWorkspaceSerializer(serializers.ModelSerializer):
         )
 
     def get_is_editable(self, obj):
-        return (
-            obj.created_by_id == self.context["request"].user.id and obj.can_be_edited()
-        )
+        return obj.created_by_id == self.context["request"].user.id and obj.can_be_edited()
 
     def validate_appointment(self, appointment):
         patient = self.context["patient"]
         if appointment and appointment.patient_id != patient.id:
-            raise serializers.ValidationError(
-                "O agendamento não pertence ao paciente selecionado."
-            )
+            raise serializers.ValidationError("O agendamento não pertence ao paciente selecionado.")
         if appointment and appointment.therapist_id != patient.therapist_id:
-            raise serializers.ValidationError(
-                "O agendamento pertence a outro profissional."
-            )
+            raise serializers.ValidationError("O agendamento pertence a outro profissional.")
         return appointment
 
     @transaction.atomic
@@ -332,11 +306,7 @@ class EvolutionWorkspaceSerializer(serializers.ModelSerializer):
         patient = self.context["patient"]
         user = self.context["request"].user
         supplied_content = validated_data.pop("content", "")
-        content = (
-            supplied_content
-            or clinical_data.get("therapist_observations")
-            or "Evolução em rascunho"
-        )
+        content = supplied_content or clinical_data.get("therapist_observations") or "Evolução em rascunho"
         evolution = Evolution.objects.create(
             patient=patient,
             created_by=user,
@@ -354,9 +324,7 @@ class EvolutionWorkspaceSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         request_user = self.context["request"].user
         if instance.created_by_id != request_user.id or not instance.can_be_edited():
-            raise serializers.ValidationError(
-                "Esta evolução não pode mais ser alterada diretamente."
-            )
+            raise serializers.ValidationError("Esta evolução não pode mais ser alterada diretamente.")
 
         clinical_data = validated_data.pop("clinical_data", {})
         current = {
@@ -366,12 +334,7 @@ class EvolutionWorkspaceSerializer(serializers.ModelSerializer):
             "is_confidential": instance.is_confidential,
         }
         profile = getattr(instance, "clinical_data", None)
-        current.update(
-            {
-                field: getattr(profile, field, "") if profile else ""
-                for field in CLINICAL_DATA_FIELDS
-            }
-        )
+        current.update({field: getattr(profile, field, "") if profile else "" for field in CLINICAL_DATA_FIELDS})
         latest = instance.versions.first()
         EvolutionVersion.objects.create(
             evolution=instance,
@@ -382,10 +345,7 @@ class EvolutionWorkspaceSerializer(serializers.ModelSerializer):
 
         for field, value in validated_data.items():
             setattr(instance, field, value)
-        if (
-            clinical_data.get("therapist_observations")
-            and "content" not in validated_data
-        ):
+        if clinical_data.get("therapist_observations") and "content" not in validated_data:
             instance.content = clinical_data["therapist_observations"]
         instance.save()
 
@@ -406,9 +366,7 @@ class TreatmentGoalSerializer(serializers.ModelSerializer):
         source="get_priority_display",
         read_only=True,
     )
-    created_by_name = serializers.CharField(
-        source="created_by.full_name", read_only=True
-    )
+    created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
 
     class Meta:
         model = TreatmentGoal
@@ -444,9 +402,7 @@ class TreatmentGoalSerializer(serializers.ModelSerializer):
     def validate_evolutions(self, evolutions):
         patient = self.context["patient"]
         if any(item.patient_id != patient.id for item in evolutions):
-            raise serializers.ValidationError(
-                "Todas as evoluções devem pertencer ao paciente."
-            )
+            raise serializers.ValidationError("Todas as evoluções devem pertencer ao paciente.")
         return evolutions
 
 
@@ -529,10 +485,7 @@ class ClinicalDocumentSerializer(serializers.ModelSerializer):
         }
         allowed_extensions = {".pdf", ".jpg", ".jpeg", ".png", ".txt", ".docx"}
         extension = Path(uploaded_file.name).suffix.lower()
-        if (
-            uploaded_file.content_type not in allowed_types
-            or extension not in allowed_extensions
-        ):
+        if uploaded_file.content_type not in allowed_types or extension not in allowed_extensions:
             raise serializers.ValidationError("Tipo de arquivo não permitido.")
         if uploaded_file.size > 10 * 1024 * 1024:
             raise serializers.ValidationError("O arquivo deve possuir no máximo 10 MB.")
@@ -579,9 +532,7 @@ class ClinicalFormResponseSerializer(serializers.ModelSerializer):
 
 
 class ClinicalExportSerializer(serializers.ModelSerializer):
-    created_by_name = serializers.CharField(
-        source="created_by.full_name", read_only=True
-    )
+    created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
 
     class Meta:

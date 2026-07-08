@@ -6,16 +6,18 @@ auxiliar para evitar falsos positivos em scanners de secrets (ex: GitGuardian).
 Nenhuma senha real é armazenada neste arquivo.
 """
 
+from datetime import timedelta
+
 import pytest
 from django.utils import timezone
-from datetime import timedelta
+
 from apps.users.models import User
 from apps.users.permissions import (
-    IsTherapist,
-    IsSecretary,
     IsAdminRole,
-    IsTherapistOrAdmin,
     IsOwnerOrAdmin,
+    IsSecretary,
+    IsTherapist,
+    IsTherapistOrAdmin,
 )
 
 
@@ -116,6 +118,7 @@ def test_owner_or_admin_permission(therapist_user, admin_user):
     Garante que a classe IsOwnerOrAdmin gerencie corretamente os objetos
     do proprietário.
     """
+
     class MockRequest:
         def __init__(self, user):
             self.user = user
@@ -162,11 +165,9 @@ class TestLoginSecurityAPI:
     def test_login_successful(self, api_client, therapist_user):
         """Testa o login com credenciais corretas."""
         from django.urls import reverse
+
         url = reverse("auth-login")
-        payload = {
-            "email": therapist_user.email,
-            "password": TEST_PASSWORD
-        }
+        payload = {"email": therapist_user.email, "password": TEST_PASSWORD}
         response = api_client.post(url, payload, format="json")
         assert response.status_code == 200
         assert "access" in response.data
@@ -177,11 +178,9 @@ class TestLoginSecurityAPI:
     def test_login_nonexistent_email(self, api_client):
         """Testa o login com e-mail inexistente."""
         from django.urls import reverse
+
         url = reverse("auth-login")
-        payload = {
-            "email": "inexistente@teste.com",
-            "password": TEST_ANY_PASSWORD
-        }
+        payload = {"email": "inexistente@teste.com", "password": TEST_ANY_PASSWORD}
         response = api_client.post(url, payload, format="json")
         assert response.status_code == 400
 
@@ -189,19 +188,15 @@ class TestLoginSecurityAPI:
         assert "error" in response.data
         assert response.data["error"]["code"] == "INVALID"
         assert "non_field_errors" in response.data["error"]["details"]
-        assert response.data["error"]["details"]["non_field_errors"] == [
-            "E-mail ou senha incorretos."
-        ]
+        assert response.data["error"]["details"]["non_field_errors"] == ["E-mail ou senha incorretos."]
         assert "email" not in response.data["error"]["details"]
 
     def test_login_incorrect_password(self, api_client, therapist_user):
         """Testa o login com senha incorreta."""
         from django.urls import reverse
+
         url = reverse("auth-login")
-        payload = {
-            "email": therapist_user.email,
-            "password": TEST_INCORRECT_PASSWORD
-        }
+        payload = {"email": therapist_user.email, "password": TEST_INCORRECT_PASSWORD}
         response = api_client.post(url, payload, format="json")
         assert response.status_code == 400
 
@@ -209,32 +204,27 @@ class TestLoginSecurityAPI:
         assert "error" in response.data
         assert response.data["error"]["code"] == "INVALID"
         assert "non_field_errors" in response.data["error"]["details"]
-        assert response.data["error"]["details"]["non_field_errors"] == [
-            "E-mail ou senha incorretos."
-        ]
+        assert response.data["error"]["details"]["non_field_errors"] == ["E-mail ou senha incorretos."]
         assert "password" not in response.data["error"]["details"]
 
-    def test_login_indistinguishable_payloads(
-        self, api_client, therapist_user
-    ):
+    def test_login_indistinguishable_payloads(self, api_client, therapist_user):
         """
         Confirma que e-mail inexistente e senha incorreta não podem ser
         diferenciados.
         """
         from django.urls import reverse
+
         url = reverse("auth-login")
 
         # Caso A: e-mail inexistente
-        res_nonexistent = api_client.post(url, {
-            "email": "inexistente@teste.com",
-            "password": TEST_ANY_PASSWORD
-        }, format="json")
+        res_nonexistent = api_client.post(
+            url, {"email": "inexistente@teste.com", "password": TEST_ANY_PASSWORD}, format="json"
+        )
 
         # Caso B: senha incorreta
-        res_incorrect = api_client.post(url, {
-            "email": therapist_user.email,
-            "password": TEST_INCORRECT_PASSWORD
-        }, format="json")
+        res_incorrect = api_client.post(
+            url, {"email": therapist_user.email, "password": TEST_INCORRECT_PASSWORD}, format="json"
+        )
 
         assert res_nonexistent.status_code == res_incorrect.status_code == 400
         assert res_nonexistent.data == res_incorrect.data
@@ -242,13 +232,11 @@ class TestLoginSecurityAPI:
     def test_login_locked_account(self, api_client, therapist_user):
         """Testa o comportamento para conta bloqueada."""
         from django.urls import reverse
+
         therapist_user.lock_account(minutes=15)
 
         url = reverse("auth-login")
-        payload = {
-            "email": therapist_user.email,
-            "password": TEST_PASSWORD
-        }
+        payload = {"email": therapist_user.email, "password": TEST_PASSWORD}
         response = api_client.post(url, payload, format="json")
         assert response.status_code == 400
         assert "error" in response.data
@@ -257,19 +245,15 @@ class TestLoginSecurityAPI:
         err_msg = response.data["error"]["details"]["non_field_errors"][0]
         assert "Conta bloqueada" in err_msg
 
-    def test_login_inactive_account(
-        self, api_client, therapist_user
-    ):
+    def test_login_inactive_account(self, api_client, therapist_user):
         """Testa login em conta inativa com credenciais corretas."""
         from django.urls import reverse
+
         therapist_user.is_active = False
         therapist_user.save()
 
         url = reverse("auth-login")
-        payload = {
-            "email": therapist_user.email,
-            "password": TEST_PASSWORD
-        }
+        payload = {"email": therapist_user.email, "password": TEST_PASSWORD}
         response = api_client.post(url, payload, format="json")
         assert response.status_code == 400
         assert "error" in response.data

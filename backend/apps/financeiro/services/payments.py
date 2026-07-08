@@ -12,9 +12,7 @@ from ..models import FinancialTransaction
 @transaction.atomic
 def mark_as_paid(*, financial_transaction, payment_method, paid_at=None, amount=None):
     current = (
-        FinancialTransaction.objects.select_for_update()
-        .select_related("appointment")
-        .get(pk=financial_transaction.pk)
+        FinancialTransaction.objects.select_for_update().select_related("appointment").get(pk=financial_transaction.pk)
     )
     if not current.can_pay():
         raise ValidationError("Esta transação não está pendente de pagamento.")

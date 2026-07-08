@@ -75,9 +75,7 @@ class AppointmentViewSet(AuditLogMixin, ScopedAgendaMixin, viewsets.ModelViewSet
         appointment.status = Appointment.Status.CANCELLED
         appointment.cancellation_reason = "Cancelada por exclusão administrativa."
         appointment.updated_by = request.user
-        appointment.save(
-            update_fields=["status", "cancellation_reason", "updated_by", "updated_at"]
-        )
+        appointment.save(update_fields=["status", "cancellation_reason", "updated_by", "updated_at"])
         release_package_session(appointment)
         self._cancel_financial_transaction(appointment)
         log_access(
@@ -144,9 +142,7 @@ class AppointmentViewSet(AuditLogMixin, ScopedAgendaMixin, viewsets.ModelViewSet
             appointment,
             f"Status da consulta alterado para {new_status}",
         )
-        return Response(
-            AppointmentDetailSerializer(appointment, context={"request": self.request}).data
-        )
+        return Response(AppointmentDetailSerializer(appointment, context={"request": self.request}).data)
 
     @action(detail=True, methods=["post"])
     def reschedule(self, request, pk=None):
@@ -166,9 +162,7 @@ class AppointmentViewSet(AuditLogMixin, ScopedAgendaMixin, viewsets.ModelViewSet
         if hasattr(appointment, "package_session"):
             appointment.package_session.scheduled_for = appointment.start_time
             appointment.package_session.status = PackageSession.Status.RESCHEDULED
-            appointment.package_session.save(
-                update_fields=["scheduled_for", "status", "updated_at"]
-            )
+            appointment.package_session.save(update_fields=["scheduled_for", "status", "updated_at"])
         log_access(request, AuditLog.Action.UPDATE, appointment, "Consulta remarcada")
         return Response(AppointmentDetailSerializer(appointment, context={"request": request}).data)
 

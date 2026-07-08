@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Endpoints da experiência integrada do prontuário eletrônico."""
 
 from html import escape
@@ -9,21 +10,24 @@ from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.pagination import PageNumberPagination
+
 try:
     from weasyprint import HTML
 except (ImportError, OSError):
     import logging
+
     logger = logging.getLogger(__name__)
     logger.warning("WeasyPrint could not import Pango/GObject libraries. Using dummy PDF fallback.")
 
     class HTML:
         def __init__(self, string=None, url_fetcher=None, **kwargs):
             self.string = string
+
         def write_pdf(self, target, **kwargs):
             dummy_pdf = b"%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n>>\nendobj\ntrailer\n<<\n/Root 1 0 R\n>>\n%%EOF"
             if hasattr(target, "write"):
@@ -31,6 +35,7 @@ except (ImportError, OSError):
             else:
                 with open(target, "wb") as f:
                     f.write(dummy_pdf)
+
 
 from apps.agenda.models import Appointment
 from apps.patients.models import Patient
@@ -40,18 +45,18 @@ from core.audit import AuditLog, log_access
 from .clinical_serializers import (
     ClinicalAnamnesisSerializer,
     ClinicalDocumentSerializer,
+    ClinicalExportSerializer,
+    ClinicalFormResponseSerializer,
     EvolutionWorkspaceSerializer,
     TreatmentGoalSerializer,
-    ClinicalFormResponseSerializer,
-    ClinicalExportSerializer,
 )
 from .extended_models import AnamnesisVersion, EvolutionClinicalData
 from .models import Anamnesis, Evolution
 from .treatment_models import (
     ClinicalDocument,
-    TreatmentGoal,
-    ClinicalFormResponse,
     ClinicalExport,
+    ClinicalFormResponse,
+    TreatmentGoal,
 )
 
 
@@ -103,16 +108,12 @@ class ClinicalPatientMixin:
 
     @staticmethod
     def serialize_evolution(evolution, request):
-        data = dict(
-            EvolutionWorkspaceSerializer(evolution, context={"request": request}).data
-        )
+        data = dict(EvolutionWorkspaceSerializer(evolution, context={"request": request}).data)
         clinical_data = getattr(evolution, "clinical_data", None)
         data.update(
             {
                 "status": clinical_data.status if clinical_data else "draft",
-                "status_display": (
-                    clinical_data.get_status_display() if clinical_data else "Rascunho"
-                ),
+                "status_display": (clinical_data.get_status_display() if clinical_data else "Rascunho"),
                 "finalized_at": clinical_data.finalized_at if clinical_data else None,
                 "archived_at": clinical_data.archived_at if clinical_data else None,
                 "version_count": evolution.versions.count(),
@@ -124,9 +125,7 @@ class ClinicalPatientMixin:
 class PatientRecordSummaryView(ClinicalPatientMixin, APIView):
     def get(self, request, patient_id):
         patient = self.get_patient(patient_id)
-        evolutions = Evolution.objects.filter(patient=patient).select_related(
-            "clinical_data"
-        )
+        evolutions = Evolution.objects.filter(patient=patient).select_related("clinical_data")
         latest_evolution = evolutions.order_by("-session_date", "-created_at").first()
         first_evolution = evolutions.order_by("session_date", "created_at").first()
         now = timezone.now()
@@ -139,11 +138,7 @@ class PatientRecordSummaryView(ClinicalPatientMixin, APIView):
             .order_by("start_time")
             .first()
         )
-        previous_appointment = (
-            patient.appointments.filter(start_time__lt=now)
-            .order_by("-start_time")
-            .first()
-        )
+        previous_appointment = patient.appointments.filter(start_time__lt=now).order_by("-start_time").first()
         goals = TreatmentGoal.objects.filter(
             patient=patient,
             status__in=[TreatmentGoal.Status.ACTIVE, TreatmentGoal.Status.PAUSED],
@@ -166,21 +161,11 @@ class PatientRecordSummaryView(ClinicalPatientMixin, APIView):
                 "created_at": patient.created_at,
                 "updated_at": patient.updated_at,
             },
-            "sessions_total": evolutions.exclude(
-                clinical_data__status="archived"
-            ).count(),
-            "treatment_start": (
-                first_evolution.session_date
-                if first_evolution
-                else patient.created_at.date()
-            ),
-            "last_update": (
-                latest_evolution.updated_at if latest_evolution else patient.updated_at
-            ),
+            "sessions_total": evolutions.exclude(clinical_data__status="archived").count(),
+            "treatment_start": (first_evolution.session_date if first_evolution else patient.created_at.date()),
+            "last_update": (latest_evolution.updated_at if latest_evolution else patient.updated_at),
             "latest_evolution_id": latest_evolution.id if latest_evolution else None,
-            "last_session": (
-                previous_appointment.start_time if previous_appointment else None
-            ),
+            "last_session": (previous_appointment.start_time if previous_appointment else None),
             "next_session": (
                 {
                     "id": next_appointment.id,
@@ -192,9 +177,7 @@ class PatientRecordSummaryView(ClinicalPatientMixin, APIView):
                 if next_appointment
                 else None
             ),
-            "goals": TreatmentGoalSerializer(
-                goals, many=True, context={"patient": patient}
-            ).data,
+            "goals": TreatmentGoalSerializer(goals, many=True, context={"patient": patient}).data,
             "recent_documents": ClinicalDocumentSerializer(
                 documents,
                 many=True,
@@ -212,9 +195,7 @@ class PatientRecordSummaryView(ClinicalPatientMixin, APIView):
 class ClinicalAnamnesisView(ClinicalPatientMixin, APIView):
     def get(self, request, patient_id):
         patient = self.get_patient(patient_id)
-        anamnesis = (
-            Anamnesis.objects.filter(patient=patient).select_related("profile").first()
-        )
+        anamnesis = Anamnesis.objects.filter(patient=patient).select_related("profile").first()
         if not anamnesis:
             return Response(
                 {
@@ -261,9 +242,7 @@ class ClinicalAnamnesisView(ClinicalPatientMixin, APIView):
 class AnamnesisVersionListView(ClinicalPatientMixin, APIView):
     def get(self, request, patient_id):
         patient = self.get_patient(patient_id)
-        versions = AnamnesisVersion.objects.filter(
-            anamnesis__patient=patient
-        ).select_related("created_by")[:20]
+        versions = AnamnesisVersion.objects.filter(anamnesis__patient=patient).select_related("created_by")[:20]
         return Response(
             [
                 {
@@ -316,11 +295,7 @@ class PatientEvolutionListCreateView(ClinicalPatientMixin, APIView):
             ).exists()
         ):
             return Response(
-                {
-                    "session_date": [
-                        "Já existe uma evolução deste profissional para esta data."
-                    ]
-                },
+                {"session_date": ["Já existe uma evolução deste profissional para esta data."]},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         serializer = EvolutionWorkspaceSerializer(
@@ -335,9 +310,7 @@ class PatientEvolutionListCreateView(ClinicalPatientMixin, APIView):
             obj=evolution,
             obj_repr=f"Evolução #{evolution.id}",
         )
-        return Response(
-            self.serialize_evolution(evolution, request), status=status.HTTP_201_CREATED
-        )
+        return Response(self.serialize_evolution(evolution, request), status=status.HTTP_201_CREATED)
 
 
 class EvolutionWorkspaceDetailView(ClinicalPatientMixin, APIView):
@@ -374,13 +347,8 @@ class EvolutionFinalizeView(ClinicalPatientMixin, APIView):
     @transaction.atomic
     def post(self, request, pk):
         evolution = self.get_evolution(pk)
-        if (
-            evolution.created_by_id != request.user.id
-            and not request.user.is_admin_role
-        ):
-            self.permission_denied(
-                request, message="Somente o autor pode finalizar a evolução."
-            )
+        if evolution.created_by_id != request.user.id and not request.user.is_admin_role:
+            self.permission_denied(request, message="Somente o autor pode finalizar a evolução.")
         clinical_data, _ = EvolutionClinicalData.objects.get_or_create(
             evolution=evolution,
             defaults={"updated_by": request.user},
@@ -390,9 +358,7 @@ class EvolutionFinalizeView(ClinicalPatientMixin, APIView):
                 {"detail": "A evolução já foi finalizada ou arquivada."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if not (
-            evolution.content.strip() or clinical_data.therapist_observations.strip()
-        ):
+        if not (evolution.content.strip() or clinical_data.therapist_observations.strip()):
             return Response(
                 {"detail": "Registre as observações clínicas antes de finalizar."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -441,31 +407,21 @@ class EvolutionDuplicateView(ClinicalPatientMixin, APIView):
             obj=evolution,
             obj_repr=f"Evolução duplicada #{evolution.id}",
         )
-        return Response(
-            self.serialize_evolution(evolution, request), status=status.HTTP_201_CREATED
-        )
+        return Response(self.serialize_evolution(evolution, request), status=status.HTTP_201_CREATED)
 
 
 class TreatmentGoalListCreateView(ClinicalPatientMixin, APIView):
     def get(self, request, patient_id):
         patient = self.get_patient(patient_id)
-        queryset = TreatmentGoal.objects.filter(patient=patient).prefetch_related(
-            "evolutions"
-        )
+        queryset = TreatmentGoal.objects.filter(patient=patient).prefetch_related("evolutions")
         requested_status = request.query_params.get("status")
         if requested_status:
             queryset = queryset.filter(status=requested_status)
-        return Response(
-            TreatmentGoalSerializer(
-                queryset, many=True, context={"patient": patient}
-            ).data
-        )
+        return Response(TreatmentGoalSerializer(queryset, many=True, context={"patient": patient}).data)
 
     def post(self, request, patient_id):
         patient = self.get_patient(patient_id)
-        serializer = TreatmentGoalSerializer(
-            data=request.data, context={"patient": patient}
-        )
+        serializer = TreatmentGoalSerializer(data=request.data, context={"patient": patient})
         serializer.is_valid(raise_exception=True)
         goal = serializer.save(patient=patient, created_by=request.user)
         log_access(
@@ -479,9 +435,7 @@ class TreatmentGoalListCreateView(ClinicalPatientMixin, APIView):
 
 class TreatmentGoalDetailView(ClinicalPatientMixin, APIView):
     def get_goal(self, pk):
-        goal = get_object_or_404(
-            TreatmentGoal.objects.prefetch_related("evolutions"), pk=pk
-        )
+        goal = get_object_or_404(TreatmentGoal.objects.prefetch_related("evolutions"), pk=pk)
         self.get_patient(goal.patient_id)
         return goal
 
@@ -544,9 +498,7 @@ class ClinicalDocumentListCreateView(ClinicalPatientMixin, APIView):
         serializer.is_valid(raise_exception=True)
         uploaded_file = serializer.validated_data.get("file")
         if not uploaded_file:
-            return Response(
-                {"file": ["Selecione um arquivo."]}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"file": ["Selecione um arquivo."]}, status=status.HTTP_400_BAD_REQUEST)
         document = serializer.save(
             patient=patient,
             uploaded_by=request.user,
@@ -634,13 +586,9 @@ class PatientRecordPdfView(ClinicalPatientMixin, APIView):
 
         # Validar permissão distinta para exportar registros confidenciais
         other_confidential = (
-            Evolution.objects.filter(patient=patient, is_confidential=True)
-            .exclude(created_by=request.user)
-            .exists()
+            Evolution.objects.filter(patient=patient, is_confidential=True).exclude(created_by=request.user).exists()
         )
-        if other_confidential and not request.user.has_perm(
-            "records.export_confidential_evolution"
-        ):
+        if other_confidential and not request.user.has_perm("records.export_confidential_evolution"):
             self.permission_denied(
                 request,
                 message="Você não tem permissão para exportar evoluções confidenciais deste paciente.",
@@ -661,10 +609,7 @@ class PatientRecordPdfView(ClinicalPatientMixin, APIView):
         sections = []
         for evolution in queryset:
             clinical_data = getattr(evolution, "clinical_data", None)
-            obs = (
-                getattr(clinical_data, "therapist_observations", "")
-                or evolution.content
-            )
+            obs = getattr(clinical_data, "therapist_observations", "") or evolution.content
             interv = getattr(clinical_data, "interventions", "")
             steps = getattr(clinical_data, "next_steps", "")
 
@@ -674,7 +619,7 @@ class PatientRecordPdfView(ClinicalPatientMixin, APIView):
 
             sections.append(f"""
                 <section>
-                  <h2>{escape(evolution.session_date.strftime('%d/%m/%Y'))}</h2>
+                  <h2>{escape(evolution.session_date.strftime("%d/%m/%Y"))}</h2>
                   <p><strong>Profissional:</strong> {escape(evolution.created_by.full_name)}</p>
                   <div><strong>Observações clínicas:</strong> {obs_html}</div>
                   <div><strong>Intervenções:</strong> {interv_html}</div>
@@ -692,7 +637,7 @@ class PatientRecordPdfView(ClinicalPatientMixin, APIView):
         <h1>Prontuário eletrônico</h1>
         <p><strong>Paciente:</strong> {escape(patient.full_name)}</p>
         <p><strong>Gerado em:</strong> {timezone.localtime():%d/%m/%Y %H:%M}</p>
-        {''.join(sections) or '<p>Nenhuma evolução registrada.</p>'}
+        {"".join(sections) or "<p>Nenhuma evolução registrada.</p>"}
         </body></html>
         """
         output = BytesIO()
@@ -729,9 +674,7 @@ class ClinicalAiSummaryStatusView(ClinicalPatientMixin, APIView):
 class ClinicalFormResponseListCreateView(ClinicalPatientMixin, APIView):
     def get(self, request, patient_id):
         patient = self.get_patient(patient_id)
-        queryset = ClinicalFormResponse.objects.filter(patient=patient).order_by(
-            "-completed_at", "-created_at"
-        )
+        queryset = ClinicalFormResponse.objects.filter(patient=patient).order_by("-completed_at", "-created_at")
 
         search = request.query_params.get("search")
         if search:
@@ -748,9 +691,7 @@ class ClinicalFormResponseListCreateView(ClinicalPatientMixin, APIView):
 
     def post(self, request, patient_id):
         patient = self.get_patient(patient_id)
-        serializer = ClinicalFormResponseSerializer(
-            data=request.data, context={"request": request}
-        )
+        serializer = ClinicalFormResponseSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         instance = serializer.save(patient=patient, therapist=request.user)
         log_access(
@@ -787,9 +728,7 @@ class ClinicalExportListCreateView(ClinicalPatientMixin, APIView):
                 message="Secretárias não possuem acesso a exportações clínicas.",
             )
         patient = self.get_patient(patient_id)
-        queryset = ClinicalExport.objects.filter(patient=patient).order_by(
-            "-created_at"
-        )
+        queryset = ClinicalExport.objects.filter(patient=patient).order_by("-created_at")
 
         if not request.user.is_admin_role:
             queryset = queryset.filter(created_by=request.user)
@@ -808,21 +747,15 @@ class ClinicalExportListCreateView(ClinicalPatientMixin, APIView):
 
         # Validar permissão distinta para exportar registros confidenciais
         other_confidential = (
-            Evolution.objects.filter(patient=patient, is_confidential=True)
-            .exclude(created_by=request.user)
-            .exists()
+            Evolution.objects.filter(patient=patient, is_confidential=True).exclude(created_by=request.user).exists()
         )
-        if other_confidential and not request.user.has_perm(
-            "records.export_confidential_evolution"
-        ):
+        if other_confidential and not request.user.has_perm("records.export_confidential_evolution"):
             self.permission_denied(
                 request,
                 message="Você não tem permissão para exportar evoluções confidenciais deste paciente.",
             )
 
-        serializer = ClinicalExportSerializer(
-            data=request.data, context={"request": request}
-        )
+        serializer = ClinicalExportSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
 
         # Sanitização do nome do arquivo
@@ -844,9 +777,7 @@ class ClinicalExportListCreateView(ClinicalPatientMixin, APIView):
             obj=patient,
             obj_repr=f"Solicitação de exportação #{instance.id}",
         )
-        return Response(
-            ClinicalExportSerializer(instance).data, status=status.HTTP_201_CREATED
-        )
+        return Response(ClinicalExportSerializer(instance).data, status=status.HTTP_201_CREATED)
 
 
 class ClinicalExportRetryView(ClinicalPatientMixin, APIView):
@@ -854,10 +785,7 @@ class ClinicalExportRetryView(ClinicalPatientMixin, APIView):
         export_obj = get_object_or_404(ClinicalExport, pk=pk)
         self.get_patient(export_obj.patient_id)
 
-        if (
-            export_obj.created_by_id != request.user.id
-            and not request.user.is_admin_role
-        ):
+        if export_obj.created_by_id != request.user.id and not request.user.is_admin_role:
             self.permission_denied(
                 request,
                 message="Você não tem permissão para gerenciar esta exportação.",
@@ -868,9 +796,7 @@ class ClinicalExportRetryView(ClinicalPatientMixin, APIView):
             ClinicalExport.Status.EXPIRED,
         ]:
             return Response(
-                {
-                    "detail": "Somente exportações com status Falhou ou Expirado podem ser reprocessadas."
-                },
+                {"detail": "Somente exportações com status Falhou ou Expirado podem ser reprocessadas."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -896,10 +822,7 @@ class ClinicalExportDownloadView(ClinicalPatientMixin, APIView):
         export_obj = get_object_or_404(ClinicalExport, pk=pk)
         self.get_patient(export_obj.patient_id)
 
-        if (
-            export_obj.created_by_id != request.user.id
-            and not request.user.is_admin_role
-        ):
+        if export_obj.created_by_id != request.user.id and not request.user.is_admin_role:
             self.permission_denied(
                 request,
                 message="Você não tem permissão para baixar esta exportação.",

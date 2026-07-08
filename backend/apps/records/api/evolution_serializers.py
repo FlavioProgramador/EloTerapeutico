@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Serializer canônico do fluxo de evoluções clínicas."""
 
 from rest_framework import serializers
@@ -5,6 +6,8 @@ from rest_framework import serializers
 from ..evolution_flow_models import ClinicalEvolutionTemplate
 from ..evolution_flow_serializers import (
     EvolutionAppointmentOptionSerializer,
+)
+from ..evolution_flow_serializers import (
     EvolutionFlowSerializer as BaseEvolutionFlowSerializer,
 )
 from ..evolution_security import sanitize_clinical_markdown

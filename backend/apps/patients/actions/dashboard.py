@@ -9,7 +9,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.core.audit import AuditLog, log_access
+from core.audit import AuditLog, log_access
 
 from ..dashboard_serializers import PatientDashboardSerializer
 from ..form_serializers import PatientFormSerializer
@@ -88,11 +88,7 @@ class PatientDashboardActions(PatientInviteActions, PatientFormActions):
         fieldnames = set(reader.fieldnames or [])
         if not required_columns.issubset(fieldnames):
             return Response(
-                {
-                    "detail": (
-                        "O CSV deve conter as colunas full_name, cpf e birth_date."
-                    )
-                },
+                {"detail": ("O CSV deve conter as colunas full_name, cpf e birth_date.")},
                 status=400,
             )
 
@@ -116,10 +112,7 @@ class PatientDashboardActions(PatientInviteActions, PatientFormActions):
         for line, row in enumerate(rows, start=2):
             raw_cpf = _csv_cell(row, "cpf")
             clean_cpf = re.sub(r"\D", "", raw_cpf)
-            if clean_cpf and (
-                clean_cpf in seen_cpfs
-                or Patient.all_objects.filter(cpf=clean_cpf).exists()
-            ):
+            if clean_cpf and (clean_cpf in seen_cpfs or Patient.all_objects.filter(cpf=clean_cpf).exists()):
                 duplicates.append({"line": line, "cpf": raw_cpf})
                 continue
             if clean_cpf:
@@ -133,12 +126,8 @@ class PatientDashboardActions(PatientInviteActions, PatientFormActions):
                 "phone": _csv_cell(row, "phone"),
                 "gender": _csv_cell(row, "gender", "N") or "N",
                 "status": _csv_cell(row, "status", "active") or "active",
-                "modality": (
-                    _csv_cell(row, "modality", "in_person") or "in_person"
-                ),
-                "payer_type": (
-                    _csv_cell(row, "payer_type", "private") or "private"
-                ),
+                "modality": (_csv_cell(row, "modality", "in_person") or "in_person"),
+                "payer_type": (_csv_cell(row, "payer_type", "private") or "private"),
                 "therapist": request.user.pk,
             }
 
@@ -200,11 +189,7 @@ class PatientDashboardActions(PatientInviteActions, PatientFormActions):
                 "-session_date",
                 "-created_at",
             ).first()
-            documents = list(
-                patient.clinical_documents.filter(is_archived=False).order_by(
-                    "-created_at"
-                )[:3]
-            )
+            documents = list(patient.clinical_documents.filter(is_archived=False).order_by("-created_at")[:3])
 
         next_appointment = (
             patient.appointments.filter(

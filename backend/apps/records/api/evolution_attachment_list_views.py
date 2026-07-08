@@ -5,7 +5,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.core.audit import AuditLog, log_access
+from core.audit import AuditLog, log_access
 
 from ..clinical_views import ClinicalPatientMixin
 from ..evolution_security import max_evolution_attachments
@@ -28,9 +28,7 @@ class EvolutionAttachmentListCreateView(ClinicalPatientMixin, APIView):
 
     def post(self, request, evolution_id):
         evolution = self.get_evolution(evolution_id)
-        attachment_count = active_evolution_attachments(
-            evolution=evolution
-        ).count()
+        attachment_count = active_evolution_attachments(evolution=evolution).count()
         if attachment_count >= max_evolution_attachments():
             return Response(
                 {"file": ["O limite de anexos foi atingido."]},

@@ -66,9 +66,7 @@ def test_documento_valido_nao_expoe_url_publica(context):
 
     assert response.status_code == 201
     assert "file" not in response.data
-    assert response.data["download_url"].endswith(
-        f"/api/v1/records/documents/{response.data['id']}/download/"
-    )
+    assert response.data["download_url"].endswith(f"/api/v1/records/documents/{response.data['id']}/download/")
     assert response.data["status"] == "available"
     assert response.data["status_display"] == "Disponível"
     assert response.data["uploaded_by_name"] == therapist.full_name

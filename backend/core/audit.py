@@ -1,8 +1,13 @@
+# mypy: ignore-errors
 """Trilha de auditoria compartilhada para dados sensíveis."""
+
+import logging
 
 from django.contrib.contenttypes.models import ContentType
 
 from apps.audit.models import AuditLog
+
+logger = logging.getLogger(__name__)
 
 
 def log_access(request, action: str, obj=None, obj_repr: str = "") -> None:

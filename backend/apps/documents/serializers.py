@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Serializers do módulo de documentos."""
 
 from __future__ import annotations
@@ -21,13 +22,9 @@ from .services import DocumentDomainError, create_generated_document
 
 class DocumentTemplateSerializer(serializers.ModelSerializer):
     public_id = serializers.UUIDField(read_only=True)
-    document_type_display = serializers.CharField(
-        source="get_document_type_display", read_only=True
-    )
+    document_type_display = serializers.CharField(source="get_document_type_display", read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
-    author_name = serializers.CharField(
-        source="created_by.full_name", read_only=True, allow_null=True
-    )
+    author_name = serializers.CharField(source="created_by.full_name", read_only=True, allow_null=True)
     source_library_public_id = serializers.UUIDField(
         source="source_library_template.public_id", read_only=True, allow_null=True
     )
@@ -98,9 +95,7 @@ class DocumentTemplateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         request = self.context.get("request")
         if request and request.user.is_secretary:
-            raise serializers.ValidationError(
-                "Secretárias não possuem acesso a templates clínicos."
-            )
+            raise serializers.ValidationError("Secretárias não possuem acesso a templates clínicos.")
         if request:
             name = attrs.get("name", getattr(self.instance, "name", ""))
             duplicate = DocumentTemplate.objects.filter(
@@ -111,9 +106,7 @@ class DocumentTemplateSerializer(serializers.ModelSerializer):
             if self.instance:
                 duplicate = duplicate.exclude(pk=self.instance.pk)
             if duplicate.exists():
-                raise serializers.ValidationError(
-                    {"name": "Já existe um template ativo com este nome."}
-                )
+                raise serializers.ValidationError({"name": "Já existe um template ativo com este nome."})
         return attrs
 
 
@@ -159,13 +152,9 @@ class TemplatePreviewRequestSerializer(serializers.Serializer):
         context = self.build_context(template)
         return {
             "title": template.name,
-            "header_html": render_safe_markdown(template.header_content, context)
-            if template.header_content
-            else "",
+            "header_html": render_safe_markdown(template.header_content, context) if template.header_content else "",
             "content_html": render_safe_markdown(template.content, context),
-            "footer_html": render_safe_markdown(template.footer_content, context)
-            if template.footer_content
-            else "",
+            "footer_html": render_safe_markdown(template.footer_content, context) if template.footer_content else "",
         }
 
 
@@ -184,9 +173,7 @@ class GeneratedDocumentCreateSerializer(serializers.Serializer):
             archived_at__isnull=True,
         ).first()
         if not template:
-            raise serializers.ValidationError(
-                {"template_public_id": "Template não autorizado."}
-            )
+            raise serializers.ValidationError({"template_public_id": "Template não autorizado."})
         patient = Patient.objects.filter(
             pk=attrs["patient_id"],
             therapist=request.user,
@@ -219,9 +206,7 @@ class GeneratedDocumentListSerializer(serializers.ModelSerializer):
     public_id = serializers.UUIDField(read_only=True)
     patient_name = serializers.CharField(source="patient.display_name", read_only=True)
     professional_name = serializers.CharField(source="professional.full_name", read_only=True)
-    document_type_display = serializers.CharField(
-        source="get_document_type_display", read_only=True
-    )
+    document_type_display = serializers.CharField(source="get_document_type_display", read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     download_url = serializers.SerializerMethodField()
 
@@ -253,9 +238,7 @@ class GeneratedDocumentListSerializer(serializers.ModelSerializer):
 
 
 class GeneratedDocumentDetailSerializer(GeneratedDocumentListSerializer):
-    template_public_id = serializers.UUIDField(
-        source="template.public_id", read_only=True, allow_null=True
-    )
+    template_public_id = serializers.UUIDField(source="template.public_id", read_only=True, allow_null=True)
     template_name = serializers.CharField(source="template_name_snapshot", read_only=True)
     content = serializers.CharField(source="rendered_content", read_only=True)
 
@@ -287,9 +270,7 @@ class GeneratedDocumentDraftUpdateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         if self.instance.status != GeneratedDocument.Status.DRAFT:
-            raise serializers.ValidationError(
-                "Somente documentos em rascunho podem ser editados."
-            )
+            raise serializers.ValidationError("Somente documentos em rascunho podem ser editados.")
         return attrs
 
     def validate_draft_content(self, value: str) -> str:

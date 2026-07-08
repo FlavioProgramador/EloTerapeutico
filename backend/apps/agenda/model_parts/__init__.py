@@ -5,7 +5,12 @@ from .rooms import AppointmentRecurrence, Room
 from .support import PackageSession, ScheduleBlock
 
 __all__ = [
-    "Appointment", "AppointmentRecurrence", "AppointmentReminder",
-    "PackageSession", "PatientPackage", "Room", "ScheduleBlock",
+    "Appointment",
+    "AppointmentRecurrence",
+    "AppointmentReminder",
+    "PackageSession",
+    "PatientPackage",
+    "Room",
+    "ScheduleBlock",
     "TelemedicineRoom",
 ]

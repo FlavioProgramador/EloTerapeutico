@@ -11,7 +11,6 @@ from django.db import transaction
 from ..evolution_security import sanitize_original_filename
 from ..models import ClinicalDocument, Evolution, EvolutionClinicalData, EvolutionVersion
 
-
 CLINICAL_PROFILE_FIELDS = (
     "session_time",
     "duration_minutes",

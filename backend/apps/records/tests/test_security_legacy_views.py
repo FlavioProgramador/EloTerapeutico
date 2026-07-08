@@ -84,9 +84,7 @@ def test_evolution_viewset_shared_access_allowed(owner, shared_therapist, patien
     """
     Regression: EvolutionViewSet.get_queryset now allows shared therapists.
     """
-    Evolution.objects.create(
-        patient=patient, content="Note", session_date=timezone.localdate(), created_by=owner
-    )
+    Evolution.objects.create(patient=patient, content="Note", session_date=timezone.localdate(), created_by=owner)
 
     client = APIClient()
     client.force_authenticate(shared_therapist)

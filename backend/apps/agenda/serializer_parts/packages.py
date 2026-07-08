@@ -52,20 +52,41 @@ class PatientPackageSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
-    send_whatsapp_reminder = serializers.BooleanField(
-        write_only=True, required=False, default=False
-    )
+    send_whatsapp_reminder = serializers.BooleanField(write_only=True, required=False, default=False)
 
     class Meta:
         model = PatientPackage
         fields = [
-            "id", "patient", "patient_name", "therapist", "therapist_name",
-            "name", "description", "sessions_contracted", "sessions_used",
-            "remaining_sessions", "total_value", "unit_value", "valid_from",
-            "valid_until", "status", "is_expired", "generate_charge", "send_charge",
-            "sessions", "auto_schedule", "first_appointment_at", "frequency",
-            "weekdays", "duration_minutes", "modality", "appointment_type", "room",
-            "send_whatsapp_reminder", "created_at", "updated_at",
+            "id",
+            "patient",
+            "patient_name",
+            "therapist",
+            "therapist_name",
+            "name",
+            "description",
+            "sessions_contracted",
+            "sessions_used",
+            "remaining_sessions",
+            "total_value",
+            "unit_value",
+            "valid_from",
+            "valid_until",
+            "status",
+            "is_expired",
+            "generate_charge",
+            "send_charge",
+            "sessions",
+            "auto_schedule",
+            "first_appointment_at",
+            "frequency",
+            "weekdays",
+            "duration_minutes",
+            "modality",
+            "appointment_type",
+            "room",
+            "send_whatsapp_reminder",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = ["sessions_used", "created_at", "updated_at"]
 
@@ -79,49 +100,29 @@ class PatientPackageSerializer(serializers.ModelSerializer):
         if not therapist or not therapist.is_therapist:
             raise serializers.ValidationError({"therapist": "Selecione um terapeuta válido."})
         if patient and patient.therapist_id != therapist.id:
-            raise serializers.ValidationError(
-                {"patient": "O paciente não pertence ao profissional selecionado."}
-            )
-        sessions = attrs.get(
-            "sessions_contracted", getattr(self.instance, "sessions_contracted", 0)
-        )
+            raise serializers.ValidationError({"patient": "O paciente não pertence ao profissional selecionado."})
+        sessions = attrs.get("sessions_contracted", getattr(self.instance, "sessions_contracted", 0))
         if sessions <= 0:
-            raise serializers.ValidationError(
-                {"sessions_contracted": "Informe ao menos uma sessão."}
-            )
+            raise serializers.ValidationError({"sessions_contracted": "Informe ao menos uma sessão."})
         if attrs.get("total_value", Decimal("0")) < 0:
-            raise serializers.ValidationError(
-                {"total_value": "O valor total não pode ser negativo."}
-            )
-        valid_from = attrs.get(
-            "valid_from", getattr(self.instance, "valid_from", timezone.localdate())
-        )
-        valid_until = attrs.get(
-            "valid_until", getattr(self.instance, "valid_until", None)
-        )
+            raise serializers.ValidationError({"total_value": "O valor total não pode ser negativo."})
+        valid_from = attrs.get("valid_from", getattr(self.instance, "valid_from", timezone.localdate()))
+        valid_until = attrs.get("valid_until", getattr(self.instance, "valid_until", None))
         if valid_until and valid_until < valid_from:
-            raise serializers.ValidationError(
-                {"valid_until": "A validade final deve ser posterior ao início."}
-            )
+            raise serializers.ValidationError({"valid_until": "A validade final deve ser posterior ao início."})
         if attrs.get("auto_schedule") and not attrs.get("first_appointment_at"):
-            raise serializers.ValidationError(
-                {"first_appointment_at": "Informe a primeira data do pacote."}
-            )
+            raise serializers.ValidationError({"first_appointment_at": "Informe a primeira data do pacote."})
         return attrs
 
     @transaction.atomic
     def create(self, validated_data):
         auto_schedule = validated_data.pop("auto_schedule", False)
         first_at = validated_data.pop("first_appointment_at", None)
-        frequency = validated_data.pop(
-            "frequency", AppointmentRecurrence.Frequency.WEEKLY
-        )
+        frequency = validated_data.pop("frequency", AppointmentRecurrence.Frequency.WEEKLY)
         weekdays = validated_data.pop("weekdays", [])
         duration = validated_data.pop("duration_minutes", 50)
         modality = validated_data.pop("modality", Appointment.Modality.IN_PERSON)
-        appointment_type = validated_data.pop(
-            "appointment_type", Appointment.AppointmentType.PSYCHOTHERAPY
-        )
+        appointment_type = validated_data.pop("appointment_type", Appointment.AppointmentType.PSYCHOTHERAPY)
         room = validated_data.pop("room", None)
         remind = validated_data.pop("send_whatsapp_reminder", False)
         request = self.context["request"]
@@ -166,9 +167,7 @@ class PatientPackageSerializer(serializers.ModelSerializer):
                 room=room,
             )
             if any(conflicts.values()):
-                raise serializers.ValidationError(
-                    {"first_appointment_at": "A primeira sessão possui conflito."}
-                )
+                raise serializers.ValidationError({"first_appointment_at": "A primeira sessão possui conflito."})
             first = Appointment.objects.create(
                 patient=package.patient,
                 therapist=package.therapist,
@@ -185,9 +184,7 @@ class PatientPackageSerializer(serializers.ModelSerializer):
                 created_by=request.user,
                 updated_by=request.user,
             )
-            create_appointment_resources(
-                first, send_whatsapp_reminder=remind, package=package
-            )
+            create_appointment_resources(first, send_whatsapp_reminder=remind, package=package)
             generate_recurrence_appointments(
                 rule,
                 first_appointment=first,

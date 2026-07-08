@@ -27,14 +27,10 @@ def validate_cpf(value: str) -> None:
 
 def validate_crp(value: str) -> None:
     if not re.match(r"^\d{2}/\d{4,8}$", value):
-        raise ValidationError(
-            "CRP inválido. Use o formato XX/XXXXXX (ex: 06/123456)."
-        )
+        raise ValidationError("CRP inválido. Use o formato XX/XXXXXX (ex: 06/123456).")
 
 
 def validate_phone(value: str) -> None:
     phone = re.sub(r"\D", "", value)
     if len(phone) not in (10, 11, 13):
-        raise ValidationError(
-            "Número de telefone inválido. Use o formato (11) 99999-9999."
-        )
+        raise ValidationError("Número de telefone inválido. Use o formato (11) 99999-9999.")

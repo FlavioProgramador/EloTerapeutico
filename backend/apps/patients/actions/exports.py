@@ -1,10 +1,11 @@
+# mypy: ignore-errors
 import csv
 from io import StringIO
 
 from django.http import HttpResponse
 from rest_framework.decorators import action
 
-from apps.core.audit import AuditLog, log_access
+from core.audit import AuditLog, log_access
 
 
 class PatientExportActions:

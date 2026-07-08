@@ -1,14 +1,15 @@
-import pytest
-from datetime import timedelta
 from decimal import Decimal
+
+import pytest
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.users.models import User
-from apps.patients.models import Patient
 from apps.financeiro.models import FinancialTransaction
+from apps.patients.models import Patient
+from apps.users.models import User
+
 
 @pytest.fixture
 def therapist(db):
@@ -19,6 +20,7 @@ def therapist(db):
         role=User.Role.THERAPIST,
     )
 
+
 @pytest.fixture
 def patient(db, therapist):
     return Patient.objects.create(
@@ -28,11 +30,13 @@ def patient(db, therapist):
         is_active=True,
     )
 
+
 @pytest.fixture
 def client(therapist):
     api = APIClient()
     api.force_authenticate(therapist)
     return api
+
 
 @pytest.mark.django_db
 def test_transaction_list_actions_coverage(client, patient, therapist):

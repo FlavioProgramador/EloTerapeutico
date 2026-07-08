@@ -36,9 +36,7 @@ def api_client(therapist):
 
 
 @pytest.mark.django_db
-def test_appointment_list_optimized_queries(
-    api_client, therapist, patient, django_assert_num_queries
-):
+def test_appointment_list_optimized_queries(api_client, therapist, patient, django_assert_num_queries):
     """
     Verifica que a listagem de agendamentos não possui N+1 queries para evoluções.
     """
@@ -59,9 +57,7 @@ def test_appointment_list_optimized_queries(
             created_by=therapist,
             content=f"Evolution {i}",
         )
-        EvolutionClinicalData.objects.create(
-            evolution=evo, status="finalized", updated_by=therapist
-        )
+        EvolutionClinicalData.objects.create(evolution=evo, status="finalized", updated_by=therapist)
 
     url = reverse("appointment-list")
 

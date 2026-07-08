@@ -3,9 +3,6 @@ from __future__ import annotations
 from django.db import transaction
 from rest_framework import serializers
 
-from apps.agenda.models import Appointment
-from apps.patients.models import Patient
-
 from .models import FieldType, FormAnswer, FormField, FormSubmission, FormTemplate, TherapeuticForm
 
 OPTION_FIELDS = {FieldType.SELECT, FieldType.RADIO, FieldType.CHECKBOX}
@@ -53,8 +50,18 @@ class FormFieldSerializer(serializers.ModelSerializer):
     class Meta:
         model = FormField
         fields = (
-            "id", "type", "label", "placeholder", "help_text", "required", "order",
-            "is_visible", "internal_id", "config", "created_at", "updated_at",
+            "id",
+            "type",
+            "label",
+            "placeholder",
+            "help_text",
+            "required",
+            "order",
+            "is_visible",
+            "internal_id",
+            "config",
+            "created_at",
+            "updated_at",
         )
         read_only_fields = ("id", "created_at", "updated_at")
 
@@ -69,8 +76,18 @@ class FormTemplateSerializer(serializers.ModelSerializer):
     class Meta:
         model = FormTemplate
         fields = (
-            "id", "name", "description", "category", "category_display", "icon",
-            "fields_schema", "fields_count", "is_system_template", "is_active", "created_at", "updated_at",
+            "id",
+            "name",
+            "description",
+            "category",
+            "category_display",
+            "icon",
+            "fields_schema",
+            "fields_count",
+            "is_system_template",
+            "is_active",
+            "created_at",
+            "updated_at",
         )
         read_only_fields = fields
 
@@ -89,13 +106,33 @@ class TherapeuticFormSerializer(serializers.ModelSerializer):
     class Meta:
         model = TherapeuticForm
         fields = (
-            "id", "name", "description", "category", "category_display", "status",
-            "status_display", "source_template", "fields_count", "fields", "created_by_name",
-            "updated_by_name", "archived_at", "created_at", "updated_at",
+            "id",
+            "name",
+            "description",
+            "category",
+            "category_display",
+            "status",
+            "status_display",
+            "source_template",
+            "fields_count",
+            "fields",
+            "created_by_name",
+            "updated_by_name",
+            "archived_at",
+            "created_at",
+            "updated_at",
         )
         read_only_fields = (
-            "id", "status_display", "category_display", "source_template", "fields_count",
-            "created_by_name", "updated_by_name", "archived_at", "created_at", "updated_at",
+            "id",
+            "status_display",
+            "category_display",
+            "source_template",
+            "fields_count",
+            "created_by_name",
+            "updated_by_name",
+            "archived_at",
+            "created_at",
+            "updated_at",
         )
 
     def validate_name(self, value):
@@ -139,21 +176,23 @@ class TherapeuticFormSerializer(serializers.ModelSerializer):
 
     def _replace_fields(self, form: TherapeuticForm, fields: list[dict]) -> None:
         form.fields.all().delete()
-        FormField.objects.bulk_create([
-            FormField(
-                form=form,
-                type=field["type"],
-                label=field["label"],
-                placeholder=field.get("placeholder", ""),
-                help_text=field.get("help_text", ""),
-                required=field.get("required", False),
-                order=field.get("order") or index,
-                is_visible=field.get("is_visible", True),
-                internal_id=field.get("internal_id", ""),
-                config=field.get("config") or {},
-            )
-            for index, field in enumerate(fields, start=1)
-        ])
+        FormField.objects.bulk_create(
+            [
+                FormField(
+                    form=form,
+                    type=field["type"],
+                    label=field["label"],
+                    placeholder=field.get("placeholder", ""),
+                    help_text=field.get("help_text", ""),
+                    required=field.get("required", False),
+                    order=field.get("order") or index,
+                    is_visible=field.get("is_visible", True),
+                    internal_id=field.get("internal_id", ""),
+                    config=field.get("config") or {},
+                )
+                for index, field in enumerate(fields, start=1)
+            ]
+        )
 
 
 class FormSubmissionAnswerSerializer(serializers.Serializer):
@@ -180,10 +219,31 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = FormSubmission
         fields = (
-            "id", "form", "form_name", "patient", "patient_name", "professional", "appointment",
-            "status", "answers", "answer_details", "submitted_at", "created_at", "updated_at",
+            "id",
+            "form",
+            "form_name",
+            "patient",
+            "patient_name",
+            "professional",
+            "appointment",
+            "status",
+            "answers",
+            "answer_details",
+            "submitted_at",
+            "created_at",
+            "updated_at",
         )
-        read_only_fields = ("id", "form", "form_name", "patient_name", "status", "answer_details", "submitted_at", "created_at", "updated_at")
+        read_only_fields = (
+            "id",
+            "form",
+            "form_name",
+            "patient_name",
+            "status",
+            "answer_details",
+            "submitted_at",
+            "created_at",
+            "updated_at",
+        )
 
     def validate(self, attrs):
         form = self.context["form"]

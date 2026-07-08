@@ -38,15 +38,9 @@ def transactions_csv(queryset) -> str:
                 f"{transaction.amount:.2f}".replace(".", ","),
                 transaction.get_payment_method_display(),
                 transaction.get_payment_status_display(),
-                transaction.patient.full_name
-                if transaction.patient
-                else "Não associado",
-                transaction.due_date.strftime("%d/%m/%Y")
-                if transaction.due_date
-                else "",
-                transaction.paid_at.strftime("%d/%m/%Y %H:%M")
-                if transaction.paid_at
-                else "",
+                transaction.patient.full_name if transaction.patient else "Não associado",
+                transaction.due_date.strftime("%d/%m/%Y") if transaction.due_date else "",
+                transaction.paid_at.strftime("%d/%m/%Y %H:%M") if transaction.paid_at else "",
                 _safe_csv_cell(transaction.description),
                 transaction.created_at.strftime("%d/%m/%Y %H:%M"),
             ]

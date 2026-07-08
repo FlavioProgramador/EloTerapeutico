@@ -218,12 +218,7 @@ class PasswordResetRequestView(APIView):
             pass
 
         return Response(
-            {
-                "message": (
-                    "Se o e-mail estiver cadastrado, você receberá um "
-                    "link para redefinir sua senha."
-                )
-            },
+            {"message": ("Se o e-mail estiver cadastrado, você receberá um " "link para redefinir sua senha.")},
             status=status.HTTP_200_OK,
         )
 

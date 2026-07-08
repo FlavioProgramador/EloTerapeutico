@@ -8,6 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from core.audit import AuditLog, log_access
+
 from ..filters import RecurrenceFilter
 from ..models import Appointment, AppointmentRecurrence, Room
 from ..serializers import (
@@ -30,34 +31,26 @@ class AppointmentRecurrenceViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
     ordering_fields = ["created_at", "starts_on", "ends_on"]
 
     def get_queryset(self):
-        queryset = AppointmentRecurrence.objects.select_related(
-            "patient", "therapist", "room"
-        ).prefetch_related("appointments")
+        queryset = AppointmentRecurrence.objects.select_related("patient", "therapist", "room").prefetch_related(
+            "appointments"
+        )
         return self.scope_queryset(queryset)
 
     def perform_create(self, serializer):
         recurrence = serializer.save(created_by=self.request.user)
-        log_access(
-            self.request, AuditLog.Action.CREATE, recurrence, "Recorrência criada"
-        )
+        log_access(self.request, AuditLog.Action.CREATE, recurrence, "Recorrência criada")
 
     def perform_update(self, serializer):
         recurrence = serializer.save()
-        log_access(
-            self.request, AuditLog.Action.UPDATE, recurrence, "Recorrência atualizada"
-        )
+        log_access(self.request, AuditLog.Action.UPDATE, recurrence, "Recorrência atualizada")
 
     @action(detail=True, methods=["post"])
     def pause(self, request, pk=None):
-        return self._set_status(
-            request, self.get_object(), AppointmentRecurrence.Status.PAUSED
-        )
+        return self._set_status(request, self.get_object(), AppointmentRecurrence.Status.PAUSED)
 
     @action(detail=True, methods=["post"])
     def reactivate(self, request, pk=None):
-        return self._set_status(
-            request, self.get_object(), AppointmentRecurrence.Status.ACTIVE
-        )
+        return self._set_status(request, self.get_object(), AppointmentRecurrence.Status.ACTIVE)
 
     @action(detail=True, methods=["post"])
     def end(self, request, pk=None):
@@ -75,17 +68,13 @@ class AppointmentRecurrenceViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
             status=Appointment.Status.CANCELLED,
             cancellation_reason="Recorrência encerrada.",
         )
-        log_access(
-            request, AuditLog.Action.UPDATE, recurrence, "Recorrência encerrada"
-        )
+        log_access(request, AuditLog.Action.UPDATE, recurrence, "Recorrência encerrada")
         return Response(self.get_serializer(recurrence).data)
 
     def _set_status(self, request, recurrence, value):
         recurrence.status = value
         recurrence.save(update_fields=["status", "updated_at"])
-        log_access(
-            request, AuditLog.Action.UPDATE, recurrence, f"Recorrência: {value}"
-        )
+        log_access(request, AuditLog.Action.UPDATE, recurrence, f"Recorrência: {value}")
         return Response(self.get_serializer(recurrence).data)
 
     @action(detail=True, methods=["post"], url_path="apply-change")
@@ -99,9 +88,7 @@ class AppointmentRecurrenceViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
                 {"scope": "Escopo inválido."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        occurrence = get_object_or_404(
-            recurrence.appointments.select_for_update(), pk=occurrence_id
-        )
+        occurrence = get_object_or_404(recurrence.appointments.select_for_update(), pk=occurrence_id)
         if scope == "occurrence":
             serializer = AppointmentUpdateSerializer(
                 occurrence,
@@ -117,11 +104,7 @@ class AppointmentRecurrenceViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
                 item,
                 "Exceção de recorrência atualizada",
             )
-            return Response(
-                AppointmentDetailSerializer(
-                    item, context={"request": request}
-                ).data
-            )
+            return Response(AppointmentDetailSerializer(item, context={"request": request}).data)
 
         changes = request.data.get("changes", {})
         target_rule = recurrence
@@ -135,21 +118,13 @@ class AppointmentRecurrenceViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
                 starts_on=occurrence.start_time.date(),
                 ends_on=changes.get("ends_on", recurrence.ends_on),
                 max_occurrences=recurrence.max_occurrences,
-                start_time=_as_time(
-                    changes.get("start_time", recurrence.start_time)
-                ),
-                duration_minutes=changes.get(
-                    "duration_minutes", recurrence.duration_minutes
-                ),
+                start_time=_as_time(changes.get("start_time", recurrence.start_time)),
+                duration_minutes=changes.get("duration_minutes", recurrence.duration_minutes),
                 timezone_name=recurrence.timezone_name,
                 modality=changes.get("modality", recurrence.modality),
-                appointment_type=changes.get(
-                    "appointment_type", recurrence.appointment_type
-                ),
+                appointment_type=changes.get("appointment_type", recurrence.appointment_type),
                 room_id=changes.get("room", recurrence.room_id),
-                session_value=changes.get(
-                    "session_value", recurrence.session_value
-                ),
+                session_value=changes.get("session_value", recurrence.session_value),
                 notes=changes.get("notes", recurrence.notes),
                 created_by=request.user,
             )
@@ -175,9 +150,7 @@ class AppointmentRecurrenceViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
                 second=0,
                 microsecond=0,
             )
-            duration = int(
-                changes.get("duration_minutes", target_rule.duration_minutes)
-            )
+            duration = int(changes.get("duration_minutes", target_rule.duration_minutes))
             room_id = changes.get("room", target_rule.room_id)
             conflicts = Appointment.conflict_details(
                 therapist=target_rule.therapist,
@@ -190,29 +163,28 @@ class AppointmentRecurrenceViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
             if any(conflicts.values()):
                 transaction.set_rollback(True)
                 return Response(
-                    {
-                        "detail": (
-                            f"Conflito ao alterar ocorrência de "
-                            f"{local:%d/%m/%Y}."
-                        )
-                    },
+                    {"detail": (f"Conflito ao alterar ocorrência de {local:%d/%m/%Y}.")},
                     status=status.HTTP_409_CONFLICT,
                 )
             item.start_time = new_start
             item.end_time = new_start + timedelta(minutes=duration)
             item.room_id = room_id
             item.modality = changes.get("modality", target_rule.modality)
-            item.appointment_type = changes.get(
-                "appointment_type", target_rule.appointment_type
-            )
+            item.appointment_type = changes.get("appointment_type", target_rule.appointment_type)
             item.recurrence = target_rule
             item.updated_by = request.user
             item.save()
 
         for field in [
-            "frequency", "interval", "weekdays", "ends_on",
-            "duration_minutes", "modality", "appointment_type",
-            "session_value", "notes",
+            "frequency",
+            "interval",
+            "weekdays",
+            "ends_on",
+            "duration_minutes",
+            "modality",
+            "appointment_type",
+            "session_value",
+            "notes",
         ]:
             if field in changes:
                 setattr(target_rule, field, changes[field])

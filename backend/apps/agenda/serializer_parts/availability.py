@@ -6,35 +6,47 @@ from rest_framework import serializers
 
 from apps.patients.models import Patient
 from apps.users.models import WorkingHours
+
 from ..models import Appointment, Room, ScheduleBlock
 
 
 class ScheduleBlockSerializer(serializers.ModelSerializer):
     therapist_name = serializers.CharField(source="therapist.full_name", read_only=True)
     affected_appointments = serializers.SerializerMethodField(read_only=True)
-    confirm_conflicts = serializers.BooleanField(
-        write_only=True, required=False, default=False
-    )
-    recurrence_count = serializers.IntegerField(
-        write_only=True, required=False, default=4, min_value=2, max_value=52
-    )
+    confirm_conflicts = serializers.BooleanField(write_only=True, required=False, default=False)
+    recurrence_count = serializers.IntegerField(write_only=True, required=False, default=4, min_value=2, max_value=52)
 
     class Meta:
         model = ScheduleBlock
         fields = [
-            "id", "therapist", "therapist_name", "start_time", "end_time",
-            "reason", "notes", "is_active", "recurrence_rule", "parent_block",
-            "affected_appointments", "confirm_conflicts", "recurrence_count",
-            "created_at", "updated_at",
+            "id",
+            "therapist",
+            "therapist_name",
+            "start_time",
+            "end_time",
+            "reason",
+            "notes",
+            "is_active",
+            "recurrence_rule",
+            "parent_block",
+            "affected_appointments",
+            "confirm_conflicts",
+            "recurrence_count",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = ["parent_block", "created_at", "updated_at"]
 
     def get_affected_appointments(self, obj):
-        return Appointment.active_queryset().filter(
-            therapist=obj.therapist,
-            start_time__lt=obj.end_time,
-            end_time__gt=obj.start_time,
-        ).count()
+        return (
+            Appointment.active_queryset()
+            .filter(
+                therapist=obj.therapist,
+                start_time__lt=obj.end_time,
+                end_time__gt=obj.start_time,
+            )
+            .count()
+        )
 
     def validate(self, attrs):
         request = self.context["request"]
@@ -45,9 +57,7 @@ class ScheduleBlockSerializer(serializers.ModelSerializer):
         start = attrs.get("start_time", getattr(self.instance, "start_time", None))
         end = attrs.get("end_time", getattr(self.instance, "end_time", None))
         if start and end and start >= end:
-            raise serializers.ValidationError(
-                {"end_time": "O término deve ser posterior ao início."}
-            )
+            raise serializers.ValidationError({"end_time": "O término deve ser posterior ao início."})
         overlap = ScheduleBlock.objects.filter(
             therapist=therapist,
             is_active=True,
@@ -57,20 +67,21 @@ class ScheduleBlockSerializer(serializers.ModelSerializer):
         if self.instance:
             overlap = overlap.exclude(pk=self.instance.pk)
         if overlap.exists():
-            raise serializers.ValidationError(
-                {"start_time": "Já existe um bloqueio nesse intervalo."}
+            raise serializers.ValidationError({"start_time": "Já existe um bloqueio nesse intervalo."})
+        affected = (
+            Appointment.active_queryset()
+            .filter(
+                therapist=therapist,
+                start_time__lt=end,
+                end_time__gt=start,
             )
-        affected = Appointment.active_queryset().filter(
-            therapist=therapist,
-            start_time__lt=end,
-            end_time__gt=start,
-        ).exists()
+            .exists()
+        )
         if affected and not attrs.pop("confirm_conflicts", False):
             raise serializers.ValidationError(
                 {
                     "confirm_conflicts": (
-                        "Existem consultas no intervalo. Confirme para criar o "
-                        "bloqueio sem cancelá-las."
+                        "Existem consultas no intervalo. Confirme para criar o " "bloqueio sem cancelá-las."
                     )
                 }
             )
@@ -110,9 +121,7 @@ class CheckAvailabilitySerializer(serializers.Serializer):
 
     def validate_date(self, value):
         if value < timezone.localdate():
-            raise serializers.ValidationError(
-                "Não é possível consultar disponibilidade no passado."
-            )
+            raise serializers.ValidationError("Não é possível consultar disponibilidade no passado.")
         return value
 
     def get_available_slots(self, therapist, validated_data):
@@ -126,18 +135,10 @@ class CheckAvailabilitySerializer(serializers.Serializer):
         if not working:
             return []
         tz = timezone.get_current_timezone()
-        current = timezone.make_aware(
-            datetime.combine(target_date, working.start_time), tz
-        )
-        day_end = timezone.make_aware(
-            datetime.combine(target_date, working.end_time), tz
-        )
-        patient = Patient.objects.filter(
-            pk=validated_data.get("patient_id")
-        ).first()
-        room = Room.objects.filter(
-            pk=validated_data.get("room_id"), is_active=True
-        ).first()
+        current = timezone.make_aware(datetime.combine(target_date, working.start_time), tz)
+        day_end = timezone.make_aware(datetime.combine(target_date, working.end_time), tz)
+        patient = Patient.objects.filter(pk=validated_data.get("patient_id")).first()
+        room = Room.objects.filter(pk=validated_data.get("room_id"), is_active=True).first()
         slots = []
         while current + timedelta(minutes=duration) <= day_end:
             end = current + timedelta(minutes=duration)

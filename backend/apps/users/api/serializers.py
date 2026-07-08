@@ -38,9 +38,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         if attrs["password"] != attrs.pop("password_confirm"):
-            raise serializers.ValidationError(
-                {"password_confirm": "As senhas não conferem."}
-            )
+            raise serializers.ValidationError({"password_confirm": "As senhas não conferem."})
         return attrs
 
     def create(self, validated_data):
@@ -67,8 +65,7 @@ class LoginSerializer(serializers.Serializer):
         if user.is_locked():
             locked_time = user.locked_until.strftime("%H:%M")
             raise serializers.ValidationError(
-                "Conta bloqueada por tentativas excessivas. "
-                f"Tente novamente após {locked_time}."
+                f"Conta bloqueada por tentativas excessivas. Tente novamente após {locked_time}."
             )
 
         if not user.check_password(password):
@@ -80,9 +77,7 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("E-mail ou senha incorretos.")
 
         if not user.is_active:
-            raise serializers.ValidationError(
-                "Conta inativa. Entre em contato com o suporte."
-            )
+            raise serializers.ValidationError("Conta inativa. Entre em contato com o suporte.")
 
         user.reset_login_attempts()
         attrs["user"] = user
@@ -111,9 +106,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs["new_password"] != attrs["new_password_confirm"]:
-            raise serializers.ValidationError(
-                {"new_password_confirm": "As novas senhas não conferem."}
-            )
+            raise serializers.ValidationError({"new_password_confirm": "As novas senhas não conferem."})
         return attrs
 
     def save(self):
@@ -180,9 +173,7 @@ class WorkingHoursSerializer(serializers.ModelSerializer):
         start_time = attrs.get("start_time")
         end_time = attrs.get("end_time")
         if start_time and end_time and start_time >= end_time:
-            raise serializers.ValidationError(
-                "O horário de início deve ser anterior ao horário de fim."
-            )
+            raise serializers.ValidationError("O horário de início deve ser anterior ao horário de fim.")
         return attrs
 
     def create(self, validated_data):
@@ -209,22 +200,16 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs["new_password"] != attrs["new_password_confirm"]:
-            raise serializers.ValidationError(
-                {"new_password_confirm": "As senhas não conferem."}
-            )
+            raise serializers.ValidationError({"new_password_confirm": "As senhas não conferem."})
 
         try:
             uid = force_str(urlsafe_base64_decode(attrs["uidb64"]))
             user = User.objects.get(pk=uid)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            raise serializers.ValidationError(
-                {"token": "O link de redefinição é inválido ou expirou."}
-            )
+            raise serializers.ValidationError({"token": "O link de redefinição é inválido ou expirou."})
 
         if not default_token_generator.check_token(user, attrs["token"]):
-            raise serializers.ValidationError(
-                {"token": "O link de redefinição é inválido ou expirou."}
-            )
+            raise serializers.ValidationError({"token": "O link de redefinição é inválido ou expirou."})
 
         attrs["user"] = user
         return attrs
@@ -252,9 +237,7 @@ class SafeTokenRefreshSerializer(TokenRefreshSerializer):
 
         current_hash = get_md5_hash_password(user.password)
         if not token_hash or token_hash != current_hash:
-            raise InvalidToken(
-                "O token foi invalidado devido a uma alteração de senha."
-            )
+            raise InvalidToken("O token foi invalidado devido a uma alteração de senha.")
 
         data = {"access": str(refresh.access_token)}
         if api_settings.ROTATE_REFRESH_TOKENS:

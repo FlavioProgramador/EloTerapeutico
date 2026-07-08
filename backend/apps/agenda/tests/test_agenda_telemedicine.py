@@ -1,14 +1,16 @@
+import uuid
+from datetime import timedelta
+
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
-from django.utils import timezone
-from datetime import timedelta
-import uuid
 
-from apps.users.models import User
+from apps.agenda.models import Appointment, TelemedicineRoom
 from apps.patients.models import Patient
-from apps.agenda.models import TelemedicineRoom, Appointment
+from apps.users.models import User
+
 
 @pytest.fixture
 def therapist(db):
@@ -19,6 +21,7 @@ def therapist(db):
         role=User.Role.THERAPIST,
     )
 
+
 @pytest.fixture
 def patient(db, therapist):
     return Patient.objects.create(
@@ -28,11 +31,13 @@ def patient(db, therapist):
         is_active=True,
     )
 
+
 @pytest.fixture
 def client(therapist):
     api = APIClient()
     api.force_authenticate(therapist)
     return api
+
 
 @pytest.fixture
 def appointment(patient, therapist):
@@ -46,6 +51,7 @@ def appointment(patient, therapist):
         session_value=150,
     )
 
+
 @pytest.mark.django_db
 def test_telemedicine_room_list(client, appointment):
     TelemedicineRoom.objects.create(
@@ -57,6 +63,7 @@ def test_telemedicine_room_list(client, appointment):
     response = client.get(reverse("telemedicine-list"))
     assert response.status_code == status.HTTP_200_OK
     assert len(response.data["results"]) >= 1
+
 
 @pytest.mark.django_db
 def test_telemedicine_access_view(appointment):

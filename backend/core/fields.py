@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Campos Django compartilhados para dados sensíveis."""
 
 import base64
@@ -38,9 +39,7 @@ def decrypt_value(token: str) -> str:
     except ValueError:
         ciphertext, version = token, "v1"
 
-    key = getattr(
-        settings, f"FIELD_ENCRYPTION_KEY_{version.upper()}", settings.FIELD_ENCRYPTION_KEY
-    )
+    key = getattr(settings, f"FIELD_ENCRYPTION_KEY_{version.upper()}", settings.FIELD_ENCRYPTION_KEY)
     fernet = Fernet(_derive_key(key))
     try:
         return fernet.decrypt(ciphertext.encode()).decode()

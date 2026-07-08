@@ -47,9 +47,7 @@ def linked_therapist_b(patient, therapist_b, therapist_a):
 
 @pytest.mark.django_db
 class TestClinicalExportSecurity:
-    def test_linked_therapist_cannot_list_others_exports(
-        self, therapist_a, therapist_b, patient, linked_therapist_b
-    ):
+    def test_linked_therapist_cannot_list_others_exports(self, therapist_a, therapist_b, patient, linked_therapist_b):
         # Therapist A creates an export
         export_a = ClinicalExport.objects.create(
             patient=patient,
@@ -90,9 +88,7 @@ class TestClinicalExportSecurity:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_linked_therapist_cannot_retry_others_exports(
-        self, therapist_a, therapist_b, patient, linked_therapist_b
-    ):
+    def test_linked_therapist_cannot_retry_others_exports(self, therapist_a, therapist_b, patient, linked_therapist_b):
         # Therapist A creates a failed export
         export_a = ClinicalExport.objects.create(
             patient=patient,

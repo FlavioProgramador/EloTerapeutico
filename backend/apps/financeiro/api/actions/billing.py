@@ -41,23 +41,19 @@ class BillingActions:
                     .order_by("id")
                 )
                 if len(appointments) != len(appointment_ids):
-                    raise ValidationError(
-                        "Uma ou mais sessões não pertencem ao profissional ou não são elegíveis."
-                    )
+                    raise ValidationError("Uma ou mais sessões não pertencem ao profissional ou não são elegíveis.")
 
                 created = []
                 skipped = []
                 for appointment in appointments:
-                    already_billed = FinancialTransaction.objects.filter(
-                        appointment=appointment
-                    ).exclude(payment_status=FinancialTransaction.PaymentStatus.CANCELLED)
+                    already_billed = FinancialTransaction.objects.filter(appointment=appointment).exclude(
+                        payment_status=FinancialTransaction.PaymentStatus.CANCELLED
+                    )
                     if already_billed.exists():
                         skipped.append(appointment.pk)
                         continue
                     if not appointment.session_value or appointment.session_value <= 0:
-                        raise ValidationError(
-                            f"A sessão {appointment.pk} não possui valor configurado."
-                        )
+                        raise ValidationError(f"A sessão {appointment.pk} não possui valor configurado.")
                     charge = FinancialTransaction.objects.create(
                         therapist=request.user,
                         patient=appointment.patient,

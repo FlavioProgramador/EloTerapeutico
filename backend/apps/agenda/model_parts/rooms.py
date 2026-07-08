@@ -22,11 +22,7 @@ class Room(models.Model):
 
     class Meta:
         ordering = ["name"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["therapist", "name"], name="uniq_room_owner_name"
-            )
-        ]
+        constraints = [models.UniqueConstraint(fields=["therapist", "name"], name="uniq_room_owner_name")]
 
     def __str__(self) -> str:
         return self.name
@@ -46,9 +42,7 @@ class AppointmentRecurrence(models.Model):
         PAUSED = "paused", "Pausada"
         ENDED = "ended", "Encerrada"
 
-    patient = models.ForeignKey(
-        "patients.Patient", on_delete=models.PROTECT, related_name="appointment_recurrences"
-    )
+    patient = models.ForeignKey("patients.Patient", on_delete=models.PROTECT, related_name="appointment_recurrences")
     therapist = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,

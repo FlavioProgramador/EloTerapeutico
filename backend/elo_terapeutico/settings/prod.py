@@ -9,9 +9,7 @@ DEBUG = False
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")  # noqa: F405
 
 if FIELD_ENCRYPTION_KEY == LOCAL_FIELD_ENCRYPTION_KEY:  # noqa: F405
-    raise ImproperlyConfigured(
-        "FIELD_ENCRYPTION_KEY deve ser configurada explicitamente em produção."
-    )
+    raise ImproperlyConfigured("FIELD_ENCRYPTION_KEY deve ser configurada explicitamente em produção.")
 
 # Segurança e proxy reverso
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -33,9 +31,7 @@ CSRF_COOKIE_SAMESITE = "Lax"
 CORS_ALLOW_ALL_ORIGINS = False
 _cors = env.list("CORS_ALLOWED_ORIGINS", default=[])  # noqa: F405
 if not _cors:
-    raise ImproperlyConfigured(
-        "CORS_ALLOWED_ORIGINS deve ser configurada explicitamente em produção."
-    )
+    raise ImproperlyConfigured("CORS_ALLOWED_ORIGINS deve ser configurada explicitamente em produção.")
 CORS_ALLOWED_ORIGINS = _cors
 CSRF_TRUSTED_ORIGINS = env.list(  # noqa: F405
     "CSRF_TRUSTED_ORIGINS",

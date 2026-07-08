@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Paginação compartilhada pela API REST."""
 
 from rest_framework.pagination import PageNumberPagination

@@ -6,7 +6,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from apps.core.fields import EncryptedTextField
+from core.fields import EncryptedTextField
 
 
 class Anamnesis(models.Model):
@@ -24,9 +24,7 @@ class Anamnesis(models.Model):
     history = EncryptedTextField(
         blank=True,
         verbose_name="Histórico clínico",
-        help_text=(
-            "Histórico de tratamentos anteriores, diagnósticos e intercorrências."
-        ),
+        help_text=("Histórico de tratamentos anteriores, diagnósticos e intercorrências."),
     )
     medications = EncryptedTextField(
         blank=True,
@@ -93,9 +91,7 @@ class Evolution(models.Model):
     is_locked = models.BooleanField(
         default=False,
         verbose_name="Bloqueada",
-        help_text=(
-            "Evoluções bloqueadas não podem ser editadas. Só aceitam aditivos."
-        ),
+        help_text=("Evoluções bloqueadas não podem ser editadas. Só aceitam aditivos."),
     )
     locked_at = models.DateTimeField(
         null=True,
@@ -106,10 +102,7 @@ class Evolution(models.Model):
     is_confidential = models.BooleanField(
         default=False,
         verbose_name="Confidencial",
-        help_text=(
-            "Marcar como confidencial. Informações visíveis apenas para o autor "
-            "ou com permissão especial."
-        ),
+        help_text=("Marcar como confidencial. Informações visíveis apenas para o autor " "ou com permissão especial."),
     )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -185,7 +178,4 @@ class EvolutionAddendum(models.Model):
         ordering = ["created_at"]
 
     def __str__(self):
-        return (
-            f"Aditivo #{self.pk} → Evolução #{self.evolution_id} "
-            f"({self.created_at:%d/%m/%Y})"
-        )
+        return f"Aditivo #{self.pk} → Evolução #{self.evolution_id} ({self.created_at:%d/%m/%Y})"
