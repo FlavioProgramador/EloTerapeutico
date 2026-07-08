@@ -120,6 +120,32 @@ UNFOLD = {
                 ],
             },
             {
+                "title": "Billing",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Planos",
+                        "icon": "workspace_premium",
+                        "link": "/admin/billing/plan/",
+                    },
+                    {
+                        "title": "Assinaturas",
+                        "icon": "subscriptions",
+                        "link": "/admin/billing/subscription/",
+                    },
+                    {
+                        "title": "Pagamentos",
+                        "icon": "payments",
+                        "link": "/admin/billing/payment/",
+                    },
+                    {
+                        "title": "Webhooks",
+                        "icon": "webhook",
+                        "link": "/admin/billing/webhookevent/",
+                    },
+                ],
+            },
+            {
                 "title": "Administração do Sistema",
                 "separator": True,
                 "items": [
@@ -169,6 +195,7 @@ LOCAL_APPS = [
     "apps.documents",
     "apps.reports",
     "apps.forms",
+    "apps.billing",
     "apps.audit",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -269,6 +296,7 @@ SPECTACULAR_SETTINGS = {
         {"name": "documents", "description": "Templates e documentos gerados"},
         {"name": "reports", "description": "Relatórios gerenciais"},
         {"name": "forms", "description": "Formulários personalizados"},
+        {"name": "billing", "description": "Planos, assinaturas, pagamentos e webhooks"},
     ],
 }
 LOCAL_FIELD_ENCRYPTION_KEY = "elo-terapeutico-local-development-key"
@@ -289,3 +317,9 @@ FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:3000")
 DOCUMENT_CLINIC_NAME = env("DOCUMENT_CLINIC_NAME", default="Elo Terapêutico")
 DOCUMENT_CLINIC_ADDRESS = env("DOCUMENT_CLINIC_ADDRESS", default="")
 DOCUMENT_CLINIC_PHONE = env("DOCUMENT_CLINIC_PHONE", default="")
+
+ASAAS_API_KEY = env("ASAAS_API_KEY", default="")
+ASAAS_BASE_URL = env("ASAAS_BASE_URL", default="https://api-sandbox.asaas.com/v3")
+ASAAS_WEBHOOK_TOKEN = env("ASAAS_WEBHOOK_TOKEN", default="")
+BILLING_TRIAL_DAYS = env.int("BILLING_TRIAL_DAYS", default=7)
+BILLING_DEFAULT_CURRENCY = env("BILLING_DEFAULT_CURRENCY", default="BRL")
