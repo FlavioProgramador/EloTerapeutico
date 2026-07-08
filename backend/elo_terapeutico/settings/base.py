@@ -31,10 +31,6 @@ UNFOLD = {
     "SITE_TITLE": "Elo Terapêutico Admin",
     "SITE_HEADER": "Elo Terapêutico",
     "SITE_URL": "/",
-    "SITE_ICON": {
-        "light": lambda request: static("img/icon.png"),
-        "dark": lambda request: static("img/icon.png"),
-    },
     "COLORS": {
         "primary": {
             "50": "250 245 237",
