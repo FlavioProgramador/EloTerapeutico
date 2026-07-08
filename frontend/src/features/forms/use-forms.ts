@@ -38,11 +38,12 @@ export function useCreateFormFromTemplate() {
 export function useFormAction(action: "duplicate" | "archive" | "restore" | "remove") {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => {
+    mutationFn: async (id: number): Promise<unknown> => {
       if (action === "duplicate") return formsService.duplicate(id);
       if (action === "archive") return formsService.archive(id);
       if (action === "restore") return formsService.restore(id);
-      return formsService.remove(id);
+      await formsService.remove(id);
+      return null;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["forms"] }),
   });
