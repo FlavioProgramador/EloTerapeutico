@@ -4,8 +4,6 @@ from pathlib import Path
 
 import environ
 
-from apps.core.admin_unfold import UNFOLD
-
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
@@ -44,6 +42,7 @@ LOCAL_APPS = [
     "apps.documents",
     "apps.reports",
     "apps.forms",
+    "apps.audit",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -76,6 +75,13 @@ TEMPLATES = [
 WSGI_APPLICATION = "elo_terapeutico.wsgi.application"
 ASGI_APPLICATION = "elo_terapeutico.asgi.application"
 DATABASES = {"default": env.db("DATABASE_URL")}
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "elo-cache",
+    }
+}
+RATELIMIT_USE_CACHE = "default"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

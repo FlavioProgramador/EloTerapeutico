@@ -31,7 +31,12 @@ CSRF_COOKIE_SAMESITE = "Lax"
 
 # CORS e CSRF
 CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS")  # noqa: F405
+_cors = env.list("CORS_ALLOWED_ORIGINS", default=[])  # noqa: F405
+if not _cors:
+    raise ImproperlyConfigured(
+        "CORS_ALLOWED_ORIGINS deve ser configurada explicitamente em produção."
+    )
+CORS_ALLOWED_ORIGINS = _cors
 CSRF_TRUSTED_ORIGINS = env.list(  # noqa: F405
     "CSRF_TRUSTED_ORIGINS",
     default=[],
@@ -47,6 +52,14 @@ DATABASES["default"].update(
         "CONN_HEALTH_CHECKS": True,
     }
 )
+
+# Cache
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": env("REDIS_URL", default="redis://localhost:6379/1"),  # noqa: F405
+    }
+}
 
 # Arquivos estáticos
 INSTALLED_APPS = ["whitenoise.runserver_nostatic"] + INSTALLED_APPS  # noqa: F405
