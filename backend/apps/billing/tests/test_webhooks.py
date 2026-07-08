@@ -6,6 +6,8 @@ from rest_framework.test import APIRequestFactory
 from apps.billing.models import Payment, Plan, Subscription, WebhookEvent
 from apps.billing.views import AsaasWebhookView
 
+WEBHOOK_HEADER_VALUE = "billing-webhook-fixture"
+
 
 class AsaasWebhookTests(TestCase):
     def setUp(self):
@@ -13,9 +15,12 @@ class AsaasWebhookTests(TestCase):
         self.user = get_user_model().objects.create_user(
             email="terapeuta@example.com",
             full_name="Terapeuta Teste",
-            password="SenhaForte123",
         )
-        self.plan = Plan.objects.create(name="Profissional", slug="profissional-test", price="89.90")
+        self.plan = Plan.objects.create(
+            name="Profissional",
+            slug="profissional-test",
+            price="89.90",
+        )
         self.subscription = Subscription.objects.create(
             user=self.user,
             plan=self.plan,
@@ -28,11 +33,11 @@ class AsaasWebhookTests(TestCase):
             "/api/v1/billing/webhooks/asaas/",
             payload,
             format="json",
-            HTTP_X_WEBHOOK_TOKEN="token-dev",
+            HTTP_X_WEBHOOK_TOKEN=WEBHOOK_HEADER_VALUE,
         )
         return AsaasWebhookView.as_view()(request)
 
-    @override_settings(ASAAS_WEBHOOK_TOKEN="token-dev", ASAAS_API_KEY="")
+    @override_settings(ASAAS_WEBHOOK_TOKEN=WEBHOOK_HEADER_VALUE, ASAAS_API_KEY="")
     def test_payment_confirmed_activates_subscription(self):
         response = self.post_webhook(
             {
@@ -50,9 +55,14 @@ class AsaasWebhookTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.subscription.refresh_from_db()
         self.assertEqual(self.subscription.status, Subscription.Status.ACTIVE)
-        self.assertTrue(Payment.objects.filter(gateway_payment_id="pay_123", status=Payment.Status.CONFIRMED).exists())
+        self.assertTrue(
+            Payment.objects.filter(
+                gateway_payment_id="pay_123",
+                status=Payment.Status.CONFIRMED,
+            ).exists()
+        )
 
-    @override_settings(ASAAS_WEBHOOK_TOKEN="token-dev", ASAAS_API_KEY="")
+    @override_settings(ASAAS_WEBHOOK_TOKEN=WEBHOOK_HEADER_VALUE, ASAAS_API_KEY="")
     def test_payment_received_activates_subscription(self):
         response = self.post_webhook(
             {
@@ -71,7 +81,7 @@ class AsaasWebhookTests(TestCase):
         self.subscription.refresh_from_db()
         self.assertEqual(self.subscription.status, Subscription.Status.ACTIVE)
 
-    @override_settings(ASAAS_WEBHOOK_TOKEN="token-dev", ASAAS_API_KEY="")
+    @override_settings(ASAAS_WEBHOOK_TOKEN=WEBHOOK_HEADER_VALUE, ASAAS_API_KEY="")
     def test_payment_overdue_marks_subscription_past_due(self):
         self.subscription.status = Subscription.Status.ACTIVE
         self.subscription.save(update_fields=["status"])
@@ -91,7 +101,7 @@ class AsaasWebhookTests(TestCase):
         self.subscription.refresh_from_db()
         self.assertEqual(self.subscription.status, Subscription.Status.PAST_DUE)
 
-    @override_settings(ASAAS_WEBHOOK_TOKEN="token-dev", ASAAS_API_KEY="")
+    @override_settings(ASAAS_WEBHOOK_TOKEN=WEBHOOK_HEADER_VALUE, ASAAS_API_KEY="")
     def test_duplicate_event_is_idempotent(self):
         payload = {
             "event": "PAYMENT_CONFIRMED",
@@ -109,7 +119,7 @@ class AsaasWebhookTests(TestCase):
         self.assertEqual(WebhookEvent.objects.count(), 1)
         self.assertEqual(Payment.objects.filter(gateway_payment_id="pay_126").count(), 1)
 
-    @override_settings(ASAAS_WEBHOOK_TOKEN="token-dev", ASAAS_API_KEY="")
+    @override_settings(ASAAS_WEBHOOK_TOKEN=WEBHOOK_HEADER_VALUE, ASAAS_API_KEY="")
     def test_event_without_subscription_does_not_break(self):
         response = self.post_webhook(
             {
