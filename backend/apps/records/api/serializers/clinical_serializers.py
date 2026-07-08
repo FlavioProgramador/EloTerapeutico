@@ -6,14 +6,14 @@ from pathlib import Path
 from django.db import transaction
 from rest_framework import serializers
 
-from .extended_models import (
+from apps.records.extended_models import (
     AnamnesisProfile,
     AnamnesisVersion,
     EvolutionClinicalData,
     EvolutionVersion,
 )
-from .models import Anamnesis, Evolution
-from .treatment_models import (
+from apps.records.models import Anamnesis, Evolution
+from apps.records.treatment_models import (
     ClinicalDocument,
     ClinicalExport,
     ClinicalFormResponse,

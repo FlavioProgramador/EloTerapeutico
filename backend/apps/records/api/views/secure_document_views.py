@@ -12,10 +12,10 @@ from rest_framework.views import APIView
 
 from core.audit import AuditLog, log_access
 
-from .clinical_serializers import ClinicalDocumentSerializer
-from .clinical_views import ClinicalPatientMixin
-from .evolution_security import can_view_confidential_evolution, sanitize_original_filename
-from .treatment_models import ClinicalDocument
+from apps.records.api.serializers.clinical_serializers import ClinicalDocumentSerializer
+from apps.records.api.views.clinical_views import ClinicalPatientMixin
+from apps.records.services.evolution_security import can_view_confidential_evolution, sanitize_original_filename
+from apps.records.treatment_models import ClinicalDocument
 
 
 class SecureClinicalDocumentMixin(ClinicalPatientMixin):

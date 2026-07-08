@@ -1,8 +1,9 @@
 """Serializer de anexos de evoluções clínicas."""
 
-from ..evolution_flow_serializers import (
+from apps.records.api.serializers.evolution_flow_serializers import (
     EvolutionAttachmentSerializer as BaseEvolutionAttachmentSerializer,
 )
+
 from ..services.evolutions import create_evolution_attachment
 
 

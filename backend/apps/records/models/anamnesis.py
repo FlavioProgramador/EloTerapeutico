@@ -21,9 +21,7 @@ class Anamnesis(models.Model):
     history = EncryptedTextField(
         blank=True,
         verbose_name="Histórico clínico",
-        help_text=(
-            "Histórico de tratamentos anteriores, diagnósticos e intercorrências."
-        ),
+        help_text=("Histórico de tratamentos anteriores, diagnósticos e intercorrências."),
     )
     medications = EncryptedTextField(
         blank=True,

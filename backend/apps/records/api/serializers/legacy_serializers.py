@@ -21,7 +21,7 @@ from rest_framework import serializers
 
 from apps.patients.permissions import can_access_patient
 
-from .models import Anamnesis, Evolution, EvolutionAddendum
+from apps.records.models import Anamnesis, Evolution, EvolutionAddendum
 
 User = get_user_model()
 

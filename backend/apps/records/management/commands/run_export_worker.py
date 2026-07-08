@@ -39,8 +39,8 @@ except (ImportError, OSError):
 from django.utils.html import escape
 
 from apps.records.models import Evolution
+from apps.records.services.utils import render_markdown_safely, safe_url_fetcher
 from apps.records.treatment_models import ClinicalExport
-from apps.records.utils import render_markdown_safely, safe_url_fetcher
 
 
 class Command(BaseCommand):

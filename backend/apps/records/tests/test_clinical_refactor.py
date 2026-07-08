@@ -9,8 +9,8 @@ from rest_framework.test import APIClient
 
 from apps.patients.models import Patient
 from apps.records.models import Evolution
+from apps.records.services.utils import render_markdown_safely, safe_url_fetcher
 from apps.records.treatment_models import ClinicalExport
-from apps.records.utils import render_markdown_safely, safe_url_fetcher
 
 User = get_user_model()
 

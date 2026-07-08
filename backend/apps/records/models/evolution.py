@@ -42,9 +42,7 @@ class Evolution(models.Model):
     is_locked = models.BooleanField(
         default=False,
         verbose_name="Bloqueada",
-        help_text=(
-            "Evoluções bloqueadas não podem ser editadas. Só aceitam aditivos."
-        ),
+        help_text=("Evoluções bloqueadas não podem ser editadas. Só aceitam aditivos."),
     )
     locked_at = models.DateTimeField(
         null=True,
@@ -55,10 +53,7 @@ class Evolution(models.Model):
     is_confidential = models.BooleanField(
         default=False,
         verbose_name="Confidencial",
-        help_text=(
-            "Marcar como confidencial. Informações visíveis apenas para o autor "
-            "ou com permissão especial."
-        ),
+        help_text=("Marcar como confidencial. Informações visíveis apenas para o autor " "ou com permissão especial."),
     )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

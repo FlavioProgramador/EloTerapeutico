@@ -4,8 +4,8 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.patients.models import Patient
-from apps.records.evolution_flow_models import ClinicalEvolutionTemplate
 from apps.records.extended_models import EvolutionClinicalData
+from apps.records.models.templates import ClinicalEvolutionTemplate
 from apps.users.models import User
 
 

@@ -10,16 +10,16 @@ from rest_framework import serializers
 
 from apps.agenda.models import Appointment
 
-from .evolution_flow_models import ClinicalEvolutionTemplate
-from .evolution_security import (
+from apps.records.models.templates import ClinicalEvolutionTemplate
+from apps.records.services.evolution_security import (
     sanitize_clinical_markdown,
     sanitize_original_filename,
     validate_clinical_upload,
     validate_session_date,
 )
-from .extended_models import EvolutionClinicalData, EvolutionVersion
-from .models import Evolution
-from .treatment_models import ClinicalDocument
+from apps.records.extended_models import EvolutionClinicalData, EvolutionVersion
+from apps.records.models import Evolution
+from apps.records.treatment_models import ClinicalDocument
 
 CLINICAL_TEXT_FIELDS = (
     "emotional_state",

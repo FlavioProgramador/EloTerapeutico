@@ -3,21 +3,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .api.evolution_attachment_detail_views import (
-    EvolutionAttachmentDetailView,
-    EvolutionAttachmentDownloadView,
-)
-from .api.evolution_attachment_list_views import EvolutionAttachmentListCreateView
-from .api.evolution_template_views import (
-    ClinicalEvolutionTemplateDetailView,
-    ClinicalEvolutionTemplateListCreateView,
-)
-from .api.evolution_views import (
-    EvolutionFlowDetailView,
-    PatientEvolutionAppointmentOptionsView,
-    PatientEvolutionFlowView,
-)
-from .clinical_views import (
+from apps.records.api.views.clinical_views import (
     AnamnesisVersionListView,
     ClinicalAiSummaryStatusView,
     ClinicalAnamnesisView,
@@ -35,8 +21,23 @@ from .clinical_views import (
     TreatmentGoalDetailView,
     TreatmentGoalListCreateView,
 )
-from .finalize_views import EvolutionFinalizeFreshView
-from .views import AnamnesisView, EvolutionViewSet
+from apps.records.api.views.finalize_views import EvolutionFinalizeFreshView
+from apps.records.api.views.legacy_views import AnamnesisView, EvolutionViewSet
+
+from .api.evolution_attachment_detail_views import (
+    EvolutionAttachmentDetailView,
+    EvolutionAttachmentDownloadView,
+)
+from .api.evolution_attachment_list_views import EvolutionAttachmentListCreateView
+from .api.evolution_template_views import (
+    ClinicalEvolutionTemplateDetailView,
+    ClinicalEvolutionTemplateListCreateView,
+)
+from .api.evolution_views import (
+    EvolutionFlowDetailView,
+    PatientEvolutionAppointmentOptionsView,
+    PatientEvolutionFlowView,
+)
 
 router = DefaultRouter()
 router.register(r"evolutions", EvolutionViewSet, basename="evolution")

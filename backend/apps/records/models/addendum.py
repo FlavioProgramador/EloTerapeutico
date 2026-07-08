@@ -35,7 +35,4 @@ class EvolutionAddendum(models.Model):
         ordering = ["created_at"]
 
     def __str__(self):
-        return (
-            f"Aditivo #{self.pk} → Evolução #{self.evolution_id} "
-            f"({self.created_at:%d/%m/%Y})"
-        )
+        return f"Aditivo #{self.pk} → Evolução #{self.evolution_id} " f"({self.created_at:%d/%m/%Y})"

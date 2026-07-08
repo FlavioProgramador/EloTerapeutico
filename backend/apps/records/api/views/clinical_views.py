@@ -42,7 +42,7 @@ from apps.patients.models import Patient
 from apps.patients.permissions import can_access_patient
 from core.audit import AuditLog, log_access
 
-from .clinical_serializers import (
+from apps.records.api.serializers.clinical_serializers import (
     ClinicalAnamnesisSerializer,
     ClinicalDocumentSerializer,
     ClinicalExportSerializer,
@@ -50,9 +50,9 @@ from .clinical_serializers import (
     EvolutionWorkspaceSerializer,
     TreatmentGoalSerializer,
 )
-from .extended_models import AnamnesisVersion, EvolutionClinicalData
-from .models import Anamnesis, Evolution
-from .treatment_models import (
+from apps.records.extended_models import AnamnesisVersion, EvolutionClinicalData
+from apps.records.models import Anamnesis, Evolution
+from apps.records.treatment_models import (
     ClinicalDocument,
     ClinicalExport,
     ClinicalFormResponse,
@@ -604,7 +604,7 @@ class PatientRecordPdfView(ClinicalPatientMixin, APIView):
 
             queryset = queryset.filter(Q(is_confidential=False) | Q(created_by=user))
 
-        from .utils import render_markdown_safely, safe_url_fetcher
+        from apps.records.services.utils import render_markdown_safely, safe_url_fetcher
 
         sections = []
         for evolution in queryset:

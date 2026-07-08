@@ -4,9 +4,9 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.records.api.views.clinical_views import ClinicalPatientMixin, RecordPagination
 from core.audit import AuditLog, log_access
 
-from ..clinical_views import ClinicalPatientMixin, RecordPagination
 from ..selectors.evolutions import (
     available_appointments_for_evolution,
     evolutions_for_patient,

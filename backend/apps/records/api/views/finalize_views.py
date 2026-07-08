@@ -2,7 +2,7 @@
 
 from rest_framework.response import Response
 
-from .clinical_views import EvolutionFinalizeView
+from apps.records.api.views.clinical_views import EvolutionFinalizeView
 
 
 class EvolutionFinalizeFreshView(EvolutionFinalizeView):

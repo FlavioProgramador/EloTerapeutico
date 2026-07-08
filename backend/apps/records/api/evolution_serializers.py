@@ -3,14 +3,15 @@
 
 from rest_framework import serializers
 
-from ..evolution_flow_models import ClinicalEvolutionTemplate
-from ..evolution_flow_serializers import (
+from apps.records.api.serializers.evolution_flow_serializers import (
     EvolutionAppointmentOptionSerializer,
 )
-from ..evolution_flow_serializers import (
+from apps.records.api.serializers.evolution_flow_serializers import (
     EvolutionFlowSerializer as BaseEvolutionFlowSerializer,
 )
-from ..evolution_security import sanitize_clinical_markdown
+from apps.records.models.templates import ClinicalEvolutionTemplate
+from apps.records.services.evolution_security import sanitize_clinical_markdown
+
 from ..services.evolutions import create_evolution, update_evolution
 from .evolution_serializer_fields import EvolutionFlowReadFieldsMixin
 from .evolution_serializer_support import preserve_partial_evolution_content

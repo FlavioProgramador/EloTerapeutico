@@ -7,5 +7,5 @@ class RecordsConfig(AppConfig):
     verbose_name = "Prontuários"
 
     def ready(self):
-        import apps.records.evolution_flow_models  # noqa: F401
+        import apps.records.models.templates  # noqa: F401
         import apps.records.signals  # noqa: F401

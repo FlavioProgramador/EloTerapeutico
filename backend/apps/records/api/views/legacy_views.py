@@ -13,8 +13,8 @@ from rest_framework.response import Response
 from apps.patients.permissions import can_access_patient, patient_access_q
 from core.audit import AuditLog, AuditLogMixin, log_access
 
-from .models import Anamnesis, Evolution
-from .serializers import (
+from apps.records.models import Anamnesis, Evolution
+from apps.records.api.serializers.legacy_serializers import (
     AnamnesisSerializer,
     EvolutionAddendumSerializer,
     EvolutionCreateSerializer,

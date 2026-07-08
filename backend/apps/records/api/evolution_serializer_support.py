@@ -2,7 +2,7 @@
 
 from rest_framework import serializers
 
-from ..evolution_security import sanitize_clinical_markdown
+from apps.records.services.evolution_security import sanitize_clinical_markdown
 
 
 def preserve_partial_evolution_content(*, instance, attrs):
