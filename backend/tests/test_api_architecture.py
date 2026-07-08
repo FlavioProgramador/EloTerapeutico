@@ -17,7 +17,6 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
         "apps.core.integrations.notifications",
         "apps.users.api.serializers",
         "apps.users.api.views",
-        "apps.users.api.password_reset_views",
         "apps.users.services.password_reset",
         "apps.patients.actions.dashboard",
         "apps.patients.actions.exports",
