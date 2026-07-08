@@ -1,9 +1,14 @@
+from typing import Any
+
 from django.db import migrations
+
+
+PlanSeed = dict[str, Any]
 
 
 def seed_plans(apps, schema_editor):
     Plan = apps.get_model("billing", "Plan")
-    plans = [
+    plans: list[PlanSeed] = [
         {
             "name": "Essencial",
             "slug": "essencial",
@@ -54,7 +59,13 @@ def seed_plans(apps, schema_editor):
         },
     ]
     for data in plans:
-        Plan.objects.update_or_create(slug=data["slug"], defaults={"currency": "BRL", "billing_cycle": "MONTHLY", "is_active": True, **data})
+        defaults = {
+            "currency": "BRL",
+            "billing_cycle": "MONTHLY",
+            "is_active": True,
+            **data,
+        }
+        Plan.objects.update_or_create(slug=str(data["slug"]), defaults=defaults)
 
 
 def remove_seeded_plans(apps, schema_editor):
