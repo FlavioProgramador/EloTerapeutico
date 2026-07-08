@@ -10,7 +10,6 @@ class BillingModelTests(TestCase):
         self.user = get_user_model().objects.create_user(
             email="terapeuta@example.com",
             full_name="Terapeuta Teste",
-            password="SenhaForte123",
         )
         self.plan = Plan.objects.create(
             name="Profissional",
@@ -36,13 +35,18 @@ class BillingModelTests(TestCase):
         self.assertEqual(subscription.status, Subscription.Status.PENDING)
 
     def test_gateway_payment_id_is_unique(self):
-        subscription = Subscription.objects.create(user=self.user, plan=self.plan, gateway_subscription_id="sub_123")
+        subscription = Subscription.objects.create(
+            user=self.user,
+            plan=self.plan,
+            gateway_subscription_id="sub_123",
+        )
         Payment.objects.create(
             subscription=subscription,
             user=self.user,
             amount="89.90",
             gateway_payment_id="pay_123",
         )
+
         with self.assertRaises(IntegrityError), transaction.atomic():
             Payment.objects.create(
                 subscription=subscription,
@@ -58,6 +62,7 @@ class BillingModelTests(TestCase):
             payload_hash="abc",
             payload={"event": "PAYMENT_CONFIRMED"},
         )
+
         with self.assertRaises(IntegrityError), transaction.atomic():
             WebhookEvent.objects.create(
                 gateway_name="ASAAS",
