@@ -2,8 +2,6 @@
 
 import re
 from datetime import date
-from pathlib import Path
-from uuid import uuid4
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -12,70 +10,29 @@ from django.utils import timezone
 
 from core.validators import validate_cpf, validate_phone
 
+from .choices import (
+    PatientAttendanceType,
+    PatientGender,
+    PatientMaritalStatus,
+    PatientModality,
+    PatientPayerType,
+    PatientPlannedFrequency,
+    PatientReminderRecipient,
+    PatientStatus,
+)
 from .managers import AllPatientsManager, PatientManager
-
-
-def patient_photo_path(instance, filename: str) -> str:
-    """Gera nome não previsível sem expor o nome do paciente no storage."""
-
-    suffix = Path(filename).suffix.lower()
-    owner = instance.therapist_id or "unassigned"
-    return f"patient_photos/{owner}/{uuid4().hex}{suffix}"
-
-
-# Mantém o caminho serializado em migrations antigas mesmo após mover o código.
-patient_photo_path.__module__ = "apps.patients.models"
+from .paths import patient_photo_path
 
 
 class Patient(models.Model):
-    class Gender(models.TextChoices):
-        MALE = "M", "Masculino"
-        FEMALE = "F", "Feminino"
-        OTHER = "O", "Outro"
-        PREFER_NOT_TO_SAY = "N", "Prefiro não informar"
-
-    class Status(models.TextChoices):
-        ACTIVE = "active", "Ativo"
-        EVALUATION = "evaluation", "Em avaliação"
-        WAITING_RETURN = "waiting_return", "Aguardando retorno"
-        DISCHARGED = "discharged", "Alta"
-        INACTIVE = "inactive", "Encerrado"
-        ARCHIVED = "archived", "Arquivado"
-
-    class MaritalStatus(models.TextChoices):
-        SINGLE = "single", "Solteiro(a)"
-        MARRIED = "married", "Casado(a)"
-        DIVORCED = "divorced", "Divorciado(a)"
-        WIDOWED = "widowed", "Viúvo(a)"
-        OTHER = "other", "Outro"
-
-    class AttendanceType(models.TextChoices):
-        INDIVIDUAL = "individual", "Individual"
-        COUPLE = "couple", "Casal"
-        FAMILY = "family", "Familiar"
-        GROUP = "group", "Grupo"
-        OTHER = "other", "Outro"
-
-    class Modality(models.TextChoices):
-        IN_PERSON = "in_person", "Presencial"
-        ONLINE = "online", "Online"
-        HYBRID = "hybrid", "Híbrido"
-
-    class PayerType(models.TextChoices):
-        PRIVATE = "private", "Particular"
-        INSURANCE = "insurance", "Convênio"
-
-    class PlannedFrequency(models.TextChoices):
-        WEEKLY = "weekly", "Semanal"
-        BIWEEKLY = "biweekly", "Quinzenal"
-        MONTHLY = "monthly", "Mensal"
-        AS_NEEDED = "as_needed", "Conforme necessidade"
-
-    class ReminderRecipient(models.TextChoices):
-        PATIENT = "patient", "Paciente"
-        FINANCIAL_RESPONSIBLE = "financial_responsible", "Responsável financeiro"
-        BOTH = "both", "Paciente e responsável"
-        NONE = "none", "Não enviar"
+    Gender = PatientGender
+    Status = PatientStatus
+    MaritalStatus = PatientMaritalStatus
+    AttendanceType = PatientAttendanceType
+    Modality = PatientModality
+    PayerType = PatientPayerType
+    PlannedFrequency = PatientPlannedFrequency
+    ReminderRecipient = PatientReminderRecipient
 
     full_name = models.CharField(max_length=255, db_index=True, verbose_name="Nome completo")
     social_name = models.CharField(max_length=255, blank=True, verbose_name="Nome social")
