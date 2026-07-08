@@ -22,7 +22,7 @@ const items: Array<{ name: string; href: string; icon: React.ComponentType<{ cla
   { name: "Financeiro", href: "/dashboard/financeiro", icon: DollarSign },
   { name: "Relatórios", href: "/dashboard?view=reports", icon: BarChart2 },
   { name: "Comunicações", href: "#", icon: MessageSquare },
-  { name: "Configurações", href: "#", icon: Settings },
+  { name: "Configurações", href: "/dashboard/configuracoes/assinatura", icon: Settings },
 ];
 
 export function Sidebar({ className }: SidebarProps) {
