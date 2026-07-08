@@ -44,6 +44,11 @@ UNFOLD = {
                         "icon": "dashboard",
                         "link": _admin_link("admin:index"),
                     },
+                    {
+                        "title": "SQL Explorer",
+                        "icon": "database",
+                        "link": _admin_link("sql_explorer"),
+                    },
                 ],
             },
             {

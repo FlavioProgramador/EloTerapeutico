@@ -1,0 +1,212 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<!-- CodeMirror Styles -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/nord.min.css">
+<style>
+    .CodeMirror {
+        height: 220px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 14px;
+        border-radius: 0 0 6px 6px;
+    }
+    .CodeMirror-sizer {
+        margin-left: 45px !important;
+    }
+    .CodeMirror-gutters {
+        border-right: 1px solid #2e3440 !important;
+        background-color: #2e3440 !important;
+        width: 40px !important;
+    }
+    .CodeMirror-linenumber {
+        color: #616e88 !important;
+        padding-right: 8px !important;
+        min-width: 30px !important;
+        text-align: right !important;
+    }
+    .CodeMirror-lines {
+        padding-left: 4px !important;
+    }
+    .cm-s-nord span.cm-keyword { color: #81a1c1 !important; font-weight: bold; }
+    .cm-s-nord span.cm-string { color: #a3be8c !important; }
+    .cm-s-nord span.cm-number { color: #b48ead !important; }
+    .cm-s-nord span.cm-variable { color: #88c0d0 !important; }
+</style>
+
+<!-- CodeMirror Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js"></script>
+
+<div id="content-main" class="space-y-6">
+    <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="font-semibold text-2xl text-font-important-light dark:text-font-important-dark">
+                SQL Explorer (Visualizador SQL)
+            </h1>
+            <p class="mt-2 text-sm text-font-subtle-light dark:text-font-subtle-dark">
+                Execute consultas brutas de leitura no banco de dados do Elo Terapêutico.
+            </p>
+        </div>
+        <div class="px-3 py-1 bg-yellow-50 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-900 rounded text-xs font-medium">
+            ⚠️ Modo: Somente Leitura (SELECT)
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Editor e Resultados -->
+        <div class="lg:col-span-3 space-y-6">
+            <form method="post" action="" class="space-y-4">
+                {% csrf_token %}
+                <div class="border border-base-200 rounded-default overflow-hidden dark:border-base-800 shadow-sm bg-white dark:bg-base-900">
+                    <div class="bg-base-50 dark:bg-base-800 px-4 py-2 border-b border-base-200 dark:border-base-800 flex justify-between items-center">
+                        <span class="text-xs font-semibold text-font-subtle-light dark:text-font-subtle-dark uppercase tracking-wider">Editor SQL</span>
+                        <span class="text-xs text-font-subtle-light dark:text-font-subtle-dark">Use Ctrl+Enter para executar</span>
+                    </div>
+                    <textarea 
+                        name="sql" 
+                        rows="8" 
+                        placeholder="SELECT * FROM patients_patient LIMIT 5;" 
+                        class="w-full p-4 font-mono text-sm bg-base-950 text-font-important-dark dark:bg-base-950 focus:outline-none focus:ring-0 resize-y"
+                        id="sql-editor"
+                    >{{ query|default:'' }}</textarea>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2.5 rounded-default text-sm font-medium transition dark:bg-primary-500 dark:hover:bg-primary-600 shadow-sm">
+                        Executar Consulta
+                    </button>
+                    {% if query %}
+                        <a href="" class="border border-base-200 hover:bg-base-100 text-font-important-light px-4 py-2.5 rounded-default text-sm font-medium transition dark:border-base-800 dark:bg-base-900 dark:hover:bg-base-800 dark:text-font-important-dark">
+                            Limpar
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+
+            {% if error %}
+                <div class="p-4 bg-red-50 border border-red-200 rounded-default text-red-700 dark:bg-red-950/20 dark:border-red-900 dark:text-red-400 text-sm font-mono whitespace-pre-wrap">
+                    <strong>Erro na Execução:</strong><br>{{ error }}
+                </div>
+            {% endif %}
+
+            {% if columns %}
+                <div class="border border-base-200 rounded-default overflow-hidden dark:border-base-800 shadow-sm bg-white dark:bg-base-900">
+                    <div class="bg-base-50 dark:bg-base-800 px-4 py-3 border-b border-base-200 dark:border-base-800 flex justify-between items-center">
+                        <h3 class="text-sm font-semibold text-font-important-light dark:text-font-important-dark">
+                            Resultados ({{ rows|length }} registros)
+                        </h3>
+                    </div>
+                    <div class="overflow-x-auto max-h-[500px]">
+                        <table class="w-full text-left border-collapse text-xs font-mono">
+                            <thead>
+                                <tr class="bg-base-50 dark:bg-base-800 text-font-subtle-light dark:text-font-subtle-dark font-semibold border-b border-base-200 dark:border-base-800 uppercase tracking-wider">
+                                    <th class="px-2 py-3 border-r border-base-200 dark:border-base-800 w-8 text-center">#</th>
+                                    {% for col in columns %}
+                                        <th class="p-3 border-r border-base-200 dark:border-base-800 min-w-[120px]">{{ col }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-base-200 dark:divide-base-800 bg-white dark:bg-base-900">
+                                {% for row in rows %}
+                                    <tr class="text-font-important-light dark:text-font-important-dark hover:bg-base-50 dark:hover:bg-base-800">
+                                        <td class="px-2 py-3 border-r border-base-200 dark:border-base-800 bg-base-50 dark:bg-base-950 text-center font-semibold text-font-subtle-light dark:text-font-subtle-dark w-8 select-none">
+                                            {{ forloop.counter }}
+                                        </td>
+                                        {% for cell in row %}
+                                            <td class="p-3 border-r border-base-200 dark:border-base-800 max-w-[300px] truncate whitespace-nowrap" title="{{ cell|default:'NULL' }}">
+                                                {% if cell is None %}
+                                                    <span class="text-red-400 dark:text-red-500 italic">NULL</span>
+                                                {% else %}
+                                                    {{ cell }}
+                                                {% endif %}
+                                            </td>
+                                        {% endfor %}
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="{{ columns|length|add:1 }}" class="p-4 text-center text-font-subtle-light dark:text-font-subtle-dark">
+                                            Nenhum registro encontrado para esta consulta.
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Tabelas Disponíveis (Sidebar de referência) -->
+        <div class="space-y-6">
+            <div class="border border-base-200 rounded-default bg-white p-5 shadow-sm dark:border-base-800 dark:bg-base-900">
+                <h3 class="font-semibold text-sm text-font-important-light dark:text-font-important-dark mb-4 uppercase tracking-wider">
+                    Tabelas Principais
+                </h3>
+                <ul class="space-y-3 text-xs">
+                    <li>
+                        <strong class="block text-font-important-light dark:text-font-important-dark font-mono">patients_patient</strong>
+                        <span class="text-font-subtle-light dark:text-font-subtle-dark">Fichas e dados cadastrais de Pacientes</span>
+                    </li>
+                    <li>
+                        <strong class="block text-font-important-light dark:text-font-important-dark font-mono">financeiro_financialtransaction</strong>
+                        <span class="text-font-subtle-light dark:text-font-subtle-dark">Receitas, despesas e fluxos financeiros</span>
+                    </li>
+                    <li>
+                        <strong class="block text-font-important-light dark:text-font-important-dark font-mono">agenda_appointment</strong>
+                        <span class="text-font-subtle-light dark:text-font-subtle-dark">Consultas e sessões agendadas</span>
+                    </li>
+                    <li>
+                        <strong class="block text-font-important-light dark:text-font-important-dark font-mono">records_evolution</strong>
+                        <span class="text-font-subtle-light dark:text-font-subtle-dark">Evoluções de prontuários clínicos</span>
+                    </li>
+                    <li>
+                        <strong class="block text-font-important-light dark:text-font-important-dark font-mono">users_user</strong>
+                        <span class="text-font-subtle-light dark:text-font-subtle-dark">Usuários do sistema (Terapeutas e Admins)</span>
+                    </li>
+                    <li>
+                        <strong class="block text-font-important-light dark:text-font-important-dark font-mono">documents_generateddocument</strong>
+                        <span class="text-font-subtle-light dark:text-font-subtle-dark">Laudos, atestados e declarações geradas</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="border border-base-200 rounded-default bg-white p-5 shadow-sm dark:border-base-800 dark:bg-base-900 text-xs text-font-subtle-light dark:text-font-subtle-dark leading-relaxed">
+                <h4 class="font-semibold text-font-important-light dark:text-font-important-dark mb-2">Exemplos de Queries:</h4>
+                <pre class="bg-base-50 dark:bg-base-950 p-2 rounded font-mono text-[10px] text-primary-600 dark:text-primary-400 overflow-x-auto">-- Pacientes por terapeuta
+SELECT p.full_name, u.full_name as terapeuta 
+FROM patients_patient p
+JOIN users_user u ON p.therapist_id = u.id;</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Inicialização do CodeMirror
+    var editor = CodeMirror.fromTextArea(document.getElementById('sql-editor'), {
+        mode: 'text/x-sql',
+        theme: 'nord',
+        lineNumbers: true,
+        indentWithTabs: true,
+        smartIndent: true,
+        matchBrackets: true,
+        autofocus: true
+    });
+
+    // Recalcula dimensões para evitar problemas de renderização e overlap
+    setTimeout(function() {
+        editor.refresh();
+    }, 100);
+
+    // Envio com Ctrl + Enter no editor SQL
+    editor.on('keydown', function(cm, e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            cm.save();
+            cm.getTextArea().form.submit();
+        }
+    });
+</script>
+{% endblock %}
