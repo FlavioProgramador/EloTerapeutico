@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from apps.billing.models import Plan, Subscription
@@ -54,6 +54,7 @@ class BillingPermissionTests(TestCase):
         )
         self.assertTrue(can_use_feature(self.user, "financial"))
 
+    @override_settings(BILLING_ENFORCE_PATIENT_LIMITS=True)
     def test_max_patients_limit_blocks_creation(self):
         Subscription.objects.create(
             user=self.user,
