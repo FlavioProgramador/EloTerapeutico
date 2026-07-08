@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { Brand } from "./brand";
+import { cn } from "@/lib/utils";
 
 const links = [
   ["Produto", "#produto"],
@@ -15,6 +16,7 @@ const links = [
 
 export function SiteHeader() {
   const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const close = (event: KeyboardEvent) => {
@@ -24,8 +26,14 @@ export function SiteHeader() {
     return () => window.removeEventListener("keydown", close);
   }, []);
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 60);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header className="site-header">
+    <header className={cn("site-header", scrolled && "site-header--scrolled")}>
       <a href="#conteudo" className="site-header__skip">Pular para o conteúdo</a>
       <div className="site-header__inner">
         <Brand compact />
@@ -37,7 +45,7 @@ export function SiteHeader() {
         <div className="site-header__actions">
           <Link href="/login">Entrar</Link>
           <Link href="/register" className="site-header__cta">
-            Começar agora <ArrowRight aria-hidden="true" />
+            Testar grátis <ArrowRight aria-hidden="true" />
           </Link>
         </div>
 
@@ -62,7 +70,7 @@ export function SiteHeader() {
           </nav>
           <div>
             <Link href="/login">Entrar</Link>
-            <Link href="/register">Criar conta</Link>
+            <Link href="/register">Testar grátis</Link>
           </div>
         </div>
       )}

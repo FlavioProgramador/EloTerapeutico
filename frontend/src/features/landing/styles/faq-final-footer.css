@@ -1,6 +1,6 @@
 .faq-section {
     padding: 8rem 1.25rem;
-    border-top: 1px solid hsl(var(--border)/.55)
+    border-top: 1px solid hsl(var(--border) / 0.55)
 }
 
 .faq-section__inner {
@@ -19,9 +19,9 @@
 
 .faq-section__intro h2 {
     margin: 1.3rem 0 1rem;
-    font-size: clamp(2.4rem, 5vw, 4rem);
+    font-size: clamp(2.2rem, 4.5vw, 3.5rem);
     line-height: 1.06;
-    letter-spacing: -.045em
+    letter-spacing: -0.04em
 }
 
 .faq-section__intro p {
@@ -36,7 +36,7 @@
     gap: .4rem;
     margin-top: 1.6rem;
     color: hsl(var(--accent));
-    font-size: .75rem;
+    font-size: var(--text-xs);
     font-weight: 800
 }
 
@@ -53,7 +53,7 @@
 .faq-section details {
     border: 1px solid hsl(var(--border));
     border-radius: 1rem;
-    background: hsl(var(--card)/.62);
+    background: hsl(var(--card) / 0.6);
     overflow: hidden
 }
 
@@ -73,20 +73,20 @@
     display: none
 }
 
-.faq-section summary>span {
+.faq-section summary > span {
     color: hsl(var(--accent));
     font-size: .62rem;
     letter-spacing: .08em
 }
 
-.faq-section summary>i {
+.faq-section summary > i {
     position: relative;
     width: 1rem;
     height: 1rem
 }
 
-.faq-section summary>i:before,
-.faq-section summary>i:after {
+.faq-section summary > i::before,
+.faq-section summary > i::after {
     content: "";
     position: absolute;
     left: 50%;
@@ -97,12 +97,12 @@
     transform: translate(-50%, -50%)
 }
 
-.faq-section summary>i:after {
+.faq-section summary > i::after {
     transform: translate(-50%, -50%) rotate(90deg);
     transition: transform .2s ease
 }
 
-.faq-section details[open] summary>i:after {
+.faq-section details[open] summary > i::after {
     transform: translate(-50%, -50%) rotate(0deg)
 }
 
@@ -110,9 +110,11 @@
     margin: 0;
     padding: 0 1.2rem 1.2rem 3.45rem;
     color: hsl(var(--muted-foreground));
-    font-size: .8rem;
+    font-size: var(--text-sm);
     line-height: 1.75
 }
+
+/* ── Final CTA ── */
 
 .final-cta {
     position: relative;
@@ -124,12 +126,11 @@
 .final-cta__inner {
     position: relative;
     overflow: hidden;
-    border: 1px solid hsl(var(--accent)/.24);
+    border: 1px solid hsl(var(--accent) / 0.2);
     border-radius: 2rem;
-    background: linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--card)) 58%, hsl(var(--accent)/.08));
+    background: hsl(var(--background-dark));
     padding: 4.7rem 2rem;
-    text-align: center;
-    box-shadow: 0 38px 90px rgba(0, 0, 0, .3)
+    text-align: center
 }
 
 .final-cta__icon {
@@ -138,9 +139,9 @@
     width: 3.2rem;
     height: 3.2rem;
     margin: 0 auto 1rem;
-    border: 1px solid hsl(var(--accent)/.24);
+    border: 1px solid hsl(var(--accent) / 0.25);
     border-radius: 1rem;
-    background: hsl(var(--accent)/.1);
+    background: hsl(var(--accent) / 0.1);
     color: hsl(var(--accent))
 }
 
@@ -152,15 +153,16 @@
 .final-cta h2 {
     max-width: 52rem;
     margin: 1.4rem auto 1rem;
-    font-size: clamp(2.5rem, 5vw, 4.5rem);
+    font-size: clamp(2.2rem, 4.5vw, 3.8rem);
     line-height: 1.04;
-    letter-spacing: -.05em
+    letter-spacing: -0.045em;
+    color: hsl(var(--text-on-dark))
 }
 
 .final-cta p {
     max-width: 38rem;
     margin: 0 auto;
-    color: hsl(var(--muted-foreground));
+    color: hsl(var(--text-on-dark) / 0.65);
     line-height: 1.8
 }
 
@@ -177,18 +179,25 @@
     align-items: center;
     justify-content: center;
     min-height: 3rem;
-    border: 1px solid hsl(var(--border));
+    border: 1px solid hsl(var(--text-on-dark) / 0.15);
     border-radius: .8rem;
     padding: .8rem 1.25rem;
-    font-size: .8rem;
-    font-weight: 850
+    font-size: var(--text-sm);
+    font-weight: 850;
+    color: hsl(var(--text-on-dark) / 0.85);
+    transition: transform .2s ease, background .2s ease, border-color .2s ease
 }
 
 .final-cta__actions a:first-child {
     gap: .45rem;
     border-color: transparent;
-    background: hsl(var(--primary));
-    color: hsl(var(--primary-foreground))
+    background: hsl(var(--accent));
+    color: #fff
+}
+
+.final-cta__actions a:first-child:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 32px hsl(var(--accent) / 0.3)
 }
 
 .final-cta__actions svg {
@@ -200,7 +209,7 @@
     position: absolute;
     border-radius: 50%;
     filter: blur(70px);
-    opacity: .4
+    opacity: .35
 }
 
 .final-cta__orb--one {
@@ -208,7 +217,7 @@
     top: 15%;
     width: 12rem;
     height: 12rem;
-    background: hsl(var(--accent)/.3)
+    background: hsl(var(--accent) / 0.25)
 }
 
 .final-cta__orb--two {
@@ -216,13 +225,15 @@
     bottom: 10%;
     width: 10rem;
     height: 10rem;
-    background: hsl(var(--primary)/.18)
+    background: hsl(var(--sage, 142 24% 57%) / 0.15)
 }
+
+/* ── Footer ── */
 
 .site-footer {
     position: relative;
     border-top: 1px solid hsl(var(--border));
-    background: hsl(165 43% 6%);
+    background: hsl(var(--background-dark));
     overflow: hidden
 }
 
@@ -233,7 +244,7 @@
     width: 24rem;
     height: 24rem;
     border-radius: 50%;
-    background: hsl(var(--accent)/.07);
+    background: hsl(var(--accent) / 0.05);
     filter: blur(80px)
 }
 
@@ -250,16 +261,16 @@
 .site-footer__brand p {
     max-width: 28rem;
     margin: 1.3rem 0 1rem;
-    color: hsl(var(--muted-foreground));
-    font-size: .8rem;
+    color: hsl(var(--text-on-dark) / 0.55);
+    font-size: var(--text-sm);
     line-height: 1.75
 }
 
-.site-footer__brand>small {
+.site-footer__brand > small {
     display: block;
     max-width: 30rem;
-    color: hsl(var(--muted-foreground)/.72);
-    font-size: .66rem;
+    color: hsl(var(--text-on-dark) / 0.35);
+    font-size: var(--text-xs);
     line-height: 1.6
 }
 
@@ -275,9 +286,10 @@
     gap: .75rem
 }
 
-.site-footer__columns nav>strong {
+.site-footer__columns nav > strong {
     margin-bottom: .35rem;
-    font-size: .72rem;
+    color: hsl(var(--text-on-dark) / 0.7);
+    font-size: var(--text-xs);
     letter-spacing: .08em;
     text-transform: uppercase
 }
@@ -287,13 +299,13 @@
     align-items: center;
     gap: .35rem;
     width: max-content;
-    color: hsl(var(--muted-foreground));
-    font-size: .72rem;
+    color: hsl(var(--text-on-dark) / 0.5);
+    font-size: var(--text-xs);
     transition: color .2s ease
 }
 
 .site-footer__columns a:hover {
-    color: hsl(var(--foreground))
+    color: hsl(var(--text-on-dark))
 }
 
 .site-footer__columns a svg {
@@ -305,11 +317,25 @@
 .site-footer__bottom {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     gap: 1rem;
     max-width: 80rem;
     margin: auto;
-    border-top: 1px solid hsl(var(--border));
+    border-top: 1px solid hsl(var(--text-on-dark) / 0.08);
     padding: 1.2rem 1.25rem;
-    color: hsl(var(--muted-foreground));
-    font-size: .65rem
+    color: hsl(var(--text-on-dark) / 0.4);
+    font-size: var(--text-xs)
+}
+
+.site-footer__lgpd {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .3rem .6rem;
+    border: 1px solid hsl(var(--sage, 142 24% 57%) / 0.25);
+    border-radius: 999px;
+    background: hsl(var(--sage, 142 24% 57%) / 0.08);
+    color: hsl(var(--sage, 142 24% 57%));
+    font-size: .58rem;
+    font-weight: 700
 }

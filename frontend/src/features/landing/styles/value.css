@@ -1,8 +1,8 @@
 .value-section {
     position: relative;
     padding: 8rem 1.25rem;
-    border-block: 1px solid hsl(var(--border)/.6);
-    background: linear-gradient(180deg, hsl(var(--secondary)/.18), transparent 30%, transparent 70%, hsl(var(--secondary)/.16))
+    border-block: 1px solid hsl(var(--border) / 0.6);
+    background: linear-gradient(180deg, hsl(var(--secondary) / 0.15), transparent 30%, transparent 70%, hsl(var(--secondary) / 0.12))
 }
 
 .value-section__inner {
@@ -20,9 +20,9 @@
 
 .value-section__heading h2 {
     margin: 1.3rem 0 0;
-    font-size: clamp(2.4rem, 5vw, 4.2rem);
+    font-size: clamp(2.2rem, 4.5vw, 3.8rem);
     line-height: 1.05;
-    letter-spacing: -.045em
+    letter-spacing: -0.04em
 }
 
 .value-section__heading p {
@@ -30,6 +30,8 @@
     color: hsl(var(--muted-foreground));
     line-height: 1.8
 }
+
+/* ── Comparison ── */
 
 .value-comparison {
     position: relative;
@@ -47,13 +49,13 @@
 
 .value-comparison__side--manual {
     border-radius: 1.5rem 0 0 1.5rem;
-    background: hsl(var(--card)/.55)
+    background: hsl(var(--card) / 0.5)
 }
 
 .value-comparison__side--connected {
     border-radius: 0 1.5rem 1.5rem 0;
-    background: linear-gradient(145deg, hsl(var(--card)), hsl(var(--accent)/.07));
-    box-shadow: 0 28px 70px rgba(0, 0, 0, .22)
+    background: linear-gradient(145deg, hsl(var(--card)), hsl(var(--accent) / 0.05));
+    box-shadow: 0 28px 70px rgba(0, 0, 0, 0.12)
 }
 
 .value-comparison__label {
@@ -62,20 +64,20 @@
     padding: .38rem .65rem;
     background: hsl(var(--secondary));
     color: hsl(var(--muted-foreground));
-    font-size: .62rem;
+    font-size: var(--text-xs);
     font-weight: 850;
     letter-spacing: .09em;
     text-transform: uppercase
 }
 
 .value-comparison__side--connected .value-comparison__label {
-    background: hsl(var(--accent)/.1);
+    background: hsl(var(--accent) / 0.1);
     color: hsl(var(--accent))
 }
 
 .value-comparison__side h3 {
     margin: 1.2rem 0 1.5rem;
-    font-size: 1.7rem
+    font-size: 1.5rem
 }
 
 .value-comparison__side ul {
@@ -91,7 +93,7 @@
     align-items: flex-start;
     gap: .6rem;
     color: hsl(var(--muted-foreground));
-    font-size: .82rem;
+    font-size: var(--text-sm);
     line-height: 1.6
 }
 
@@ -107,14 +109,14 @@
 }
 
 .value-comparison__side--connected li svg {
-    color: hsl(var(--accent))
+    color: hsl(var(--sage, 142 24% 57%))
 }
 
 .value-comparison__bridge {
     display: grid;
     place-items: center;
     border-block: 1px solid hsl(var(--border));
-    background: hsl(var(--background)/.55)
+    background: hsl(var(--background) / 0.55)
 }
 
 .value-comparison__bridge span {
@@ -122,17 +124,19 @@
     place-items: center;
     width: 3rem;
     height: 3rem;
-    border: 1px solid hsl(var(--accent)/.28);
+    border: 1px solid hsl(var(--accent) / 0.28);
     border-radius: 50%;
     background: hsl(var(--background));
     color: hsl(var(--accent));
-    box-shadow: 0 0 28px hsl(var(--accent)/.12)
+    box-shadow: 0 0 28px hsl(var(--accent) / 0.1)
 }
 
 .value-comparison__bridge svg {
     width: 1.1rem;
     height: 1.1rem
 }
+
+/* ── Numbers ── */
 
 .value-numbers {
     display: grid;
@@ -148,7 +152,7 @@
     gap: .75rem;
     border: 1px solid hsl(var(--border));
     border-radius: 1rem;
-    background: hsl(var(--card)/.52);
+    background: hsl(var(--card) / 0.5);
     padding: 1rem 1.2rem
 }
 
@@ -164,6 +168,6 @@
 
 .value-numbers span {
     color: hsl(var(--muted-foreground));
-    font-size: .68rem;
+    font-size: var(--text-xs);
     line-height: 1.5
 }

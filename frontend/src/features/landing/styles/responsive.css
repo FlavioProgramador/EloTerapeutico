@@ -1,26 +1,28 @@
+/* ── Responsive Breakpoints ── */
+
 @media(max-width:1080px) {
     .site-header__nav {
         display: none
     }
 
-    .hero-premium__inner,
+    .hero-dark__inner,
     .problem-section__inner,
     .trust-section__inner,
     .faq-section__inner {
         grid-template-columns: 1fr
     }
 
-    .hero-premium__inner {
+    .hero-dark__inner {
         gap: 3rem;
-        padding-top: 4rem
+        padding-top: 5rem
     }
 
-    .hero-premium__media {
-        min-height: 32rem
+    .hero-dark__elo {
+        max-width: 360px
     }
 
-    .hero-premium__floating-card {
-        left: 1.5rem
+    .hero-dark__stats {
+        grid-template-columns: repeat(3, 1fr)
     }
 
     .benefit-rail__inner {
@@ -47,17 +49,17 @@
         grid-template-columns: 1fr
     }
 
-    .module-story,
-    .module-story--records {
+    .module-selector__panel {
         grid-template-columns: 1fr;
-        gap: 2.5rem
+        gap: 1.5rem
     }
 
-    .module-story--records>div:first-child {
-        order: 2
+    .module-selector__copy {
+        order: 2;
+        max-width: 44rem
     }
 
-    .module-story--records>div:last-child {
+    .module-selector__screen {
         order: 1
     }
 
@@ -88,17 +90,23 @@
         display: block
     }
 
-    .hero-premium__inner {
+    .hero-dark__inner {
         grid-template-columns: 1fr;
         padding-bottom: 3.5rem
     }
 
-    .hero-premium__copy h1 {
-        font-size: clamp(3rem, 11vw, 4.6rem)
+    .hero-dark__copy h1 {
+        font-size: clamp(2.8rem, 10vw, 4.2rem)
     }
 
-    .hero-premium__media {
-        min-height: 28rem
+    .hero-dark__stats {
+        grid-template-columns: 1fr;
+        gap: .6rem
+    }
+
+    .hero-dark__stat {
+        flex-direction: row;
+        gap: .8rem
     }
 
     .benefit-rail__inner {
@@ -107,7 +115,7 @@
 
     .benefit-rail__item {
         padding-bottom: 1rem;
-        border-bottom: 1px solid hsl(165 20% 20%/.1)
+        border-bottom: 1px solid hsl(var(--border))
     }
 
     .benefit-rail__item:last-child {
@@ -176,11 +184,11 @@
         grid-template-columns: repeat(2, 1fr)
     }
 
-    .story-calendar__grid>div {
+    .story-calendar__grid > div {
         min-height: 8rem
     }
 
-    .story-calendar__grid>div:nth-child(n+3) {
+    .story-calendar__grid > div:nth-child(n+3) {
         display: none
     }
 
@@ -216,49 +224,29 @@
         height: 4.35rem
     }
 
-    .hero-premium {
-        min-height: auto
+    .hero-dark__inner {
+        padding-top: 3.5rem
     }
 
-    .hero-premium__inner {
-        padding-top: 3rem
+    .hero-dark__copy h1 {
+        font-size: clamp(2.5rem, 13vw, 3.6rem)
     }
 
-    .hero-premium__copy h1 {
-        font-size: clamp(2.75rem, 14vw, 4rem)
+    .hero-dark__copy p {
+        font-size: var(--text-base)
     }
 
-    .hero-premium__copy>div>p,
-    .hero-premium__copy>p {
-        font-size: .96rem
-    }
-
-    .hero-premium__actions {
+    .hero-dark__actions {
         display: grid
     }
 
-    .hero-premium__primary,
-    .hero-premium__secondary {
+    .hero-dark__primary,
+    .hero-dark__secondary {
         width: 100%
     }
 
-    .hero-premium__checks {
-        display: grid
-    }
-
-    .hero-premium__media {
-        min-height: 24rem
-    }
-
-    .hero-premium__photo {
-        border-radius: 1.4rem
-    }
-
-    .hero-premium__floating-card {
-        left: .9rem;
-        right: .9rem;
-        bottom: 1rem;
-        width: auto
+    .hero-dark__elo {
+        max-width: 280px
     }
 
     .problem-section__copy h2,
@@ -269,7 +257,7 @@
     .trust-section__copy h2,
     .faq-section__intro h2,
     .final-cta h2 {
-        font-size: clamp(2.15rem, 11vw, 3.3rem)
+        font-size: clamp(2rem, 10vw, 3rem)
     }
 
     .problem-map {
@@ -326,7 +314,7 @@
         display: block
     }
 
-    .product-ui__columns section+section {
+    .product-ui__columns section + section {
         margin-top: .65rem
     }
 
@@ -351,6 +339,26 @@
         min-height: 17rem
     }
 
+    .module-stories__intro h2 {
+        font-size: 3rem
+    }
+
+    .module-selector__stage {
+        min-height: auto
+    }
+
+    .module-selector__copy {
+        padding: .4rem .2rem 0
+    }
+
+    .module-selector__screen {
+        border-radius: 1.2rem
+    }
+
+    .module-selector__connector {
+        display: none
+    }
+
     .journey-steps {
         grid-template-columns: 1fr
     }
@@ -360,15 +368,88 @@
         padding-top: 1.4rem
     }
 
+    .module-tabs {
+        border-radius: 1.2rem;
+        padding: .3rem
+    }
+
+    .module-tabs button {
+        min-height: 2.55rem;
+        padding: 0 .9rem
+    }
+
+    .module-selector__stage {
+        padding: .75rem;
+        border-radius: 1.35rem
+    }
+
+    .module-selector__panel {
+        min-height: auto
+    }
+
+    .module-selector__copy h3 {
+        font-size: 2rem
+    }
+
+    .module-stories__intro h2 {
+        font-size: 2.35rem
+    }
+
     .story-visual {
-        min-height: 27rem
+        min-height: 30rem
+    }
+
+    .story-dashboard__metrics {
+        left: 1rem;
+        right: 1rem;
+        top: 1rem;
+        grid-template-columns: 1fr;
+        gap: .55rem
+    }
+
+    .story-dashboard__metrics article {
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        min-height: 4rem;
+        padding: .75rem
+    }
+
+    .story-dashboard__metrics article:nth-child(3) {
+        display: none
+    }
+
+    .story-dashboard__timeline {
+        left: 1rem;
+        right: 1rem;
+        top: 10.2rem;
+        bottom: 1rem
+    }
+
+    .story-patients__directory {
+        left: 1rem;
+        right: 1rem;
+        top: 1rem;
+        bottom: auto;
+        width: auto
+    }
+
+    .story-patients__directory button:nth-of-type(3) {
+        display: none
+    }
+
+    .story-patients__profile {
+        left: 1rem;
+        right: 1rem;
+        top: 14.2rem;
+        bottom: 1rem;
+        width: auto
     }
 
     .story-calendar__grid {
         grid-template-columns: 1fr
     }
 
-    .story-calendar__grid>div:nth-child(2) {
+    .story-calendar__grid > div:nth-child(2) {
         display: none
     }
 
@@ -392,7 +473,7 @@
         width: auto
     }
 
-    .story-finance__list>div:nth-child(3) {
+    .story-finance__list > div:nth-child(3) {
         display: none
     }
 

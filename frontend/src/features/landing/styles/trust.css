@@ -3,7 +3,7 @@
     padding: 8rem 1.25rem
 }
 
-.trust-section:before {
+.trust-section::before {
     content: "";
     position: absolute;
     right: -7rem;
@@ -11,7 +11,7 @@
     width: 20rem;
     height: 20rem;
     border-radius: 50%;
-    background: hsl(var(--accent)/.08);
+    background: hsl(var(--sage, 142 24% 57%) / 0.06);
     filter: blur(80px)
 }
 
@@ -33,7 +33,7 @@
     position: absolute;
     left: 50%;
     top: 50%;
-    border: 1px solid hsl(var(--accent)/.2);
+    border: 1px solid hsl(var(--sage, 142 24% 57%) / 0.2);
     border-radius: 50%;
     transform: translate(-50%, -50%)
 }
@@ -59,21 +59,21 @@
     gap: .4rem;
     width: 12rem;
     height: 12rem;
-    border: 1px solid hsl(var(--accent)/.3);
+    border: 1px solid hsl(var(--sage, 142 24% 57%) / 0.3);
     border-radius: 50%;
-    background: radial-gradient(circle, hsl(var(--accent)/.12), hsl(var(--background)/.88) 72%);
+    background: radial-gradient(circle, hsl(var(--sage, 142 24% 57%) / 0.1), hsl(var(--background) / 0.88) 72%);
     transform: translate(-50%, -50%);
-    box-shadow: 0 0 60px hsl(var(--accent)/.16)
+    box-shadow: 0 0 60px hsl(var(--sage, 142 24% 57%) / 0.12)
 }
 
-.trust-core>span {
+.trust-core > span {
     display: grid;
     place-items: center;
     width: 3rem;
     height: 3rem;
     border-radius: 1rem;
-    background: hsl(var(--accent)/.13);
-    color: hsl(var(--accent))
+    background: hsl(var(--sage, 142 24% 57%) / 0.12);
+    color: hsl(var(--sage, 142 24% 57%))
 }
 
 .trust-core svg {
@@ -82,7 +82,7 @@
 }
 
 .trust-core strong {
-    font-size: .9rem
+    font-size: var(--text-sm)
 }
 
 .trust-core small {
@@ -102,8 +102,8 @@
     border: 1px solid hsl(var(--border));
     border-radius: 50%;
     background: hsl(var(--card));
-    color: hsl(var(--accent));
-    box-shadow: 0 18px 38px rgba(0, 0, 0, .25)
+    color: hsl(var(--sage, 142 24% 57%));
+    box-shadow: 0 18px 38px rgba(0, 0, 0, 0.12)
 }
 
 .trust-node svg {
@@ -128,13 +128,13 @@
 
 .trust-section__copy h2 {
     margin: 1.35rem 0 1.1rem;
-    font-size: clamp(2.5rem, 5vw, 4.2rem);
+    font-size: clamp(2.2rem, 4.5vw, 3.8rem);
     line-height: 1.06;
-    letter-spacing: -.045em
+    letter-spacing: -0.04em
 }
 
-.trust-section__copy>div>p,
-.trust-section__copy>p {
+.trust-section__copy > div > p,
+.trust-section__copy > p {
     margin: 0;
     color: hsl(var(--muted-foreground));
     line-height: 1.82
@@ -155,14 +155,14 @@
     padding-top: 1rem
 }
 
-.trust-points article>span {
+.trust-points article > span {
     display: grid;
     place-items: center;
     width: 2.5rem;
     height: 2.5rem;
     border-radius: .8rem;
-    background: hsl(var(--accent)/.09);
-    color: hsl(var(--accent))
+    background: hsl(var(--sage, 142 24% 57%) / 0.08);
+    color: hsl(var(--sage, 142 24% 57%))
 }
 
 .trust-points article svg {
@@ -176,12 +176,12 @@
 }
 
 .trust-points strong {
-    font-size: .82rem
+    font-size: var(--text-sm)
 }
 
 .trust-points small {
     color: hsl(var(--muted-foreground));
-    font-size: .68rem;
+    font-size: var(--text-xs);
     line-height: 1.55
 }
 
