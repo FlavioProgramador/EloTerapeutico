@@ -18,9 +18,13 @@ class SubscriptionServiceTests(TestCase):
         self.user = get_user_model().objects.create_user(
             email="terapeuta@example.com",
             full_name="Terapeuta Teste",
-            password="SenhaForte123",
         )
-        self.plan = Plan.objects.create(name="Profissional", slug="profissional-test", price="89.90", has_financial=True)
+        self.plan = Plan.objects.create(
+            name="Profissional",
+            slug="profissional-test",
+            price="89.90",
+            has_financial=True,
+        )
 
     @override_settings(BILLING_TRIAL_DAYS=7)
     @patch("apps.billing.services.subscriptions.get_gateway")
@@ -51,11 +55,16 @@ class SubscriptionServiceTests(TestCase):
     def test_inactive_plan_raises_error(self):
         self.plan.is_active = False
         self.plan.save(update_fields=["is_active"])
+
         with self.assertRaises(ValidationError):
             create_subscription_for_user(self.user, self.plan)
 
     def test_activate_subscription_from_payment(self):
-        subscription = Subscription.objects.create(user=self.user, plan=self.plan, status=Subscription.Status.PENDING)
+        subscription = Subscription.objects.create(
+            user=self.user,
+            plan=self.plan,
+            status=Subscription.Status.PENDING,
+        )
         payment = Payment.objects.create(
             subscription=subscription,
             user=self.user,
@@ -72,7 +81,13 @@ class SubscriptionServiceTests(TestCase):
         self.assertEqual(payment.status, Payment.Status.CONFIRMED)
 
     def test_mark_subscription_past_due(self):
-        subscription = Subscription.objects.create(user=self.user, plan=self.plan, status=Subscription.Status.ACTIVE)
+        subscription = Subscription.objects.create(
+            user=self.user,
+            plan=self.plan,
+            status=Subscription.Status.ACTIVE,
+        )
+
         mark_subscription_past_due(subscription)
+
         subscription.refresh_from_db()
         self.assertEqual(subscription.status, Subscription.Status.PAST_DUE)
