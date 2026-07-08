@@ -143,7 +143,7 @@ class FormAnswerAdmin(ModelAdmin):
     list_display = ("submission", "field", "updated_at")
     list_filter = ("created_at", "updated_at")
     search_fields = ("field__label", "submission__form__name", "submission__patient__full_name")
-    raw_id_fields = ("submission", "field")
+    raw_id_fields = ("submission",)
     readonly_fields = ("created_at", "updated_at")
     list_select_related = ("submission", "field")
 
