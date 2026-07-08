@@ -55,6 +55,22 @@ UNFOLD = {
         "show_all_applications": True,
         "navigation": [
             {
+                "title": "Geral",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Dashboard",
+                        "icon": "dashboard",
+                        "link": "/admin/",
+                    },
+                    {
+                        "title": "SQL Explorer",
+                        "icon": "database",
+                        "link": "/admin/sql-explorer/",
+                    },
+                ],
+            },
+            {
                 "title": "Clínica & Prontuários",
                 "separator": True,
                 "items": [
@@ -135,6 +151,8 @@ UNFOLD = {
             },
         ],
     },
+    "ENVIRONMENT": "core.admin_dashboard.environment_callback",
+    "DASHBOARD_CALLBACK": "core.admin_dashboard.dashboard_callback",
 }
 THIRD_PARTY_APPS = [
     "rest_framework",
