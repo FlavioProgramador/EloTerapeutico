@@ -38,8 +38,8 @@ export interface ModuleHighlight {
 
 export const navigationLinks = [
   { href: "#produto", label: "Produto" },
-  { href: "#recursos", label: "Recursos" },
-  { href: "#como-funciona", label: "Como funciona" },
+  { href: "#modulos", label: "Módulos" },
+  { href: "#fluxo", label: "Como funciona" },
   { href: "#seguranca", label: "Segurança" },
   { href: "#faq", label: "Perguntas" },
 ];
@@ -104,14 +104,14 @@ export const featureCards: FeatureCard[] = [
     icon: "users",
     title: "Gestão de pacientes",
     description:
-      "Centralize dados cadastrais, contatos, status e informações necessárias para acompanhar cada pessoa atendida.",
+      "Centralize dados cadastrais, contatos e informações essenciais para acompanhar cada pessoa atendida.",
     connection: "Base para agenda, prontuários e financeiro.",
   },
   {
     icon: "calendar",
     title: "Agenda integrada",
     description:
-      "Organize sessões, horários, recorrências e mudanças de status em um fluxo conectado ao restante da plataforma.",
+      "Organize sessões, horários, recorrências e mudanças de status em um fluxo conectado.",
     connection: "Conecta atendimento, paciente e cobrança.",
   },
   {
@@ -125,21 +125,21 @@ export const featureCards: FeatureCard[] = [
     icon: "wallet",
     title: "Controle financeiro",
     description:
-      "Registre receitas e despesas, acompanhe vencimentos e identifique movimentações pendentes ou concluídas.",
+      "Registre receitas e despesas, acompanhe vencimentos e identifique movimentações pendentes.",
     connection: "Reduz controles financeiros paralelos.",
   },
   {
     icon: "chart",
     title: "Painel operacional",
     description:
-      "Visualize as informações mais relevantes da rotina em um dashboard objetivo e orientado a ação.",
+      "Visualize as informações mais relevantes da rotina em um dashboard orientado a ação.",
     connection: "Resume dados dos módulos principais.",
   },
   {
     icon: "shield",
     title: "Acesso por perfil",
     description:
-      "Separe responsabilidades entre administração, profissionais e equipe de apoio conforme as regras do sistema.",
+      "Separe responsabilidades entre administração, profissionais e equipe de apoio.",
     connection: "Ajuda a limitar o acesso a áreas sensíveis.",
   },
 ];
@@ -177,7 +177,7 @@ export const moduleHighlights: ModuleHighlight[] = [
     eyebrow: "Agenda e pacientes",
     title: "Menos retrabalho entre cadastro e atendimento",
     description:
-      "A agenda utiliza o contexto do paciente e do profissional para manter os atendimentos organizados, facilitar alterações de status e alimentar os demais módulos.",
+      "A agenda utiliza o contexto do paciente e do profissional para manter os atendimentos organizados e alimentar os demais módulos.",
     benefits: [
       "Consultas vinculadas ao paciente correto",
       "Visão diária da rotina profissional",
@@ -199,9 +199,9 @@ export const moduleHighlights: ModuleHighlight[] = [
   {
     id: "finance",
     eyebrow: "Financeiro",
-    title: "Visibilidade sobre o que entrou e o que ainda está pendente",
+    title: "Visibilidade sobre o que entrou e o que está pendente",
     description:
-      "O módulo financeiro acompanha lançamentos, vencimentos e pagamentos para reduzir planilhas paralelas e aproximar a operação administrativa dos atendimentos.",
+      "O módulo financeiro acompanha lançamentos, vencimentos e pagamentos para reduzir planilhas paralelas.",
     benefits: [
       "Receitas e despesas em um só fluxo",
       "Status de pagamento e vencimentos",
@@ -215,19 +215,19 @@ export const securityPoints = [
     icon: "lock" as LandingIconName,
     title: "Dados sensíveis tratados pelo sistema",
     description:
-      "O projeto possui uma camada própria para proteção de campos clínicos sensíveis e evolução contínua dos controles de segurança.",
+      "Camada própria para proteção de campos clínicos sensíveis e evolução contínua dos controles de segurança.",
   },
   {
     icon: "users" as LandingIconName,
     title: "Permissões por responsabilidade",
     description:
-      "As áreas disponíveis variam conforme o papel do usuário, reduzindo a exposição desnecessária de informações clínicas.",
+      "As áreas disponíveis variam conforme o papel do usuário, reduzindo a exposição desnecessária de informações.",
   },
   {
     icon: "activity" as LandingIconName,
     title: "Rastreabilidade operacional",
     description:
-      "A arquitetura inclui trilha de auditoria para apoiar o acompanhamento de ações relevantes dentro da plataforma.",
+      "Trilha de auditoria para apoiar o acompanhamento de ações relevantes dentro da plataforma.",
   },
 ];
 
@@ -235,17 +235,17 @@ export const faqItems = [
   {
     question: "Para quem o Elo Terapêutico foi criado?",
     answer:
-      "A plataforma foi projetada para psicólogos, terapeutas e equipes que precisam organizar pacientes, agenda, registros clínicos e financeiro em uma única rotina digital.",
+      "Para psicólogos, terapeutas e equipes que precisam organizar pacientes, agenda, registros clínicos e financeiro em uma única rotina digital.",
   },
   {
     question: "Quais módulos já fazem parte do projeto?",
     answer:
-      "O projeto possui dashboard, pacientes, agenda, prontuários e controle financeiro. Alguns fluxos continuam sendo aprimorados e são apresentados na interface conforme o estado real de implementação.",
+      "Dashboard, pacientes, agenda, prontuários e controle financeiro. Alguns fluxos continuam sendo aprimorados e são apresentados na interface conforme o estado real de implementação.",
   },
   {
     question: "A equipe de apoio pode acessar prontuários?",
     answer:
-      "O sistema diferencia perfis e restringe áreas clínicas para usuários sem a responsabilidade profissional necessária. As permissões finais dependem da configuração e das regras aplicadas no ambiente.",
+      "O sistema diferencia perfis e restringe áreas clínicas para usuários sem a responsabilidade profissional necessária. As permissões finais dependem da configuração aplicada no ambiente.",
   },
   {
     question: "A plataforma funciona em celular e tablet?",
@@ -255,7 +255,7 @@ export const faqItems = [
   {
     question: "Os dados clínicos ficam misturados com o financeiro?",
     answer:
-      "Os módulos se conectam por relacionamentos controlados, mas cada área possui sua própria responsabilidade. Isso permite acompanhar a operação sem transformar dados clínicos em informações financeiras.",
+      "Os módulos se conectam por relacionamentos controlados, mas cada área possui sua própria responsabilidade. Isso permite acompanhar a operação sem expor dados clínicos desnecessariamente.",
   },
   {
     question: "O produto já está finalizado?",

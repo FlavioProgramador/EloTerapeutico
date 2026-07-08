@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
+import { Outfit, Piazzolla, Work_Sans, IBM_Plex_Mono } from "next/font/google";
 import { Providers } from "@/providers/providers";
 import "./globals.css";
 
@@ -7,6 +7,24 @@ const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-outfit",
   weight: ["300", "400", "500", "600", "700", "800"],
+});
+
+const piazzolla = Piazzolla({
+  subsets: ["latin"],
+  variable: "--font-display",
+  weight: ["600", "700"],
+});
+
+const workSans = Work_Sans({
+  subsets: ["latin"],
+  variable: "--font-body",
+  weight: ["400", "500", "700"],
+});
+
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  weight: ["400"],
 });
 
 export const metadata: Metadata = {
@@ -32,7 +50,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${outfit.variable} h-full antialiased`}
+      className={`${outfit.variable} ${piazzolla.variable} ${workSans.variable} ${ibmPlexMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-sans">
@@ -41,4 +59,3 @@ export default function RootLayout({
     </html>
   );
 }
-
