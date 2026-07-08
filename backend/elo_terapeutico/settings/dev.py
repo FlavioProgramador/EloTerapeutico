@@ -4,13 +4,13 @@ from .base import *  # noqa
 
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]  # nosec B104
 
 # CORS – Permite qualquer origem em desenvolvimento
 CORS_ALLOW_ALL_ORIGINS = True
 
 # Banco de dados local (Usa a DATABASE_URL definida no .env, com fallback para SQLite)
-DATABASES = {"default": env.db("DATABASE_URL", default="sqlite:///db.sqlite3")}
+DATABASES = {"default": env.db("DATABASE_URL", default="sqlite:///db.sqlite3")}  # noqa: F405
 
 # E-mail – exibir no console em dev
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
