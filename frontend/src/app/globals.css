@@ -395,14 +395,14 @@ body {
  * ============================================================
  */
 .landing-page {
-  --background: 87 22% 95%;          /* Papel Névoa #F6F7F2 */
+  --background: 87 14% 89%;          /* Papel Névoa mais contrastado #DFE5DA */
   --background-dark: 172 46% 11%;    /* Tinta Elo Escura #0B2725 */
   --foreground: 147 30% 12%;         /* Grafite-Musgo #16241F */
-  --card: 87 14% 97%;
+  --card: 0 0% 100%;                 /* Branco puro para destacar os cards */
   --card-foreground: 147 30% 12%;
-  --secondary: 142 24% 90%;          /* Sálvia suave */
+  --secondary: 142 24% 86%;          /* Sálvia suave slightly richer */
   --secondary-foreground: 147 30% 18%;
-  --muted: 87 16% 92%;
+  --muted: 87 12% 86%;
   --muted-foreground: 147 12% 42%;
   --primary: 177 57% 15%;            /* Tinta Elo #123C3B */
   --primary-hover: 177 57% 20%;
@@ -410,6 +410,7 @@ body {
   --accent: 31 67% 55%;              /* Âmbar Terroso #D98E3F */
   --accent-foreground: 147 30% 12%;
   --sage: 142 24% 57%;               /* Sálvia #7FA592 */
+  --sage-deep: 155 21% 39%;          /* Sálvia Profunda #4F7867 */
   --blush: 12 58% 79%;               /* Argila Rosada #E8B4A8 */
   --text-on-dark: 130 10% 93%;       /* #EFF3EE */
   --border: 147 18% 88%;
