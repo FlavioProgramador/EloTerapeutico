@@ -2,6 +2,7 @@ import { Mail, Phone } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { PatientActionsMenu } from "./patient-actions-menu";
 import {
   PATIENT_STATUS_VARIANT,
@@ -74,6 +75,21 @@ function ActionMenu(props: RowProps) {
   );
 }
 
+function getPatientAvatarStyle(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % 4;
+  const styles = [
+    "border-primary/20 bg-primary/10 text-primary",
+    "border-success/20 bg-success/10 text-success",
+    "border-warning/20 bg-warning/10 text-warning",
+    "border-destructive/20 bg-destructive/10 text-destructive",
+  ];
+  return styles[index];
+}
+
 export function PatientDesktopRow(props: RowProps) {
   const router = useRouter();
   const patient = props.patient;
@@ -82,7 +98,7 @@ export function PatientDesktopRow(props: RowProps) {
     <tr className="hover:bg-secondary/35">
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-primary/20 bg-primary/10 text-xs font-bold text-primary">
+          <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-full border text-xs font-bold", getPatientAvatarStyle(patient.display_name))}>
             {patientInitials(patient.display_name)}
           </span>
           <div className="min-w-0">
@@ -143,7 +159,7 @@ export function PatientMobileCard(props: RowProps) {
     <article className="p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-primary/20 bg-primary/10 text-xs font-bold text-primary">
+          <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-full border text-xs font-bold", getPatientAvatarStyle(patient.display_name))}>
             {patientInitials(patient.display_name)}
           </span>
           <div className="min-w-0">
