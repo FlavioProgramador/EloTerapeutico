@@ -18,10 +18,11 @@ api_v1_patterns = [
     path("forms/", include("apps.forms.urls")),
 ]
 
-from apps.core.admin_sql import sql_explorer_view
+from apps.core.admin_sql import sql_explorer_view, sql_schema_view
 
 urlpatterns = [
     path("admin/sql-explorer/", sql_explorer_view, name="sql_explorer"),
+    path("admin/sql-schema/", sql_schema_view, name="sql_schema"),
     path("admin/", admin.site.urls),
     path("api/v1/", include(api_v1_patterns)),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),

@@ -3,9 +3,10 @@
 import re
 from django.contrib import admin
 from django.contrib.auth.decorators import user_passes_test
-from django.core.exceptions import PermissionDenied
 from django.db import connection
+from django.http import JsonResponse
 from django.shortcuts import render
+from django.views.decorators.http import require_GET
 
 
 def _get_first_sql_keyword(query: str) -> str:
@@ -63,3 +64,28 @@ def sql_explorer_view(request):
             context["error"] = str(e)
 
     return render(request, "admin/sql_explorer.html", context)
+
+
+@require_GET
+def sql_schema_view(request):
+    """Retorna tabelas e colunas do banco de dados para autocomplete.
+    Apenas superusuários autenticados podem acessar.
+    """
+    if not (request.user.is_authenticated and request.user.is_superuser):
+        return JsonResponse({"error": "Forbidden"}, status=403)
+
+    schema = {}
+    with connection.cursor() as cursor:
+        # Busca todas as tabelas do banco
+        tables = connection.introspection.table_names(cursor)
+        for table in sorted(tables):
+            try:
+                columns = [
+                    col.name
+                    for col in connection.introspection.get_table_description(cursor, table)
+                ]
+                schema[table] = columns
+            except Exception:
+                schema[table] = []
+
+    return JsonResponse({"schema": schema})
