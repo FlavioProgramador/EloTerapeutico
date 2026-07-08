@@ -1,4 +1,4 @@
-from .dashboard_serializers import PatientDashboardSerializer
+from apps.patients.api.serializers.dashboard_serializers import PatientDashboardSerializer
 
 
 class PatientReferenceListSerializer(PatientDashboardSerializer):

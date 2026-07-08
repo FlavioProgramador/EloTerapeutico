@@ -1,7 +1,8 @@
 """Consultas reutilizáveis do domínio de pacientes."""
 
+from apps.patients.services.access_control import patient_access_q
+
 from ..models import Patient
-from ..permissions import patient_access_q
 
 
 def patients_accessible_to(user, *, include_deleted: bool = False):

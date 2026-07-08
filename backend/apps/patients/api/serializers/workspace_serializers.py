@@ -10,7 +10,7 @@ from rest_framework import serializers
 from apps.users.models import User
 from core.validators import validate_cpf, validate_phone
 
-from .models import Patient, PatientProfessional
+from apps.patients.models import Patient, PatientProfessional
 
 
 class PatientProfessionalSerializer(serializers.ModelSerializer):

@@ -3,7 +3,7 @@
 from django.db import transaction
 from django.utils import timezone
 
-from ..exceptions import InvalidPatientState
+from apps.patients.exceptions import InvalidPatientState
 
 
 @transaction.atomic

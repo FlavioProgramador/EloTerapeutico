@@ -4,11 +4,11 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from ..exceptions import InvalidPatientState
-from ..selectors.patients import patients_accessible_to
-from ..services.lifecycle import deactivate as deactivate_patient
-from ..services.lifecycle import restore as restore_patient
-from .views import PatientViewSet as LegacyPatientViewSet
+from apps.patients.exceptions import InvalidPatientState
+from apps.patients.selectors.patients import patients_accessible_to
+from apps.patients.services.lifecycle import deactivate as deactivate_patient
+from apps.patients.services.lifecycle import restore as restore_patient
+from .legacy_views import PatientViewSet as LegacyPatientViewSet
 
 
 class PatientViewSet(LegacyPatientViewSet):

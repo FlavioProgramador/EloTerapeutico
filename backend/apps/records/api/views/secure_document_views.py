@@ -10,12 +10,11 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.audit import AuditLog, log_access
-
 from apps.records.api.serializers.clinical_serializers import ClinicalDocumentSerializer
 from apps.records.api.views.clinical_views import ClinicalPatientMixin
 from apps.records.services.evolution_security import can_view_confidential_evolution, sanitize_original_filename
 from apps.records.treatment_models import ClinicalDocument
+from core.audit import AuditLog, log_access
 
 
 class SecureClinicalDocumentMixin(ClinicalPatientMixin):

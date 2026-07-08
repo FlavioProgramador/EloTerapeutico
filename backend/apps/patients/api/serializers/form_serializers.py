@@ -6,9 +6,9 @@ from rest_framework import serializers
 
 from core.validators import validate_cpf as validate_cpf_value
 
-from .models import Patient
-from .patient_professionals import serialize_patient_professionals
-from .serializers import PatientCreateUpdateSerializer
+from apps.patients.models import Patient
+from apps.patients.api.serializers.patient_professionals import serialize_patient_professionals
+from apps.patients.api.serializers.legacy_serializers import PatientCreateUpdateSerializer
 
 
 class PatientFormSerializer(PatientCreateUpdateSerializer):

@@ -1,15 +1,15 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from ..selectors.patients import patients_accessible_to
-from .dashboard_actions import PatientDashboardActions
-from .dashboard_queries import annotate_dashboard, annotate_essential
-from .export_actions import PatientExportActions
-from .form_serializers import PatientFormSerializer
-from .list_serializers import PatientReferenceListSerializer
-from .patient_viewset import PatientViewSet
-from .reminder_view import PatientReminderView
-from .serializers import PatientDetailSerializer
+from apps.patients.api.serializers.form_serializers import PatientFormSerializer
+from apps.patients.api.serializers.legacy_serializers import PatientDetailSerializer
+from apps.patients.api.serializers.list_serializers import PatientReferenceListSerializer
+from apps.patients.api.views.dashboard_actions import PatientDashboardActions
+from apps.patients.api.views.export_actions import PatientExportActions
+from apps.patients.api.views.patient_viewset import PatientViewSet
+from apps.patients.api.views.reminder_view import PatientReminderView
+from apps.patients.selectors.dashboard_queries import annotate_dashboard, annotate_essential
+from apps.patients.selectors.patients import patients_accessible_to
 
 
 class PatientDashboardViewSet(

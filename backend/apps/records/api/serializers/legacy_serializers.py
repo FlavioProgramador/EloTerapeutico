@@ -19,8 +19,7 @@ serializers simplesmente lêem e escrevem texto puro — a criptografia
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from apps.patients.permissions import can_access_patient
-
+from apps.patients.services.access_control import can_access_patient
 from apps.records.models import Anamnesis, Evolution, EvolutionAddendum
 
 User = get_user_model()

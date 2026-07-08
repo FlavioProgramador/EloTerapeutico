@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Patient
+from apps.patients.models import Patient
 
 
 class PatientDashboardSerializer(serializers.ModelSerializer):

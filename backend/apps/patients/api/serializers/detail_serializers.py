@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .serializers import PatientDetailSerializer
+from apps.patients.api.serializers.legacy_serializers import PatientDetailSerializer
 
 
 class PatientFullDetailSerializer(PatientDetailSerializer):

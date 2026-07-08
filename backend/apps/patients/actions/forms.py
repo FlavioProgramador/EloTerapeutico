@@ -1,9 +1,8 @@
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.patients.api.serializers.professional_serializers import PatientProfessionalOptionSerializer
 from apps.users.models import User
-
-from ..professional_serializers import PatientProfessionalOptionSerializer
 
 
 class PatientFormActions:

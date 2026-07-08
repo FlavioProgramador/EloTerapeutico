@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 
 from core.audit import AuditLog, log_access
 
-from .selectors.patients import patients_accessible_to
+from apps.patients.selectors.patients import patients_accessible_to
 
 
 class PatientReminderView(APIView):

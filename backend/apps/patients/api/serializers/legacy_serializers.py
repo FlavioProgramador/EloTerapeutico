@@ -11,7 +11,7 @@ from rest_framework import serializers
 from apps.users.models import User
 from core.validators import validate_cpf, validate_phone
 
-from .models import Patient
+from apps.patients.models import Patient
 
 
 class PatientListSerializer(serializers.ModelSerializer):

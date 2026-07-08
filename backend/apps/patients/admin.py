@@ -4,6 +4,8 @@ from django.contrib import admin, messages
 from unfold.admin import ModelAdmin
 from unfold.contrib.filters.admin import ChoicesDropdownFilter, RangeDateFilter, RelatedDropdownFilter
 
+from apps.patients.models import Patient
+
 from .admin_parts import (
     AppointmentInline,
     FinancialTransactionInline,
@@ -12,7 +14,6 @@ from .admin_parts import (
     PatientAdminDisplayMixin,
     SoftDeletedFilter,
 )
-from .models import Patient
 
 
 @admin.register(Patient)

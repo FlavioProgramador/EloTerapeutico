@@ -1,8 +1,8 @@
 """Composição das actions públicas do painel de pacientes."""
 
-from ..actions.dashboard import PatientDashboardActions as LegacyDashboardActions
-from ..actions.imports import PatientImportActions
-from ..actions.metrics import PatientMetricsActions
+from apps.patients.actions.dashboard import PatientDashboardActions as LegacyDashboardActions
+from apps.patients.actions.imports import PatientImportActions
+from apps.patients.actions.metrics import PatientMetricsActions
 
 
 class PatientDashboardActions(

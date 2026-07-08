@@ -10,10 +10,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.patients.permissions import can_access_patient, patient_access_q
-from core.audit import AuditLog, AuditLogMixin, log_access
-
-from apps.records.models import Anamnesis, Evolution
+from apps.patients.services.access_control import can_access_patient, patient_access_q
 from apps.records.api.serializers.legacy_serializers import (
     AnamnesisSerializer,
     EvolutionAddendumSerializer,
@@ -22,6 +19,8 @@ from apps.records.api.serializers.legacy_serializers import (
     EvolutionListSerializer,
     EvolutionUpdateSerializer,
 )
+from apps.records.models import Anamnesis, Evolution
+from core.audit import AuditLog, AuditLogMixin, log_access
 
 
 class AnamnesisView(generics.GenericAPIView):

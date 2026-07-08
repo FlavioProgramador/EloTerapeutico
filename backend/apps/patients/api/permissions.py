@@ -2,7 +2,7 @@
 
 from rest_framework.permissions import IsAuthenticated
 
-from ..permissions import can_manage_patient
+from apps.patients.services.access_control import can_manage_patient
 
 
 class PatientPermission(IsAuthenticated):

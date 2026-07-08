@@ -12,9 +12,9 @@ from rest_framework.response import Response
 
 from core.audit import AuditLogMixin
 
-from .filters import PatientFilter
-from .models import Patient
-from .serializers import (
+from apps.patients.api.filters import PatientFilter
+from apps.patients.models import Patient
+from apps.patients.api.serializers.legacy_serializers import (
     PatientCreateUpdateSerializer,
     PatientDetailSerializer,
     PatientListSerializer,
