@@ -16,10 +16,11 @@ As responsabilidades auxiliares foram movidas para:
 
 ### Models
 
-O modelo `Patient` continua em `model_parts/patient.py`, mas escolhas e caminhos de upload foram separados:
+O modelo `Patient` continua em `model_parts/patient.py`, mas escolhas, caminhos de upload e comportamentos foram separados:
 
 - `backend/apps/patients/model_parts/choices.py`
 - `backend/apps/patients/model_parts/paths.py`
+- `backend/apps/patients/model_parts/mixins.py`
 
 Os aliases públicos `Patient.Status`, `Patient.Gender`, `Patient.PayerType`, etc. foram preservados.
 
@@ -38,17 +39,23 @@ As classes administrativas foram separadas em:
 
 ### Models
 
-O antigo `backend/apps/records/models/treatment.py` foi reduzido para fachada de compatibilidade.
+Os arquivos agregadores antigos `backend/apps/records/models/base.py`, `backend/apps/records/models/clinical.py` e `backend/apps/records/models/treatment.py` foram reduzidos para fachadas de compatibilidade.
 
 A implementação foi separada em:
 
+- `backend/apps/records/models/anamnesis.py`
+- `backend/apps/records/models/addendum.py`
+- `backend/apps/records/models/evolution.py`
+- `backend/apps/records/models/anamnesis_profile.py`
+- `backend/apps/records/models/evolution_clinical_data.py`
+- `backend/apps/records/models/versions.py`
 - `backend/apps/records/models/goals.py`
 - `backend/apps/records/models/documents.py`
 - `backend/apps/records/models/forms.py`
 - `backend/apps/records/models/exports.py`
 - `backend/apps/records/models/paths.py`
 
-Os imports públicos antigos continuam funcionando via fachada.
+Os imports públicos antigos continuam funcionando via fachadas.
 
 ## Validação recomendada
 
