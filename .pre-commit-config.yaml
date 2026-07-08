@@ -19,14 +19,20 @@ repos:
         exclude: |
           (?x)^(
             backend/apps/billing/.*|
-            backend/apps/patients/api/views/legacy_views\.py
+            backend/apps/patients/api/views/legacy_views\.py|
+            backend/elo_terapeutico/settings/base\.py|
+            backend/elo_terapeutico/settings/prod\.py|
+            backend/elo_terapeutico/urls\.py
           )$
       - id: ruff-format
         files: ^backend/
         exclude: |
           (?x)^(
             backend/apps/billing/.*|
-            backend/apps/patients/api/views/legacy_views\.py
+            backend/apps/patients/api/views/legacy_views\.py|
+            backend/elo_terapeutico/settings/base\.py|
+            backend/elo_terapeutico/settings/prod\.py|
+            backend/elo_terapeutico/urls\.py
           )$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
