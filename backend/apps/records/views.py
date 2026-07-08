@@ -3,12 +3,14 @@ apps/records/views.py
 Views e ViewSets para o app de Prontuários Eletrônicos (Records).
 """
 
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
+from apps.patients.permissions import can_access_patient, patient_access_q
 from core.audit import AuditLogMixin, AuditLog, log_access
 from .models import Anamnesis, Evolution
 from .serializers import (
@@ -36,9 +38,9 @@ class AnamnesisView(generics.GenericAPIView):
         # Obter o paciente ou retornar 404
         patient = get_object_or_404(Patient, id=patient_id)
 
-        # Validar permissão: apenas o terapeuta responsável ou admin
+        # Validar permissão: apenas o terapeuta responsável, admin ou vinculado
         user = self.request.user
-        if not user.is_admin_role and patient.therapist != user:
+        if not can_access_patient(user, patient):
             self.permission_denied(
                 self.request,
                 message="Você não tem permissão para acessar o prontuário deste paciente.",
@@ -123,25 +125,32 @@ class EvolutionViewSet(AuditLogMixin, viewsets.ModelViewSet):
         if user.is_anonymous:
             return Evolution.objects.none()
 
-        patient_id = self.request.query_params.get("patient")
-        if not patient_id:
-            # Caso não informe o paciente, admin vê tudo; terapeuta só vê as criadas por ele
-            if user.is_admin_role:
-                return Evolution.objects.all()
-            return Evolution.objects.filter(created_by=user)
+        queryset = Evolution.objects.all()
 
-        from apps.patients.models import Patient
-
-        patient = get_object_or_404(Patient, id=patient_id)
-
-        # Apenas o terapeuta dono ou admin pode ver evoluções do paciente
-        if not user.is_admin_role and patient.therapist != user:
-            self.permission_denied(
-                self.request,
-                message="Você não tem permissão para acessar o prontuário deste paciente.",
+        # Filtro de confidencialidade global:
+        # Se não tiver permissão especial, só vê se não for confidencial OU se for o autor.
+        if not user.has_perm("records.view_confidential_evolution"):
+            queryset = queryset.filter(
+                Q(is_confidential=False) | Q(created_by=user)
             )
 
-        return Evolution.objects.filter(patient=patient)
+        patient_id = self.request.query_params.get("patient")
+        from apps.patients.models import Patient
+
+        if not patient_id:
+            # Caso não informe o paciente, admin vê tudo (já filtrado por confidencialidade);
+            # terapeuta só vê as que ele tem acesso pelo vínculo com pacientes.
+            if user.is_admin_role:
+                return queryset
+            return queryset.filter(patient__in=Patient.objects.filter(patient_access_q(user)))
+
+        # Garante que o paciente existe e o usuário tem acesso a ele
+        patient = get_object_or_404(
+            Patient.objects.filter(patient_access_q(user)),
+            id=patient_id
+        )
+
+        return queryset.filter(patient=patient)
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -163,8 +172,9 @@ class EvolutionViewSet(AuditLogMixin, viewsets.ModelViewSet):
         instance = self.get_object()
         user = self.request.user
 
-        # Apenas o terapeuta que criou ou admin pode atualizar a evolução
-        if not user.is_admin_role and instance.created_by != user:
+        # Apenas o terapeuta que criou pode atualizar a evolução.
+        # Admin não deve alterar registros clínicos de terceiros.
+        if instance.created_by != user:
             self.permission_denied(
                 self.request,
                 message="Somente o terapeuta que criou esta evolução pode editá-la.",

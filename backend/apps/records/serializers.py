@@ -19,6 +19,7 @@ serializers simplesmente lêem e escrevem texto puro — a criptografia
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from apps.patients.permissions import can_access_patient
 from .models import Anamnesis, Evolution, EvolutionAddendum
 
 User = get_user_model()
@@ -82,17 +83,16 @@ class AnamnesisSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """
         Valida que a anamnese não está sendo criada para um paciente
-        de terapeuta diferente do usuário logado.
+        sem que o usuário tenha permissão de acesso.
         """
         request = self.context.get("request")
         patient = attrs.get("patient")
-        if request and patient and not request.user.is_admin_role:
-            if patient.therapist != request.user:
-                raise serializers.ValidationError(
-                    {
-                        "patient_id": "Você não tem permissão para criar anamnese para este paciente."
-                    }
-                )
+        if request and patient and not can_access_patient(request.user, patient):
+            raise serializers.ValidationError(
+                {
+                    "patient_id": "Você não tem permissão para criar anamnese para este paciente."
+                }
+            )
         return attrs
 
 
@@ -238,17 +238,16 @@ class EvolutionCreateSerializer(serializers.ModelSerializer):
         patient = attrs.get("patient")
         session_date = attrs.get("session_date")
 
-        # Verificação 1: paciente pertence ao terapeuta logado
-        if request and patient and not request.user.is_admin_role:
-            if patient.therapist != request.user:
-                raise serializers.ValidationError(
-                    {
-                        "patient": (
-                            "Você não tem permissão para registrar evoluções "
-                            "para este paciente."
-                        )
-                    }
-                )
+        # Verificação 1: o usuário tem acesso ao paciente
+        if request and patient and not can_access_patient(request.user, patient):
+            raise serializers.ValidationError(
+                {
+                    "patient": (
+                        "Você não tem permissão para registrar evoluções "
+                        "para este paciente."
+                    )
+                }
+            )
 
         # Verificação 2: duplicata por data
         if patient and session_date:
