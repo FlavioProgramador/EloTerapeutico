@@ -6,6 +6,8 @@ Este módulo mantém apenas configuração comum do DRF.
 
 from rest_framework import viewsets
 
+from core.audit import AuditLogMixin
+
 from ..filters import FinancialTransactionFilter
 from ..permissions import FinancialPermission
 from ..serializers import (
@@ -16,7 +18,7 @@ from ..serializers import (
 )
 
 
-class TransactionViewSet(viewsets.ModelViewSet):
+class TransactionViewSet(AuditLogMixin, viewsets.ModelViewSet):
     """Base para gestão de transações financeiras."""
 
     permission_classes = [FinancialPermission]

@@ -10,6 +10,8 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from core.audit import AuditLogMixin
+
 from .filters import PatientFilter
 from .models import Patient
 from .serializers import (
@@ -42,7 +44,7 @@ class PatientPermission(IsAuthenticated):
         return obj.therapist == user
 
 
-class PatientViewSet(viewsets.ModelViewSet):
+class PatientViewSet(AuditLogMixin, viewsets.ModelViewSet):
     """Gerenciamento de pacientes com isolamento por profissional."""
 
     permission_classes = [PatientPermission]
@@ -89,9 +91,7 @@ class PatientViewSet(viewsets.ModelViewSet):
         patient.status = Patient.Status.INACTIVE
         patient.is_active = False
         patient.deleted_at = timezone.now()
-        patient.save(
-            update_fields=["status", "is_active", "deleted_at", "updated_at"]
-        )
+        patient.save(update_fields=["status", "is_active", "deleted_at", "updated_at"])
         return Response(
             {"detail": "Paciente desativado com sucesso."},
             status=status.HTTP_200_OK,
@@ -124,10 +124,14 @@ class PatientViewSet(viewsets.ModelViewSet):
 
             appointments_qs = Appointment.objects.filter(patient=patient)
             appointment_count = appointments_qs.count()
-            last_appointment = appointments_qs.filter(
-                status="confirmed",
-                start_time__lte=timezone.now(),
-            ).order_by("-start_time").first()
+            last_appointment = (
+                appointments_qs.filter(
+                    status="confirmed",
+                    start_time__lte=timezone.now(),
+                )
+                .order_by("-start_time")
+                .first()
+            )
             if last_appointment:
                 last_session_date = last_appointment.start_time
         except ImportError:
@@ -137,11 +141,14 @@ class PatientViewSet(viewsets.ModelViewSet):
         try:
             from apps.financeiro.models import FinancialTransaction
 
-            total_paid = FinancialTransaction.objects.filter(
-                patient=patient,
-                transaction_type="income",
-                payment_status="paid",
-            ).aggregate(total=models.Sum("amount"))["total"] or 0
+            total_paid = (
+                FinancialTransaction.objects.filter(
+                    patient=patient,
+                    transaction_type="income",
+                    payment_status="paid",
+                ).aggregate(total=models.Sum("amount"))["total"]
+                or 0
+            )
         except ImportError:
             pass
 
