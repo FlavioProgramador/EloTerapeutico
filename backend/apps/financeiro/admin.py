@@ -40,8 +40,8 @@ class FinancialTransactionAdmin(ModelAdmin):
         ("payment_status", ChoicesDropdownFilter),
         ("payment_method", ChoicesDropdownFilter),
         ("category", ChoicesDropdownFilter),
-        "source",
-        "is_recurring",
+        ("source", ChoicesDropdownFilter),
+        ("is_recurring", ChoicesDropdownFilter),
         ("due_date", RangeDateFilter),
         ("created_at", RangeDateFilter),
     )

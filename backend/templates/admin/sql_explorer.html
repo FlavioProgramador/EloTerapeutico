@@ -97,6 +97,9 @@
                         <h3 class="text-sm font-semibold text-font-important-light dark:text-font-important-dark">
                             Resultados ({{ rows|length }} registros)
                         </h3>
+                        <button type="button" onclick="exportTableToCSV('resultados_sql.csv')" class="bg-primary-600 hover:bg-primary-700 text-white px-3 py-1.5 rounded text-xs font-medium transition dark:bg-primary-500 dark:hover:bg-primary-600 flex items-center gap-1 shadow-sm">
+                            <span class="material-symbols-outlined text-xs">download</span> Exportar CSV
+                        </button>
                     </div>
                     <div class="overflow-x-auto max-h-[500px]">
                         <table class="w-full text-left border-collapse text-xs font-mono">
@@ -208,5 +211,36 @@ JOIN users_user u ON p.therapist_id = u.id;</pre>
             cm.getTextArea().form.submit();
         }
     });
+
+    // Função para exportar a tabela de resultados para CSV (ignorando a coluna de índice #)
+    function exportTableToCSV(filename) {
+        var csv = [];
+        var rows = document.querySelectorAll("table tr");
+        
+        for (var i = 0; i < rows.length; i++) {
+            var row = [], cols = rows[i].querySelectorAll("td, th");
+            
+            // Pula a primeira coluna (j = 0) que é o índice sequencial '#'
+            for (var j = 1; j < cols.length; j++) {
+                var text = cols[j].innerText || cols[j].textContent;
+                var data = text.replace(/"/g, '""').trim();
+                if (data === "NULL") data = "";
+                row.push('"' + data + '"');
+            }
+            if (row.length > 0) {
+                csv.push(row.join(","));
+            }
+        }
+
+        // Adiciona caractere BOM (\ufeff) para o Excel abrir com acentos corretos
+        var csvFile = new Blob(["\ufeff" + csv.join("\n")], {type: "text/csv;charset=utf-8;"});
+        var downloadLink = document.createElement("a");
+        downloadLink.download = filename;
+        downloadLink.href = window.URL.createObjectURL(csvFile);
+        downloadLink.style.display = "none";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    }
 </script>
 {% endblock %}
