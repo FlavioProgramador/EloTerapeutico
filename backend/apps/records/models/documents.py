@@ -6,7 +6,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from apps.core.fields import EncryptedTextField
+from core.fields import EncryptedTextField
 
 from .paths import clinical_document_path
 
