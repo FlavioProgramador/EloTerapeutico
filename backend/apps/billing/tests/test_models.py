@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.test import TestCase
 
 from apps.billing.models import Payment, Plan, Subscription, WebhookEvent
@@ -43,7 +43,7 @@ class BillingModelTests(TestCase):
             amount="89.90",
             gateway_payment_id="pay_123",
         )
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises(IntegrityError), transaction.atomic():
             Payment.objects.create(
                 subscription=subscription,
                 user=self.user,
@@ -58,7 +58,7 @@ class BillingModelTests(TestCase):
             payload_hash="abc",
             payload={"event": "PAYMENT_CONFIRMED"},
         )
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises(IntegrityError), transaction.atomic():
             WebhookEvent.objects.create(
                 gateway_name="ASAAS",
                 event_type="PAYMENT_CONFIRMED",
