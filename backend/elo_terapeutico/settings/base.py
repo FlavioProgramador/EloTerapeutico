@@ -82,12 +82,12 @@ UNFOLD = {
                     {
                         "title": "Evoluções (Prontuário)",
                         "icon": "description",
-                        "link": "/admin/records/evolutionclinicaldata/",
+                        "link": "/admin/records/evolution/",
                     },
                     {
                         "title": "Anamneses",
                         "icon": "assignment",
-                        "link": "/admin/records/anamnesisprofile/",
+                        "link": "/admin/records/anamnesis/",
                     },
                 ],
             },
