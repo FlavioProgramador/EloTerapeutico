@@ -13,27 +13,35 @@
     position: relative
 }
 
+/* ── Eyebrow ── */
 .landing-eyebrow {
     display: inline-flex;
     align-items: center;
     gap: .5rem;
-    border: 1px solid hsl(var(--accent)/.2);
+    border: 1px solid hsl(var(--accent)/.25);
     border-radius: 999px;
     background: hsl(var(--accent)/.08);
     padding: .48rem .82rem;
     color: hsl(var(--accent));
-    font-size: .68rem;
+    font-size: var(--text-xs);
     font-weight: 800;
     letter-spacing: .12em;
     text-transform: uppercase
 }
 
+/* ── Header ── */
 .site-header {
     position: sticky;
     top: 0;
     z-index: 80;
     border-bottom: 1px solid hsl(var(--border)/.75);
-    background: hsl(var(--background)/.96)
+    background: hsl(var(--background)/.96);
+    transition: height .3s ease, box-shadow .3s ease
+}
+
+.site-header--scrolled {
+    height: 4rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,.08)
 }
 
 .site-header__inner {
@@ -43,7 +51,12 @@
     max-width: 80rem;
     height: 4.8rem;
     margin: auto;
-    padding: 0 1.25rem
+    padding: 0 1.25rem;
+    transition: height .3s ease
+}
+
+.site-header--scrolled .site-header__inner {
+    height: 4rem
 }
 
 .site-header__nav {
@@ -57,7 +70,7 @@
     border-radius: .7rem;
     padding: .65rem .85rem;
     color: hsl(var(--muted-foreground));
-    font-size: .82rem;
+    font-size: var(--text-sm);
     font-weight: 700;
     transition: color .2s ease, background .2s ease
 }
@@ -79,18 +92,19 @@
     align-items: center;
     gap: .5rem;
     border-radius: .8rem;
-    background: hsl(var(--primary));
+    background: hsl(var(--accent));
     padding: .78rem 1.1rem;
-    color: hsl(var(--primary-foreground));
-    font-size: .82rem;
+    color: #fff;
+    font-size: var(--text-sm);
     font-weight: 850;
-    box-shadow: 0 10px 28px hsl(var(--foreground)/.08);
-    transition: transform .2s ease, filter .2s ease
+    box-shadow: 0 10px 28px hsl(var(--accent)/.18);
+    transition: transform .2s ease, filter .2s ease, box-shadow .2s ease
 }
 
 .site-header__cta:hover {
     transform: translateY(-1px);
-    filter: brightness(1.04)
+    filter: brightness(1.08);
+    box-shadow: 0 14px 32px hsl(var(--accent)/.28)
 }
 
 .site-header__cta svg {
@@ -153,8 +167,8 @@
 }
 
 .site-header__mobile>div a:last-child {
-    background: hsl(var(--primary));
-    color: hsl(var(--primary-foreground))
+    background: hsl(var(--accent));
+    color: #fff
 }
 
 .site-header__skip {
@@ -173,10 +187,11 @@
     top: 1rem
 }
 
+/* ── Focus & reset ── */
 .landing-page a:focus-visible,
 .landing-page button:focus-visible,
 .landing-page summary:focus-visible {
-    outline: 2px solid hsl(var(--ring));
+    outline: 2px solid hsl(var(--accent));
     outline-offset: 3px
 }
 

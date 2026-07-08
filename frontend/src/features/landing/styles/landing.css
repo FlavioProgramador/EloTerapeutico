@@ -1,4 +1,5 @@
 @import "./foundation.css";
+@import "./elo-signature.css";
 @import "./hero-main.css";
 @import "./hero-media.css";
 @import "./benefit-rail.css";
@@ -10,5 +11,6 @@
 @import "./module-stories-visuals.css";
 @import "./value.css";
 @import "./trust.css";
+@import "./new-sections.css";
 @import "./faq-final-footer.css";
 @import "./responsive.css";

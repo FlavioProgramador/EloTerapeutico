@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, ShieldCheck } from "lucide-react";
 import { Brand } from "./brand";
 
 const columns = [
@@ -16,7 +16,7 @@ const columns = [
     title: "Acesso",
     links: [
       ["Entrar", "/login"],
-      ["Criar conta", "/register"],
+      ["Testar grátis", "/register"],
       ["Recuperar senha", "/forgot-password"],
     ],
   },
@@ -64,6 +64,10 @@ export function SiteFooter() {
 
       <div className="site-footer__bottom">
         <span>© {new Date().getFullYear()} Elo Terapêutico.</span>
+        <span className="site-footer__lgpd">
+          <ShieldCheck aria-hidden="true" />
+          Em conformidade com a LGPD
+        </span>
         <span>Produto digital em desenvolvimento.</span>
       </div>
     </footer>

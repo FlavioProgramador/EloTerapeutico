@@ -388,6 +388,64 @@ body {
   filter: hue-rotate(-90deg);
 }
 
+/*
+ * ============================================================
+ * Landing Page Palette — "Consultório ao Entardecer"
+ * Scoped under .landing-page to avoid dashboard regression.
+ * ============================================================
+ */
+.landing-page {
+  --background: 87 22% 95%;          /* Papel Névoa #F6F7F2 */
+  --background-dark: 172 46% 11%;    /* Tinta Elo Escura #0B2725 */
+  --foreground: 147 30% 12%;         /* Grafite-Musgo #16241F */
+  --card: 87 14% 97%;
+  --card-foreground: 147 30% 12%;
+  --secondary: 142 24% 90%;          /* Sálvia suave */
+  --secondary-foreground: 147 30% 18%;
+  --muted: 87 16% 92%;
+  --muted-foreground: 147 12% 42%;
+  --primary: 177 57% 15%;            /* Tinta Elo #123C3B */
+  --primary-hover: 177 57% 20%;
+  --primary-foreground: 130 10% 93%; /* Papel Névoa 90% #EFF3EE */
+  --accent: 31 67% 55%;              /* Âmbar Terroso #D98E3F */
+  --accent-foreground: 147 30% 12%;
+  --sage: 142 24% 57%;               /* Sálvia #7FA592 */
+  --blush: 12 58% 79%;               /* Argila Rosada #E8B4A8 */
+  --text-on-dark: 130 10% 93%;       /* #EFF3EE */
+  --border: 147 18% 88%;
+  --border-strong: 147 18% 78%;
+  --ring: 31 67% 55%;
+  --input: 147 18% 88%;
+
+  /* Type scale */
+  --text-xs: 0.6875rem;
+  --text-sm: 0.8125rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.5rem;
+  --text-4xl: clamp(3rem, 5vw, 4rem);
+}
+
+.landing-page h1,
+.landing-page h2,
+.landing-page h3 {
+  font-family: var(--font-display), Georgia, serif;
+}
+
+.landing-page p,
+.landing-page li,
+.landing-page span {
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+.landing-page .metric,
+.landing-page .stat-number,
+.landing-page [data-mono] {
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;

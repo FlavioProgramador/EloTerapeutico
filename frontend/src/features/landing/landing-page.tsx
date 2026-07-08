@@ -1,15 +1,17 @@
-import { BenefitRail } from "./benefit-rail";
+import { SiteHeader } from "./site-header";
+import { Hero } from "./hero";
+import { ProblemSection } from "./problem-section";
+import { ModuleStories } from "./module-stories";
+import { Journey } from "./journey";
+import { ValueSection } from "./value-section";
+import { SocialProof } from "./social-proof";
+import { Testimonials } from "./testimonials";
+import { TrustSection } from "./trust-section";
+import { Pricing } from "./pricing";
 import { Faq } from "./faq";
 import { FinalCta } from "./final-cta";
-import { Hero } from "./hero";
-import { Journey } from "./journey";
-import { ModuleStories } from "./module-stories";
-import { ProblemSection } from "./problem-section";
-import { ProductStage } from "./product-stage";
 import { SiteFooter } from "./site-footer";
-import { SiteHeader } from "./site-header";
-import { TrustSection } from "./trust-section";
-import { ValueSection } from "./value-section";
+import { EloDivider } from "./elo-svg";
 
 export function LandingPage() {
   return (
@@ -17,13 +19,15 @@ export function LandingPage() {
       <SiteHeader />
       <main>
         <Hero />
-        <BenefitRail />
         <ProblemSection />
-        <ProductStage />
-        <Journey />
         <ModuleStories />
+        <EloDivider />
+        <Journey />
         <ValueSection />
+        <SocialProof />
+        <Testimonials />
         <TrustSection />
+        <Pricing />
         <Faq />
         <FinalCta />
       </main>

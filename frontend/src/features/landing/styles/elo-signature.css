@@ -1,0 +1,33 @@
+/* ── Elo SVG Signature ── */
+
+.elo-svg {
+    display: block
+}
+
+/* ── Section Divider ── */
+
+.elo-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .6rem;
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 0 1.25rem
+}
+
+.elo-divider__line {
+    display: block;
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--accent)/.35), transparent);
+    transform-origin: left center
+}
+
+.elo-divider__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: hsl(var(--accent));
+    box-shadow: 0 0 12px hsl(var(--accent)/.4)
+}

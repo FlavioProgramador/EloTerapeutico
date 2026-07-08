@@ -17,9 +17,9 @@
 
 .journey-section__heading h2 {
     margin: 1.35rem 0 1rem;
-    font-size: clamp(2.5rem, 5vw, 4.2rem);
+    font-size: clamp(2.2rem, 4.5vw, 3.8rem);
     line-height: 1.06;
-    letter-spacing: -.045em
+    letter-spacing: -0.04em
 }
 
 .journey-section__heading p {
@@ -28,16 +28,18 @@
     line-height: 1.8
 }
 
+/* ── Connecting line between steps ── */
+
 .journey-line {
     position: absolute;
     left: 8%;
     right: 8%;
     top: 19.7rem;
     height: 1px;
-    background: linear-gradient(90deg, transparent, hsl(var(--accent)/.42), hsl(var(--accent)/.15), hsl(var(--accent)/.42), transparent)
+    background: linear-gradient(90deg, transparent, hsl(var(--accent) / 0.35), hsl(var(--accent) / 0.12), hsl(var(--accent) / 0.35), transparent)
 }
 
-.journey-line:after {
+.journey-line::after {
     content: "";
     position: absolute;
     left: 0;
@@ -60,7 +62,12 @@
     position: relative;
     min-height: 15rem;
     padding: 2rem 1.4rem 1.4rem;
-    border-top: 1px solid hsl(var(--border))
+    border-top: 1px solid hsl(var(--border));
+    transition: transform .2s ease
+}
+
+.journey-step:hover {
+    transform: translateY(-2px)
 }
 
 .journey-step--lower {
@@ -71,10 +78,10 @@
     position: absolute;
     right: .2rem;
     top: .9rem;
-    color: hsl(var(--accent)/.28);
+    color: hsl(var(--accent) / 0.2);
     font-size: 3.1rem;
     font-weight: 800;
-    letter-spacing: -.06em
+    letter-spacing: -0.06em
 }
 
 .journey-step__icon {
@@ -84,11 +91,11 @@
     place-items: center;
     width: 3rem;
     height: 3rem;
-    border: 1px solid hsl(var(--accent)/.25);
+    border: 1px solid hsl(var(--accent) / 0.25);
     border-radius: 50%;
     background: hsl(var(--background));
     color: hsl(var(--accent));
-    box-shadow: 0 0 0 .45rem hsl(var(--background)), 0 0 35px hsl(var(--accent)/.1)
+    box-shadow: 0 0 0 .45rem hsl(var(--background)), 0 0 35px hsl(var(--accent) / 0.08)
 }
 
 .journey-step__icon svg {
@@ -98,13 +105,13 @@
 
 .journey-step h3 {
     margin: 1.5rem 0 .75rem;
-    font-size: 1.15rem
+    font-size: var(--text-xl)
 }
 
 .journey-step p {
     margin: 0;
     color: hsl(var(--muted-foreground));
-    font-size: .82rem;
+    font-size: var(--text-sm);
     line-height: 1.7
 }
 

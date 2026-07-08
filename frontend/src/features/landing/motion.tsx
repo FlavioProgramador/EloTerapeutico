@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, useInView } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface RevealProps {
@@ -42,5 +43,50 @@ export function ParallaxOrb({ className, speed = 28 }: ParallaxOrbProps) {
       animate={reduceMotion ? undefined : { y: [-speed / 3, speed / 3, -speed / 3] }}
       transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
     />
+  );
+}
+
+interface AnimatedCounterProps {
+  target: number;
+  suffix?: string;
+  prefix?: string;
+  duration?: number;
+  className?: string;
+}
+
+export function AnimatedCounter({
+  target,
+  suffix = "",
+  prefix = "",
+  duration = 1.8,
+  className,
+}: AnimatedCounterProps) {
+  const reduceMotion = useReducedMotion();
+  const ref = useRef<HTMLSpanElement>(null);
+  const isInView = useInView(ref, { once: true, amount: 0.5 });
+  const [count, setCount] = useState(reduceMotion ? target : 0);
+
+  useEffect(() => {
+    if (reduceMotion || !isInView) return;
+
+    let startTime: number | null = null;
+    let raf: number;
+
+    const step = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / (duration * 1000), 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.round(eased * target));
+      if (progress < 1) raf = requestAnimationFrame(step);
+    };
+
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [isInView, target, duration, reduceMotion]);
+
+  return (
+    <span ref={ref} className={cn("stat-number", className)} data-mono>
+      {prefix}{count}{suffix}
+    </span>
   );
 }
