@@ -29,7 +29,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: pip
           cache-dependency-path: |
             backend/requirements.txt
@@ -41,7 +41,15 @@ jobs:
       - name: Audit Python dependencies
         id: python_audit
         continue-on-error: true
-        run: pip-audit --progress-spinner off --ignore-vuln CVE-2026-49452 --format json --output pip-audit.json -r requirements.txt
+        shell: bash
+        run: |
+          set +e
+          pip-audit --progress-spinner off --ignore-vuln CVE-2026-49452 --format json --output pip-audit.json -r requirements.txt
+          audit_status=$?
+          if [ ! -f pip-audit.json ]; then
+            printf '[]\n' > pip-audit.json
+          fi
+          exit "$audit_status"
 
       - name: Upload Python audit report
         if: always()
