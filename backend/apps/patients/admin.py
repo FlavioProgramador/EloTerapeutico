@@ -225,7 +225,12 @@ class PatientAdmin(ModelAdmin):
         ),
     ]
 
-    actions = ["action_soft_delete", "action_restore", "action_mark_active", "action_mark_inactive"]
+    actions = [
+        "action_soft_delete",
+        "action_restore",
+        "action_mark_active",
+        "action_mark_inactive",
+    ]
 
     @admin.action(description="Arquivar pacientes selecionados")
     def action_soft_delete(self, request, queryset):
@@ -237,7 +242,11 @@ class PatientAdmin(ModelAdmin):
         for patient in queryset.filter(deleted_at__isnull=True):
             patient.soft_delete()
             count += 1
-        self.message_user(request, f"{count} paciente(s) arquivado(s).", messages.SUCCESS)
+        self.message_user(
+            request,
+            f"{count} paciente(s) arquivado(s).",
+            messages.SUCCESS,
+        )
 
     @admin.action(description="Restaurar pacientes selecionados")
     def action_restore(self, request, queryset):
@@ -252,7 +261,11 @@ class PatientAdmin(ModelAdmin):
         ):
             patient.restore()
             count += 1
-        self.message_user(request, f"{count} paciente(s) restaurado(s).", messages.SUCCESS)
+        self.message_user(
+            request,
+            f"{count} paciente(s) restaurado(s).",
+            messages.SUCCESS,
+        )
 
     @admin.action(description="Marcar pacientes como ativos")
     def action_mark_active(self, request, queryset):
