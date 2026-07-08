@@ -66,14 +66,14 @@ function MetricCard({ title, value, note, icon: Icon, tone = "primary" }: { titl
     danger: "bg-danger/10 text-danger",
   };
   return (
-    <Card className="overflow-hidden border-primary/10 bg-card/95">
+    <Card className="overflow-hidden border-primary/10 bg-card/95 transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 cursor-default">
       <CardContent className="flex min-h-28 items-start justify-between p-5">
         <div>
           <p className="text-xs font-semibold text-muted-foreground">{title}</p>
           <p className="mt-3 text-2xl font-bold tracking-tight text-foreground">{value}</p>
           {note && <p className="mt-1 text-[11px] text-muted-foreground">{note}</p>}
         </div>
-        <span className={cn("grid h-10 w-10 place-items-center rounded-xl", tones[tone])}>
+        <span className={cn("grid h-10 w-10 place-items-center rounded-xl transition-transform duration-200 group-hover:scale-110", tones[tone])}>
           <Icon className="h-4 w-4" />
         </span>
       </CardContent>
@@ -90,47 +90,313 @@ function ChartCard({ title, children, className }: { title: string; children: Re
 }
 
 function BarChart({ points, moneyMode = false }: { points: ChartPoint[]; moneyMode?: boolean }) {
+  const [hovered, setHovered] = useState<string | null>(null);
   const max = Math.max(1, ...points.map((item) => toNumber(item.value)));
   if (!points.some((item) => toNumber(item.value) > 0)) return <EmptyState message="Nenhum dado para exibir neste periodo." />;
   return (
     <div className="flex h-64 items-end gap-3 border-b border-l border-border px-3 pb-8">
       {points.map((item) => {
         const value = toNumber(item.value);
-        return <div key={item.label} className="relative flex h-full flex-1 items-end justify-center"><div className="w-full max-w-14 rounded-t-lg bg-primary/80 shadow-sm shadow-primary/10" style={{ height: `${Math.max(3, (value / max) * 100)}%` }} title={moneyMode ? money.format(value) : String(value)} /><span className="absolute -bottom-7 max-w-20 truncate text-[10px] text-muted-foreground">{item.label}</span></div>;
+        const isHovered = hovered === item.label;
+        const formatted = moneyMode ? money.format(value) : String(value);
+        return (
+          <div
+            key={item.label}
+            className="relative flex h-full flex-1 items-end justify-center"
+            onMouseEnter={() => setHovered(item.label)}
+            onMouseLeave={() => setHovered(null)}
+          >
+            {isHovered && (
+              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-10 whitespace-nowrap rounded-lg bg-foreground px-2.5 py-1.5 text-[11px] font-semibold text-background shadow-lg pointer-events-none">
+                {formatted}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground" />
+              </div>
+            )}
+            <div
+              className={cn(
+                "w-full max-w-14 rounded-t-lg shadow-sm transition-all duration-150",
+                isHovered ? "bg-primary scale-x-105 shadow-primary/30" : "bg-primary/80 shadow-primary/10"
+              )}
+              style={{ height: `${Math.max(3, (value / max) * 100)}%` }}
+            />
+            <span className={cn("absolute -bottom-7 max-w-20 truncate text-[10px] transition-colors", isHovered ? "text-foreground font-semibold" : "text-muted-foreground")}>{item.label}</span>
+          </div>
+        );
       })}
     </div>
   );
 }
 
 function HorizontalBars({ points, moneyMode = false }: { points: ChartPoint[]; moneyMode?: boolean }) {
+  const [hovered, setHovered] = useState<string | null>(null);
   const max = Math.max(1, ...points.map((item) => toNumber(item.value)));
   if (!points.some((item) => toNumber(item.value) > 0)) return <EmptyState message="Nenhum dado para exibir neste periodo." />;
-  return <div className="space-y-4">{points.map((item) => { const value = toNumber(item.value); return <div key={item.label} className="grid gap-1.5"><div className="flex items-center justify-between gap-3 text-xs"><span className="truncate text-muted-foreground">{item.label}</span><strong>{moneyMode ? money.format(value) : value}</strong></div><div className="h-2 overflow-hidden rounded-full bg-secondary"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(2, (value / max) * 100)}%` }} /></div></div>; })}</div>;
+  return (
+    <div className="space-y-4">
+      {points.map((item) => {
+        const value = toNumber(item.value);
+        const isHovered = hovered === item.label;
+        return (
+          <div
+            key={item.label}
+            className={cn("grid gap-1.5 rounded-lg p-1.5 -mx-1.5 transition-colors duration-150", isHovered && "bg-primary/5")}
+            onMouseEnter={() => setHovered(item.label)}
+            onMouseLeave={() => setHovered(null)}
+          >
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <span className={cn("truncate transition-colors", isHovered ? "text-foreground font-semibold" : "text-muted-foreground")}>{item.label}</span>
+              <strong className={cn("transition-colors", isHovered && "text-primary")}>{moneyMode ? money.format(value) : value}</strong>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-secondary">
+              <div
+                className={cn("h-full rounded-full transition-all duration-300", isHovered ? "bg-primary" : "bg-primary/70")}
+                style={{ width: `${Math.max(2, (value / max) * 100)}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Helpers para o SVG do gráfico de pizza
+function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
+  const rad = ((angleDeg - 90) * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+function buildArcPath(cx: number, cy: number, outerR: number, innerR: number, startDeg: number, endDeg: number) {
+  // Evita artefatos em 360°
+  const safeEnd = endDeg - startDeg >= 360 ? startDeg + 359.99 : endDeg;
+  const s1 = polarToCartesian(cx, cy, outerR, startDeg);
+  const e1 = polarToCartesian(cx, cy, outerR, safeEnd);
+  const s2 = polarToCartesian(cx, cy, innerR, safeEnd);
+  const e2 = polarToCartesian(cx, cy, innerR, startDeg);
+  const large = safeEnd - startDeg > 180 ? 1 : 0;
+  return `M ${s1.x} ${s1.y} A ${outerR} ${outerR} 0 ${large} 1 ${e1.x} ${e1.y} L ${s2.x} ${s2.y} A ${innerR} ${innerR} 0 ${large} 0 ${e2.x} ${e2.y} Z`;
 }
 
 function DonutChart({ points }: { points: ChartPoint[] }) {
+  const [hovered, setHovered] = useState<number | null>(null);
   const total = points.reduce((sum, item) => sum + toNumber(item.value), 0);
   if (!total) return <EmptyState message="Nenhum dado para exibir neste periodo." />;
+
   const palette = ["hsl(var(--primary))", "hsl(var(--success))", "hsl(var(--warning))", "hsl(var(--danger))", "hsl(var(--muted-foreground))"];
-  const segments = points.map((item, index) => {
-    const start = points.slice(0, index).reduce((sum, current) => sum + (toNumber(current.value) / total) * 100, 0);
-    const end = start + (toNumber(item.value) / total) * 100;
-    return `${palette[index % palette.length]} ${start}% ${end}%`;
+  const cx = 50; const cy = 50; const outerR = 44; const innerR = 27; const popR = 6;
+
+  // Calcula os ângulos de cada fatia
+  let cumAngle = 0;
+  const slices = points.map((item, index) => {
+    const pct = toNumber(item.value) / total;
+    const startDeg = cumAngle;
+    const endDeg = cumAngle + pct * 360;
+    cumAngle = endDeg;
+    const midDeg = startDeg + (endDeg - startDeg) / 2;
+    // Direção do "pop out"
+    const midRad = ((midDeg - 90) * Math.PI) / 180;
+    const dx = Math.cos(midRad) * popR;
+    const dy = Math.sin(midRad) * popR;
+    return { item, index, startDeg, endDeg, midDeg, dx, dy, pct, color: palette[index % palette.length] };
   });
-  return <div className="grid gap-5 md:grid-cols-[12rem_1fr] md:items-center"><div className="mx-auto grid h-44 w-44 place-items-center rounded-full" style={{ background: `conic-gradient(${segments.join(",")})` }}><div className="grid h-24 w-24 place-items-center rounded-full bg-card text-center"><span className="text-2xl font-bold">{total}</span></div></div><div className="space-y-2">{points.map((item, index) => <div key={item.label} className="flex items-center justify-between gap-3 text-xs"><span className="flex items-center gap-2 text-muted-foreground"><i className="h-2.5 w-2.5 rounded-full" style={{ background: palette[index % palette.length] }} />{item.label}</span><strong>{item.value}</strong></div>)}</div></div>;
+
+  const hoveredSlice = hovered !== null ? slices[hovered] : null;
+  const hoveredPoint = hoveredSlice?.item ?? null;
+
+  return (
+    <div className="grid gap-5 md:grid-cols-[12rem_1fr] md:items-center">
+      {/* SVG do donut */}
+      <div className="relative mx-auto h-44 w-44">
+        <svg viewBox="0 0 100 100" className="h-full w-full" style={{ overflow: "visible" }}>
+          {slices.map(({ item, index, startDeg, endDeg, dx, dy, color }) => {
+            const isHovered = hovered === index;
+            const path = buildArcPath(cx, cy, outerR, innerR, startDeg, endDeg);
+            return (
+              <path
+                key={item.label}
+                d={path}
+                fill={color}
+                stroke="hsl(var(--card))"
+                strokeWidth="1.2"
+                style={{
+                  transform: isHovered ? `translate(${dx}px, ${dy}px)` : "translate(0,0)",
+                  transition: "transform 0.2s ease, filter 0.2s ease, opacity 0.15s ease",
+                  filter: isHovered ? "brightness(1.15) drop-shadow(0 4px 8px rgba(0,0,0,0.25))" : hovered !== null ? "opacity(0.6)" : "none",
+                  opacity: hovered !== null && !isHovered ? 0.55 : 1,
+                  cursor: "pointer",
+                }}
+                onMouseEnter={() => setHovered(index)}
+                onMouseLeave={() => setHovered(null)}
+              />
+            );
+          })}
+
+          {/* Centro do donut */}
+          <circle cx={cx} cy={cy} r={innerR - 1} fill="hsl(var(--card))" />
+          {hoveredPoint ? (
+            <>
+              <text x={cx} y={cy - 4} textAnchor="middle" fontSize="10" fontWeight="700" fill="currentColor" className="fill-foreground">{hoveredPoint.value}</text>
+              <text x={cx} y={cy + 7} textAnchor="middle" fontSize="5.5" fill="currentColor" className="fill-muted-foreground">{percent.format((toNumber(hoveredPoint.value) / total) * 100)}%</text>
+            </>
+          ) : (
+            <>
+              <text x={cx} y={cy - 3} textAnchor="middle" fontSize="13" fontWeight="700" fill="currentColor" className="fill-foreground">{total}</text>
+              <text x={cx} y={cy + 8} textAnchor="middle" fontSize="5" fill="currentColor" className="fill-muted-foreground">total</text>
+            </>
+          )}
+        </svg>
+
+        {/* Tooltip flutuante ao hover */}
+        {hoveredSlice && (
+          <div className="pointer-events-none absolute left-1/2 -top-10 -translate-x-1/2 whitespace-nowrap rounded-lg bg-foreground px-3 py-1.5 text-[11px] font-semibold text-background shadow-lg">
+            {hoveredSlice.item.label}: {hoveredSlice.item.value} ({percent.format(hoveredSlice.pct * 100)}%)
+            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground" />
+          </div>
+        )}
+      </div>
+
+      {/* Legenda */}
+      <div className="space-y-2">
+        {slices.map(({ item, index, color, pct }) => (
+          <div
+            key={item.label}
+            className={cn(
+              "flex items-center justify-between gap-3 text-xs rounded-lg px-2 py-1.5 cursor-default transition-all duration-150",
+              hovered === index ? "bg-primary/8 scale-[1.02]" : "hover:bg-muted/40",
+            )}
+            onMouseEnter={() => setHovered(index)}
+            onMouseLeave={() => setHovered(null)}
+          >
+            <span className="flex items-center gap-2 text-muted-foreground">
+              <i
+                className={cn("h-2.5 w-2.5 rounded-full transition-transform duration-150", hovered === index && "scale-125")}
+                style={{ background: color }}
+              />
+              {item.label}
+            </span>
+            <strong className={cn("transition-colors", hovered === index && "text-primary")}>
+              {item.value}{" "}
+              <span className="font-normal text-muted-foreground">({percent.format(pct * 100)}%)</span>
+            </strong>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function TableShell({ children }: { children: React.ReactNode }) {
-  return <div className="overflow-x-auto rounded-xl border border-border/80"><table className="w-full min-w-[760px] text-left text-xs">{children}</table></div>;
+  return (
+    <div className="overflow-x-auto rounded-xl border border-border/80">
+      <table className="w-full min-w-[760px] text-left text-xs">{children}</table>
+    </div>
+  );
+}
+
+function Tr({ children, tone }: { children: React.ReactNode; tone?: "warning" | "danger" | "success" | null }) {
+  const toneBg: Record<string, string> = {
+    warning: "hover:bg-warning/5",
+    danger: "hover:bg-danger/5",
+    success: "hover:bg-success/5",
+  };
+  return (
+    <tr className={cn("transition-colors duration-100 hover:bg-primary/5 cursor-default", tone && toneBg[tone])}>
+      {children}
+    </tr>
+  );
 }
 
 function AppointmentsTab({ data }: { data: AppointmentsReport }) {
   const monthly = data.charts.monthly_evolution.map((row) => ({ label: row.label, value: row.completed + row.cancelled + row.missed }));
-  return <div className="space-y-5"><section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4"><MetricCard title="Total de Atendimentos" value={String(data.kpis.total)} note="Realizados, cancelados e faltas" icon={CalendarDays} /><MetricCard title="Taxa de Comparecimento" value={`${percent.format(data.kpis.attendance_rate)}%`} icon={CalendarDays} tone="success" /><MetricCard title="Taxa de Cancelamento" value={`${percent.format(data.kpis.cancellation_rate)}%`} icon={CalendarDays} tone="danger" /><MetricCard title="Taxa de Falta" value={`${percent.format(data.kpis.miss_rate)}%`} icon={AlertTriangle} tone="warning" /></section><section className="grid gap-4 xl:grid-cols-2"><ChartCard title="Distribuicao de Status"><DonutChart points={data.charts.status_distribution} /></ChartCard><ChartCard title="Atendimentos por Sala"><HorizontalBars points={data.charts.by_room} /></ChartCard><ChartCard title="Atendimentos por Convenio"><HorizontalBars points={data.charts.by_insurance} /></ChartCard><ChartCard title="Horarios Mais Ocupados"><BarChart points={data.charts.busy_hours} /></ChartCard><ChartCard title="Evolucao Mensal" className="xl:col-span-2"><BarChart points={monthly} /></ChartCard></section><ChartCard title={`Lista de Atendimentos (${data.table.count} registros)`}>{data.table.results.length === 0 ? <EmptyState message="Nenhum atendimento encontrado para o periodo selecionado." /> : <TableShell><thead className="bg-secondary/50 text-[10px] uppercase text-muted-foreground"><tr><th className="px-4 py-3">Data</th><th>Horario</th><th>Paciente</th><th>Profissional</th><th>Status</th><th>Sala</th><th>Convenio</th><th className="pr-4 text-right">Valor</th></tr></thead><tbody className="divide-y divide-border">{data.table.results.map((row) => <tr key={row.id}><td className="px-4 py-3 font-medium">{formatDate(row.date)}</td><td>{formatDateTime(row.start_time).split(", ")[1]}</td><td>{row.patient}</td><td>{row.professional}</td><td>{row.status_display}</td><td>{row.room}</td><td>{row.insurance}</td><td className="pr-4 text-right font-semibold">{money.format(row.amount)}</td></tr>)}</tbody></TableShell>}</ChartCard></div>;
+  return (
+    <div className="space-y-5">
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard title="Total de Atendimentos" value={String(data.kpis.total)} note="Realizados, cancelados e faltas" icon={CalendarDays} />
+        <MetricCard title="Taxa de Comparecimento" value={`${percent.format(data.kpis.attendance_rate)}%`} icon={CalendarDays} tone="success" />
+        <MetricCard title="Taxa de Cancelamento" value={`${percent.format(data.kpis.cancellation_rate)}%`} icon={CalendarDays} tone="danger" />
+        <MetricCard title="Taxa de Falta" value={`${percent.format(data.kpis.miss_rate)}%`} icon={AlertTriangle} tone="warning" />
+      </section>
+      <section className="grid gap-4 xl:grid-cols-2">
+        <ChartCard title="Distribuicao de Status"><DonutChart points={data.charts.status_distribution} /></ChartCard>
+        <ChartCard title="Atendimentos por Sala"><HorizontalBars points={data.charts.by_room} /></ChartCard>
+        <ChartCard title="Atendimentos por Convenio"><HorizontalBars points={data.charts.by_insurance} /></ChartCard>
+        <ChartCard title="Horarios Mais Ocupados"><BarChart points={data.charts.busy_hours} /></ChartCard>
+        <ChartCard title="Evolucao Mensal" className="xl:col-span-2"><BarChart points={monthly} /></ChartCard>
+      </section>
+      <ChartCard title={`Lista de Atendimentos (${data.table.count} registros)`}>
+        {data.table.results.length === 0 ? <EmptyState message="Nenhum atendimento encontrado para o periodo selecionado." /> : (
+          <TableShell>
+            <thead className="bg-secondary/50 text-[10px] uppercase text-muted-foreground">
+              <tr><th className="px-4 py-3">Data</th><th>Horario</th><th>Paciente</th><th>Profissional</th><th>Status</th><th>Sala</th><th>Convenio</th><th className="pr-4 text-right">Valor</th></tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {data.table.results.map((row) => (
+                <Tr key={row.id}>
+                  <td className="px-4 py-3 font-medium">{formatDate(row.date)}</td>
+                  <td>{formatDateTime(row.start_time).split(", ")[1]}</td>
+                  <td>{row.patient}</td>
+                  <td>{row.professional}</td>
+                  <td>{row.status_display}</td>
+                  <td>{row.room}</td>
+                  <td>{row.insurance}</td>
+                  <td className="pr-4 text-right font-semibold">{money.format(row.amount)}</td>
+                </Tr>
+              ))}
+            </tbody>
+          </TableShell>
+        )}
+      </ChartCard>
+    </div>
+  );
 }
 
 function PatientsTab({ data, riskDays, onRiskDays }: { data: PatientsReport; riskDays: number; onRiskDays: (value: number) => void }) {
-  return <div className="space-y-5"><section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4"><MetricCard title="Pacientes Ativos" value={String(data.kpis.active_patients)} icon={Users} /><MetricCard title="Novos no Periodo" value={String(data.kpis.new_patients)} icon={Users} /><MetricCard title="Risco de Evasao" value={String(data.kpis.evasion_risk)} note={`${riskDays}+ dias sem agendamento`} icon={AlertTriangle} tone="warning" /><MetricCard title="Taxa de Retencao" value={`${percent.format(data.kpis.retention_rate)}%`} icon={TrendingUp} tone="success" /></section><section className="grid gap-4 xl:grid-cols-2"><ChartCard title="Novos Pacientes por Mes"><BarChart points={data.charts.new_patients_by_month} /></ChartCard><ChartCard title="Ativos vs Inativos"><DonutChart points={data.charts.active_vs_inactive} /></ChartCard><ChartCard title="Pacientes por Profissional"><HorizontalBars points={data.charts.patients_by_professional} /></ChartCard><ChartCard title="Distribuicao por Faixa Etaria"><BarChart points={data.charts.age_distribution} /></ChartCard></section><ChartCard title={`Pacientes em Risco de Evasao (${data.risk.count} registros)`}><div className="mb-4 flex justify-end"><select className="h-9 rounded-lg border border-input bg-card px-3 text-xs" value={riskDays} onChange={(event) => onRiskDays(Number(event.target.value))}><option value={15}>15+ dias sem agendamento</option><option value={30}>30+ dias sem agendamento</option><option value={60}>60+ dias sem agendamento</option><option value={90}>90+ dias sem agendamento</option></select></div>{data.risk.results.length === 0 ? <EmptyState message="Nenhum paciente em risco de evasao com os criterios selecionados." /> : <TableShell><thead className="bg-secondary/50 text-[10px] uppercase text-muted-foreground"><tr><th className="px-4 py-3">Paciente</th><th>Profissional</th><th>Ultimo atendimento</th><th>Proximo agendamento</th><th>Dias sem consulta</th><th>Status</th><th>Contato</th></tr></thead><tbody className="divide-y divide-border">{data.risk.results.map((row) => <tr key={row.id}><td className="px-4 py-3 font-medium">{row.patient}</td><td>{row.professional}</td><td>{formatDate(row.last_appointment)}</td><td>{formatDate(row.next_appointment)}</td><td>{row.days_without_appointment}</td><td>{row.status_display}</td><td>{row.contact || "-"}</td></tr>)}</tbody></TableShell>}</ChartCard></div>;
+  return (
+    <div className="space-y-5">
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard title="Pacientes Ativos" value={String(data.kpis.active_patients)} icon={Users} />
+        <MetricCard title="Novos no Periodo" value={String(data.kpis.new_patients)} icon={Users} />
+        <MetricCard title="Risco de Evasao" value={String(data.kpis.evasion_risk)} note={`${riskDays}+ dias sem agendamento`} icon={AlertTriangle} tone="warning" />
+        <MetricCard title="Taxa de Retencao" value={`${percent.format(data.kpis.retention_rate)}%`} icon={TrendingUp} tone="success" />
+      </section>
+      <section className="grid gap-4 xl:grid-cols-2">
+        <ChartCard title="Novos Pacientes por Mes"><BarChart points={data.charts.new_patients_by_month} /></ChartCard>
+        <ChartCard title="Ativos vs Inativos"><DonutChart points={data.charts.active_vs_inactive} /></ChartCard>
+        <ChartCard title="Pacientes por Profissional"><HorizontalBars points={data.charts.patients_by_professional} /></ChartCard>
+        <ChartCard title="Distribuicao por Faixa Etaria"><BarChart points={data.charts.age_distribution} /></ChartCard>
+      </section>
+      <ChartCard title={`Pacientes em Risco de Evasao (${data.risk.count} registros)`}>
+        <div className="mb-4 flex justify-end">
+          <select className="h-9 rounded-lg border border-input bg-card px-3 text-xs" value={riskDays} onChange={(event) => onRiskDays(Number(event.target.value))}>
+            <option value={15}>15+ dias sem agendamento</option>
+            <option value={30}>30+ dias sem agendamento</option>
+            <option value={60}>60+ dias sem agendamento</option>
+            <option value={90}>90+ dias sem agendamento</option>
+          </select>
+        </div>
+        {data.risk.results.length === 0 ? <EmptyState message="Nenhum paciente em risco de evasao com os criterios selecionados." /> : (
+          <TableShell>
+            <thead className="bg-secondary/50 text-[10px] uppercase text-muted-foreground">
+              <tr><th className="px-4 py-3">Paciente</th><th>Profissional</th><th>Ultimo atendimento</th><th>Proximo agendamento</th><th>Dias sem consulta</th><th>Status</th><th>Contato</th></tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {data.risk.results.map((row) => (
+                <Tr key={row.id} tone="warning">
+                  <td className="px-4 py-3 font-medium">{row.patient}</td>
+                  <td>{row.professional}</td>
+                  <td>{formatDate(row.last_appointment)}</td>
+                  <td>{formatDate(row.next_appointment)}</td>
+                  <td className="font-semibold text-warning">{row.days_without_appointment}d</td>
+                  <td>{row.status_display}</td>
+                  <td>{row.contact || "-"}</td>
+                </Tr>
+              ))}
+            </tbody>
+          </TableShell>
+        )}
+      </ChartCard>
+    </div>
+  );
 }
 
 function FinancialTab({ data }: { data: any }) {
