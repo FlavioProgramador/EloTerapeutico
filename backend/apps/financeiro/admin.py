@@ -146,6 +146,12 @@ class FinancialTransactionAdmin(ModelAdmin):
             messages.SUCCESS,
         )
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if not request.user.is_superuser:
+            qs = qs.filter(therapist=request.user)
+        return qs
+
     @admin.display(description=_("Terapeuta"), ordering="therapist__full_name")
     def therapist_name(self, obj):
         return obj.therapist.full_name

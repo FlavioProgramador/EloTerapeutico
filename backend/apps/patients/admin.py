@@ -8,6 +8,7 @@ from apps.patients.models import Patient
 
 from .admin_parts import (
     AppointmentInline,
+    EvolutionInline,
     FinancialTransactionInline,
     IsMinorFilter,
     PatientAdminActionsMixin,
@@ -20,7 +21,7 @@ from .admin_parts import (
 class PatientAdmin(PatientAdminActionsMixin, PatientAdminDisplayMixin, ModelAdmin):
     """Admin CRM para pacientes, com foco em LGPD e suporte interno."""
 
-    inlines = [AppointmentInline, FinancialTransactionInline]
+    inlines = [EvolutionInline, AppointmentInline, FinancialTransactionInline]
 
     list_display = [
         "photo_avatar",
@@ -202,4 +203,7 @@ class PatientAdmin(PatientAdminActionsMixin, PatientAdminDisplayMixin, ModelAdmi
             super().delete_queryset(request, queryset)
 
     def get_queryset(self, request):
-        return Patient.all_objects.all().select_related("therapist")
+        qs = Patient.all_objects.all().select_related("therapist")
+        if not request.user.is_superuser:
+            qs = qs.filter(therapist=request.user)
+        return qs

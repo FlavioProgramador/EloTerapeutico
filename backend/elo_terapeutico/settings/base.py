@@ -24,6 +24,118 @@ DJANGO_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 ]
+
+from django.templatetags.static import static
+
+UNFOLD = {
+    "SITE_TITLE": "Elo Terapêutico Admin",
+    "SITE_HEADER": "Elo Terapêutico",
+    "SITE_URL": "/",
+    "SITE_ICON": {
+        "light": lambda request: static("img/icon.png"),
+        "dark": lambda request: static("img/icon.png"),
+    },
+    "COLORS": {
+        "primary": {
+            "50": "250 245 237",
+            "100": "243 232 216",
+            "200": "231 206 177",
+            "300": "217 172 128",
+            "400": "205 137 84",
+            "500": "194 108 48",
+            "600": "180 86 40",
+            "700": "150 67 34",
+            "800": "122 55 33",
+            "900": "98 47 29",
+            "950": "53 23 14",
+        },
+    },
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": True,
+        "navigation": [
+            {
+                "title": "Clínica & Prontuários",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Pacientes",
+                        "icon": "person",
+                        "link": "/admin/patients/patient/",
+                    },
+                    {
+                        "title": "Evoluções (Prontuário)",
+                        "icon": "description",
+                        "link": "/admin/records/evolutionclinicaldata/",
+                    },
+                    {
+                        "title": "Anamneses",
+                        "icon": "assignment",
+                        "link": "/admin/records/anamnesisprofile/",
+                    },
+                ],
+            },
+            {
+                "title": "Agenda",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Consultas",
+                        "icon": "calendar_month",
+                        "link": "/admin/agenda/appointment/",
+                    },
+                    {
+                        "title": "Salas Físicas",
+                        "icon": "meeting_room",
+                        "link": "/admin/agenda/room/",
+                    },
+                    {
+                        "title": "Salas de Telemedicina",
+                        "icon": "videocam",
+                        "link": "/admin/agenda/telemedicineroom/",
+                    },
+                ],
+            },
+            {
+                "title": "Financeiro",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Transações",
+                        "icon": "attach_money",
+                        "link": "/admin/financeiro/financialtransaction/",
+                    },
+                ],
+            },
+            {
+                "title": "Administração do Sistema",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Terapeutas / Usuários",
+                        "icon": "manage_accounts",
+                        "link": "/admin/users/user/",
+                    },
+                    {
+                        "title": "Auditoria",
+                        "icon": "security",
+                        "link": "/admin/audit/auditlog/",
+                    },
+                    {
+                        "title": "Documentos (Modelos)",
+                        "icon": "folder",
+                        "link": "/admin/documents/documenttemplate/",
+                    },
+                    {
+                        "title": "Formulários Customizados",
+                        "icon": "dynamic_form",
+                        "link": "/admin/forms/formtemplate/",
+                    },
+                ],
+            },
+        ],
+    },
+}
 THIRD_PARTY_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",

@@ -6,6 +6,29 @@ from unfold.admin import TabularInline
 
 from apps.agenda.models import Appointment
 from apps.financeiro.models import FinancialTransaction
+from apps.records.models import Evolution
+
+
+class EvolutionInline(TabularInline):
+    model = Evolution
+    extra = 0
+    fields = ("session_date", "is_locked", "is_confidential", "edit_link")
+    readonly_fields = ("edit_link", "is_locked")
+    tab = True
+    verbose_name = "Evolução do Prontuário"
+    verbose_name_plural = "Evoluções do Prontuário"
+
+    def edit_link(self, obj):
+        if obj.pk:
+            url = reverse("admin:records_evolution_change", args=[obj.pk])
+            return format_html(
+                '<a href="{}" class="font-medium text-primary-600 dark:text-primary-500 hover:underline">Ver/Editar Evolução</a>',
+                url,
+            )
+        return "—"
+
+    edit_link.short_description = "Ação"
+
 
 
 class AppointmentInline(TabularInline):

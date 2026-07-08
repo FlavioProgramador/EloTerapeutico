@@ -126,6 +126,13 @@ class AppointmentAdmin(ModelAdmin):
             messages.WARNING,
         )
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if not request.user.is_superuser:
+            qs = qs.filter(therapist=request.user)
+        return qs
+
+
 
 @admin.register(AppointmentRecurrence)
 class AppointmentRecurrenceAdmin(ModelAdmin):
