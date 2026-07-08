@@ -35,6 +35,35 @@
                 {% endfor %}
             </div>
 
+            <div class="mt-8 mb-6">
+                <h2 class="font-semibold text-lg text-font-important-light dark:text-font-important-dark">
+                    Ações Rápidas
+                </h2>
+            </div>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-8">
+                <a href="{% url 'admin:patients_patient_add' %}" class="flex items-center gap-3 border border-base-200 rounded-default bg-white p-4 shadow-sm hover:border-primary-500 transition dark:border-base-800 dark:bg-base-900 dark:hover:border-primary-500">
+                    <span class="material-symbols-outlined text-2xl text-primary-600 dark:text-primary-500">person_add</span>
+                    <div>
+                        <strong class="block text-sm font-medium text-font-important-light dark:text-font-important-dark">Cadastrar Paciente</strong>
+                        <span class="text-xs text-font-subtle-light dark:text-font-subtle-dark">Adicionar nova ficha clínica</span>
+                    </div>
+                </a>
+                <a href="{% url 'admin:agenda_appointment_add' %}" class="flex items-center gap-3 border border-base-200 rounded-default bg-white p-4 shadow-sm hover:border-primary-500 transition dark:border-base-800 dark:bg-base-900 dark:hover:border-primary-500">
+                    <span class="material-symbols-outlined text-2xl text-primary-600 dark:text-primary-500">calendar_today</span>
+                    <div>
+                        <strong class="block text-sm font-medium text-font-important-light dark:text-font-important-dark">Marcar Consulta</strong>
+                        <span class="text-xs text-font-subtle-light dark:text-font-subtle-dark">Agendar horário de atendimento</span>
+                    </div>
+                </a>
+                <a href="{% url 'admin:financeiro_financialtransaction_add' %}" class="flex items-center gap-3 border border-base-200 rounded-default bg-white p-4 shadow-sm hover:border-primary-500 transition dark:border-base-800 dark:bg-base-900 dark:hover:border-primary-500">
+                    <span class="material-symbols-outlined text-2xl text-primary-600 dark:text-primary-500">add_card</span>
+                    <div>
+                        <strong class="block text-sm font-medium text-font-important-light dark:text-font-important-dark">Lançar Transação</strong>
+                        <span class="text-xs text-font-subtle-light dark:text-font-subtle-dark">Registrar receita ou despesa</span>
+                    </div>
+                </a>
+            </div>
+
             {% if dashboard_generated_at %}
                 <p class="mt-4 text-xs text-font-subtle-light dark:text-font-subtle-dark">
                     Atualizado em {{ dashboard_generated_at|date:"d/m/Y H:i" }}.

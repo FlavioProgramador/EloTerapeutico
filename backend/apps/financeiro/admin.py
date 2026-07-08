@@ -10,6 +10,7 @@ from django.db.models import Q, Sum
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin
+from unfold.contrib.filters.admin import ChoicesDropdownFilter, RangeDateFilter
 
 from .models import FinancialTransaction
 
@@ -35,14 +36,14 @@ class FinancialTransactionAdmin(ModelAdmin):
     )
     list_display_links = ("id", "therapist_name")
     list_filter = (
-        "transaction_type",
-        "payment_status",
-        "payment_method",
-        "category",
+        ("transaction_type", ChoicesDropdownFilter),
+        ("payment_status", ChoicesDropdownFilter),
+        ("payment_method", ChoicesDropdownFilter),
+        ("category", ChoicesDropdownFilter),
         "source",
         "is_recurring",
-        "due_date",
-        "created_at",
+        ("due_date", RangeDateFilter),
+        ("created_at", RangeDateFilter),
     )
     search_fields = (
         "therapist__full_name",

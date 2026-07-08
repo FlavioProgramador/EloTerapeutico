@@ -13,9 +13,32 @@ from datetime import date
 
 from django.contrib import admin, messages
 from django.utils.html import format_html
-from unfold.admin import ModelAdmin
+from unfold.admin import ModelAdmin, TabularInline
+from unfold.contrib.filters.admin import ChoicesDropdownFilter, RelatedDropdownFilter, RangeDateFilter
+from apps.agenda.models import Appointment
+from apps.financeiro.models import FinancialTransaction
 
 from .models import Patient
+
+
+class AppointmentInline(TabularInline):
+    model = Appointment
+    extra = 0
+    fields = ("start_time", "end_time", "status", "session_value")
+    readonly_fields = ("start_time", "end_time", "status", "session_value")
+    tab = True
+    verbose_name = "Consulta"
+    verbose_name_plural = "Consultas"
+
+
+class FinancialTransactionInline(TabularInline):
+    model = FinancialTransaction
+    extra = 0
+    fields = ("transaction_type", "category", "amount", "payment_status", "due_date")
+    readonly_fields = ("transaction_type", "category", "amount", "payment_status", "due_date")
+    tab = True
+    verbose_name = "Transação Financeira"
+    verbose_name_plural = "Transações Financeiras"
 
 
 class SoftDeletedFilter(admin.SimpleListFilter):
@@ -69,6 +92,8 @@ class IsMinorFilter(admin.SimpleListFilter):
 class PatientAdmin(ModelAdmin):
     """Admin CRM para pacientes, com foco em LGPD e suporte interno."""
 
+    inlines = [AppointmentInline, FinancialTransactionInline]
+
     list_display = [
         "display_name_display",
         "masked_cpf_display",
@@ -82,14 +107,14 @@ class PatientAdmin(ModelAdmin):
     ]
     list_filter = [
         SoftDeletedFilter,
-        "status",
-        "gender",
-        "attendance_type",
-        "modality",
-        "payer_type",
+        ("status", ChoicesDropdownFilter),
+        ("gender", ChoicesDropdownFilter),
+        ("attendance_type", ChoicesDropdownFilter),
+        ("modality", ChoicesDropdownFilter),
+        ("payer_type", ChoicesDropdownFilter),
         IsMinorFilter,
-        "therapist",
-        "created_at",
+        ("therapist", RelatedDropdownFilter),
+        ("created_at", RangeDateFilter),
     ]
     search_fields = [
         "full_name",
