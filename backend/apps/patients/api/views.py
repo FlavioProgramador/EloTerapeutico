@@ -29,17 +29,17 @@ class PatientPermission(IsAuthenticated):
             return False
 
         user = request.user
-        if user.is_admin_role or user.is_therapist:
+        if getattr(user, "is_admin_role", False) or getattr(user, "is_therapist", False):
             return True
-        if user.is_secretary:
+        if getattr(user, "is_secretary", False):
             return request.method in ["GET", "HEAD", "OPTIONS", "POST"]
         return False
 
     def has_object_permission(self, request, view, obj):
         user = request.user
-        if user.is_admin_role:
+        if getattr(user, "is_admin_role", False):
             return True
-        if user.is_secretary:
+        if getattr(user, "is_secretary", False):
             return request.method in ["GET", "HEAD", "OPTIONS"]
         return obj.therapist == user
 
@@ -57,7 +57,7 @@ class PatientViewSet(AuditLogMixin, viewsets.ModelViewSet):
             return Patient.objects.none()
 
         manager = Patient.all_objects if self.action == "restore" else Patient.objects
-        if user.is_admin_role or user.is_secretary:
+        if getattr(user, "is_admin_role", False) or getattr(user, "is_secretary", False):
             return manager.all().order_by("full_name")
         return manager.filter(therapist=user).order_by("full_name")
 
@@ -69,7 +69,7 @@ class PatientViewSet(AuditLogMixin, viewsets.ModelViewSet):
         return PatientDetailSerializer
 
     def perform_create(self, serializer):
-        if self.request.user.is_therapist:
+        if getattr(self.request.user, "is_therapist", False):
             serializer.save(therapist=self.request.user)
         else:
             serializer.save()
