@@ -1,15 +1,16 @@
-import pytest
 from datetime import timedelta
-from django.utils import timezone
-from django.urls import reverse
+
+import pytest
 from django.contrib.auth import get_user_model
+from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from apps.patients.models import Patient
 from apps.records.models import Evolution
 from apps.records.treatment_models import ClinicalExport
 from apps.records.utils import render_markdown_safely, safe_url_fetcher
-from apps.patients.models import Patient
 
 User = get_user_model()
 
@@ -80,9 +81,7 @@ def test_safe_url_fetcher_blocks_everything():
 
 
 @pytest.mark.django_db
-def test_confidential_evolution_isolation(
-    api_client, therapist_user, other_therapist_user, patient_obj
-):
+def test_confidential_evolution_isolation(api_client, therapist_user, other_therapist_user, patient_obj):
     # Cria evolução confidencial pelo therapist_user
     evolution = Evolution.objects.create(
         patient=patient_obj,
@@ -124,9 +123,7 @@ def test_confidential_evolution_isolation(
 
 
 @pytest.mark.django_db
-def test_export_confidential_evolution_permission(
-    api_client, therapist_user, other_therapist_user, patient_obj
-):
+def test_export_confidential_evolution_permission(api_client, therapist_user, other_therapist_user, patient_obj):
     # Cria evolução confidencial pelo therapist_user
     Evolution.objects.create(
         patient=patient_obj,
@@ -144,9 +141,7 @@ def test_export_confidential_evolution_permission(
 
     # Tenta criar solicitação de exportação de prontuário com evolução confidencial criada por outro
     export_url = reverse("patient-exports", kwargs={"patient_id": patient_obj.id})
-    response = api_client.post(
-        export_url, {"export_type": "Completo", "period": "Todo o período"}
-    )
+    response = api_client.post(export_url, {"export_type": "Completo", "period": "Todo o período"})
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
     # Dá permissão de exportar e tenta de novo
@@ -157,9 +152,7 @@ def test_export_confidential_evolution_permission(
     other_therapist_user = User.objects.get(pk=other_therapist_user.id)
     api_client.force_authenticate(user=other_therapist_user)
 
-    response = api_client.post(
-        export_url, {"export_type": "Completo", "period": "Todo o período"}
-    )
+    response = api_client.post(export_url, {"export_type": "Completo", "period": "Todo o período"})
     assert response.status_code == status.HTTP_201_CREATED
 
 

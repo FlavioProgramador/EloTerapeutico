@@ -125,9 +125,8 @@ class TransactionCreateUpdateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"appointment": "Esta consulta não pertence ao seu cadastro."})
 
         status_value = attrs.get("payment_status", getattr(self.instance, "payment_status", None))
-        if (
-            status_value == FinancialTransaction.PaymentStatus.PAID
-            and not attrs.get("paid_at", getattr(self.instance, "paid_at", None))
+        if status_value == FinancialTransaction.PaymentStatus.PAID and not attrs.get(
+            "paid_at", getattr(self.instance, "paid_at", None)
         ):
             attrs["paid_at"] = timezone.now()
         if attrs.get("is_recurring") and not attrs.get(

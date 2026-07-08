@@ -19,9 +19,7 @@ def patient_metrics(queryset) -> dict:
         "active_percentage": round(active / total * 100) if total else 0,
         "discharged": discharged,
         "discharged_percentage": round(discharged / total * 100) if total else 0,
-        "new_current_month": queryset.filter(
-            created_at__date__gte=current_month
-        ).count(),
+        "new_current_month": queryset.filter(created_at__date__gte=current_month).count(),
         "new_previous_month": queryset.filter(
             created_at__date__gte=previous_month,
             created_at__date__lte=previous_month_end,

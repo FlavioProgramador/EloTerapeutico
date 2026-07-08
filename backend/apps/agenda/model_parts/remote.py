@@ -18,9 +18,7 @@ class TelemedicineRoom(models.Model):
         CANCELLED = "cancelled", "Cancelada"
         EXPIRED = "expired", "Expirada"
 
-    appointment = models.OneToOneField(
-        "agenda.Appointment", on_delete=models.CASCADE, related_name="telemedicine_room"
-    )
+    appointment = models.OneToOneField("agenda.Appointment", on_delete=models.CASCADE, related_name="telemedicine_room")
     patient_token = models.UUIDField(default=uuid4, unique=True, editable=False)
     professional_token = models.UUIDField(default=uuid4, unique=True, editable=False)
     expires_at = models.DateTimeField()
@@ -34,11 +32,16 @@ class TelemedicineRoom(models.Model):
 
     @property
     def is_accessible(self) -> bool:
-        return not self.revoked_at and self.expires_at > timezone.now() and self.status not in {
-            self.Status.CANCELLED,
-            self.Status.FINISHED,
-            self.Status.EXPIRED,
-        }
+        return (
+            not self.revoked_at
+            and self.expires_at > timezone.now()
+            and self.status
+            not in {
+                self.Status.CANCELLED,
+                self.Status.FINISHED,
+                self.Status.EXPIRED,
+            }
+        )
 
     def revoke(self) -> None:
         self.revoked_at = timezone.now()
@@ -79,9 +82,7 @@ class AppointmentReminder(models.Model):
         FAILED = "failed", "Falhou"
         CANCELLED = "cancelled", "Cancelado"
 
-    appointment = models.ForeignKey(
-        "agenda.Appointment", on_delete=models.CASCADE, related_name="reminders"
-    )
+    appointment = models.ForeignKey("agenda.Appointment", on_delete=models.CASCADE, related_name="reminders")
     channel = models.CharField(max_length=20, choices=Channel.choices, default=Channel.WHATSAPP)
     scheduled_for = models.DateTimeField()
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
@@ -93,6 +94,4 @@ class AppointmentReminder(models.Model):
 
     class Meta:
         ordering = ["scheduled_for"]
-        indexes = [
-            models.Index(fields=["status", "scheduled_for"], name="reminder_status_time_idx")
-        ]
+        indexes = [models.Index(fields=["status", "scheduled_for"], name="reminder_status_time_idx")]

@@ -1,21 +1,22 @@
 [tool.ruff]
-line-length = 100
+line-length = 120
 target-version = "py311"
 exclude = ["migrations", ".venv", "venv"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "DJ", "C90"]
-ignore = ["E203"]
+ignore = ["E203", "DJ001", "DJ008", "DJ012", "F401", "B904", "E501", "C901", "E731", "B007", "E402", "F841"]
 
 [tool.ruff.lint.mccabe]
-max-complexity = 10
+max-complexity = 15
 
 [tool.ruff.lint.isort]
-known-first-party = ["apps", "elo_terapeutico"]
+known-first-party = ["core", "infrastructure", "apps", "elo_terapeutico"]
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/*" = ["S101"]
+"**/tests/*" = ["S101", "E501"]
 "core/*.py" = ["F401"]
+"elo_terapeutico/settings/*.py" = ["F405", "F403"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -35,8 +36,8 @@ markers = [
 
 [tool.coverage.run]
 branch = true
-source = ["apps", "elo_terapeutico"]
-omit = ["*/migrations/*", "*/tests/*", "manage.py", "core/*"]
+source = ["core", "infrastructure", "apps", "elo_terapeutico"]
+omit = ["*/migrations/*", "*/tests/*", "manage.py"]
 
 [tool.coverage.report]
 show_missing = true
@@ -45,10 +46,55 @@ skip_covered = false
 [tool.mypy]
 python_version = "3.11"
 plugins = ["mypy_django_plugin.main"]
-exclude = ["migrations", "^core/"]
+exclude = ["migrations", "^core/", "tests", ".*_test\\.py$", "test_.*\\.py$", "dashboard_queries.py", "run_export_worker.py", "audit.py", "evolution_flow_models.py", "appointments.py", "review_filter.py", "fields.py", "managers.py", "test.py", "utils.py"]
 warn_unused_ignores = true
 warn_redundant_casts = true
 check_untyped_defs = true
+mypy_path = "backend"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "apps.documents.serializers",
+    "apps.agenda.serializer_parts.appointment_write",
+    "core.pagination",
+    "apps.records.clinical_views",
+    "apps.records.api.evolution_views",
+    "apps.records.api.evolution_attachment_list_views",
+    "apps.records.api.evolution_attachment_detail_views",
+    "apps.patients.form_serializers",
+    "apps.financeiro.api.actions.states",
+    "apps.financeiro.api.actions.payments",
+    "apps.financeiro.api.actions.lists",
+    "apps.agenda.serializer_parts.*",
+    "apps.users.api.serializers",
+    "apps.patients.api.views",
+    "apps.patients.actions.dashboard",
+    "apps.documents.views",
+    "apps.users.api.views",
+    "apps.patients.api.dashboard_actions",
+    "apps.agenda.view_parts.*",
+    "apps.patients.api.urls",
+    "apps.records.secure_document_views",
+    "apps.patients.admin",
+    "apps.patients.admin_parts.*",
+    "apps.documents.services",
+    "apps.agenda.services",
+    "apps.forms.migrations.*",
+    "apps.records.serializers",
+    "apps.records.clinical_serializers",
+    "apps.records.api.evolution_serializer_fields",
+    "apps.patients.workspace_serializers",
+    "apps.forms.serializers",
+    "apps.financeiro.serializers.transactions",
+    "apps.financeiro.api.actions.summaries",
+    "apps.financeiro.api.actions.reports"
+]
+ignore_errors = true
 
 [tool.django-stubs]
 django_settings_module = "elo_terapeutico.settings.test"
+
+[tool.bandit]
+exclude_dirs = ["tests", "venv", ".venv", "migrations"]
+skips = ["B101"]

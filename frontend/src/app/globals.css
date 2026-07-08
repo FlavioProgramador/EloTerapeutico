@@ -33,7 +33,7 @@
   --success: 149 32% 36%;
   --success-soft: 149 32% 95%;
   --success-foreground: 0 0% 100%;
-  
+
   --warning: 31 67% 55%;
   --warning-soft: 31 67% 95%;
   --warning-foreground: 28 90% 12%;
@@ -45,7 +45,7 @@
   --destructive: 15 59% 45%;
   --destructive-soft: 15 59% 95%;
   --destructive-foreground: 0 0% 100%;
-  
+
   /* Danger (mapeado para destrutivo para consistência) */
   --danger: 15 59% 45%;
   --danger-soft: 15 59% 95%;
@@ -108,7 +108,7 @@
   --success: 149 32% 42%; /* Sálvia suave */
   --success-soft: 149 32% 12%;
   --success-foreground: 220 15% 10%;
-  
+
   --warning: 31 75% 55%;
   --warning-soft: 31 75% 12%;
   --warning-foreground: 28 90% 12%;
@@ -120,7 +120,7 @@
   --destructive: 15 67% 55%;
   --destructive-soft: 15 67% 15%;
   --destructive-foreground: 0 0% 100%;
-  
+
   /* Danger */
   --danger: 15 67% 55%;
   --danger-soft: 15 67% 15%;
@@ -163,7 +163,7 @@
   --color-primary-active: hsl(var(--primary-active));
   --color-primary-soft: hsl(var(--primary-soft));
   --color-primary-foreground: hsl(var(--primary-foreground));
-  
+
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
   --color-muted: hsl(var(--muted));
@@ -182,7 +182,7 @@
   --color-info-foreground: hsl(var(--info-foreground));
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
-  
+
   --color-danger: hsl(var(--danger));
   --color-danger-soft: hsl(var(--danger-soft));
 
@@ -190,11 +190,11 @@
   --color-border-strong: hsl(var(--border-strong));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
-  
+
   --color-background-subtle: hsl(var(--background-subtle));
   --color-surface: hsl(var(--surface));
   --color-surface-elevated: hsl(var(--surface-elevated));
-  
+
   --color-text-primary: hsl(var(--text-primary));
   --color-text-secondary: hsl(var(--text-secondary));
   --color-text-muted: hsl(var(--text-muted));

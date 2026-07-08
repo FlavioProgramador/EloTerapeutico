@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from django.db.models import Q
 from django.http import FileResponse
-from django.utils import timezone
 from django_filters import rest_framework as filters
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -12,7 +11,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.core.audit import AuditLog, log_access
+from core.audit import AuditLog, log_access
 
 from .models import DocumentTemplate, GeneratedDocument
 from .placeholders import list_placeholders

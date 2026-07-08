@@ -58,9 +58,7 @@ def _read_rows(uploaded_file) -> list[dict]:
     reader = csv.DictReader(StringIO(content))
     required = {"full_name", "cpf", "birth_date"}
     if not required.issubset(set(reader.fieldnames or [])):
-        raise PatientImportError(
-            "O CSV deve conter as colunas full_name, cpf e birth_date."
-        )
+        raise PatientImportError("O CSV deve conter as colunas full_name, cpf e birth_date.")
     rows = list(reader)
     if not rows:
         raise PatientImportError("O arquivo CSV não possui registros.")
@@ -71,11 +69,7 @@ def _read_rows(uploaded_file) -> list[dict]:
 
 def preview_patient_import(*, uploaded_file, therapist):
     rows = _read_rows(uploaded_file)
-    normalized_cpfs = {
-        re.sub(r"\D", "", _cell(row, "cpf"))
-        for row in rows
-        if _cell(row, "cpf")
-    }
+    normalized_cpfs = {re.sub(r"\D", "", _cell(row, "cpf")) for row in rows if _cell(row, "cpf")}
     existing_cpfs = set(
         Patient.all_objects.filter(cpf__in=normalized_cpfs).values_list(
             "cpf",

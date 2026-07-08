@@ -39,9 +39,7 @@ def recurrence_dates(rule: AppointmentRecurrence, limit: int | None = None):
         if rule.ends_on and current > rule.ends_on:
             break
         include = not (
-            rule.frequency == AppointmentRecurrence.Frequency.CUSTOM
-            and weekdays
-            and current.weekday() not in weekdays
+            rule.frequency == AppointmentRecurrence.Frequency.CUSTOM and weekdays and current.weekday() not in weekdays
         )
         if include:
             yield current
@@ -75,10 +73,7 @@ def create_appointment_resources(
 ) -> None:
     """Cria recursos derivados sem realizar envio externo na requisição."""
     if package:
-        if (
-            package.patient_id != appointment.patient_id
-            or package.therapist_id != appointment.therapist_id
-        ):
+        if package.patient_id != appointment.patient_id or package.therapist_id != appointment.therapist_id:
             raise ValidationError("O pacote não pertence ao paciente e profissional informados.")
         package.consume()
         PackageSession.objects.create(
@@ -106,9 +101,7 @@ def create_appointment_resources(
         AppointmentReminder.objects.create(
             appointment=appointment,
             channel=AppointmentReminder.Channel.WHATSAPP,
-            scheduled_for=max(
-                appointment.start_time - timedelta(hours=24), timezone.now()
-            ),
+            scheduled_for=max(appointment.start_time - timedelta(hours=24), timezone.now()),
             recipient_masked=mask_phone(phone),
         )
 
@@ -176,9 +169,7 @@ def generate_recurrence_appointments(
                 if conflict_strategy == "skip":
                     continue
                 labels = ", ".join(key for key, value in conflicts.items() if value)
-                raise ValidationError(
-                    f"A recorrência possui conflito em {target_date:%d/%m/%Y}: {labels}."
-                )
+                raise ValidationError(f"A recorrência possui conflito em {target_date:%d/%m/%Y}: {labels}.")
 
             appointment = Appointment.objects.create(
                 patient=rule.patient,

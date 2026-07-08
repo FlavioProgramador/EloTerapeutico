@@ -5,21 +5,22 @@ Views e ViewSets para o app de Prontuários Eletrônicos (Records).
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from rest_framework import generics, viewsets, status
+from rest_framework import generics, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from apps.patients.permissions import can_access_patient, patient_access_q
-from core.audit import AuditLogMixin, AuditLog, log_access
+from core.audit import AuditLog, AuditLogMixin, log_access
+
 from .models import Anamnesis, Evolution
 from .serializers import (
     AnamnesisSerializer,
-    EvolutionListSerializer,
-    EvolutionDetailSerializer,
-    EvolutionCreateSerializer,
-    EvolutionUpdateSerializer,
     EvolutionAddendumSerializer,
+    EvolutionCreateSerializer,
+    EvolutionDetailSerializer,
+    EvolutionListSerializer,
+    EvolutionUpdateSerializer,
 )
 
 
@@ -67,9 +68,7 @@ class AnamnesisView(generics.GenericAPIView):
         patient = self._get_patient(patient_id)
         if Anamnesis.objects.filter(patient=patient).exists():
             return Response(
-                {
-                    "detail": "Anamnese já existe para este paciente. Use PUT ou PATCH para atualizar."
-                },
+                {"detail": "Anamnese já existe para este paciente. Use PUT ou PATCH para atualizar."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -130,9 +129,7 @@ class EvolutionViewSet(AuditLogMixin, viewsets.ModelViewSet):
         # Filtro de confidencialidade global:
         # Se não tiver permissão especial, só vê se não for confidencial OU se for o autor.
         if not user.has_perm("records.view_confidential_evolution"):
-            queryset = queryset.filter(
-                Q(is_confidential=False) | Q(created_by=user)
-            )
+            queryset = queryset.filter(Q(is_confidential=False) | Q(created_by=user))
 
         patient_id = self.request.query_params.get("patient")
         from apps.patients.models import Patient
@@ -145,10 +142,7 @@ class EvolutionViewSet(AuditLogMixin, viewsets.ModelViewSet):
             return queryset.filter(patient__in=Patient.objects.filter(patient_access_q(user)))
 
         # Garante que o paciente existe e o usuário tem acesso a ele
-        patient = get_object_or_404(
-            Patient.objects.filter(patient_access_q(user)),
-            id=patient_id
-        )
+        patient = get_object_or_404(Patient.objects.filter(patient_access_q(user)), id=patient_id)
 
         return queryset.filter(patient=patient)
 
@@ -213,9 +207,7 @@ class EvolutionViewSet(AuditLogMixin, viewsets.ModelViewSet):
         # Aditivos só podem ser inseridos se a evolução estiver travada
         if not evolution.is_locked:
             return Response(
-                {
-                    "detail": "A evolução ainda não está bloqueada. Edite o conteúdo principal diretamente."
-                },
+                {"detail": "A evolução ainda não está bloqueada. Edite o conteúdo principal diretamente."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -242,8 +234,6 @@ class EvolutionViewSet(AuditLogMixin, viewsets.ModelViewSet):
         """
         # TODO: Integrar com ReportLab/Weasyprint para geração do PDF criptografado
         return Response(
-            {
-                "detail": "Exportação em PDF do Prontuário Clínico em desenvolvimento (501 Not Implemented)."
-            },
+            {"detail": "Exportação em PDF do Prontuário Clínico em desenvolvimento (501 Not Implemented)."},
             status=status.HTTP_501_NOT_IMPLEMENTED,
         )

@@ -102,4 +102,3 @@ export function ValueSection() {
     </section>
   );
 }
-

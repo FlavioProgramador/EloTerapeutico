@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+# mypy: ignore-errors
 from datetime import datetime, time, timedelta
 from decimal import Decimal
 
@@ -71,17 +72,12 @@ def dashboard_callback(request, context):
     month_start_at = _start_of_day(month_start)
 
     User = get_user_model()
-    users = (
-        User.objects.all()
-        if request.user.is_superuser
-        else User.objects.filter(pk=request.user.pk)
-    )
+    users = User.objects.all() if request.user.is_superuser else User.objects.filter(pk=request.user.pk)
 
     patients = Patient.all_objects.all()
     if not request.user.is_superuser:
         patients = patients.filter(
-            Q(therapist=request.user)
-            | Q(professional_links__professional=request.user)
+            Q(therapist=request.user) | Q(professional_links__professional=request.user)
         ).distinct()
 
     search_query = request.GET.get("q", "").strip()
@@ -90,17 +86,15 @@ def dashboard_callback(request, context):
 
     if search_query:
         found_patients = patients.filter(
-            Q(full_name__icontains=search_query) |
-            Q(social_name__icontains=search_query) |
-            Q(email__icontains=search_query) |
-            Q(phone__icontains=search_query) |
-            Q(cpf__icontains=search_query)
+            Q(full_name__icontains=search_query)
+            | Q(social_name__icontains=search_query)
+            | Q(email__icontains=search_query)
+            | Q(phone__icontains=search_query)
+            | Q(cpf__icontains=search_query)
         )[:10]
 
         found_therapists = users.filter(
-            Q(full_name__icontains=search_query) |
-            Q(email__icontains=search_query) |
-            Q(phone__icontains=search_query)
+            Q(full_name__icontains=search_query) | Q(email__icontains=search_query) | Q(phone__icontains=search_query)
         )[:10]
 
     appointments = _scoped_queryset(

@@ -3,6 +3,8 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils import timezone
 from unfold.admin import ModelAdmin
 
+from core.audit import AuditLog, log_access
+
 from .models import User, WorkingHours
 
 
@@ -61,6 +63,16 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
     @admin.display(description="Bloqueio", boolean=True)
     def locked_status(self, obj):
         return bool(obj.locked_until and obj.locked_until > timezone.now())
+
+    def save_model(self, request, obj, form, change):
+        if "password" in form.changed_data:
+            log_access(
+                request,
+                AuditLog.Action.UPDATE,
+                obj=obj,
+                obj_repr=f"Senha alterada via admin: {obj}",
+            )
+        super().save_model(request, obj, form, change)
 
     @admin.action(description="Ativar usuários selecionados")
     def action_activate_users(self, request, queryset):

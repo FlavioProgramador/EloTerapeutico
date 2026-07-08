@@ -8,7 +8,8 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from core.audit import AuditLog, log_access
+from core.audit import AuditLog, AuditLogMixin, log_access
+
 from ..filters import AppointmentFilter
 from ..models import Appointment, PackageSession, TelemedicineRoom
 from ..serializers import (
@@ -23,7 +24,7 @@ from ..services import release_package_session, sync_package_session_status
 from .base import ScopedAgendaMixin
 
 
-class AppointmentViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
+class AppointmentViewSet(AuditLogMixin, ScopedAgendaMixin, viewsets.ModelViewSet):
     filterset_class = AppointmentFilter
     ordering_fields = ["start_time", "status", "session_value", "created_at"]
     ordering = ["start_time"]
@@ -51,21 +52,18 @@ class AppointmentViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
             return AppointmentCreateSerializer
         if self.action in {"update", "partial_update", "reschedule"}:
             return AppointmentUpdateSerializer
-        if self.action in {
-            "update_status", "confirm", "cancel", "complete", "mark_no_show"
-        }:
+        if self.action in {"update_status", "confirm", "cancel", "complete", "mark_no_show"}:
             return AppointmentStatusUpdateSerializer
         if self.action == "list":
             return AppointmentListSerializer
         return AppointmentDetailSerializer
 
     def perform_create(self, serializer):
-        appointment = serializer.save()
-        log_access(self.request, AuditLog.Action.CREATE, appointment, "Consulta criada")
+        super().perform_create(serializer)
 
     def perform_update(self, serializer):
-        appointment = serializer.save(updated_by=self.request.user)
-        log_access(self.request, AuditLog.Action.UPDATE, appointment, "Consulta atualizada")
+        serializer.save(updated_by=self.request.user)
+        super().perform_update(serializer)
 
     def destroy(self, request, *args, **kwargs):
         appointment = self.get_object()
@@ -77,11 +75,7 @@ class AppointmentViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
         appointment.status = Appointment.Status.CANCELLED
         appointment.cancellation_reason = "Cancelada por exclusão administrativa."
         appointment.updated_by = request.user
-        appointment.save(
-            update_fields=[
-                "status", "cancellation_reason", "updated_by", "updated_at"
-            ]
-        )
+        appointment.save(update_fields=["status", "cancellation_reason", "updated_by", "updated_at"])
         release_package_session(appointment)
         self._cancel_financial_transaction(appointment)
         log_access(
@@ -95,9 +89,7 @@ class AppointmentViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=["patch"], url_path="status")
     def update_status(self, request, pk=None):
         appointment = self.get_object()
-        serializer = self.get_serializer(
-            appointment, data=request.data, partial=True
-        )
+        serializer = self.get_serializer(appointment, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         return self._save_status(serializer, request.data.get("status"))
 
@@ -150,11 +142,7 @@ class AppointmentViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
             appointment,
             f"Status da consulta alterado para {new_status}",
         )
-        return Response(
-            AppointmentDetailSerializer(
-                appointment, context={"request": self.request}
-            ).data
-        )
+        return Response(AppointmentDetailSerializer(appointment, context={"request": self.request}).data)
 
     @action(detail=True, methods=["post"])
     def reschedule(self, request, pk=None):
@@ -174,40 +162,30 @@ class AppointmentViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
         if hasattr(appointment, "package_session"):
             appointment.package_session.scheduled_for = appointment.start_time
             appointment.package_session.status = PackageSession.Status.RESCHEDULED
-            appointment.package_session.save(
-                update_fields=["scheduled_for", "status", "updated_at"]
-            )
+            appointment.package_session.save(update_fields=["scheduled_for", "status", "updated_at"])
         log_access(request, AuditLog.Action.UPDATE, appointment, "Consulta remarcada")
-        return Response(
-            AppointmentDetailSerializer(
-                appointment, context={"request": request}
-            ).data
-        )
+        return Response(AppointmentDetailSerializer(appointment, context={"request": request}).data)
 
     @action(detail=False, methods=["get"])
     def today(self, request):
-        queryset = self.filter_queryset(self.get_queryset()).filter(
-            start_time__date=timezone.localdate()
-        ).order_by("start_time")
+        queryset = (
+            self.filter_queryset(self.get_queryset())
+            .filter(start_time__date=timezone.localdate())
+            .order_by("start_time")
+        )
         return Response(AppointmentListSerializer(queryset, many=True).data)
 
     @action(detail=False, methods=["post"], url_path="check-availability")
     def check_availability(self, request):
-        serializer = CheckAvailabilitySerializer(
-            data=request.data, context={"request": request}
-        )
+        serializer = CheckAvailabilitySerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         therapist = request.user
         therapist_id = serializer.validated_data.get("therapist_id")
         if (request.user.is_admin_role or request.user.is_secretary) and therapist_id:
             from django.contrib.auth import get_user_model
 
-            therapist = get_object_or_404(
-                get_user_model(), pk=therapist_id, role="therapist"
-            )
-        return Response(
-            serializer.get_available_slots(therapist, serializer.validated_data)
-        )
+            therapist = get_object_or_404(get_user_model(), pk=therapist_id, role="therapist")
+        return Response(serializer.get_available_slots(therapist, serializer.validated_data))
 
     @action(detail=False, methods=["get"])
     def export(self, request):
@@ -216,8 +194,14 @@ class AppointmentViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
         writer = csv.writer(buffer)
         writer.writerow(
             [
-                "Data", "Início", "Fim", "Paciente", "Profissional",
-                "Modalidade", "Status", "Sala",
+                "Data",
+                "Início",
+                "Fim",
+                "Paciente",
+                "Profissional",
+                "Modalidade",
+                "Status",
+                "Sala",
             ]
         )
         for item in queryset.iterator():
@@ -235,9 +219,7 @@ class AppointmentViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
                     item.room.name if item.room else "Sem sala",
                 ]
             )
-        response = HttpResponse(
-            buffer.getvalue(), content_type="text/csv; charset=utf-8"
-        )
+        response = HttpResponse(buffer.getvalue(), content_type="text/csv; charset=utf-8")
         response["Content-Disposition"] = 'attachment; filename="agenda.csv"'
         log_access(request, AuditLog.Action.EXPORT, obj_repr="Agenda exportada")
         return response

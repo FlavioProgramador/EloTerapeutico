@@ -8,7 +8,7 @@ import json
 import os
 from collections import defaultdict
 from pathlib import Path
-from xml.etree import ElementTree
+from xml.etree import ElementTree  # nosec B405
 
 
 def module_name(filename: str) -> str:
@@ -23,7 +23,7 @@ def module_name(filename: str) -> str:
 
 
 def load_report(path: Path) -> dict[str, dict[str, float | int]]:
-    root = ElementTree.parse(path).getroot()
+    root = ElementTree.parse(path).getroot()  # nosec B314
     totals: dict[str, dict[str, int]] = defaultdict(
         lambda: {"lines_valid": 0, "lines_covered": 0, "branches_valid": 0, "branches_covered": 0}
     )

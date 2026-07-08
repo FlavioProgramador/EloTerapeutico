@@ -16,11 +16,35 @@ class FormSubmission(models.Model):
 
     form = models.ForeignKey(TherapeuticForm, on_delete=models.PROTECT, related_name="submissions")
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="form_submissions")
-    patient = models.ForeignKey("patients.Patient", null=True, blank=True, on_delete=models.PROTECT, related_name="form_submissions")
-    professional = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="form_submissions_as_professional")
-    appointment = models.ForeignKey("agenda.Appointment", null=True, blank=True, on_delete=models.SET_NULL, related_name="form_submissions")
+    patient = models.ForeignKey(
+        "patients.Patient",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="form_submissions",
+    )
+    professional = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="form_submissions_as_professional",
+    )
+    appointment = models.ForeignKey(
+        "agenda.Appointment",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="form_submissions",
+    )
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.DRAFT, db_index=True)
-    submitted_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="form_submissions_sent")
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="form_submissions_sent",
+    )
     submitted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

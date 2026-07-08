@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from apps.patients.models import Patient
+
 from ..models import AppointmentReminder, PackageSession, Room, TelemedicineRoom
 
 User = get_user_model()
@@ -29,8 +30,15 @@ class RoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
         fields = [
-            "id", "therapist", "therapist_name", "name", "location", "capacity",
-            "is_active", "created_at", "updated_at",
+            "id",
+            "therapist",
+            "therapist_name",
+            "name",
+            "location",
+            "capacity",
+            "is_active",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = ["created_at", "updated_at"]
 
@@ -53,8 +61,15 @@ class AppointmentReminderSerializer(serializers.ModelSerializer):
     class Meta:
         model = AppointmentReminder
         fields = [
-            "id", "appointment", "channel", "scheduled_for", "status",
-            "recipient_masked", "error_message", "sent_at", "created_at",
+            "id",
+            "appointment",
+            "channel",
+            "scheduled_for",
+            "status",
+            "recipient_masked",
+            "error_message",
+            "sent_at",
+            "created_at",
         ]
         read_only_fields = fields
 
@@ -70,9 +85,18 @@ class TelemedicineRoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = TelemedicineRoom
         fields = [
-            "id", "appointment", "appointment_start", "patient_name", "therapist_name",
-            "patient_link", "professional_link", "expires_at", "status",
-            "is_accessible", "created_at", "updated_at",
+            "id",
+            "appointment",
+            "appointment_start",
+            "patient_name",
+            "therapist_name",
+            "patient_link",
+            "professional_link",
+            "expires_at",
+            "status",
+            "is_accessible",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = fields
 
@@ -93,7 +117,14 @@ class PackageSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PackageSession
         fields = [
-            "id", "package", "appointment", "appointment_status", "scheduled_for",
-            "status", "consumed", "created_at", "updated_at",
+            "id",
+            "package",
+            "appointment",
+            "appointment_status",
+            "scheduled_for",
+            "status",
+            "consumed",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = ["created_at", "updated_at"]

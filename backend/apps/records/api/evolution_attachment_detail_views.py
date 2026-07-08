@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.core.audit import AuditLog, log_access
+from core.audit import AuditLog, log_access
 
 from ..clinical_views import ClinicalPatientMixin
 from ..evolution_security import can_view_confidential_evolution
@@ -53,10 +53,7 @@ class EvolutionAttachmentDownloadView(EvolutionAttachmentDetailView):
             stream = document.file.open("rb")
         except FileNotFoundError as exc:
             raise Http404("Arquivo não encontrado no armazenamento.") from exc
-        inline = (
-            request.query_params.get("inline") == "1"
-            and document.content_type.startswith("image/")
-        )
+        inline = request.query_params.get("inline") == "1" and document.content_type.startswith("image/")
         log_access(
             request,
             AuditLog.Action.EXPORT,

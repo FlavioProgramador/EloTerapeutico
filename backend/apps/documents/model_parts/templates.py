@@ -9,7 +9,7 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.core.fields import EncryptedTextField
+from core.fields import EncryptedTextField
 
 
 class DocumentTemplate(models.Model):
@@ -114,8 +114,7 @@ class DocumentTemplate(models.Model):
             ),
             models.CheckConstraint(
                 condition=(
-                    Q(is_library_template=False, owner__isnull=False)
-                    | Q(is_library_template=True, owner__isnull=True)
+                    Q(is_library_template=False, owner__isnull=False) | Q(is_library_template=True, owner__isnull=True)
                 ),
                 name="document_template_scope_consistent",
             ),

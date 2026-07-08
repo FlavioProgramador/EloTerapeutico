@@ -1,5 +1,4 @@
 from datetime import date
-from io import BytesIO
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -83,9 +82,7 @@ def test_metricas_usam_todo_queryset_autorizado(dashboard_context):
 def test_painel_lateral_rejeita_paciente_de_outro_terapeuta(dashboard_context):
     client, _, _, foreign_patient = dashboard_context
 
-    response = client.get(
-        reverse("patient-dashboard", kwargs={"pk": foreign_patient.id})
-    )
+    response = client.get(reverse("patient-dashboard", kwargs={"pk": foreign_patient.id}))
 
     assert response.status_code == 404
 
@@ -95,7 +92,9 @@ def test_exportacao_csv_nao_expoe_cpf_completo(dashboard_context):
     client, _, patient, _ = dashboard_context
 
     response = client.get(reverse("patient-export-csv"))
-    content = b"".join(response.streaming_content).decode("utf-8") if response.streaming else response.content.decode("utf-8")
+    content = (
+        b"".join(response.streaming_content).decode("utf-8") if response.streaming else response.content.decode("utf-8")
+    )
 
     assert response.status_code == 200
     assert patient.cpf not in content

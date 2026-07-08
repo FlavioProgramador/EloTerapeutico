@@ -44,12 +44,8 @@ class FinancialSummaryActions:
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        period_filter = Q(due_date__range=(start_date, end_date)) | Q(
-            paid_at__date__range=(start_date, end_date)
-        )
-        queryset = self.get_queryset().filter(period_filter).exclude(
-            payment_status__in=["cancelled", "refunded"]
-        )
+        period_filter = Q(due_date__range=(start_date, end_date)) | Q(paid_at__date__range=(start_date, end_date))
+        queryset = self.get_queryset().filter(period_filter).exclude(payment_status__in=["cancelled", "refunded"])
 
         open_filter = Q(payment_status__in=["pending", "partial"])
         paid_filter = Q(payment_status="paid")

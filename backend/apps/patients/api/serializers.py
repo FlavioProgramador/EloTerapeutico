@@ -41,9 +41,7 @@ class PatientDetailSerializer(serializers.ModelSerializer):
 
     age = serializers.IntegerField(read_only=True)
     formatted_cpf = serializers.CharField(read_only=True)
-    therapist_name = serializers.CharField(
-        source="therapist.full_name", read_only=True
-    )
+    therapist_name = serializers.CharField(source="therapist.full_name", read_only=True)
 
     class Meta:
         model = Patient
@@ -83,29 +81,22 @@ class PatientDetailSerializer(serializers.ModelSerializer):
 class FlexibleJSONField(serializers.Field):
     def to_internal_value(self, data):
         return data
-        
+
     def to_representation(self, value):
         return value
+
 
 class PatientCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer de criação e atualização com validações do domínio."""
 
-    cpf = serializers.CharField(
-        max_length=14, required=False, allow_blank=True, allow_null=True
-    )
-    guardian_cpf = serializers.CharField(
-        max_length=14, required=False, allow_blank=True, allow_null=True
-    )
-    financial_responsible_cpf = serializers.CharField(
-        max_length=14, required=False, allow_blank=True, allow_null=True
-    )
+    cpf = serializers.CharField(max_length=14, required=False, allow_blank=True, allow_null=True)
+    guardian_cpf = serializers.CharField(max_length=14, required=False, allow_blank=True, allow_null=True)
+    financial_responsible_cpf = serializers.CharField(max_length=14, required=False, allow_blank=True, allow_null=True)
     therapist = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.filter(role=User.Role.THERAPIST),
         required=False,
     )
-    tags = serializers.ListField(
-        child=serializers.CharField(), required=False, allow_empty=True
-    )
+    tags = serializers.ListField(child=serializers.CharField(), required=False, allow_empty=True)
     # Define address as a generic field so DRF doesn't crash trying to parse it as JSON before validate()
     address = FlexibleJSONField(required=False)
 
@@ -176,9 +167,7 @@ class PatientCreateUpdateSerializer(serializers.ModelSerializer):
         if self.instance:
             queryset = queryset.exclude(id=self.instance.id)
         if queryset.exists():
-            raise serializers.ValidationError(
-                "Um paciente com este CPF já está cadastrado."
-            )
+            raise serializers.ValidationError("Um paciente com este CPF já está cadastrado.")
         return clean_cpf
 
     def validate_guardian_cpf(self, value):
@@ -200,6 +189,7 @@ class PatientCreateUpdateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         import json
+
         address = attrs.get("address")
         if isinstance(address, str):
             try:
@@ -208,7 +198,7 @@ class PatientCreateUpdateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"address": "Endereço inválido."})
         elif address is None:
             attrs["address"] = {}
-                
+
         request = self.context.get("request")
         if request and request.user:
             user = request.user
@@ -219,11 +209,7 @@ class PatientCreateUpdateSerializer(serializers.ModelSerializer):
                 )
                 if not therapist:
                     raise serializers.ValidationError(
-                        {
-                            "therapist": (
-                                "O campo terapeuta é obrigatório para este perfil."
-                            )
-                        }
+                        {"therapist": ("O campo terapeuta é obrigatório para este perfil.")}
                     )
 
         birth_date = attrs.get(
@@ -243,12 +229,7 @@ class PatientCreateUpdateSerializer(serializers.ModelSerializer):
 
             if age < 18 and not guardian_name:
                 raise serializers.ValidationError(
-                    {
-                        "guardian_name": (
-                            "Pacientes menores de 18 anos devem ter um "
-                            "responsável cadastrado."
-                        )
-                    }
+                    {"guardian_name": ("Pacientes menores de 18 anos devem ter um responsável cadastrado.")}
                 )
 
         return attrs

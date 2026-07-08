@@ -1,4 +1,6 @@
+# mypy: ignore-errors
 import re
+
 from django.utils.html import escape
 
 

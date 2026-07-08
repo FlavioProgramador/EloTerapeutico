@@ -78,8 +78,8 @@ class PatientAdminDisplayMixin:
         initials = obj.display_name[:2].upper() if obj.display_name else "PA"
         return format_html(
             '<div style="width: 28px; height: 28px; border-radius: 9999px; '
-            'background-color: #f3f4f6; color: #4b5563; display: flex; '
-            'align-items: center; justify-content: center; font-size: 10px; '
+            "background-color: #f3f4f6; color: #4b5563; display: flex; "
+            "align-items: center; justify-content: center; font-size: 10px; "
             'font-weight: 600; border: 1px solid #e5e7eb;">{}</div>',
             initials,
         )

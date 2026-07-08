@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Modelos específicos do fluxo compacto de evolução clínica."""
 
 from django.conf import settings

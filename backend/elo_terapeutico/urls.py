@@ -18,7 +18,7 @@ api_v1_patterns = [
     path("forms/", include("apps.forms.urls")),
 ]
 
-from apps.core.admin_sql import sql_explorer_view, sql_schema_view
+from core.admin_sql import sql_explorer_view, sql_schema_view
 
 urlpatterns = [
     path("admin/sql-explorer/", sql_explorer_view, name="sql_explorer"),

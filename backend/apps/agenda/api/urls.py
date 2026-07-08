@@ -24,16 +24,10 @@ router.register(
 )
 router.register(r"schedule-blocks", ScheduleBlockViewSet, basename="schedule-block")
 router.register(r"rooms", RoomViewSet, basename="agenda-room")
-router.register(
-    r"patient-packages", PatientPackageViewSet, basename="patient-package"
-)
-router.register(
-    r"package-sessions", PackageSessionViewSet, basename="package-session"
-)
+router.register(r"patient-packages", PatientPackageViewSet, basename="patient-package")
+router.register(r"package-sessions", PackageSessionViewSet, basename="package-session")
 router.register(r"telemedicine", TelemedicineRoomViewSet, basename="telemedicine")
-router.register(
-    r"reminders", AppointmentReminderViewSet, basename="appointment-reminder"
-)
+router.register(r"reminders", AppointmentReminderViewSet, basename="appointment-reminder")
 
 urlpatterns = [
     path(

@@ -11,7 +11,6 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-
 DEFAULT_MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 DEFAULT_MAX_ATTACHMENTS = 10
 DEFAULT_MAX_CONTENT_LENGTH = 50_000
@@ -53,13 +52,9 @@ def sanitize_clinical_markdown(value: str | None) -> str:
     text = _EVENT_HANDLER.sub("", text)
     text = "\n".join(line.rstrip() for line in text.split("\n")).strip()
 
-    max_length = int(
-        getattr(settings, "CLINICAL_EVOLUTION_MAX_CONTENT_LENGTH", DEFAULT_MAX_CONTENT_LENGTH)
-    )
+    max_length = int(getattr(settings, "CLINICAL_EVOLUTION_MAX_CONTENT_LENGTH", DEFAULT_MAX_CONTENT_LENGTH))
     if len(text) > max_length:
-        raise ValidationError(
-            f"O conteúdo da evolução deve possuir no máximo {max_length} caracteres."
-        )
+        raise ValidationError(f"O conteúdo da evolução deve possuir no máximo {max_length} caracteres.")
     return text
 
 
@@ -92,15 +87,11 @@ def _detect_mime(header: bytes) -> str | None:
 def validate_clinical_upload(uploaded_file):
     """Valida tamanho, extensão, MIME declarado e assinatura real do arquivo."""
 
-    max_bytes = int(
-        getattr(settings, "CLINICAL_ATTACHMENT_MAX_BYTES", DEFAULT_MAX_ATTACHMENT_BYTES)
-    )
+    max_bytes = int(getattr(settings, "CLINICAL_ATTACHMENT_MAX_BYTES", DEFAULT_MAX_ATTACHMENT_BYTES))
     if uploaded_file.size <= 0:
         raise ValidationError("O arquivo está vazio.")
     if uploaded_file.size > max_bytes:
-        raise ValidationError(
-            f"O arquivo deve possuir no máximo {max_bytes // (1024 * 1024)} MB."
-        )
+        raise ValidationError(f"O arquivo deve possuir no máximo {max_bytes // (1024 * 1024)} MB.")
 
     extension = Path(uploaded_file.name).suffix.lower()
     if extension not in _ALLOWED_EXTENSIONS:
@@ -139,9 +130,7 @@ def validate_session_date(session_date: date, user) -> date:
     if session_date > today:
         raise ValidationError("A data do atendimento não pode estar no futuro.")
 
-    retroactive_days = int(
-        getattr(settings, "CLINICAL_RETROACTIVE_WINDOW_DAYS", 7)
-    )
+    retroactive_days = int(getattr(settings, "CLINICAL_RETROACTIVE_WINDOW_DAYS", 7))
     is_old = session_date < today - timedelta(days=retroactive_days)
     can_retroact = bool(
         getattr(user, "is_superuser", False)
@@ -149,9 +138,7 @@ def validate_session_date(session_date: date, user) -> date:
         or user.has_perm("records.add_retroactive_evolution")
     )
     if is_old and not can_retroact:
-        raise ValidationError(
-            "Evoluções retroativas além do prazo permitido exigem autorização."
-        )
+        raise ValidationError("Evoluções retroativas além do prazo permitido exigem autorização.")
     return session_date
 
 

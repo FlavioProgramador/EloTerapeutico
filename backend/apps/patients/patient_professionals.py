@@ -1,7 +1,5 @@
 def serialize_patient_professionals(patient):
-    links = patient.professional_links.filter(is_active=True).select_related(
-        "professional"
-    )
+    links = patient.professional_links.filter(is_active=True).select_related("professional")
     data = [
         {
             "id": link.professional_id,

@@ -104,10 +104,10 @@ export function FormsTab({ patientId }: { patientId: number }) {
 
   const handleSaveAnswers = () => {
     if (!selectedForm) return;
-    
+
     // Calcula a quantidade de respostas
     const answersCount = Object.keys(answers).length;
-    
+
     const payload = {
       form_name: selectedForm.name,
       category: selectedForm.category,
@@ -122,7 +122,7 @@ export function FormsTab({ patientId }: { patientId: number }) {
       },
       answers: answers,
     };
-    
+
     submitMutation.mutate(payload);
   };
 
@@ -274,7 +274,7 @@ export function FormsTab({ patientId }: { patientId: number }) {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            
+
             <div className="max-h-[60vh] overflow-y-auto p-6 space-y-6">
               {selectedForm.questions.map((q) => (
                 <div key={q.id} className="space-y-3">

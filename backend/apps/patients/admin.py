@@ -2,7 +2,7 @@
 
 from django.contrib import admin, messages
 from unfold.admin import ModelAdmin
-from unfold.contrib.filters.admin import ChoicesDropdownFilter, RelatedDropdownFilter, RangeDateFilter
+from unfold.contrib.filters.admin import ChoicesDropdownFilter, RangeDateFilter, RelatedDropdownFilter
 
 from .admin_parts import (
     AppointmentInline,

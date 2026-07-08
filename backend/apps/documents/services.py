@@ -9,16 +9,19 @@ from dataclasses import dataclass
 from django.core.files.base import ContentFile
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
+
 try:
     from weasyprint import HTML
 except (ImportError, OSError):
     import logging
+
     logger = logging.getLogger(__name__)
     logger.warning("WeasyPrint could not import Pango/GObject libraries. Using dummy PDF fallback for documents.")
 
     class HTML:
         def __init__(self, string=None, url_fetcher=None, **kwargs):
             self.string = string
+
         def write_pdf(self, target=None, **kwargs):
             dummy_pdf = b"%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n>>\nendobj\ntrailer\n<<\n/Root 1 0 R\n>>\n%%EOF"
             if target is None:
@@ -30,6 +33,7 @@ except (ImportError, OSError):
                 with open(target, "wb") as f:
                     f.write(dummy_pdf)
                 return dummy_pdf
+
 
 from apps.patients.models import Patient
 
@@ -226,23 +230,17 @@ def create_generated_document(
                 return GeneratedDocumentResult(document=existing, created=False)
         raise
 
-    DocumentTemplate.objects.filter(pk=template.pk).update(
-        usage_count=models.F("usage_count") + 1
-    )
+    DocumentTemplate.objects.filter(pk=template.pk).update(usage_count=models.F("usage_count") + 1)
     return GeneratedDocumentResult(document=document, created=True)
 
 
 def _document_html(document: GeneratedDocument) -> str:
     context = json.loads(document.context_snapshot or "{}")
     header = (
-        render_safe_markdown(document.template_header_snapshot, context)
-        if document.template_header_snapshot
-        else ""
+        render_safe_markdown(document.template_header_snapshot, context) if document.template_header_snapshot else ""
     )
     footer = (
-        render_safe_markdown(document.template_footer_snapshot, context)
-        if document.template_footer_snapshot
-        else ""
+        render_safe_markdown(document.template_footer_snapshot, context) if document.template_footer_snapshot else ""
     )
     number = html.escape(document.document_number, quote=True)
     professional_name = html.escape(document.professional_name_snapshot, quote=True)
@@ -314,7 +312,7 @@ def generate_pdf(*, document: GeneratedDocument, actor) -> GeneratedDocument:
         pdf_hash = GeneratedDocument.calculate_hash(pdf_bytes)
         generated_at = timezone.now()
         signature_hash = GeneratedDocument.calculate_hash(
-            f"{pdf_hash}:{locked.professional_id}:{generated_at.isoformat()}".encode("utf-8")
+            f"{pdf_hash}:{locked.professional_id}:{generated_at.isoformat()}".encode()
         )
         filename = f"{locked.document_number}.pdf"
         locked.pdf_file.save(filename, ContentFile(pdf_bytes), save=False)

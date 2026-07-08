@@ -111,6 +111,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     def lock_account(self, minutes: int = 30) -> None:
         """Bloqueia a conta por X minutos após tentativas falhas consecutivas."""
         from datetime import timedelta
+
         self.locked_until = timezone.now() + timedelta(minutes=minutes)
         self.save(update_fields=["locked_until"])
 

@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.core.audit import AuditLog, log_access
+from core.audit import AuditLog, log_access
 
 from ..clinical_views import ClinicalPatientMixin, RecordPagination
 from ..selectors.evolutions import (
@@ -54,10 +54,7 @@ class PatientEvolutionFlowView(ClinicalPatientMixin, APIView):
             request,
             AuditLog.Action.CREATE,
             obj=evolution,
-            obj_repr=(
-                f"Evolução #{evolution.id} criada; "
-                f"confidencial={evolution.is_confidential}"
-            ),
+            obj_repr=(f"Evolução #{evolution.id} criada; confidencial={evolution.is_confidential}"),
         )
         return Response(
             EvolutionFlowSerializer(
@@ -129,9 +126,7 @@ class PatientEvolutionAppointmentOptionsView(ClinicalPatientMixin, APIView):
         patient = self.get_patient(patient_id)
         queryset = available_appointments_for_evolution(
             patient=patient,
-            include_cancelled=(
-                request.query_params.get("include_cancelled") == "true"
-            ),
+            include_cancelled=(request.query_params.get("include_cancelled") == "true"),
         )
         serializer = EvolutionAppointmentOptionSerializer(queryset, many=True)
         return Response(serializer.data)

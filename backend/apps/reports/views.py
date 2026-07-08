@@ -24,12 +24,8 @@ REPORT_BUILDERS = {
     "online-scheduling": online_scheduling_report,
 }
 
-INVALID_PERIOD_RESPONSE = {
-    "detail": "Periodo invalido. Confira a data inicial e a data final informadas."
-}
-PDF_UNAVAILABLE_RESPONSE = {
-    "detail": "Exportacao em PDF temporariamente indisponivel. Use CSV neste momento."
-}
+INVALID_PERIOD_RESPONSE = {"detail": "Periodo invalido. Confira a data inicial e a data final informadas."}
+PDF_UNAVAILABLE_RESPONSE = {"detail": "Exportacao em PDF temporariamente indisponivel. Use CSV neste momento."}
 
 
 class BaseReportView(APIView):
@@ -88,17 +84,85 @@ class ReportExportView(APIView):
         writer = csv.writer(output, delimiter=";")
 
         if report_type == "appointments":
-            writer.writerow(["Data", "Horario", "Paciente", "Profissional", "Status", "Sala", "Convenio", "Valor"])
+            writer.writerow(
+                [
+                    "Data",
+                    "Horario",
+                    "Paciente",
+                    "Profissional",
+                    "Status",
+                    "Sala",
+                    "Convenio",
+                    "Valor",
+                ]
+            )
             for row in payload.get("table", {}).get("results", []):
-                writer.writerow([row["date"], row["start_time"], row["patient"], row["professional"], row["status_display"], row["room"], row["insurance"], row["amount"]])
+                writer.writerow(
+                    [
+                        row["date"],
+                        row["start_time"],
+                        row["patient"],
+                        row["professional"],
+                        row["status_display"],
+                        row["room"],
+                        row["insurance"],
+                        row["amount"],
+                    ]
+                )
         elif report_type == "patients":
-            writer.writerow(["Paciente", "Profissional", "Ultimo atendimento", "Proximo agendamento", "Dias sem consulta", "Status", "Contato"])
+            writer.writerow(
+                [
+                    "Paciente",
+                    "Profissional",
+                    "Ultimo atendimento",
+                    "Proximo agendamento",
+                    "Dias sem consulta",
+                    "Status",
+                    "Contato",
+                ]
+            )
             for row in payload.get("risk", {}).get("results", []):
-                writer.writerow([row["patient"], row["professional"], row["last_appointment"] or "", row["next_appointment"] or "", row["days_without_appointment"], row["status_display"], row["contact"] or ""])
+                writer.writerow(
+                    [
+                        row["patient"],
+                        row["professional"],
+                        row["last_appointment"] or "",
+                        row["next_appointment"] or "",
+                        row["days_without_appointment"],
+                        row["status_display"],
+                        row["contact"] or "",
+                    ]
+                )
         elif report_type == "financial":
-            writer.writerow(["Data", "Tipo", "Descricao", "Paciente", "Categoria", "Convenio", "Valor", "Status", "Vencimento", "Pagamento"])
+            writer.writerow(
+                [
+                    "Data",
+                    "Tipo",
+                    "Descricao",
+                    "Paciente",
+                    "Categoria",
+                    "Convenio",
+                    "Valor",
+                    "Status",
+                    "Vencimento",
+                    "Pagamento",
+                ]
+            )
             for row in payload.get("transactions", {}).get("results", []):
-                writer.writerow([row["date"], row["type_display"], row["description"], row["patient"], row["category_display"], row["insurance"], row["amount"], row["status_display"], row["due_date"] or "", row["paid_at"] or ""])
+                writer.writerow(
+                    [
+                        row["date"],
+                        row["type_display"],
+                        row["description"],
+                        row["patient"],
+                        row["category_display"],
+                        row["insurance"],
+                        row["amount"],
+                        row["status_display"],
+                        row["due_date"] or "",
+                        row["paid_at"] or "",
+                    ]
+                )
         else:
             writer.writerow(["Indicador", "Valor"])
             kpis = payload.get("kpis", {})

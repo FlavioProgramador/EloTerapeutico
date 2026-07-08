@@ -23,9 +23,7 @@ def transactions_accessible_to(user):
 
 
 def pending_transactions(*, user, patient_id=None):
-    queryset = transactions_accessible_to(user).filter(
-        payment_status=FinancialTransaction.PaymentStatus.PENDING
-    )
+    queryset = transactions_accessible_to(user).filter(payment_status=FinancialTransaction.PaymentStatus.PENDING)
     if patient_id:
         queryset = queryset.filter(patient_id=patient_id)
     return queryset.order_by("due_date", "created_at")
@@ -38,21 +36,15 @@ def monthly_summary(*, therapist, year: int, month: int) -> dict:
         created_at__month=month,
     )
     paid = queryset.filter(payment_status=FinancialTransaction.PaymentStatus.PAID)
-    income = (
-        paid.filter(transaction_type=FinancialTransaction.TransactionType.INCOME)
-        .aggregate(total=Sum("amount"))["total"]
-        or Decimal("0.00")
-    )
-    expense = (
-        paid.filter(transaction_type=FinancialTransaction.TransactionType.EXPENSE)
-        .aggregate(total=Sum("amount"))["total"]
-        or Decimal("0.00")
-    )
-    pending = (
-        queryset.filter(payment_status=FinancialTransaction.PaymentStatus.PENDING)
-        .aggregate(total=Sum("amount"))["total"]
-        or Decimal("0.00")
-    )
+    income = paid.filter(transaction_type=FinancialTransaction.TransactionType.INCOME).aggregate(total=Sum("amount"))[
+        "total"
+    ] or Decimal("0.00")
+    expense = paid.filter(transaction_type=FinancialTransaction.TransactionType.EXPENSE).aggregate(total=Sum("amount"))[
+        "total"
+    ] or Decimal("0.00")
+    pending = queryset.filter(payment_status=FinancialTransaction.PaymentStatus.PENDING).aggregate(total=Sum("amount"))[
+        "total"
+    ] or Decimal("0.00")
     return {
         "year": year,
         "month": month,

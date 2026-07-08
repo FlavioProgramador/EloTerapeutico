@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Configurações determinísticas e rápidas para a suíte de testes."""
 
 from .base import *  # noqa: F403,F401

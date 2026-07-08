@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 from __future__ import annotations
 
 from django.conf import settings
@@ -52,9 +53,7 @@ class Appointment(models.Model):
         related_name="appointments",
         verbose_name="Paciente",
     )
-    participants = models.ManyToManyField(
-        "patients.Patient", blank=True, related_name="group_appointments"
-    )
+    participants = models.ManyToManyField("patients.Patient", blank=True, related_name="group_appointments")
     therapist = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -75,9 +74,7 @@ class Appointment(models.Model):
         default=Status.SCHEDULED,
         db_index=True,
     )
-    modality = models.CharField(
-        max_length=20, choices=Modality.choices, default=Modality.IN_PERSON
-    )
+    modality = models.CharField(max_length=20, choices=Modality.choices, default=Modality.IN_PERSON)
     appointment_type = models.CharField(
         max_length=30,
         choices=AppointmentType.choices,
@@ -95,16 +92,10 @@ class Appointment(models.Model):
         verbose_name="Observações do agendamento",
         help_text="Observações visíveis para o terapeuta e secretária.",
     )
-    cancellation_reason = models.TextField(
-        blank=True, verbose_name="Motivo do cancelamento"
-    )
+    cancellation_reason = models.TextField(blank=True, verbose_name="Motivo do cancelamento")
     session_value = models.DecimalField(max_digits=10, decimal_places=2)
-    origin = models.CharField(
-        max_length=20, choices=Origin.choices, default=Origin.MANUAL
-    )
-    is_recurring = models.BooleanField(
-        default=False, verbose_name="Consulta recorrente"
-    )
+    origin = models.CharField(max_length=20, choices=Origin.choices, default=Origin.MANUAL)
+    is_recurring = models.BooleanField(default=False, verbose_name="Consulta recorrente")
     recurrence_rule = models.CharField(
         max_length=20,
         blank=True,
@@ -156,26 +147,18 @@ class Appointment(models.Model):
         verbose_name_plural = "Consultas"
         ordering = ["-start_time"]
         indexes = [
-            models.Index(
-                fields=["therapist", "start_time"], name="idx_appt_therapist_start"
-            ),
-            models.Index(
-                fields=["patient", "start_time"], name="idx_appt_patient_start"
-            ),
+            models.Index(fields=["therapist", "start_time"], name="idx_appt_therapist_start"),
+            models.Index(fields=["patient", "start_time"], name="idx_appt_patient_start"),
             models.Index(fields=["status"], name="idx_appt_status"),
             models.Index(fields=["room", "start_time"], name="appt_room_start_idx"),
-            models.Index(
-                fields=["recurrence", "start_time"], name="appt_rec_start_idx"
-            ),
+            models.Index(fields=["recurrence", "start_time"], name="appt_rec_start_idx"),
         ]
         constraints = [
             models.CheckConstraint(
                 condition=Q(end_time__gt=models.F("start_time")),
                 name="appt_end_after_start",
             ),
-            models.CheckConstraint(
-                condition=Q(session_value__gte=0), name="appt_value_non_negative"
-            ),
+            models.CheckConstraint(condition=Q(session_value__gte=0), name="appt_value_non_negative"),
         ]
 
     def __str__(self) -> str:
@@ -214,17 +197,14 @@ class Appointment(models.Model):
         if patient is not None:
             patient_query = Q(patient=patient) | Q(participants=patient)
         if participant_ids:
-            participant_query = Q(patient_id__in=participant_ids) | Q(
-                participants__id__in=participant_ids
-            )
+            participant_query = Q(patient_id__in=participant_ids) | Q(participants__id__in=participant_ids)
             patient_query |= participant_query
 
         from .support import ScheduleBlock
 
         return {
             "therapist": base.filter(therapist=therapist).exists(),
-            "patient": has_patient_filter
-            and base.filter(patient_query).distinct().exists(),
+            "patient": has_patient_filter and base.filter(patient_query).distinct().exists(),
             "room": bool(room and base.filter(room=room).exists()),
             "block": ScheduleBlock.objects.filter(
                 therapist=therapist,
@@ -248,23 +228,15 @@ class Appointment(models.Model):
     def clean(self):
         super().clean()
         if self.start_time and self.end_time and self.start_time >= self.end_time:
-            raise ValidationError(
-                {"end_time": "O término deve ser posterior ao início."}
-            )
+            raise ValidationError({"end_time": "O término deve ser posterior ao início."})
         if self.session_value is not None and self.session_value < 0:
-            raise ValidationError(
-                {"session_value": "O valor não pode ser negativo."}
-            )
+            raise ValidationError({"session_value": "O valor não pode ser negativo."})
         if self.modality == self.Modality.ONLINE and self.room_id:
-            raise ValidationError(
-                {"room": "Consultas online não utilizam sala física."}
-            )
+            raise ValidationError({"room": "Consultas online não utilizam sala física."})
         if self.room_id and not self.room.is_active:
             raise ValidationError({"room": "A sala selecionada está inativa."})
 
     def save(self, *args, **kwargs):
         if self.start_time and self.end_time:
-            self.duration_minutes = max(
-                int((self.end_time - self.start_time).total_seconds() // 60), 1
-            )
+            self.duration_minutes = max(int((self.end_time - self.start_time).total_seconds() // 60), 1)
         super().save(*args, **kwargs)

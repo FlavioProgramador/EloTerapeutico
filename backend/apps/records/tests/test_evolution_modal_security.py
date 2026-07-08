@@ -100,9 +100,7 @@ def test_template_privado_e_arquivamento(api, patient, therapist):
         format="json",
     )
     created = api.post(endpoint(patient), payload(), format="json")
-    archived = api.delete(
-        f"/api/v1/records/clinical-evolutions/{created.data['id']}/"
-    )
+    archived = api.delete(f"/api/v1/records/clinical-evolutions/{created.data['id']}/")
 
     assert template.status_code == 201
     assert ClinicalEvolutionTemplate.objects.get().owner == therapist

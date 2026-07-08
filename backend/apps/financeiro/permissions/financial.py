@@ -9,11 +9,7 @@ class FinancialPermission(IsAuthenticated):
     def has_permission(self, request, view):
         if not super().has_permission(request, view):
             return False
-        return (
-            request.user.is_admin_role
-            or request.user.is_therapist
-            or request.user.is_secretary
-        )
+        return request.user.is_admin_role or request.user.is_therapist or request.user.is_secretary
 
     def has_object_permission(self, request, view, obj):
         user = request.user

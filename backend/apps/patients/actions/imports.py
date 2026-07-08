@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.core.audit import AuditLog, log_access
+from core.audit import AuditLog, log_access
 
 from ..services.imports import PatientImportError, import_patients_from_csv
 
@@ -40,7 +40,5 @@ class PatientImportActions:
                 AuditLog.Action.CREATE,
                 obj_repr=f"Importação de {result.imported} pacientes",
             )
-        response_status = (
-            status.HTTP_201_CREATED if result.imported else status.HTTP_200_OK
-        )
+        response_status = status.HTTP_201_CREATED if result.imported else status.HTTP_200_OK
         return Response(result.as_dict(), status=response_status)

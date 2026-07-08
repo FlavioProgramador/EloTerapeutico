@@ -48,9 +48,7 @@ class ScheduleBlock(models.Model):
 
     class Meta:
         ordering = ["start_time"]
-        indexes = [
-            models.Index(fields=["therapist", "start_time"], name="block_owner_start_idx")
-        ]
+        indexes = [models.Index(fields=["therapist", "start_time"], name="block_owner_start_idx")]
         constraints = [
             models.CheckConstraint(
                 condition=Q(end_time__gt=models.F("start_time")),
@@ -77,9 +75,7 @@ class PackageSession(models.Model):
         CANCELLED = "cancelled", "Cancelada"
         RESCHEDULED = "rescheduled", "Remarcada"
 
-    package = models.ForeignKey(
-        "agenda.PatientPackage", on_delete=models.CASCADE, related_name="package_sessions"
-    )
+    package = models.ForeignKey("agenda.PatientPackage", on_delete=models.CASCADE, related_name="package_sessions")
     appointment = models.OneToOneField(
         "agenda.Appointment",
         null=True,
@@ -95,11 +91,7 @@ class PackageSession(models.Model):
 
     class Meta:
         ordering = ["scheduled_for"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["package", "scheduled_for"], name="uniq_pkg_session_datetime"
-            )
-        ]
+        constraints = [models.UniqueConstraint(fields=["package", "scheduled_for"], name="uniq_pkg_session_datetime")]
 
     def __str__(self) -> str:
         return f"Sessão {self.package_id} - {self.scheduled_for:%d/%m/%Y}"

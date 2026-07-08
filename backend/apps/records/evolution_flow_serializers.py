@@ -21,7 +21,6 @@ from .extended_models import EvolutionClinicalData, EvolutionVersion
 from .models import Evolution
 from .treatment_models import ClinicalDocument
 
-
 CLINICAL_TEXT_FIELDS = (
     "emotional_state",
     "chief_complaint",
@@ -40,9 +39,7 @@ class EvolutionAppointmentOptionSerializer(serializers.ModelSerializer):
     patient_name = serializers.CharField(source="patient.display_name", read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     modality_display = serializers.CharField(source="get_modality_display", read_only=True)
-    type_display = serializers.CharField(
-        source="get_appointment_type_display", read_only=True
-    )
+    type_display = serializers.CharField(source="get_appointment_type_display", read_only=True)
 
     class Meta:
         model = Appointment
@@ -96,10 +93,7 @@ class EvolutionAttachmentSerializer(serializers.ModelSerializer):
 
     def get_download_url(self, obj):
         request = self.context.get("request")
-        path = (
-            f"/api/v1/records/clinical-evolutions/{obj.evolution_id}/"
-            f"attachments/{obj.id}/download/"
-        )
+        path = f"/api/v1/records/clinical-evolutions/{obj.evolution_id}/attachments/{obj.id}/download/"
         return request.build_absolute_uri(path) if request else path
 
     def get_preview_url(self, obj):
@@ -185,9 +179,7 @@ class EvolutionFlowSerializer(serializers.ModelSerializer):
         required=False,
         default=False,
     )
-    session_time = serializers.TimeField(
-        source="clinical_data.session_time", required=False, allow_null=True
-    )
+    session_time = serializers.TimeField(source="clinical_data.session_time", required=False, allow_null=True)
     duration_minutes = serializers.IntegerField(
         source="clinical_data.duration_minutes",
         required=False,
@@ -207,40 +199,24 @@ class EvolutionFlowSerializer(serializers.ModelSerializer):
         required=False,
         default=EvolutionClinicalData.AppointmentType.INDIVIDUAL,
     )
-    emotional_state = serializers.CharField(
-        source="clinical_data.emotional_state", required=False, allow_blank=True
-    )
-    chief_complaint = serializers.CharField(
-        source="clinical_data.chief_complaint", required=False, allow_blank=True
-    )
-    patient_report = serializers.CharField(
-        source="clinical_data.patient_report", required=False, allow_blank=True
-    )
+    emotional_state = serializers.CharField(source="clinical_data.emotional_state", required=False, allow_blank=True)
+    chief_complaint = serializers.CharField(source="clinical_data.chief_complaint", required=False, allow_blank=True)
+    patient_report = serializers.CharField(source="clinical_data.patient_report", required=False, allow_blank=True)
     therapist_observations = serializers.CharField(
         source="clinical_data.therapist_observations",
         required=False,
         allow_blank=True,
     )
-    interventions = serializers.CharField(
-        source="clinical_data.interventions", required=False, allow_blank=True
-    )
+    interventions = serializers.CharField(source="clinical_data.interventions", required=False, allow_blank=True)
     perceived_evolution = serializers.CharField(
         source="clinical_data.perceived_evolution", required=False, allow_blank=True
     )
-    homework = serializers.CharField(
-        source="clinical_data.homework", required=False, allow_blank=True
-    )
-    referrals = serializers.CharField(
-        source="clinical_data.referrals", required=False, allow_blank=True
-    )
-    next_steps = serializers.CharField(
-        source="clinical_data.next_steps", required=False, allow_blank=True
-    )
+    homework = serializers.CharField(source="clinical_data.homework", required=False, allow_blank=True)
+    referrals = serializers.CharField(source="clinical_data.referrals", required=False, allow_blank=True)
+    next_steps = serializers.CharField(source="clinical_data.next_steps", required=False, allow_blank=True)
     status = serializers.SerializerMethodField()
     status_display = serializers.SerializerMethodField()
-    created_by_name = serializers.CharField(
-        source="created_by.full_name", read_only=True
-    )
+    created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
     is_editable = serializers.SerializerMethodField()
     version_count = serializers.SerializerMethodField()
     attachments = serializers.SerializerMethodField()
@@ -354,28 +330,20 @@ class EvolutionFlowSerializer(serializers.ModelSerializer):
         patient = self.context["patient"]
         request = self.context["request"]
         if appointment.patient_id != patient.id:
-            raise serializers.ValidationError(
-                "A consulta não pertence ao paciente selecionado."
-            )
+            raise serializers.ValidationError("A consulta não pertence ao paciente selecionado.")
         if appointment.status == Appointment.Status.CANCELLED:
-            raise serializers.ValidationError(
-                "Consultas canceladas não podem ser vinculadas a uma evolução."
-            )
+            raise serializers.ValidationError("Consultas canceladas não podem ser vinculadas a uma evolução.")
         if (
             appointment.therapist_id != request.user.id
             and not request.user.is_admin_role
             and appointment.therapist_id != patient.therapist_id
         ):
-            raise serializers.ValidationError(
-                "A consulta pertence a um profissional não autorizado."
-            )
+            raise serializers.ValidationError("A consulta pertence a um profissional não autorizado.")
         linked = Evolution.objects.filter(appointment=appointment)
         if self.instance:
             linked = linked.exclude(pk=self.instance.pk)
         if linked.exists():
-            raise serializers.ValidationError(
-                "Esta consulta já está vinculada a outra evolução."
-            )
+            raise serializers.ValidationError("Esta consulta já está vinculada a outra evolução.")
         return appointment
 
     def validate(self, attrs):
@@ -384,22 +352,16 @@ class EvolutionFlowSerializer(serializers.ModelSerializer):
         observation = clinical_data.get("therapist_observations")
         content = sanitize_clinical_markdown(supplied_content or observation)
         if not content:
-            raise serializers.ValidationError(
-                {"content": "Informe a evolução ou as anotações clínicas."}
-            )
+            raise serializers.ValidationError({"content": "Informe a evolução ou as anotações clínicas."})
         attrs["content"] = content
-        clinical_data["therapist_observations"] = sanitize_clinical_markdown(
-            observation or content
-        )
+        clinical_data["therapist_observations"] = sanitize_clinical_markdown(observation or content)
         for field in CLINICAL_TEXT_FIELDS:
             if field in clinical_data:
                 clinical_data[field] = sanitize_clinical_markdown(clinical_data[field])
         attrs["clinical_data"] = clinical_data
 
         appointment = attrs.get("appointment", getattr(self.instance, "appointment", None))
-        session_date = attrs.get(
-            "session_date", getattr(self.instance, "session_date", None)
-        )
+        session_date = attrs.get("session_date", getattr(self.instance, "session_date", None))
         confirm_override = attrs.get("confirm_appointment_date_override", False)
         if appointment and session_date:
             appointment_date = timezone.localtime(appointment.start_time).date()
@@ -407,8 +369,7 @@ class EvolutionFlowSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {
                         "session_date": (
-                            "A data difere da consulta vinculada. Confirme a alteração "
-                            "manual antes de salvar."
+                            "A data difere da consulta vinculada. Confirme a alteração " "manual antes de salvar."
                         )
                     }
                 )
@@ -462,9 +423,7 @@ class EvolutionFlowSerializer(serializers.ModelSerializer):
             or not instance.can_be_edited()
             or (profile and profile.status != EvolutionClinicalData.Status.DRAFT)
         ):
-            raise serializers.ValidationError(
-                "Esta evolução não pode mais ser alterada diretamente."
-            )
+            raise serializers.ValidationError("Esta evolução não pode mais ser alterada diretamente.")
 
         validated_data.pop("content_format", None)
         validated_data.pop("confirm_appointment_date_override", None)
@@ -473,9 +432,7 @@ class EvolutionFlowSerializer(serializers.ModelSerializer):
         EvolutionVersion.objects.create(
             evolution=instance,
             version=(latest.version + 1) if latest else 1,
-            snapshot=json.dumps(
-                self._snapshot(instance), ensure_ascii=False, default=str
-            ),
+            snapshot=json.dumps(self._snapshot(instance), ensure_ascii=False, default=str),
             created_by=request_user,
         )
 

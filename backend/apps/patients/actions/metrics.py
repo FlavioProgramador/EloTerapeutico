@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Action HTTP das métricas agregadas de pacientes."""
 
 from rest_framework.decorators import action

@@ -6,7 +6,6 @@ from rest_framework.views import APIView
 
 from core.audit import AuditLog, log_access
 
-from .models import Patient
 from .selectors.patients import patients_accessible_to
 
 

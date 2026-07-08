@@ -22,7 +22,9 @@ class TherapeuticForm(models.Model):
     description = models.TextField(blank=True)
     category = models.CharField(max_length=32, choices=FormCategory.choices, default=FormCategory.OTHER, db_index=True)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE, db_index=True)
-    source_template = models.ForeignKey(FormTemplate, null=True, blank=True, on_delete=models.SET_NULL, related_name="forms")
+    source_template = models.ForeignKey(
+        FormTemplate, null=True, blank=True, on_delete=models.SET_NULL, related_name="forms"
+    )
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="forms_authored")
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="forms_updated")
     archived_at = models.DateTimeField(null=True, blank=True)

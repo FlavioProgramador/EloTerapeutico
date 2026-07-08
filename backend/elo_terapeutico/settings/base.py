@@ -4,8 +4,6 @@ from pathlib import Path
 
 import environ
 
-from apps.core.admin_unfold import UNFOLD
-
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
@@ -35,7 +33,8 @@ THIRD_PARTY_APPS = [
     "drf_spectacular",
 ]
 LOCAL_APPS = [
-    "apps.core",
+    "core",
+    "infrastructure",
     "apps.users",
     "apps.patients",
     "apps.records",
@@ -44,6 +43,7 @@ LOCAL_APPS = [
     "apps.documents",
     "apps.reports",
     "apps.forms",
+    "apps.audit",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -76,6 +76,13 @@ TEMPLATES = [
 WSGI_APPLICATION = "elo_terapeutico.wsgi.application"
 ASGI_APPLICATION = "elo_terapeutico.asgi.application"
 DATABASES = {"default": env.db("DATABASE_URL")}
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "elo-cache",
+    }
+}
+RATELIMIT_USE_CACHE = "default"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -92,19 +99,17 @@ PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
 ]
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
+    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ],
-    "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.StandardResultsPagination",
+    "DEFAULT_PAGINATION_CLASS": "core.pagination.StandardResultsPagination",
     "PAGE_SIZE": 20,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "EXCEPTION_HANDLER": "apps.core.exceptions.custom_exception_handler",
+    "EXCEPTION_HANDLER": "core.exceptions.custom_exception_handler",
 }
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env.int("JWT_ACCESS_MINUTES", default=30)),

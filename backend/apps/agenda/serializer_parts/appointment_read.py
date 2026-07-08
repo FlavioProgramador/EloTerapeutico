@@ -10,24 +10,12 @@ from .summary import (
 
 
 class AppointmentListSerializer(serializers.ModelSerializer):
-    patient_name = serializers.CharField(
-        source="patient.display_name", read_only=True
-    )
-    therapist_name = serializers.CharField(
-        source="therapist.full_name", read_only=True
-    )
-    room_name = serializers.CharField(
-        source="room.name", read_only=True, allow_null=True
-    )
-    status_display = serializers.CharField(
-        source="get_status_display", read_only=True
-    )
-    modality_display = serializers.CharField(
-        source="get_modality_display", read_only=True
-    )
-    type_display = serializers.CharField(
-        source="get_appointment_type_display", read_only=True
-    )
+    patient_name = serializers.CharField(source="patient.display_name", read_only=True)
+    therapist_name = serializers.CharField(source="therapist.full_name", read_only=True)
+    room_name = serializers.CharField(source="room.name", read_only=True, allow_null=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    modality_display = serializers.CharField(source="get_modality_display", read_only=True)
+    type_display = serializers.CharField(source="get_appointment_type_display", read_only=True)
     telemedicine_status = serializers.SerializerMethodField()
     evolution_id = serializers.SerializerMethodField()
     evolution_status = serializers.SerializerMethodField()
@@ -82,12 +70,8 @@ class AppointmentListSerializer(serializers.ModelSerializer):
 
 class AppointmentDetailSerializer(AppointmentListSerializer):
     patient_data = PatientSummarySerializer(source="patient", read_only=True)
-    therapist_data = TherapistSummarySerializer(
-        source="therapist", read_only=True
-    )
-    participant_data = PatientSummarySerializer(
-        source="participants", many=True, read_only=True
-    )
+    therapist_data = TherapistSummarySerializer(source="therapist", read_only=True)
+    participant_data = PatientSummarySerializer(source="participants", many=True, read_only=True)
     reminders = AppointmentReminderSerializer(many=True, read_only=True)
     telemedicine = serializers.SerializerMethodField()
 
@@ -108,8 +92,6 @@ class AppointmentDetailSerializer(AppointmentListSerializer):
 
     def get_telemedicine(self, obj):
         try:
-            return TelemedicineRoomSerializer(
-                obj.telemedicine_room, context=self.context
-            ).data
+            return TelemedicineRoomSerializer(obj.telemedicine_room, context=self.context).data
         except TelemedicineRoom.DoesNotExist:
             return None

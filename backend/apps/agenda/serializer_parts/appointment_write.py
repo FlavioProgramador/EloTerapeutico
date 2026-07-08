@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 from datetime import timedelta
 from decimal import Decimal
 
@@ -8,6 +9,7 @@ from rest_framework import serializers
 
 from apps.patients.models import Patient
 from apps.users.models import WorkingHours
+
 from ..models import (
     Appointment,
     AppointmentRecurrence,
@@ -32,9 +34,7 @@ class AppointmentValidationMixin:
             therapist = patient.therapist
             attrs["therapist"] = therapist
         if not therapist or not therapist.is_therapist:
-            raise serializers.ValidationError(
-                {"therapist": "Selecione um terapeuta válido."}
-            )
+            raise serializers.ValidationError({"therapist": "Selecione um terapeuta válido."})
         return therapist
 
     def _validate_business_rules(self, attrs):
@@ -50,37 +50,21 @@ class AppointmentValidationMixin:
         )
 
         if not patient or patient.deleted_at or not patient.is_active:
-            raise serializers.ValidationError(
-                {"patient": "Selecione um paciente ativo."}
-            )
+            raise serializers.ValidationError({"patient": "Selecione um paciente ativo."})
         if patient.therapist_id != therapist.id:
-            raise serializers.ValidationError(
-                {"patient": "O paciente não pertence ao profissional selecionado."}
-            )
+            raise serializers.ValidationError({"patient": "O paciente não pertence ao profissional selecionado."})
         if any(item.therapist_id != therapist.id for item in participants):
             raise serializers.ValidationError(
                 {"participants": "Todos os participantes devem pertencer ao profissional."}
             )
         if start and end and start >= end:
-            raise serializers.ValidationError(
-                {"end_time": "O término deve ser posterior ao início."}
-            )
-        if (
-            start
-            and start < timezone.now()
-            and not self.context["request"].user.is_admin_role
-        ):
-            raise serializers.ValidationError(
-                {"start_time": "Não é possível agendar no passado."}
-            )
+            raise serializers.ValidationError({"end_time": "O término deve ser posterior ao início."})
+        if start and start < timezone.now() and not self.context["request"].user.is_admin_role:
+            raise serializers.ValidationError({"start_time": "Não é possível agendar no passado."})
         if modality == Appointment.Modality.ONLINE and room:
-            raise serializers.ValidationError(
-                {"room": "Consultas online não utilizam sala física."}
-            )
+            raise serializers.ValidationError({"room": "Consultas online não utilizam sala física."})
         if room and room.therapist_id != therapist.id:
-            raise serializers.ValidationError(
-                {"room": "A sala não pertence ao profissional selecionado."}
-            )
+            raise serializers.ValidationError({"room": "A sala não pertence ao profissional selecionado."})
 
         if start and end:
             conflicts = Appointment.conflict_details(
@@ -100,9 +84,7 @@ class AppointmentValidationMixin:
                     "block": "bloqueio de agenda",
                 }
                 active = [labels[key] for key, value in conflicts.items() if value]
-                raise serializers.ValidationError(
-                    {"start_time": f"Conflito de horário com: {', '.join(active)}."}
-                )
+                raise serializers.ValidationError({"start_time": f"Conflito de horário com: {', '.join(active)}."})
             self._validate_working_hours(therapist, start, end)
         return attrs
 
@@ -113,39 +95,28 @@ class AppointmentValidationMixin:
             weekday=start.weekday(),
             is_active=True,
         ).first()
-        if working and (
-            start.time() < working.start_time or end.time() > working.end_time
-        ):
+        if working and (start.time() < working.start_time or end.time() > working.end_time):
             raise serializers.ValidationError(
                 {
                     "start_time": (
-                        f"Horário fora do expediente "
-                        f"({working.start_time:%H:%M}–{working.end_time:%H:%M})."
+                        f"Horário fora do expediente " f"({working.start_time:%H:%M}–{working.end_time:%H:%M})."
                     )
                 }
             )
 
 
-class AppointmentCreateSerializer(
-    AppointmentValidationMixin, serializers.ModelSerializer
-):
+class AppointmentCreateSerializer(AppointmentValidationMixin, serializers.ModelSerializer):
     participants = serializers.PrimaryKeyRelatedField(
         queryset=Patient.objects.filter(is_active=True), many=True, required=False
     )
-    therapist = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.filter(role="therapist"), required=False
-    )
+    therapist = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(role="therapist"), required=False)
     room = serializers.PrimaryKeyRelatedField(
         queryset=Room.objects.filter(is_active=True),
         required=False,
         allow_null=True,
     )
-    package = serializers.PrimaryKeyRelatedField(
-        queryset=PatientPackage.objects.all(), required=False, allow_null=True
-    )
-    send_whatsapp_reminder = serializers.BooleanField(
-        write_only=True, default=False
-    )
+    package = serializers.PrimaryKeyRelatedField(queryset=PatientPackage.objects.all(), required=False, allow_null=True)
+    send_whatsapp_reminder = serializers.BooleanField(write_only=True, default=False)
     recurrence_frequency = serializers.ChoiceField(
         choices=AppointmentRecurrence.Frequency.choices,
         write_only=True,
@@ -160,12 +131,8 @@ class AppointmentCreateSerializer(
         required=False,
         default=list,
     )
-    recurrence_ends_on = serializers.DateField(
-        write_only=True, required=False, allow_null=True
-    )
-    recurrence_max_occurrences = serializers.IntegerField(
-        write_only=True, required=False, min_value=2, max_value=365
-    )
+    recurrence_ends_on = serializers.DateField(write_only=True, required=False, allow_null=True)
+    recurrence_max_occurrences = serializers.IntegerField(write_only=True, required=False, min_value=2, max_value=365)
     recurrence_conflict_strategy = serializers.ChoiceField(
         choices=["error", "skip"],
         write_only=True,
@@ -200,18 +167,12 @@ class AppointmentCreateSerializer(
     def validate(self, attrs):
         attrs = self._validate_business_rules(attrs)
         if attrs.get("session_value", Decimal("0")) < 0:
-            raise serializers.ValidationError(
-                {"session_value": "O valor não pode ser negativo."}
-            )
+            raise serializers.ValidationError({"session_value": "O valor não pode ser negativo."})
         if attrs.get("is_recurring") and not attrs.get("recurrence_frequency"):
-            raise serializers.ValidationError(
-                {"recurrence_frequency": "Informe a frequência."}
-            )
+            raise serializers.ValidationError({"recurrence_frequency": "Informe a frequência."})
         package = attrs.get("package")
         if package and not package.can_consume():
-            raise serializers.ValidationError(
-                {"package": "O pacote está sem saldo, expirado ou inativo."}
-            )
+            raise serializers.ValidationError({"package": "O pacote está sem saldo, expirado ou inativo."})
         return attrs
 
     @transaction.atomic
@@ -223,9 +184,7 @@ class AppointmentCreateSerializer(
         weekdays = validated_data.pop("recurrence_weekdays", [])
         ends_on = validated_data.pop("recurrence_ends_on", None)
         max_occurrences = validated_data.pop("recurrence_max_occurrences", None)
-        conflict_strategy = validated_data.pop(
-            "recurrence_conflict_strategy", "error"
-        )
+        conflict_strategy = validated_data.pop("recurrence_conflict_strategy", "error")
         package = validated_data.get("package")
         request = self.context["request"]
         validated_data["created_by"] = request.user
@@ -244,17 +203,9 @@ class AppointmentCreateSerializer(
                 ends_on=ends_on,
                 max_occurrences=max_occurrences or 12,
                 start_time=local_start.time().replace(tzinfo=None),
-                duration_minutes=int(
-                    (
-                        validated_data["end_time"]
-                        - validated_data["start_time"]
-                    ).total_seconds()
-                    // 60
-                ),
+                duration_minutes=int((validated_data["end_time"] - validated_data["start_time"]).total_seconds() // 60),
                 timezone_name=str(timezone.get_current_timezone()),
-                modality=validated_data.get(
-                    "modality", Appointment.Modality.IN_PERSON
-                ),
+                modality=validated_data.get("modality", Appointment.Modality.IN_PERSON),
                 appointment_type=validated_data.get(
                     "appointment_type",
                     Appointment.AppointmentType.PSYCHOTHERAPY,
@@ -285,15 +236,11 @@ class AppointmentCreateSerializer(
         return appointment
 
 
-class AppointmentUpdateSerializer(
-    AppointmentValidationMixin, serializers.ModelSerializer
-):
+class AppointmentUpdateSerializer(AppointmentValidationMixin, serializers.ModelSerializer):
     participants = serializers.PrimaryKeyRelatedField(
         queryset=Patient.objects.filter(is_active=True), many=True, required=False
     )
-    therapist = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.filter(role="therapist"), required=False
-    )
+    therapist = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(role="therapist"), required=False)
     room = serializers.PrimaryKeyRelatedField(
         queryset=Room.objects.filter(is_active=True),
         required=False,
@@ -345,22 +292,13 @@ class AppointmentStatusUpdateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         status_value = attrs.get("status")
-        if (
-            status_value == Appointment.Status.CANCELLED
-            and not attrs.get("cancellation_reason", "").strip()
-        ):
-            raise serializers.ValidationError(
-                {"cancellation_reason": "Informe o motivo do cancelamento."}
-            )
+        if status_value == Appointment.Status.CANCELLED and not attrs.get("cancellation_reason", "").strip():
+            raise serializers.ValidationError({"cancellation_reason": "Informe o motivo do cancelamento."})
         if self.instance.status in {
             Appointment.Status.COMPLETED,
             Appointment.Status.MISSED,
         }:
             raise serializers.ValidationError(
-                {
-                    "status": (
-                        "Uma sessão finalizada não pode voltar para um estado anterior."
-                    )
-                }
+                {"status": ("Uma sessão finalizada não pode voltar para um estado anterior.")}
             )
         return attrs

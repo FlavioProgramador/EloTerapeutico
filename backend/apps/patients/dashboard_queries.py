@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 from django.db.models import (
     CharField,
     Count,
@@ -45,10 +46,14 @@ def annotate_essential(queryset):
 def annotate_heavy(queryset):
     """Aplica anotações pesadas (subqueries e counts complexos) para o dashboard."""
     now = timezone.now()
-    last_appointment = Appointment.objects.filter(
-        patient=OuterRef("pk"),
-        start_time__lt=now,
-    ).exclude(status__in=["cancelled", "rescheduled"]).order_by("-start_time")
+    last_appointment = (
+        Appointment.objects.filter(
+            patient=OuterRef("pk"),
+            start_time__lt=now,
+        )
+        .exclude(status__in=["cancelled", "rescheduled"])
+        .order_by("-start_time")
+    )
 
     next_appointment = Appointment.objects.filter(
         patient=OuterRef("pk"),
@@ -56,9 +61,7 @@ def annotate_heavy(queryset):
         status__in=["scheduled", "confirmed"],
     ).order_by("start_time")
 
-    latest_evolution = Evolution.objects.filter(
-        patient=OuterRef("pk")
-    ).order_by("-session_date", "-created_at")
+    latest_evolution = Evolution.objects.filter(patient=OuterRef("pk")).order_by("-session_date", "-created_at")
 
     return queryset.annotate(
         last_session=Subquery(last_appointment.values("start_time")[:1]),

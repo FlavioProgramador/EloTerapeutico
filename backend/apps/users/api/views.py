@@ -7,8 +7,10 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.db import connection
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
+from django_ratelimit.decorators import ratelimit
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -34,6 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 @extend_schema(tags=["auth"])
+@method_decorator(ratelimit(key="ip", rate="10/m", block=True, method="POST"), name="post")
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
@@ -58,6 +61,7 @@ class RegisterView(generics.CreateAPIView):
 
 
 @extend_schema(tags=["auth"])
+@method_decorator(ratelimit(key="ip", rate="5/m", block=True, method="POST"), name="post")
 class LoginView(APIView):
     permission_classes = [AllowAny]
     serializer_class = LoginSerializer
@@ -170,6 +174,7 @@ class HealthCheckView(APIView):
 
 
 @extend_schema(tags=["auth"])
+@method_decorator(ratelimit(key="ip", rate="3/h", block=True, method="POST"), name="post")
 class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]
     serializer_class = PasswordResetRequestSerializer
@@ -188,10 +193,7 @@ class PasswordResetRequestView(APIView):
                 "FRONTEND_URL",
                 "http://localhost:3000",
             )
-            reset_url = (
-                f"{frontend_url}/forgot-password/reset"
-                f"?token={token}&uid={uidb64}"
-            )
+            reset_url = f"{frontend_url}/forgot-password/reset?token={token}&uid={uidb64}"
             subject = "Redefinição de senha — Elo Terapêutico"
             message = (
                 f"Olá, {user.full_name}.\n\n"
@@ -216,12 +218,7 @@ class PasswordResetRequestView(APIView):
             pass
 
         return Response(
-            {
-                "message": (
-                    "Se o e-mail estiver cadastrado, você receberá um "
-                    "link para redefinir sua senha."
-                )
-            },
+            {"message": ("Se o e-mail estiver cadastrado, você receberá um " "link para redefinir sua senha.")},
             status=status.HTTP_200_OK,
         )
 

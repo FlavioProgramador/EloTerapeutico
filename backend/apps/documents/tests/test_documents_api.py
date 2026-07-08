@@ -123,9 +123,7 @@ class DocumentModuleApiTests(APITestCase):
         self.assertEqual(generate_response.status_code, status.HTTP_200_OK)
         self.assertEqual(generate_response.data["status"], "completed")
         self.assertTrue(generate_response.data["pdf_hash"])
-        download = self.client.get(
-            f"/api/v1/documents/generated/{public_id}/download/"
-        )
+        download = self.client.get(f"/api/v1/documents/generated/{public_id}/download/")
         self.assertEqual(download.status_code, status.HTTP_200_OK)
         self.assertEqual(download["Cache-Control"], "private, no-store, max-age=0")
         download.close()
