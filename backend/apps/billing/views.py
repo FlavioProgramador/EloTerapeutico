@@ -12,6 +12,7 @@ from apps.billing.serializers import (
     PlanSerializer,
     SubscriptionSerializer,
 )
+from apps.billing.services.gateways.base import GatewayError
 from apps.billing.services.subscriptions import (
     cancel_subscription,
     change_plan,
@@ -19,6 +20,10 @@ from apps.billing.services.subscriptions import (
     get_current_subscription,
 )
 from apps.billing.webhooks.asaas import handle_asaas_webhook
+
+
+def _validation_detail(exc: DjangoValidationError) -> str:
+    return exc.messages[0] if getattr(exc, "messages", None) else str(exc)
 
 
 class PlanListView(generics.ListAPIView):
@@ -48,7 +53,9 @@ class CreateSubscriptionView(APIView):
         try:
             subscription = create_subscription_for_user(request.user, serializer.validated_data["plan"])
         except DjangoValidationError as exc:
-            return Response({"detail": exc.messages[0]}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": _validation_detail(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except GatewayError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
         return Response(SubscriptionSerializer(subscription).data, status=status.HTTP_201_CREATED)
 
 
@@ -59,7 +66,9 @@ class CancelSubscriptionView(APIView):
         try:
             subscription = cancel_subscription(request.user)
         except DjangoValidationError as exc:
-            return Response({"detail": exc.messages[0]}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": _validation_detail(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except GatewayError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
         return Response(SubscriptionSerializer(subscription).data)
 
 
@@ -72,7 +81,9 @@ class ChangePlanView(APIView):
         try:
             subscription = change_plan(request.user, serializer.validated_data["plan"])
         except DjangoValidationError as exc:
-            return Response({"detail": exc.messages[0]}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": _validation_detail(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except GatewayError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
         return Response(SubscriptionSerializer(subscription).data, status=status.HTTP_201_CREATED)
 
 
