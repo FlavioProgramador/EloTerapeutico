@@ -30,7 +30,8 @@ def _start_of_day(current_date):
 
 def _format_currency(value: Decimal | None) -> str:
     amount = value or Decimal("0.00")
-    formatted = f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    formatted = f"{amount:,.2f}"
+    formatted = formatted.replace(",", "X").replace(".", ",").replace("X", ".")
     return f"R$ {formatted}"
 
 
@@ -93,8 +94,16 @@ def dashboard_callback(request, context):
         request,
         therapist_field="therapist",
     )
-    evolutions = _scoped_queryset(Evolution.objects.all(), request, owner_field="created_by")
-    documents = _scoped_queryset(GeneratedDocument.objects.all(), request, owner_field="owner")
+    evolutions = _scoped_queryset(
+        Evolution.objects.all(),
+        request,
+        owner_field="created_by",
+    )
+    documents = _scoped_queryset(
+        GeneratedDocument.objects.all(),
+        request,
+        owner_field="owner",
+    )
 
     monthly_revenue = transactions.filter(
         transaction_type=FinancialTransaction.TransactionType.INCOME,
