@@ -151,7 +151,11 @@ class FinancialTransactionAdmin(ModelAdmin):
     @admin.display(description=_("Valor"), ordering="amount")
     def amount_display(self, obj):
         color = "#15803d" if obj.transaction_type == "income" else "#b91c1c"
-        return format_html('<strong style="color:{};">{}</strong>', color, self._format_brl(obj.amount))
+        return format_html(
+            '<strong style="color:{};">{}</strong>',
+            color,
+            self._format_brl(obj.amount),
+        )
 
     @admin.display(description=_("Pago"), ordering="paid_amount")
     def paid_amount_display(self, obj):
@@ -199,9 +203,8 @@ class FinancialTransactionAdmin(ModelAdmin):
         total_income = totals["total_income"] or Decimal("0.00")
         total_expense = totals["total_expense"] or Decimal("0.00")
         total_pending = (
-            qs.filter(payment_status__in=["pending", "partial"]).aggregate(total=Sum("amount"))[
-                "total"
-            ]
+            qs.filter(payment_status__in=["pending", "partial"])
+            .aggregate(total=Sum("amount"))["total"]
             or Decimal("0.00")
         )
 
@@ -217,5 +220,6 @@ class FinancialTransactionAdmin(ModelAdmin):
     @staticmethod
     def _format_brl(value: Decimal | None) -> str:
         amount = value or Decimal("0.00")
-        formatted = f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        formatted = f"{amount:,.2f}"
+        formatted = formatted.replace(",", "X").replace(".", ",").replace("X", ".")
         return f"R$ {formatted}"
