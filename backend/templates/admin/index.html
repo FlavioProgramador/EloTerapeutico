@@ -1,0 +1,52 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<div id="content-main">
+    {% if dashboard_cards %}
+        <section class="mb-8">
+            <div class="mb-6">
+                <h1 class="font-semibold text-2xl text-font-important-light dark:text-font-important-dark">
+                    Backoffice Elo Terapêutico
+                </h1>
+                <p class="mt-2 text-sm text-font-subtle-light dark:text-font-subtle-dark">
+                    Métricas calculadas com dados reais do banco. Nenhum número abaixo é mockado.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+                {% for card in dashboard_cards %}
+                    <article class="border border-base-200 rounded-default bg-white p-4 shadow-sm dark:border-base-800 dark:bg-base-900">
+                        <div class="mb-3 flex items-center gap-2 text-primary-600 dark:text-primary-500">
+                            <span class="material-symbols-outlined text-xl" aria-hidden="true">
+                                {{ card.icon }}
+                            </span>
+                            <span class="text-xs font-medium uppercase tracking-wide">
+                                {{ card.label }}
+                            </span>
+                        </div>
+                        <strong class="block text-2xl font-semibold text-font-important-light dark:text-font-important-dark">
+                            {{ card.value }}
+                        </strong>
+                        <p class="mt-2 text-xs leading-5 text-font-subtle-light dark:text-font-subtle-dark">
+                            {{ card.description }}
+                        </p>
+                    </article>
+                {% endfor %}
+            </div>
+
+            {% if dashboard_generated_at %}
+                <p class="mt-4 text-xs text-font-subtle-light dark:text-font-subtle-dark">
+                    Atualizado em {{ dashboard_generated_at|date:"d/m/Y H:i" }}.
+                </p>
+            {% endif %}
+        </section>
+    {% endif %}
+
+    {% if app_list %}
+        {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+    {% else %}
+        <p>{% translate "You don’t have permission to view or edit anything." %}</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -9,6 +9,9 @@ django-cors-headers>=4.3,<4.4
 django-filter>=24.1,<24.2
 django-environ>=0.11,<0.12
 
+# Admin interno / backoffice
+django-unfold>=0.96,<0.97
+
 # Autenticação
 djangorestframework-simplejwt>=5.5.1,<6.0
 
