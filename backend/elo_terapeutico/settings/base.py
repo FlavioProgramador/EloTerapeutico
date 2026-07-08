@@ -3,7 +3,8 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
-from django.urls import reverse_lazy
+
+from apps.core.admin_unfold import UNFOLD
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 env = environ.Env()
@@ -45,198 +46,15 @@ LOCAL_APPS = [
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
-UNFOLD = {
-    "SITE_TITLE": "Elo Terapêutico Admin",
-    "SITE_HEADER": "Elo Terapêutico",
-    "SITE_SUBHEADER": "Painel interno da plataforma",
-    "SITE_SYMBOL": "psychology",
-    "SHOW_HISTORY": True,
-    "SHOW_VIEW_ON_SITE": False,
-    "DASHBOARD_CALLBACK": "apps.core.admin_dashboard.dashboard_callback",
-    "ENVIRONMENT": "apps.core.admin_dashboard.environment_callback",
-    "SIDEBAR": {
-        "show_search": True,
-        "show_all_applications": False,
-        "navigation": [
-            {
-                "title": "Visão Geral",
-                "separator": True,
-                "items": [
-                    {"title": "Dashboard", "icon": "dashboard", "link": reverse_lazy("admin:index")},
-                ],
-            },
-            {
-                "title": "Usuários e Acessos",
-                "separator": True,
-                "items": [
-                    {
-                        "title": "Usuários",
-                        "icon": "manage_accounts",
-                        "link": reverse_lazy("admin:users_user_changelist"),
-                    },
-                    {
-                        "title": "Grupos",
-                        "icon": "groups",
-                        "link": reverse_lazy("admin:auth_group_changelist"),
-                    },
-                    {
-                        "title": "Horários de atendimento",
-                        "icon": "schedule",
-                        "link": reverse_lazy("admin:users_workinghours_changelist"),
-                    },
-                ],
-            },
-            {
-                "title": "Pacientes",
-                "separator": True,
-                "items": [
-                    {
-                        "title": "Pacientes",
-                        "icon": "personal_injury",
-                        "link": reverse_lazy("admin:patients_patient_changelist"),
-                    },
-                ],
-            },
-            {
-                "title": "Agenda",
-                "separator": True,
-                "items": [
-                    {
-                        "title": "Agendamentos",
-                        "icon": "event",
-                        "link": reverse_lazy("admin:agenda_appointment_changelist"),
-                    },
-                    {
-                        "title": "Recorrências",
-                        "icon": "event_repeat",
-                        "link": reverse_lazy("admin:agenda_appointmentrecurrence_changelist"),
-                    },
-                    {
-                        "title": "Bloqueios de agenda",
-                        "icon": "event_busy",
-                        "link": reverse_lazy("admin:agenda_scheduleblock_changelist"),
-                    },
-                    {
-                        "title": "Salas",
-                        "icon": "meeting_room",
-                        "link": reverse_lazy("admin:agenda_room_changelist"),
-                    },
-                    {
-                        "title": "Pacotes de sessões",
-                        "icon": "inventory_2",
-                        "link": reverse_lazy("admin:agenda_patientpackage_changelist"),
-                    },
-                    {
-                        "title": "Sessões de pacote",
-                        "icon": "checklist",
-                        "link": reverse_lazy("admin:agenda_packagesession_changelist"),
-                    },
-                    {
-                        "title": "Telemedicina",
-                        "icon": "video_call",
-                        "link": reverse_lazy("admin:agenda_telemedicineroom_changelist"),
-                    },
-                    {
-                        "title": "Lembretes",
-                        "icon": "notifications",
-                        "link": reverse_lazy("admin:agenda_appointmentreminder_changelist"),
-                    },
-                ],
-            },
-            {
-                "title": "Prontuários",
-                "separator": True,
-                "items": [
-                    {
-                        "title": "Anamneses",
-                        "icon": "assignment",
-                        "link": reverse_lazy("admin:records_anamnesis_changelist"),
-                    },
-                    {
-                        "title": "Evoluções",
-                        "icon": "clinical_notes",
-                        "link": reverse_lazy("admin:records_evolution_changelist"),
-                    },
-                    {
-                        "title": "Aditivos",
-                        "icon": "post_add",
-                        "link": reverse_lazy("admin:records_evolutionaddendum_changelist"),
-                    },
-                ],
-            },
-            {
-                "title": "Financeiro",
-                "separator": True,
-                "items": [
-                    {
-                        "title": "Transações financeiras",
-                        "icon": "payments",
-                        "link": reverse_lazy(
-                            "admin:financeiro_financialtransaction_changelist"
-                        ),
-                    },
-                ],
-            },
-            {
-                "title": "Documentos",
-                "separator": True,
-                "items": [
-                    {
-                        "title": "Templates",
-                        "icon": "article",
-                        "link": reverse_lazy("admin:documents_documenttemplate_changelist"),
-                    },
-                    {
-                        "title": "Documentos gerados",
-                        "icon": "description",
-                        "link": reverse_lazy("admin:documents_generateddocument_changelist"),
-                    },
-                    {
-                        "title": "Sequências",
-                        "icon": "format_list_numbered",
-                        "link": reverse_lazy("admin:documents_documentsequence_changelist"),
-                    },
-                ],
-            },
-            {
-                "title": "Formulários",
-                "separator": True,
-                "items": [
-                    {
-                        "title": "Templates de formulário",
-                        "icon": "dynamic_form",
-                        "link": reverse_lazy("admin:forms_formtemplate_changelist"),
-                    },
-                    {
-                        "title": "Formulários terapêuticos",
-                        "icon": "fact_check",
-                        "link": reverse_lazy("admin:forms_therapeuticform_changelist"),
-                    },
-                    {
-                        "title": "Respostas enviadas",
-                        "icon": "rate_review",
-                        "link": reverse_lazy("admin:forms_formsubmission_changelist"),
-                    },
-                    {
-                        "title": "Itens de resposta",
-                        "icon": "subject",
-                        "link": reverse_lazy("admin:forms_formanswer_changelist"),
-                    },
-                ],
-            },
-        ],
-    },
-}
-
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 ROOT_URLCONF = "elo_terapeutico.urls"
 TEMPLATES = [
@@ -260,7 +78,10 @@ DATABASES = {"default": env.db("DATABASE_URL")}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 8},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
@@ -270,7 +91,9 @@ PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
 ]
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
