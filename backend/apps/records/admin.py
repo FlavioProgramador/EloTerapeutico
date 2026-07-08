@@ -9,15 +9,12 @@ Eles ficam disponíveis no formulário de edição individual.
 
 from django.contrib import admin
 from django.utils.html import format_html
+from unfold.admin import ModelAdmin, TabularInline
 
 from .models import Anamnesis, Evolution, EvolutionAddendum
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Inline para aditivos dentro da evolução
-# ─────────────────────────────────────────────────────────────────────────────
 
-
-class EvolutionAddendumInline(admin.TabularInline):
+class EvolutionAddendumInline(TabularInline):
     """Exibe aditivos diretamente na tela de edição da evolução."""
 
     model = EvolutionAddendum
@@ -26,44 +23,31 @@ class EvolutionAddendumInline(admin.TabularInline):
     readonly_fields = ("created_by", "created_at")
 
     def has_change_permission(self, request, obj=None):
-        """Aditivos são imutáveis após criação."""
         return False
 
     def has_delete_permission(self, request, obj=None):
-        """Aditivos não podem ser deletados pelo admin."""
         return False
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Anamnesis
-# ─────────────────────────────────────────────────────────────────────────────
-
-
 @admin.register(Anamnesis)
-class AnamnesisAdmin(admin.ModelAdmin):
-    """
-    Admin da Anamnese.
-    Campos criptografados (chief_complaint, history, etc.) ficam disponíveis
-    apenas no formulário de edição, nunca em listagens.
-    """
+class AnamnesisAdmin(ModelAdmin):
+    """Admin da Anamnese com cuidado extra para campos clínicos sensíveis."""
 
-    # Apenas metadados na listagem — sem descriptografia em massa
     list_display = ("patient", "created_by", "created_at", "updated_at")
     list_filter = ("created_at",)
-    search_fields = ("patient__full_name", "created_by__full_name")
+    search_fields = ("patient__full_name", "created_by__full_name", "created_by__email")
     readonly_fields = ("created_at", "updated_at")
     date_hierarchy = "created_at"
+    list_select_related = ("patient", "created_by")
+    autocomplete_fields = ("patient", "created_by")
 
-    # Organiza os campos no formulário por seção
     fieldsets = (
         (
             "Identificação",
-            {
-                "fields": ("patient", "created_by"),
-            },
+            {"fields": ("patient", "created_by")},
         ),
         (
-            "Conteúdo Clínico",
+            "Conteúdo clínico sensível",
             {
                 "fields": (
                     "chief_complaint",
@@ -73,17 +57,14 @@ class AnamnesisAdmin(admin.ModelAdmin):
                     "observations",
                 ),
                 "description": (
-                    "⚠️ Os campos abaixo contêm dados clínicos sensíveis criptografados. "
-                    "Todo acesso é registrado no log de auditoria."
+                    "Campos clínicos criptografados. Evite abrir ou editar sem necessidade "
+                    "operacional legítima."
                 ),
             },
         ),
         (
-            "Metadados",
-            {
-                "fields": ("created_at", "updated_at"),
-                "classes": ("collapse",),
-            },
+            "Auditoria",
+            {"fields": ("created_at", "updated_at"), "classes": ("collapse",)},
         ),
     )
 
@@ -91,21 +72,10 @@ class AnamnesisAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related("patient", "created_by")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Evolution
-# ─────────────────────────────────────────────────────────────────────────────
-
-
 @admin.register(Evolution)
-class EvolutionAdmin(admin.ModelAdmin):
-    """
-    Admin da Evolução de Sessão.
+class EvolutionAdmin(ModelAdmin):
+    """Admin da Evolução de Sessão."""
 
-    O campo `content` (criptografado) está disponível somente no formulário
-    individual, nunca na listagem, para evitar descriptografia em massa.
-    """
-
-    # Apenas metadados na listagem
     list_display = (
         "id",
         "patient",
@@ -116,36 +86,40 @@ class EvolutionAdmin(admin.ModelAdmin):
         "created_at",
     )
     list_filter = ("is_locked", "session_date", "created_at")
-    search_fields = ("patient__full_name", "cid10", "created_by__full_name")
+    search_fields = (
+        "patient__full_name",
+        "cid10",
+        "created_by__full_name",
+        "created_by__email",
+    )
     readonly_fields = ("is_locked", "locked_at", "created_at", "updated_at")
     date_hierarchy = "session_date"
     inlines = [EvolutionAddendumInline]
+    list_select_related = ("patient", "created_by", "appointment")
+    autocomplete_fields = ("patient", "created_by")
+    raw_id_fields = ("appointment",)
 
     fieldsets = (
         (
             "Identificação",
-            {
-                "fields": ("patient", "appointment", "session_date", "cid10"),
-            },
+            {"fields": ("patient", "appointment", "session_date", "cid10")},
         ),
         (
-            "Conteúdo da Sessão",
+            "Conteúdo da sessão",
             {
                 "fields": ("content",),
                 "description": (
-                    "⚠️ Dado clínico sensível criptografado. Acesso registrado em auditoria."
+                    "Dado clínico sensível criptografado. Acesso deve ocorrer apenas "
+                    "quando houver justificativa administrativa."
                 ),
             },
         ),
         (
-            "Controle de Bloqueio",
-            {
-                "fields": ("is_locked", "locked_at"),
-                "classes": ("collapse",),
-            },
+            "Controle de bloqueio",
+            {"fields": ("is_locked", "locked_at"), "classes": ("collapse",)},
         ),
         (
-            "Autoria",
+            "Autoria e auditoria",
             {
                 "fields": ("created_by", "created_at", "updated_at"),
                 "classes": ("collapse",),
@@ -155,78 +129,48 @@ class EvolutionAdmin(admin.ModelAdmin):
 
     @admin.display(description="Status", boolean=False)
     def status_badge(self, obj: Evolution) -> str:
-        """Exibe um badge colorido indicando se a evolução está bloqueada ou editável."""
         if obj.is_locked:
-            return format_html(
-                '<span style="color:#c0392b; font-weight:bold;">🔒 Bloqueada</span>'
-            )
+            return format_html('<span style="color:#b91c1c;font-weight:bold;">Bloqueada</span>')
         if obj.can_be_edited():
-            return format_html(
-                '<span style="color:#27ae60; font-weight:bold;">✏️ Editável</span>'
-            )
-        return format_html(
-            '<span style="color:#e67e22; font-weight:bold;">⏳ Pendente bloqueio</span>'
-        )
+            return format_html('<span style="color:#15803d;font-weight:bold;">Editável</span>')
+        return format_html('<span style="color:#ca8a04;font-weight:bold;">Pendente bloqueio</span>')
 
     def get_queryset(self, request):
-        return (
-            super()
-            .get_queryset(request)
-            .select_related("patient", "created_by", "appointment")
-        )
+        return super().get_queryset(request).select_related("patient", "created_by", "appointment")
 
     def has_delete_permission(self, request, obj=None):
-        """
-        Evoluções não podem ser deletadas via admin — apenas por processo
-        administrativo formal (ex: judicial). Retorna False para todos.
-        """
         return False
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# EvolutionAddendum
-# ─────────────────────────────────────────────────────────────────────────────
-
-
 @admin.register(EvolutionAddendum)
-class EvolutionAddendumAdmin(admin.ModelAdmin):
-    """
-    Admin dos Aditivos de Evolução.
-    Aditivos são imutáveis após criação.
-    """
+class EvolutionAddendumAdmin(ModelAdmin):
+    """Admin dos Aditivos de Evolução. Aditivos são imutáveis após criação."""
 
     list_display = ("id", "evolution", "created_by", "created_at")
     list_filter = ("created_at",)
     search_fields = ("evolution__patient__full_name", "created_by__full_name", "reason")
     readonly_fields = ("evolution", "created_by", "created_at")
+    list_select_related = ("evolution__patient", "created_by")
 
     fieldsets = (
         (
             "Vínculo",
-            {
-                "fields": ("evolution", "created_by", "created_at"),
-            },
+            {"fields": ("evolution", "created_by", "created_at")},
         ),
         (
-            "Conteúdo",
+            "Conteúdo sensível",
             {
                 "fields": ("reason", "content"),
-                "description": "⚠️ Dado clínico sensível criptografado.",
+                "description": "Dado clínico sensível criptografado.",
             },
         ),
     )
 
     def get_queryset(self, request):
-        return (
-            super()
-            .get_queryset(request)
-            .select_related("evolution__patient", "created_by")
-        )
+        return super().get_queryset(request).select_related("evolution__patient", "created_by")
 
     def has_change_permission(self, request, obj=None):
-        """Aditivos são imutáveis após criação."""
         return False
 
     def has_delete_permission(self, request, obj=None):
-        """Aditivos não podem ser deletados."""
         return False
