@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 
 from django.conf import settings
@@ -21,6 +21,11 @@ def _next_month_start(current_date):
     if current_date.month == 12:
         return current_date.replace(year=current_date.year + 1, month=1, day=1)
     return current_date.replace(month=current_date.month + 1, day=1)
+
+
+def _start_of_day(current_date):
+    current_timezone = timezone.get_current_timezone()
+    return timezone.make_aware(datetime.combine(current_date, time.min), current_timezone)
 
 
 def _format_currency(value: Decimal | None) -> str:
@@ -58,6 +63,12 @@ def dashboard_callback(request, context):
     next_month = _next_month_start(today)
     recent_cutoff = timezone.now() - timedelta(days=7)
 
+    today_start = _start_of_day(today)
+    tomorrow_start = today_start + timedelta(days=1)
+    week_start_at = _start_of_day(week_start)
+    week_end_at = _start_of_day(week_end)
+    month_start_at = _start_of_day(month_start)
+
     User = get_user_model()
     users = (
         User.objects.all()
@@ -68,7 +79,8 @@ def dashboard_callback(request, context):
     patients = Patient.all_objects.all()
     if not request.user.is_superuser:
         patients = patients.filter(
-            Q(therapist=request.user) | Q(professional_links__professional=request.user)
+            Q(therapist=request.user)
+            | Q(professional_links__professional=request.user)
         ).distinct()
 
     appointments = _scoped_queryset(
@@ -124,15 +136,18 @@ def dashboard_callback(request, context):
                 },
                 {
                     "label": "Agendamentos de hoje",
-                    "value": appointments.filter(start_time__date=today).count(),
+                    "value": appointments.filter(
+                        start_time__gte=today_start,
+                        start_time__lt=tomorrow_start,
+                    ).count(),
                     "description": "Sessões marcadas para hoje.",
                     "icon": "today",
                 },
                 {
                     "label": "Agendamentos da semana",
                     "value": appointments.filter(
-                        start_time__date__gte=week_start,
-                        start_time__date__lt=week_end,
+                        start_time__gte=week_start_at,
+                        start_time__lt=week_end_at,
                     ).count(),
                     "description": "Janela de segunda a domingo.",
                     "icon": "event",
@@ -157,7 +172,7 @@ def dashboard_callback(request, context):
                 },
                 {
                     "label": "Novos cadastros no mês",
-                    "value": patients.filter(created_at__date__gte=month_start).count(),
+                    "value": patients.filter(created_at__gte=month_start_at).count(),
                     "description": "Pacientes criados no mês atual.",
                     "icon": "person_add",
                 },
