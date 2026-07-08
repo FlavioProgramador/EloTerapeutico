@@ -19,7 +19,7 @@ Fluxo inicial:
 ```env
 ASAAS_API_KEY=
 ASAAS_BASE_URL=https://api-sandbox.asaas.com/v3
-ASAAS_WEBHOOK_TOKEN=dev-webhook-token
+ASAAS_WEBHOOK_TOKEN=
 BILLING_TRIAL_DAYS=7
 BILLING_DEFAULT_CURRENCY=BRL
 ```
