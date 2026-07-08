@@ -1,27 +1,23 @@
 """
 apps/financeiro/admin.py
-Admin do módulo financeiro com listagem rica e agregações.
+Admin do módulo financeiro com listagem rica, ações seguras e agregações reais.
 """
 
 from decimal import Decimal
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.db.models import Q, Sum
-from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
+from unfold.admin import ModelAdmin
 
 from .models import FinancialTransaction
 
 
 @admin.register(FinancialTransaction)
-class FinancialTransactionAdmin(admin.ModelAdmin):
-    """
-    Interface administrativa para FinancialTransaction.
-    Exibe somatórios de receita/despesa no rodapé da listagem.
-    """
+class FinancialTransactionAdmin(ModelAdmin):
+    """Interface administrativa para transações financeiras."""
 
-    # ── Exibição na listagem ─────────────────────────────────────────────────
     list_display = (
         "id",
         "therapist_name",
@@ -29,6 +25,8 @@ class FinancialTransactionAdmin(admin.ModelAdmin):
         "transaction_type_badge",
         "category_display",
         "amount_display",
+        "paid_amount_display",
+        "outstanding_amount_display",
         "payment_method_display",
         "payment_status_badge",
         "due_date",
@@ -41,6 +39,9 @@ class FinancialTransactionAdmin(admin.ModelAdmin):
         "payment_status",
         "payment_method",
         "category",
+        "source",
+        "is_recurring",
+        "due_date",
         "created_at",
     )
     search_fields = (
@@ -48,50 +49,80 @@ class FinancialTransactionAdmin(admin.ModelAdmin):
         "therapist__email",
         "patient__full_name",
         "description",
+        "beneficiary",
     )
     date_hierarchy = "created_at"
     ordering = ("-created_at",)
+    list_select_related = ("therapist", "patient", "appointment")
+    autocomplete_fields = ("therapist", "patient")
+    raw_id_fields = ("appointment",)
+    readonly_fields = ("created_at", "updated_at", "outstanding_amount_display")
+    actions = ("action_cancel_pending",)
 
-    # ── Formulário de edição ─────────────────────────────────────────────────
     fieldsets = (
         (
             _("Relacionamentos"),
-            {
-                "fields": ("therapist", "patient", "appointment"),
-            },
+            {"fields": ("therapist", "patient", "appointment")},
         ),
         (
-            _("Dados da Transação"),
+            _("Dados da transação"),
             {
                 "fields": (
                     "transaction_type",
                     "category",
+                    "source",
                     "amount",
+                    "paid_amount",
+                    "outstanding_amount_display",
                     "payment_method",
                     "payment_status",
                     "description",
-                ),
+                    "beneficiary",
+                )
             },
         ),
+        (_("Datas"), {"fields": ("due_date", "paid_at")}),
         (
-            _("Datas"),
+            _("Recorrência"),
             {
-                "fields": ("due_date", "paid_at"),
+                "fields": (
+                    "is_recurring",
+                    "recurrence_frequency",
+                    "recurrence_end_date",
+                ),
+                "classes": ("collapse",),
             },
         ),
         (
             _("Documentação"),
             {
-                "fields": ("receipt_url",),
+                "fields": ("payment_link", "receipt_url"),
                 "classes": ("collapse",),
             },
         ),
+        (
+            _("Auditoria"),
+            {"fields": ("created_at", "updated_at"), "classes": ("collapse",)},
+        ),
     )
-    readonly_fields = ("created_at", "updated_at")
-    autocomplete_fields = ("patient",)
-    raw_id_fields = ("appointment",)
 
-    # ── Campos personalizados na listagem ────────────────────────────────────
+    @admin.action(description=_("Cancelar transações pendentes selecionadas"))
+    def action_cancel_pending(self, request, queryset):
+        if not request.user.has_perm("financeiro.change_financialtransaction"):
+            self.message_user(request, _("Permissão insuficiente."), messages.ERROR)
+            return
+
+        count = 0
+        for transaction in queryset:
+            if transaction.can_cancel():
+                transaction.cancel()
+                count += 1
+        self.message_user(
+            request,
+            _("%(count)s transação(ões) cancelada(s).") % {"count": count},
+            messages.WARNING,
+        )
+
     @admin.display(description=_("Terapeuta"), ordering="therapist__full_name")
     def therapist_name(self, obj):
         return obj.therapist.full_name
@@ -104,12 +135,11 @@ class FinancialTransactionAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Tipo"), ordering="transaction_type")
     def transaction_type_badge(self, obj):
-        """Exibe o tipo como badge colorido."""
-        color = "#28a745" if obj.transaction_type == "income" else "#dc3545"
+        color = "#15803d" if obj.transaction_type == "income" else "#b91c1c"
         label = obj.get_transaction_type_display()
         return format_html(
-            '<span style="background:{};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">'
-            "{}</span>",
+            '<span style="background:{};color:#fff;padding:2px 8px;'
+            'border-radius:999px;font-size:11px;">{}</span>',
             color,
             label,
         )
@@ -120,13 +150,16 @@ class FinancialTransactionAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Valor"), ordering="amount")
     def amount_display(self, obj):
-        """Exibe o valor formatado em BRL."""
-        color = "#28a745" if obj.transaction_type == "income" else "#dc3545"
-        return format_html(
-            '<strong style="color:{};">R$ {:,.2f}</strong>',
-            color,
-            obj.amount,
-        )
+        color = "#15803d" if obj.transaction_type == "income" else "#b91c1c"
+        return format_html('<strong style="color:{};">{}</strong>', color, self._format_brl(obj.amount))
+
+    @admin.display(description=_("Pago"), ordering="paid_amount")
+    def paid_amount_display(self, obj):
+        return self._format_brl(obj.paid_amount)
+
+    @admin.display(description=_("Em aberto"))
+    def outstanding_amount_display(self, obj):
+        return self._format_brl(obj.outstanding_amount)
 
     @admin.display(description=_("Método"), ordering="payment_method")
     def payment_method_display(self, obj):
@@ -134,48 +167,41 @@ class FinancialTransactionAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Status"), ordering="payment_status")
     def payment_status_badge(self, obj):
-        """Exibe o status de pagamento como badge colorido."""
         colors = {
-            "paid": "#28a745",
-            "pending": "#ffc107",
-            "cancelled": "#6c757d",
+            "paid": ("#15803d", "#fff"),
+            "partial": ("#0369a1", "#fff"),
+            "pending": ("#ca8a04", "#111827"),
+            "cancelled": ("#6b7280", "#fff"),
+            "refunded": ("#7c3aed", "#fff"),
         }
-        color = colors.get(obj.payment_status, "#6c757d")
-        text_color = "#fff" if obj.payment_status != "pending" else "#333"
+        color, text_color = colors.get(obj.payment_status, ("#6b7280", "#fff"))
         label = obj.get_payment_status_display()
         return format_html(
-            '<span style="background:{};color:{};padding:2px 8px;border-radius:4px;font-size:11px;">'
-            "{}</span>",
+            '<span style="background:{};color:{};padding:2px 8px;'
+            'border-radius:999px;font-size:11px;">{}</span>',
             color,
             text_color,
             label,
         )
 
-    # ── Somatórios no rodapé da listagem ─────────────────────────────────────
     def changelist_view(self, request, extra_context=None):
-        """
-        Sobrescreve changelist_view para injetar somatórios de receita, despesa
-        e saldo no contexto do template do admin.
-        """
         response = super().changelist_view(request, extra_context=extra_context)
 
         try:
-            # Obtém o queryset filtrado que já está na view
             qs = response.context_data["cl"].queryset
         except (AttributeError, KeyError):
             return response
 
-        # Agrega receitas pagas
         totals = qs.filter(payment_status="paid").aggregate(
             total_income=Sum("amount", filter=Q(transaction_type="income")),
             total_expense=Sum("amount", filter=Q(transaction_type="expense")),
         )
         total_income = totals["total_income"] or Decimal("0.00")
         total_expense = totals["total_expense"] or Decimal("0.00")
-
-        # Total pendente
         total_pending = (
-            qs.filter(payment_status="pending").aggregate(total=Sum("amount"))["total"]
+            qs.filter(payment_status__in=["pending", "partial"]).aggregate(total=Sum("amount"))[
+                "total"
+            ]
             or Decimal("0.00")
         )
 
@@ -187,3 +213,9 @@ class FinancialTransactionAdmin(admin.ModelAdmin):
             "total_transactions": qs.count(),
         }
         return response
+
+    @staticmethod
+    def _format_brl(value: Decimal | None) -> str:
+        amount = value or Decimal("0.00")
+        formatted = f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        return f"R$ {formatted}"
