@@ -1,86 +1,179 @@
+"use client";
+
 import Link from "next/link";
-import { Check, ArrowRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { getCookie } from "cookies-next";
+import { Check, ArrowRight, Loader2 } from "lucide-react";
+
+import { listPlans } from "@/features/billing/api";
+import type { Plan } from "@/features/billing/types";
 import { Reveal } from "./motion";
 
-const plans = [
+const featureLabels: Record<keyof Plan["features"], string> = {
+  agenda: "Agenda integrada",
+  patients: "Cadastro de pacientes",
+  clinical_records: "Prontuário clínico",
+  financial: "Financeiro",
+  documents: "Documentos",
+  forms: "Formulários",
+  reports: "Relatórios",
+  ai: "Recursos de IA",
+};
+
+const fallbackPlans = [
   {
-    name: "Individual",
-    price: "Grátis",
-    priceNote: "para começar",
-    description: "Para terapeutas autônomos que querem organizar sua prática.",
-    features: [
-      "Agenda com lembretes",
-      "Prontuário eletrônico",
-      "Controle financeiro básico",
-      "Suporte por e-mail",
-    ],
-    cta: "Testar grátis",
-    ctaHref: "/register",
-    highlighted: false,
+    name: "Essencial",
+    slug: "essencial",
+    description: "Plano inicial para organizar a rotina clínica.",
+    features: ["Agenda e pacientes", "Prontuário eletrônico", "Configuração simples"],
   },
   {
-    name: "Clínica",
-    price: "Em breve",
-    priceNote: "",
-    description: "Para pequenas clínicas com múltiplos profissionais.",
-    features: [
-      "Tudo do plano Individual",
-      "Múltiplos terapeutas",
-      "Perfis e permissões",
-      "Relatórios consolidados",
-      "Suporte prioritário",
-    ],
-    cta: "Em breve",
-    ctaHref: "#",
-    highlighted: true,
+    name: "Profissional",
+    slug: "profissional",
+    description: "Plano recomendado para terapeutas que precisam de mais controle.",
+    features: ["Módulos avançados", "Mais limites de uso", "Gestão profissional"],
+  },
+  {
+    name: "Premium",
+    slug: "premium",
+    description: "Plano completo para operar com recursos ampliados.",
+    features: ["Relatórios", "Documentos e formulários", "Recursos premium"],
   },
 ];
 
+function currency(value: string, currencyCode = "BRL") {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: currencyCode }).format(Number(value));
+}
+
+function planFeatures(plan: Plan) {
+  const enabled = Object.entries(plan.features)
+    .filter(([, active]) => active)
+    .map(([key]) => featureLabels[key as keyof Plan["features"]]);
+
+  const limits = [
+    plan.max_patients ? `Até ${plan.max_patients} pacientes` : "Pacientes ilimitados",
+    plan.max_storage_mb ? `${plan.max_storage_mb} MB de armazenamento` : "Armazenamento conforme plano",
+  ];
+
+  return [...enabled, ...limits].slice(0, 6);
+}
+
+function checkoutHref(slug: string, isAuthenticated: boolean) {
+  const checkout = `/checkout?plan=${encodeURIComponent(slug)}`;
+  if (isAuthenticated) return checkout;
+  return `/register?plan=${encodeURIComponent(slug)}&next=${encodeURIComponent(checkout)}`;
+}
+
 export function Pricing() {
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [hasApiError, setHasApiError] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    setIsAuthenticated(Boolean(getCookie("auth_token")));
+    let mounted = true;
+    async function load() {
+      try {
+        const data = await listPlans();
+        if (mounted) {
+          setPlans(data);
+          setHasApiError(false);
+        }
+      } catch {
+        if (mounted) setHasApiError(true);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const orderedPlans = useMemo(() => {
+    return [...plans].sort((a, b) => {
+      const order = ["essencial", "profissional", "premium"];
+      return order.indexOf(a.slug) - order.indexOf(b.slug);
+    });
+  }, [plans]);
+
   return (
     <section id="precos" className="pricing-section">
       <div className="pricing-section__inner">
         <Reveal className="pricing-section__heading">
-          <span className="landing-eyebrow">Planos e preços</span>
-          <h2>Simples, sem surpresas.</h2>
+          <span className="landing-eyebrow">Planos</span>
+          <h2>Escolha o plano certo para sua prática.</h2>
           <p>
-            Comece grátis. Pague apenas quando precisar de mais. Sem taxas escondidas por paciente.
+            Os valores e limites vêm direto do backend. A contratação segue para o checkout Asaas, sem armazenar cartão, CVV ou dados sensíveis no Elo Terapêutico.
           </p>
         </Reveal>
 
-        <div className="pricing-section__grid">
-          {plans.map((plan, i) => (
-            <Reveal
-              key={plan.name}
-              className={`pricing-card ${plan.highlighted ? "pricing-card--highlighted" : ""}`}
-              delay={i * 0.06}
-            >
-              <div className="pricing-card__header">
-                <span className="pricing-card__name">{plan.name}</span>
-                <div className="pricing-card__price">
-                  <strong>{plan.price}</strong>
-                  {plan.priceNote && <small>{plan.priceNote}</small>}
+        {loading ? (
+          <div className="pricing-section__loading">
+            <Loader2 aria-hidden="true" /> Carregando planos...
+          </div>
+        ) : hasApiError || orderedPlans.length === 0 ? (
+          <div className="pricing-section__grid">
+            {fallbackPlans.map((plan, i) => (
+              <Reveal key={plan.slug} className={`pricing-card ${plan.slug === "profissional" ? "pricing-card--highlighted" : ""}`} delay={i * 0.06}>
+                {plan.slug === "profissional" && <span className="pricing-card__badge">Recomendado</span>}
+                <div className="pricing-card__header">
+                  <span className="pricing-card__name">{plan.name}</span>
+                  <div className="pricing-card__price">
+                    <strong>Indisponível</strong>
+                    <small>tente novamente</small>
+                  </div>
+                  <p className="pricing-card__desc">{plan.description}</p>
                 </div>
-                <p className="pricing-card__desc">{plan.description}</p>
-              </div>
-              <ul className="pricing-card__features">
-                {plan.features.map((f) => (
-                  <li key={f}>
-                    <Check aria-hidden="true" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href={plan.ctaHref}
-                className={`pricing-card__cta ${plan.highlighted ? "pricing-card__cta--primary" : ""}`}
-              >
-                {plan.cta}
-                <ArrowRight aria-hidden="true" />
-              </Link>
-            </Reveal>
-          ))}
-        </div>
+                <ul className="pricing-card__features">
+                  {plan.features.map((feature) => (
+                    <li key={feature}>
+                      <Check aria-hidden="true" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/planos" className={`pricing-card__cta ${plan.slug === "profissional" ? "pricing-card__cta--primary" : ""}`}>
+                  Ver planos
+                  <ArrowRight aria-hidden="true" />
+                </Link>
+              </Reveal>
+            ))}
+          </div>
+        ) : (
+          <div className="pricing-section__grid">
+            {orderedPlans.map((plan, i) => {
+              const highlighted = plan.slug === "profissional";
+              return (
+                <Reveal key={plan.slug} className={`pricing-card ${highlighted ? "pricing-card--highlighted" : ""}`} delay={i * 0.06}>
+                  {highlighted && <span className="pricing-card__badge">Recomendado</span>}
+                  <div className="pricing-card__header">
+                    <span className="pricing-card__name">{plan.name}</span>
+                    <div className="pricing-card__price">
+                      <strong>{currency(plan.price, plan.currency)}</strong>
+                      <small>/{plan.billing_cycle === "MONTHLY" ? "mês" : "ano"}</small>
+                    </div>
+                    <p className="pricing-card__desc">{plan.description}</p>
+                  </div>
+                  <ul className="pricing-card__features">
+                    {planFeatures(plan).map((feature) => (
+                      <li key={feature}>
+                        <Check aria-hidden="true" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href={checkoutHref(plan.slug, isAuthenticated)} className={`pricing-card__cta ${highlighted ? "pricing-card__cta--primary" : ""}`}>
+                    {isAuthenticated ? "Escolher plano" : "Começar agora"}
+                    <ArrowRight aria-hidden="true" />
+                  </Link>
+                </Reveal>
+              );
+            })}
+          </div>
+        )}
       </div>
     </section>
   );
