@@ -1,8 +1,9 @@
-import { CalendarDays, FileText, Settings2 } from "lucide-react";
+import { CalendarDays, FileText, Settings2, UsersRound, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { SafePatientPanelData } from "../panel-contracts";
 
 interface Props {
@@ -41,13 +42,12 @@ export function PatientSidePanel({ data, loading, onClose }: Props) {
 
   if (!data) {
     return (
-      <aside className="grid min-h-72 place-items-center rounded-xl border border-dashed border-border bg-card p-6 text-center">
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">Selecione um paciente</h2>
-          <p className="mt-2 text-xs text-muted-foreground">
-            O resumo administrativo aparecerá neste painel.
-          </p>
-        </div>
+      <aside className="grid min-h-72 place-items-center rounded-xl border border-dashed border-border bg-card p-6">
+        <EmptyState
+          icon={<UsersRound className="h-6 w-6 text-muted-foreground" />}
+          title="Selecione um paciente"
+          description="O resumo administrativo aparecerá neste painel."
+        />
       </aside>
     );
   }
@@ -80,10 +80,10 @@ export function PatientSidePanel({ data, loading, onClose }: Props) {
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-md px-2 py-1 text-muted-foreground hover:bg-secondary"
+                className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                 aria-label="Fechar painel"
               >
-                ×
+                <X className="h-4 w-4" />
               </button>
             )}
           </div>
