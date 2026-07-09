@@ -2,16 +2,30 @@
 
 from __future__ import annotations
 
-from django.db.models import Q
+from django.db.models import Count, Prefetch, Q
 
 from apps.agenda.models import Appointment
 
-from ..models import Evolution
+from ..models import ClinicalDocument, Evolution
 
 
 def evolutions_for_patient(*, patient, user, status: str | None = None):
+    active_docs_qs = ClinicalDocument.objects.filter(
+        deleted_at__isnull=True,
+        is_archived=False,
+    ).order_by("created_at")
+
     queryset = (
         Evolution.objects.filter(patient=patient)
+        .annotate(
+            annotated_addenda_count=Count("addenda", distinct=True),
+            annotated_docs_count=Count(
+                "documents",
+                filter=Q(documents__deleted_at__isnull=True, documents__is_archived=False),
+                distinct=True,
+            ),
+            annotated_versions_count=Count("versions", distinct=True),
+        )
         .select_related(
             "created_by",
             "clinical_data",
@@ -19,7 +33,11 @@ def evolutions_for_patient(*, patient, user, status: str | None = None):
             "appointment__therapist",
             "appointment__patient",
         )
-        .prefetch_related("versions", "documents")
+        .prefetch_related(
+            "versions",
+            "treatment_goals",
+            Prefetch("documents", queryset=active_docs_qs, to_attr="active_documents"),
+        )
         .order_by("-session_date", "-created_at")
     )
     if not user.has_perm("records.view_confidential_evolution"):

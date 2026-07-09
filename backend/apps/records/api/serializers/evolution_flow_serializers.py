@@ -294,12 +294,24 @@ class EvolutionFlowSerializer(serializers.ModelSerializer):
         )
 
     def get_version_count(self, obj):
+        count = getattr(obj, "annotated_versions_count", None)
+        if count is not None:
+            return count
+
         prefetched = getattr(obj, "_prefetched_objects_cache", {})
         if "versions" in prefetched:
             return len(prefetched["versions"])
         return obj.versions.count()
 
     def get_attachments(self, obj):
+        active_docs = getattr(obj, "active_documents", None)
+        if active_docs is not None:
+            return EvolutionAttachmentSerializer(
+                active_docs,
+                many=True,
+                context=self.context,
+            ).data
+
         queryset = obj.documents.filter(
             deleted_at__isnull=True,
             is_archived=False,
