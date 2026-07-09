@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Rotas públicas que não necessitam de autenticação
-const publicRoutes = ["/login", "/register", "/forgot-password"];
+const publicRoutes = ["/login", "/register", "/cadastro", "/forgot-password"];
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
 
   // Obtém os cookies de autenticação
   const token = request.cookies.get("auth_token")?.value;
@@ -23,17 +23,22 @@ export function middleware(request: NextRequest) {
 
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route) || pathname === route);
   const isDashboardRoute = pathname.startsWith("/dashboard") || pathname === "/dashboard";
+  const isCheckoutRoute = pathname.startsWith("/checkout") || pathname.startsWith("/billing");
+  const isProtectedRoute = isDashboardRoute || isCheckoutRoute;
 
-  // Caso 1: Usuário NÃO autenticado tentando acessar rotas protegidas (Dashboard)
-  if (!token && isDashboardRoute) {
+  // Caso 1: Usuário NÃO autenticado tentando acessar rotas protegidas
+  if (!token && isProtectedRoute) {
     const loginUrl = new URL("/login", request.url);
-    // Adiciona o parâmetro redirect para retornar o usuário à página de origem após o login
-    loginUrl.searchParams.set("redirect", pathname);
+    loginUrl.searchParams.set("next", `${pathname}${search}`);
     return NextResponse.redirect(loginUrl);
   }
 
   // Caso 2: Usuário JÁ autenticado tentando acessar páginas públicas de login/cadastro
   if (token && isPublicRoute) {
+    const next = request.nextUrl.searchParams.get("next") || request.nextUrl.searchParams.get("redirect");
+    if (next && next.startsWith("/") && !next.startsWith("//")) {
+      return NextResponse.redirect(new URL(next, request.url));
+    }
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
