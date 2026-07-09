@@ -1,6 +1,8 @@
 export type BillingCycle = "MONTHLY" | "YEARLY";
 export type SubscriptionStatus = "TRIALING" | "PENDING" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "EXPIRED";
 export type PaymentStatus = "PENDING" | "CONFIRMED" | "RECEIVED" | "OVERDUE" | "REFUNDED" | "CANCELED" | "FAILED";
+export type CheckoutType = "SUBSCRIPTION" | "ONE_TIME";
+export type BillingType = "PIX" | "BOLETO" | "CREDIT_CARD";
 
 export interface PlanFeatures {
   agenda: boolean;
@@ -48,7 +50,47 @@ export interface Payment {
   status: PaymentStatus;
   due_date: string | null;
   paid_at: string | null;
+  gateway_payment_id?: string | null;
+  gateway_subscription_id?: string;
   invoice_url: string;
   bank_slip_url: string;
+  pix_qr_code?: string;
+  pix_copy_paste?: string;
   created_at: string;
+}
+
+export interface CheckoutPayload {
+  plan_slug: string;
+  type: CheckoutType;
+  billingType: BillingType;
+  dueDate: string;
+  value?: string;
+  description?: string;
+  cycle?: BillingCycle;
+  installmentCount?: number;
+}
+
+export interface CheckoutPreview {
+  gateway: "ASAAS";
+  environment: "SANDBOX" | "PRODUCTION";
+  notice: string;
+  activation_rule: string;
+  plan: Plan;
+  checkout: {
+    type: CheckoutType;
+    billingType: BillingType;
+    dueDate: string;
+    value: string;
+    description: string;
+    cycle: BillingCycle;
+    installmentCount: number;
+  };
+  subscription?: Subscription;
+  payment?: {
+    gateway_payment_id?: string;
+    status?: string;
+    invoiceUrl?: string;
+    bankSlipUrl?: string;
+  };
+  status?: SubscriptionStatus;
 }
