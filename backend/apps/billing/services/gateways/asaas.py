@@ -28,6 +28,7 @@ class AsaasGateway(PaymentGateway):
         return {
             "accept": "application/json",
             "content-type": "application/json",
+            "user-agent": "EloTerapeutico/1.0 (Django)",
             "access_token": self.api_key,
         }
 

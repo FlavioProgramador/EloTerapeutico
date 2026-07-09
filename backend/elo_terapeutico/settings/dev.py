@@ -4,7 +4,7 @@ from .base import *  # noqa
 
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]  # nosec B104
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "0.0.0.0"])  # noqa: F405
 
 # CORS – Permite qualquer origem em desenvolvimento
 CORS_ALLOW_ALL_ORIGINS = True
