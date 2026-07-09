@@ -1,6 +1,7 @@
-from datetime import timedelta
+from datetime import date, datetime, timedelta
+from decimal import Decimal
+from typing import Any
 
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
@@ -29,7 +30,24 @@ def get_current_subscription(user):
     )
 
 
-def create_subscription_for_user(user, plan: Plan) -> Subscription:
+def _safe_checkout_snapshot(checkout_data: dict[str, Any] | None) -> dict[str, Any]:
+    if not checkout_data:
+        return {}
+    blocked_keys = {"plan", "creditCardToken", "creditCard", "creditCardHolderInfo", "remoteIp"}
+    snapshot: dict[str, Any] = {}
+    for key, value in checkout_data.items():
+        if key in blocked_keys:
+            continue
+        if isinstance(value, (datetime, date)):
+            snapshot[key] = value.isoformat()
+        elif isinstance(value, Decimal):
+            snapshot[key] = str(value)
+        else:
+            snapshot[key] = value
+    return snapshot
+
+
+def create_subscription_for_user(user, plan: Plan, checkout_data: dict[str, Any] | None = None) -> Subscription:
     if not plan.is_active:
         raise ValidationError("Este plano não está disponível para assinatura.")
 
@@ -43,27 +61,31 @@ def create_subscription_for_user(user, plan: Plan) -> Subscription:
         if not customer_id:
             customer = gateway.create_customer(user)
             customer_id = customer.get("id", "")
-        gateway_subscription = gateway.create_subscription(user, plan, customer_id=customer_id)
+        if not customer_id:
+            raise ValidationError("Gateway não retornou o identificador do cliente.")
+
+        gateway_subscription = gateway.create_subscription(
+            user,
+            plan,
+            checkout_data=checkout_data,
+            customer_id=customer_id,
+        )
         gateway_subscription_id = gateway_subscription.get("id", "")
         if not gateway_subscription_id:
             raise ValidationError("Gateway não retornou o identificador da assinatura.")
 
-        now = timezone.now()
-        trial_days = max(int(settings.BILLING_TRIAL_DAYS), 0)
-        trial_ends_at = now + timedelta(days=trial_days) if trial_days else None
-        status = Subscription.Status.TRIALING if trial_ends_at else Subscription.Status.PENDING
         return Subscription.objects.create(
             user=user,
             plan=plan,
-            status=status,
-            started_at=now,
-            trial_ends_at=trial_ends_at,
-            current_period_start=now if status == Subscription.Status.TRIALING else None,
-            current_period_end=trial_ends_at,
+            status=Subscription.Status.PENDING,
             gateway_customer_id=customer_id,
             gateway_subscription_id=gateway_subscription_id,
             gateway_status=gateway_subscription.get("status", ""),
-            metadata={"gateway_response": gateway_subscription},
+            metadata={
+                "checkout": _safe_checkout_snapshot(checkout_data),
+                "gateway_response": gateway_subscription,
+                "activation_rule": "ACTIVE somente após webhook Asaas de pagamento confirmado ou recebido.",
+            },
         )
 
 
