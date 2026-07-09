@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { Payment, Plan, Subscription } from "./types";
+import type { CheckoutPayload, CheckoutPreview, Payment, Plan, Subscription } from "./types";
 
 interface Paginated<T> {
   count: number;
@@ -16,6 +16,16 @@ export async function listPlans(): Promise<Plan[]> {
 export async function getMySubscription(): Promise<Subscription | null> {
   const response = await api.get<{ subscription: Subscription | null }>("billing/subscription/me/");
   return response.data.subscription;
+}
+
+export async function previewCheckout(payload: CheckoutPayload): Promise<CheckoutPreview> {
+  const response = await api.post<CheckoutPreview>("billing/checkout/preview/", payload);
+  return response.data;
+}
+
+export async function createCheckout(payload: CheckoutPayload): Promise<CheckoutPreview> {
+  const response = await api.post<CheckoutPreview>("billing/checkout/create/", payload);
+  return response.data;
 }
 
 export async function createSubscription(planId: number): Promise<Subscription> {
