@@ -62,8 +62,8 @@ def test_public_url_modules_keep_their_contract(public_module):
     "relative_path",
     [
         "apps/agenda/api/models.py",
-        "apps/agenda/api/serializers.py",
-        "apps/agenda/api/views.py",
+        "apps/agenda/api/serializers/__init__.py",
+        "apps/agenda/api/views/__init__.py",
         "apps/users/api/serializers.py",
         "apps/users/api/views.py",
     ],
