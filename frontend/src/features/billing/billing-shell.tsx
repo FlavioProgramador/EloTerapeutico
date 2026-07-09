@@ -6,8 +6,6 @@ import { Check, Loader2 } from "lucide-react";
 
 import {
   cancelSubscription,
-  changePlan,
-  createSubscription,
   getMySubscription,
   listPayments,
   listPlans,
@@ -95,18 +93,14 @@ export function BillingShell({ mode }: { mode: Mode }) {
     };
   }, [mode, shouldLoadPlans]);
 
-  async function handleSubscribe(planId: number, isChange = false) {
-    setActionLoading(planId);
-    setError(null);
-    try {
-      const next = isChange ? await changePlan(planId) : await createSubscription(planId);
-      setSubscription(next);
-      window.location.href = "/billing/pendente";
-    } catch (err) {
-      setError(extractError(err));
-    } finally {
-      setActionLoading(null);
+  function handleSubscribe(planId: number) {
+    const plan = plans.find((item) => item.id === planId);
+    if (!plan) {
+      setError("Plano não encontrado para checkout.");
+      return;
     }
+    setActionLoading(planId);
+    window.location.href = `/checkout?plan=${encodeURIComponent(plan.slug)}`;
   }
 
   async function handleCancel() {
@@ -200,7 +194,7 @@ export function BillingShell({ mode }: { mode: Mode }) {
               <EmptyState title="Nenhuma assinatura ativa" description="Escolha um plano para liberar os módulos do Elo Terapêutico." actionHref="/planos" actionLabel="Ver planos" />
             )}
           </div>
-          <PlanGrid plans={plans} subscription={subscription} onSelect={(planId) => handleSubscribe(planId, Boolean(subscription))} actionLoading={actionLoading} />
+          <PlanGrid plans={plans} subscription={subscription} onSelect={handleSubscribe} actionLoading={actionLoading} />
         </div>
       </section>
     );
@@ -248,7 +242,7 @@ export function BillingShell({ mode }: { mode: Mode }) {
         <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-muted-foreground">A cobrança é da assinatura do terapeuta no SaaS. Dados clínicos não são enviados ao gateway.</p>
       </div>
       {error && <div className="mx-auto max-w-4xl"><Alert>{error}</Alert></div>}
-      <PlanGrid plans={plans} subscription={subscription} onSelect={(planId) => handleSubscribe(planId, false)} actionLoading={actionLoading} />
+      <PlanGrid plans={plans} subscription={subscription} onSelect={handleSubscribe} actionLoading={actionLoading} />
     </section>
   );
 }
@@ -276,7 +270,7 @@ function PlanGrid({ plans, subscription, onSelect, actionLoading }: { plans: Pla
               <li className="flex items-center gap-2"><Check className="h-4 w-4 text-primary" /> {plan.max_patients ? `Até ${plan.max_patients} pacientes` : "Pacientes ilimitados"}</li>
             </ul>
             <button disabled={current || actionLoading === plan.id} onClick={() => onSelect(plan.id)} className="mt-6 w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">
-              {current ? "Plano atual" : actionLoading === plan.id ? "Processando..." : "Assinar plano"}
+              {current ? "Plano atual" : actionLoading === plan.id ? "Abrindo checkout..." : "Escolher plano"}
             </button>
           </article>
         );
