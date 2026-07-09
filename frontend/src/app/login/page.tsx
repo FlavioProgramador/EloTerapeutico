@@ -22,9 +22,24 @@ import {
   type LoginFormData,
 } from "@/features/auth/schemas/auth.schemas";
 
+function registerHrefFromLogin() {
+  if (typeof window === "undefined") return "/register";
+  const params = new URLSearchParams(window.location.search);
+  const next = params.get("next") || params.get("redirect");
+  const planFromNext = next?.match(/[?&]plan=([^&]+)/)?.[1];
+  const selectedPlan = params.get("plan") || (planFromNext ? decodeURIComponent(planFromNext) : "");
+  const registerParams = new URLSearchParams();
+
+  if (selectedPlan) registerParams.set("plan", selectedPlan);
+  if (next && next.startsWith("/") && !next.startsWith("//")) registerParams.set("next", next);
+
+  return `/register${registerParams.size ? `?${registerParams.toString()}` : ""}`;
+}
+
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
+  const registerHref = registerHrefFromLogin();
 
   const {
     register,
@@ -41,7 +56,6 @@ export default function LoginPage() {
       toast.success("Bem-vindo de volta!", {
         description: "Login realizado com sucesso.",
       });
-      // Redirecionamento feito pelo AuthContext
     } catch (error: unknown) {
       const axiosError = error as AxiosError<{ error?: { message?: string }; detail?: string }>;
       const serverMessage =
@@ -58,8 +72,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background text-foreground font-sans">
       <div className="w-full max-w-md space-y-6">
-
-        {/* Branding */}
         <div className="flex flex-col items-center text-center">
           <div className="h-10 w-10 rounded-md bg-primary flex items-center justify-center mb-3">
             <Lock className="h-5 w-5 text-primary-foreground" />
@@ -72,7 +84,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Card de Login */}
         <Card className="border-border/80 bg-card shadow-xs">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-xl font-bold text-foreground">
@@ -163,7 +174,7 @@ export default function LoginPage() {
             <div className="mt-5 text-center text-xs text-muted-foreground">
               Não possui uma conta?{" "}
               <Link
-                href="/register"
+                href={registerHref}
                 className="text-primary hover:underline font-semibold"
               >
                 Cadastre-se grátis

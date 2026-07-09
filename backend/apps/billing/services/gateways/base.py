@@ -16,7 +16,18 @@ class PaymentGateway(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def create_subscription(self, user, plan, customer_id: str | None = None) -> dict[str, Any]:
+    def create_subscription(
+        self,
+        user,
+        plan,
+        checkout_data: dict[str, Any] | None = None,
+        *,
+        customer_id: str | None = None,
+    ) -> dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def create_payment(self, user, checkout_data: dict[str, Any]) -> dict[str, Any]:
         raise NotImplementedError
 
     @abstractmethod

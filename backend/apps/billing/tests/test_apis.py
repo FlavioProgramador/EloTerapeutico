@@ -1,7 +1,9 @@
+from datetime import timedelta
 from unittest.mock import Mock, patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.billing.models import Payment, Plan, Subscription
@@ -38,7 +40,7 @@ class BillingAPITests(TestCase):
     def test_create_subscription(self, get_gateway_mock):
         gateway = Mock()
         gateway.create_customer.return_value = {"id": "cus_123"}
-        gateway.create_subscription.return_value = {"id": "sub_123", "status": "ACTIVE"}
+        gateway.create_subscription.return_value = {"id": "sub_123", "status": "PENDING"}
         get_gateway_mock.return_value = gateway
         self.client.force_authenticate(self.user)
 
@@ -49,13 +51,85 @@ class BillingAPITests(TestCase):
         )
 
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data["gateway_status"], "ACTIVE")
+        self.assertEqual(response.data["gateway_status"], "PENDING")
+        self.assertEqual(response.data["status"], Subscription.Status.PENDING)
         self.assertTrue(
             Subscription.objects.filter(
                 user=self.user,
                 gateway_subscription_id="sub_123",
+                status=Subscription.Status.PENDING,
             ).exists()
         )
+
+    def test_checkout_preview_uses_plan_price_and_asaas_naming(self):
+        self.client.force_authenticate(self.user)
+        due_date = (timezone.localdate() + timedelta(days=2)).isoformat()
+
+        response = self.client.post(
+            "/api/v1/billing/checkout/preview/",
+            {
+                "plan_slug": self.plan.slug,
+                "type": "SUBSCRIPTION",
+                "billingType": "PIX",
+                "dueDate": due_date,
+                "value": "1.00",
+                "description": "Plano Profissional",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["gateway"], "ASAAS")
+        self.assertEqual(response.data["checkout"]["billingType"], "PIX")
+        self.assertEqual(response.data["checkout"]["dueDate"], due_date)
+        self.assertEqual(response.data["checkout"]["value"], "89.90")
+        self.assertIn("webhook", response.data["activation_rule"].lower())
+
+    @patch("apps.billing.services.subscriptions.get_gateway")
+    def test_checkout_create_subscription_keeps_status_pending_until_webhook(self, get_gateway_mock):
+        gateway = Mock()
+        gateway.create_customer.return_value = {"id": "cus_checkout"}
+        gateway.create_subscription.return_value = {"id": "sub_checkout", "status": "PENDING"}
+        get_gateway_mock.return_value = gateway
+        self.client.force_authenticate(self.user)
+        due_date = (timezone.localdate() + timedelta(days=1)).isoformat()
+
+        response = self.client.post(
+            "/api/v1/billing/checkout/create/",
+            {
+                "plan_slug": self.plan.slug,
+                "type": "SUBSCRIPTION",
+                "billingType": "BOLETO",
+                "dueDate": due_date,
+                "description": "Assinatura Profissional",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["subscription"]["status"], Subscription.Status.PENDING)
+        gateway.create_subscription.assert_called_once()
+        subscription = Subscription.objects.get(gateway_subscription_id="sub_checkout")
+        self.assertEqual(subscription.status, Subscription.Status.PENDING)
+        self.assertEqual(subscription.metadata["checkout"]["billingType"], "BOLETO")
+
+    def test_checkout_rejects_credit_card_without_tokenization(self):
+        self.client.force_authenticate(self.user)
+        due_date = (timezone.localdate() + timedelta(days=1)).isoformat()
+
+        response = self.client.post(
+            "/api/v1/billing/checkout/create/",
+            {
+                "plan_slug": self.plan.slug,
+                "type": "SUBSCRIPTION",
+                "billingType": "CREDIT_CARD",
+                "dueDate": due_date,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("tokenização", str(response.data))
 
     def test_payments_list_only_current_user_payments(self):
         subscription = Subscription.objects.create(

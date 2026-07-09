@@ -4,15 +4,20 @@ O módulo de Billing gerencia planos, assinaturas e pagamentos da assinatura do 
 
 ## Visão geral
 
-Fluxo inicial:
+Fluxo do checkout Asaas:
 
-1. O terapeuta acessa `/planos` ou `/dashboard/configuracoes/assinatura`.
-2. O frontend lista planos ativos em `GET /api/v1/billing/plans/`.
-3. O usuário autenticado escolhe um plano em `POST /api/v1/billing/subscription/create/`.
-4. O backend cria customer e subscription no Asaas Sandbox.
-5. A assinatura local fica como `TRIALING` quando houver trial ou `PENDING` quando não houver trial.
-6. A liberação definitiva do plano pago ocorre pelo webhook `PAYMENT_CONFIRMED` ou `PAYMENT_RECEIVED`.
-7. Os módulos são liberados conforme as flags do plano.
+1. A landing page pública renderiza a seção **Planos** com dados vindos de `GET /api/v1/billing/plans/`.
+2. O usuário escolhe Essencial, Profissional ou Premium.
+3. Se não estiver logado, o frontend redireciona para cadastro/login preservando o plano em `plan` e o destino em `next`.
+4. Se estiver logado, o frontend abre `/checkout?plan=<slug>`.
+5. O checkout em etapas coleta apenas dados não sensíveis: valor do plano, descrição, tipo, parcelamento quando cobrança única, vencimento e `billingType`.
+6. O backend cria `customer` e `subscription` no Asaas Sandbox.
+7. A assinatura local é criada como `PENDING`.
+8. O Asaas envia `webhook`.
+9. O backend valida o webhook e atualiza a assinatura para `ACTIVE` somente após `PAYMENT_CONFIRMED` ou `PAYMENT_RECEIVED`.
+10. O sistema libera os módulos conforme o plano.
+
+Regra central: **nada no frontend ativa plano**.
 
 ## Variáveis de ambiente
 
@@ -30,6 +35,8 @@ Regras:
 - Em desenvolvimento, usar `https://api-sandbox.asaas.com/v3`.
 - Em produção, `ASAAS_BASE_URL` não pode conter `sandbox`.
 - `ASAAS_WEBHOOK_TOKEN` deve ser configurado em produção.
+- Não armazenar cartão, CVV ou dados sensíveis.
+- `CREDIT_CARD` só deve ser habilitado via checkout/tokenização segura futura.
 
 ## Webhook Asaas
 
@@ -37,6 +44,12 @@ Endpoint:
 
 ```http
 POST /api/v1/billing/webhooks/asaas/
+```
+
+Alias compatível:
+
+```http
+POST /api/billing/webhooks/asaas/
 ```
 
 Envie o token configurado em um destes headers:
@@ -64,6 +77,8 @@ O webhook é idempotente por `payload_hash` e usa `event_id` quando disponível.
 
 ```http
 GET  /api/v1/billing/plans/
+POST /api/v1/billing/checkout/preview/
+POST /api/v1/billing/checkout/create/
 GET  /api/v1/billing/subscription/me/
 POST /api/v1/billing/subscription/create/
 POST /api/v1/billing/subscription/cancel/
@@ -72,13 +87,61 @@ GET  /api/v1/billing/payments/
 POST /api/v1/billing/webhooks/asaas/
 ```
 
-### Criar assinatura
+Também existe alias sem versão para compatibilidade com o prompt do checkout:
+
+```http
+GET  /api/billing/plans/
+POST /api/billing/checkout/preview/
+POST /api/billing/checkout/create/
+POST /api/billing/webhooks/asaas/
+```
+
+### Preview do checkout
+
+```json
+{
+  "plan_slug": "profissional",
+  "type": "SUBSCRIPTION",
+  "billingType": "PIX",
+  "dueDate": "2026-07-10",
+  "description": "Assinatura Elo Terapêutico - Profissional"
+}
+```
+
+Resposta inclui:
+
+- `gateway`: sempre `ASAAS`.
+- `environment`: `SANDBOX` ou `PRODUCTION`.
+- `notice`: “Os pagamentos serão processados pelo Asaas.”
+- `activation_rule`: reforça que a ativação depende do webhook.
+- `plan`: plano serializado do backend.
+- `checkout`: payload normalizado com `billingType`, `dueDate`, `value`, `cycle` e `installmentCount`.
+
+### Criar checkout
+
+```json
+{
+  "plan_slug": "profissional",
+  "type": "SUBSCRIPTION",
+  "billingType": "BOLETO",
+  "dueDate": "2026-07-10",
+  "description": "Assinatura Elo Terapêutico - Profissional"
+}
+```
+
+Para `SUBSCRIPTION`, o backend cria `customer` e `subscription` no Asaas e salva a assinatura local como `PENDING`.
+
+Para `ONE_TIME`, o backend usa `create_payment(user, checkout_data)` no Asaas. Parcelamento é aceito apenas nesse tipo por `installmentCount`.
+
+### Criar assinatura legada
 
 ```json
 {
   "plan_id": 1
 }
 ```
+
+Essa rota continua disponível para compatibilidade interna, mas o fluxo recomendado do produto é `/checkout?plan=<slug>`.
 
 ### Trocar plano
 
@@ -89,6 +152,19 @@ POST /api/v1/billing/webhooks/asaas/
 ```
 
 Na primeira versão, a troca cancela a assinatura atual e cria uma nova assinatura no gateway, sem cálculo proporcional de upgrade/downgrade.
+
+## Frontend
+
+Rotas principais:
+
+- `/` — landing page pública com seção **Planos**.
+- `/planos` — listagem pública/autenticada de planos.
+- `/checkout?plan=profissional` — wizard de checkout Asaas.
+- `/billing/pendente` — acompanhamento de assinatura pendente.
+- `/dashboard/configuracoes/assinatura` — gestão de assinatura.
+- `/dashboard/configuracoes/faturas` — faturas do usuário.
+
+A landing não duplica preços hardcoded. Ela consome `GET /api/v1/billing/plans/`. Se a API falhar, exibe um fallback visual simples sem travar a página.
 
 ## Features por plano
 
@@ -148,7 +224,9 @@ https://SEU_SUBDOMINIO.ngrok-free.app/api/v1/billing/webhooks/asaas/
 ```
 
 6. Configure o token de webhook no Asaas e no `.env`.
-7. Crie uma assinatura pelo frontend e simule/confirme um pagamento no painel sandbox.
+7. Acesse `/`, escolha um plano, faça cadastro/login e finalize `/checkout?plan=<slug>`.
+8. Simule/confirme um pagamento no painel sandbox do Asaas.
+9. Confirme que a assinatura local saiu de `PENDING` para `ACTIVE` após webhook.
 
 ## Segurança e LGPD
 
@@ -161,7 +239,7 @@ https://SEU_SUBDOMINIO.ngrok-free.app/api/v1/billing/webhooks/asaas/
 
 ## Próximos passos
 
-- Implementar portal/link de pagamento conforme decisão final do checkout Asaas.
+- Implementar checkout/tokenização segura para `CREDIT_CARD`.
 - Adicionar cobrança proporcional para troca de plano.
 - Implementar limites de documentos, armazenamento e uso de IA.
 - Adicionar alertas internos para `PAST_DUE` e cancelamentos.

@@ -4,6 +4,8 @@ from apps.billing.views import (
     AsaasWebhookView,
     CancelSubscriptionView,
     ChangePlanView,
+    CheckoutCreateView,
+    CheckoutPreviewView,
     CreateSubscriptionView,
     CurrentSubscriptionView,
     PaymentListView,
@@ -12,6 +14,8 @@ from apps.billing.views import (
 
 urlpatterns = [
     path("plans/", PlanListView.as_view(), name="billing-plans"),
+    path("checkout/preview/", CheckoutPreviewView.as_view(), name="billing-checkout-preview"),
+    path("checkout/create/", CheckoutCreateView.as_view(), name="billing-checkout-create"),
     path("subscription/me/", CurrentSubscriptionView.as_view(), name="billing-subscription-me"),
     path("subscription/create/", CreateSubscriptionView.as_view(), name="billing-subscription-create"),
     path("subscription/cancel/", CancelSubscriptionView.as_view(), name="billing-subscription-cancel"),

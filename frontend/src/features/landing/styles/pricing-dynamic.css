@@ -1,0 +1,63 @@
+.pricing-section__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-width: 80rem
+}
+
+.pricing-card {
+    position: relative;
+    min-height: 100%
+}
+
+.pricing-card__badge {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: .32rem .7rem;
+    background: hsl(var(--accent) / 0.1);
+    color: hsl(var(--accent));
+    font-size: .68rem;
+    font-weight: 850;
+    letter-spacing: .06em;
+    text-transform: uppercase
+}
+
+.pricing-section__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .7rem;
+    min-height: 14rem;
+    border: 1px dashed hsl(var(--border));
+    border-radius: 1.5rem;
+    color: hsl(var(--muted-foreground));
+    font-size: var(--text-sm);
+    font-weight: 700
+}
+
+.pricing-section__loading svg {
+    width: 1.1rem;
+    height: 1.1rem;
+    animation: landing-spin 1s linear infinite
+}
+
+@keyframes landing-spin {
+    to {
+        transform: rotate(360deg)
+    }
+}
+
+@media(max-width:1100px) {
+    .pricing-section__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr))
+    }
+}
+
+@media(max-width:820px) {
+    .pricing-section__grid {
+        grid-template-columns: 1fr
+    }
+}

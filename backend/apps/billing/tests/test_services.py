@@ -31,21 +31,22 @@ class SubscriptionServiceTests(TestCase):
     def test_create_subscription_for_active_plan(self, get_gateway_mock):
         gateway = Mock()
         gateway.create_customer.return_value = {"id": "cus_123"}
-        gateway.create_subscription.return_value = {"id": "sub_123", "status": "ACTIVE"}
+        gateway.create_subscription.return_value = {"id": "sub_123", "status": "PENDING"}
         get_gateway_mock.return_value = gateway
 
         subscription = create_subscription_for_user(self.user, self.plan)
 
-        self.assertEqual(subscription.status, Subscription.Status.TRIALING)
+        self.assertEqual(subscription.status, Subscription.Status.PENDING)
         self.assertEqual(subscription.gateway_customer_id, "cus_123")
         self.assertEqual(subscription.gateway_subscription_id, "sub_123")
+        self.assertIn("webhook", subscription.metadata["activation_rule"].lower())
 
     @override_settings(BILLING_TRIAL_DAYS=0)
     @patch("apps.billing.services.subscriptions.get_gateway")
     def test_prevent_duplicate_subscription(self, get_gateway_mock):
         gateway = Mock()
         gateway.create_customer.return_value = {"id": "cus_123"}
-        gateway.create_subscription.return_value = {"id": "sub_123", "status": "ACTIVE"}
+        gateway.create_subscription.return_value = {"id": "sub_123", "status": "PENDING"}
         get_gateway_mock.return_value = gateway
         create_subscription_for_user(self.user, self.plan)
 

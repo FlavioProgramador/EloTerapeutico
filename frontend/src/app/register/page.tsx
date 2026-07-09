@@ -35,6 +35,19 @@ import {
   type RegisterFormData,
 } from "@/features/auth/schemas/auth.schemas";
 
+function loginHrefAfterRegister() {
+  if (typeof window === "undefined") return "/login";
+  const currentParams = new URLSearchParams(window.location.search);
+  const selectedPlan = currentParams.get("plan");
+  const next = currentParams.get("next") || (selectedPlan ? `/checkout?plan=${encodeURIComponent(selectedPlan)}` : "");
+  const loginParams = new URLSearchParams();
+
+  if (selectedPlan) loginParams.set("plan", selectedPlan);
+  if (next && next.startsWith("/") && !next.startsWith("//")) loginParams.set("next", next);
+
+  return `/login${loginParams.size ? `?${loginParams.toString()}` : ""}`;
+}
+
 export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -56,9 +69,8 @@ export default function RegisterPage() {
     },
   });
 
-  // Avança para etapa 2 validando apenas os campos da etapa 1
-  const handleNext = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleNext = async (event: React.FormEvent) => {
+    event.preventDefault();
     const step1Fields: (keyof RegisterFormData)[] = [
       "full_name",
       "email",
@@ -85,7 +97,7 @@ export default function RegisterPage() {
       toast.success("Cadastro realizado com sucesso!", {
         description: "Sua conta foi criada. Faça login para continuar.",
       });
-      router.push("/login");
+      router.push(loginHrefAfterRegister());
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const responseData = error.response?.data;
@@ -136,11 +148,11 @@ export default function RegisterPage() {
     }
   };
 
+  const loginHref = loginHrefAfterRegister();
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background text-foreground font-sans">
       <div className="w-full max-w-md space-y-6">
-
-        {/* Branding */}
         <div className="flex flex-col items-center text-center">
           <div className="h-10 w-10 rounded-md bg-primary flex items-center justify-center mb-3">
             <UserPlus className="h-5 w-5 text-primary-foreground" />
@@ -153,10 +165,8 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* Card de Registro */}
         <Card className="border-border/80 bg-card shadow-xs">
           <CardHeader className="space-y-2 pb-4">
-            {/* Indicador de Passos */}
             <div className="flex items-center justify-center gap-3 mb-2">
               <div
                 className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold transition-colors duration-200 ${
@@ -196,84 +206,68 @@ export default function RegisterPage() {
           <CardContent>
             {step === 1 ? (
               <form onSubmit={handleNext} className="space-y-4" noValidate>
-                <div>
-                  <Input
-                    id="register-name"
-                    label="Nome Completo"
-                    placeholder="Seu nome completo"
-                    autoComplete="name"
-                    leftIcon={<User className="h-4.5 w-4.5 text-muted-foreground" />}
-                    error={errors.full_name?.message}
-                    {...register("full_name")}
-                  />
-                </div>
+                <Input
+                  id="register-name"
+                  label="Nome Completo"
+                  placeholder="Seu nome completo"
+                  autoComplete="name"
+                  leftIcon={<User className="h-4.5 w-4.5 text-muted-foreground" />}
+                  error={errors.full_name?.message}
+                  {...register("full_name")}
+                />
 
-                <div>
-                  <Input
-                    id="register-email"
-                    label="E-mail profissional"
-                    placeholder="seuemail@exemplo.com"
-                    type="email"
-                    autoComplete="email"
-                    leftIcon={<Mail className="h-4.5 w-4.5 text-muted-foreground" />}
-                    error={errors.email?.message}
-                    {...register("email")}
-                  />
-                </div>
+                <Input
+                  id="register-email"
+                  label="E-mail profissional"
+                  placeholder="seuemail@exemplo.com"
+                  type="email"
+                  autoComplete="email"
+                  leftIcon={<Mail className="h-4.5 w-4.5 text-muted-foreground" />}
+                  error={errors.email?.message}
+                  {...register("email")}
+                />
 
-                <div>
-                  <Input
-                    id="register-password"
-                    label="Senha"
-                    placeholder="Mínimo de 8 caracteres"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="new-password"
-                    leftIcon={<Lock className="h-4.5 w-4.5 text-muted-foreground" />}
-                    rightIcon={
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                        className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4.5 w-4.5" />
-                        ) : (
-                          <Eye className="h-4.5 w-4.5" />
-                        )}
-                      </button>
-                    }
-                    error={errors.password?.message}
-                    {...register("password")}
-                  />
-                </div>
+                <Input
+                  id="register-password"
+                  label="Senha"
+                  placeholder="Mínimo de 8 caracteres"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  leftIcon={<Lock className="h-4.5 w-4.5 text-muted-foreground" />}
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                      className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                    </button>
+                  }
+                  error={errors.password?.message}
+                  {...register("password")}
+                />
 
-                <div>
-                  <Input
-                    id="register-confirm-password"
-                    label="Confirmar Senha"
-                    placeholder="Repita a senha"
-                    type={showConfirmPassword ? "text" : "password"}
-                    autoComplete="new-password"
-                    leftIcon={<Lock className="h-4.5 w-4.5 text-muted-foreground" />}
-                    rightIcon={
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        aria-label={showConfirmPassword ? "Ocultar confirmação" : "Mostrar confirmação"}
-                        className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff className="h-4.5 w-4.5" />
-                        ) : (
-                          <Eye className="h-4.5 w-4.5" />
-                        )}
-                      </button>
-                    }
-                    error={errors.confirm_password?.message}
-                    {...register("confirm_password")}
-                  />
-                </div>
+                <Input
+                  id="register-confirm-password"
+                  label="Confirmar Senha"
+                  placeholder="Repita a senha"
+                  type={showConfirmPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  leftIcon={<Lock className="h-4.5 w-4.5 text-muted-foreground" />}
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      aria-label={showConfirmPassword ? "Ocultar confirmação" : "Mostrar confirmação"}
+                      className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                    </button>
+                  }
+                  error={errors.confirm_password?.message}
+                  {...register("confirm_password")}
+                />
 
                 <Button
                   id="register-next"
@@ -286,27 +280,23 @@ export default function RegisterPage() {
               </form>
             ) : (
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-                <div>
-                  <Input
-                    id="register-crp"
-                    label="Registro Profissional (CRP / CRM / Registro)"
-                    placeholder="Ex: CRP 06/123456"
-                    leftIcon={<FileText className="h-4.5 w-4.5 text-muted-foreground" />}
-                    error={errors.crp?.message}
-                    {...register("crp")}
-                  />
-                </div>
+                <Input
+                  id="register-crp"
+                  label="Registro Profissional (CRP / CRM / Registro)"
+                  placeholder="Ex: CRP 06/123456"
+                  leftIcon={<FileText className="h-4.5 w-4.5 text-muted-foreground" />}
+                  error={errors.crp?.message}
+                  {...register("crp")}
+                />
 
-                <div>
-                  <Input
-                    id="register-specialty"
-                    label="Especialidade Principal"
-                    placeholder="Ex: Psicologia Clínica, TCC, Psicanálise"
-                    leftIcon={<Briefcase className="h-4.5 w-4.5 text-muted-foreground" />}
-                    error={errors.specialty?.message}
-                    {...register("specialty")}
-                  />
-                </div>
+                <Input
+                  id="register-specialty"
+                  label="Especialidade Principal"
+                  placeholder="Ex: Psicologia Clínica, TCC, Psicanálise"
+                  leftIcon={<Briefcase className="h-4.5 w-4.5 text-muted-foreground" />}
+                  error={errors.specialty?.message}
+                  {...register("specialty")}
+                />
 
                 <div className="flex gap-4 mt-6">
                   <Button
@@ -336,7 +326,7 @@ export default function RegisterPage() {
             <div className="mt-5 text-center text-xs text-muted-foreground">
               Já possui uma conta?{" "}
               <Link
-                href="/login"
+                href={loginHref}
                 className="text-primary hover:underline font-semibold"
               >
                 Faça login

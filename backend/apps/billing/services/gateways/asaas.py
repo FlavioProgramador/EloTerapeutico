@@ -1,5 +1,6 @@
 import logging
 from datetime import timedelta
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Any
 
 import httpx
@@ -49,32 +50,84 @@ class AsaasGateway(PaymentGateway):
 
     def create_customer(self, user) -> dict[str, Any]:
         payload = {
-            "name": user.full_name,
+            "name": getattr(user, "full_name", "") or getattr(user, "email", ""),
             "email": user.email,
         }
         if getattr(user, "phone", ""):
             payload["mobilePhone"] = user.phone
         return self._request("POST", "/customers", json=payload)
 
-    def create_subscription(self, user, plan, customer_id: str | None = None) -> dict[str, Any]:
-        if not customer_id:
-            customer = self.create_customer(user)
-            customer_id = customer.get("id")
+    def _ensure_customer_id(self, user, checkout_data: dict[str, Any] | None = None) -> str:
+        checkout_data = checkout_data or {}
+        customer_id = checkout_data.get("customer") or checkout_data.get("customer_id")
+        if customer_id:
+            return str(customer_id)
+        customer = self.create_customer(user)
+        customer_id = customer.get("id")
         if not customer_id:
             raise GatewayError("Gateway não retornou o identificador do cliente.")
+        return str(customer_id)
 
+    def _default_due_date(self) -> str:
         trial_days = max(int(settings.BILLING_TRIAL_DAYS), 0)
-        next_due_date = timezone.localdate() + timedelta(days=trial_days)
+        return (timezone.localdate() + timedelta(days=trial_days or 1)).isoformat()
+
+    def create_subscription(
+        self,
+        user,
+        plan,
+        checkout_data: dict[str, Any] | None = None,
+        *,
+        customer_id: str | None = None,
+    ) -> dict[str, Any]:
+        checkout_data = checkout_data or {}
+        customer_id = customer_id or self._ensure_customer_id(user, checkout_data)
+        billing_type = checkout_data.get("billingType") or "UNDEFINED"
+        due_date = checkout_data.get("dueDate") or checkout_data.get("nextDueDate") or self._default_due_date()
+        value = checkout_data.get("value") or plan.price
+        cycle = checkout_data.get("cycle") or ("MONTHLY" if plan.billing_cycle == plan.BillingCycle.MONTHLY else "YEARLY")
+        description = checkout_data.get("description") or f"Assinatura Elo Terapêutico - {plan.name}"
+
+        if billing_type == "CREDIT_CARD" and not checkout_data.get("creditCardToken"):
+            raise GatewayError("Cartão de crédito será habilitado apenas via checkout/tokenização segura.")
+
         payload = {
             "customer": customer_id,
-            "billingType": "UNDEFINED",
-            "value": float(plan.price),
-            "cycle": "MONTHLY" if plan.billing_cycle == plan.BillingCycle.MONTHLY else "YEARLY",
-            "description": f"Assinatura Elo Terapêutico - {plan.name}",
-            "nextDueDate": next_due_date.isoformat(),
-            "externalReference": f"elo-plan-{plan.slug}-user-{user.pk}",
+            "billingType": billing_type,
+            "value": float(value),
+            "cycle": cycle,
+            "description": description,
+            "nextDueDate": str(due_date),
+            "externalReference": checkout_data.get("externalReference") or f"elo-plan-{plan.slug}-user-{user.pk}",
         }
+        if checkout_data.get("creditCardToken"):
+            payload["creditCardToken"] = checkout_data["creditCardToken"]
         return self._request("POST", "/subscriptions", json=payload)
+
+    def create_payment(self, user, checkout_data: dict[str, Any]) -> dict[str, Any]:
+        customer_id = self._ensure_customer_id(user, checkout_data)
+        billing_type = checkout_data.get("billingType") or "PIX"
+        if billing_type == "CREDIT_CARD" and not checkout_data.get("creditCardToken"):
+            raise GatewayError("Cartão de crédito será habilitado apenas via checkout/tokenização segura.")
+
+        value = Decimal(str(checkout_data.get("value") or "0")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        installment_count = int(checkout_data.get("installmentCount") or 1)
+        payload: dict[str, Any] = {
+            "customer": customer_id,
+            "billingType": billing_type,
+            "dueDate": str(checkout_data.get("dueDate")),
+            "description": checkout_data.get("description") or "Cobrança Elo Terapêutico",
+            "externalReference": checkout_data.get("externalReference") or f"elo-payment-user-{user.pk}",
+        }
+        if installment_count > 1:
+            installment_value = (value / Decimal(installment_count)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            payload["installmentCount"] = installment_count
+            payload["installmentValue"] = float(installment_value)
+        else:
+            payload["value"] = float(value)
+        if checkout_data.get("creditCardToken"):
+            payload["creditCardToken"] = checkout_data["creditCardToken"]
+        return self._request("POST", "/payments", json=payload)
 
     def cancel_subscription(self, gateway_subscription_id: str) -> dict[str, Any]:
         return self._request("DELETE", f"/subscriptions/{gateway_subscription_id}")
