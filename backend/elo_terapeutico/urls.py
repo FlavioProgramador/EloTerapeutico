@@ -16,6 +16,7 @@ api_v1_patterns = [
     path("documents/", include("apps.documents.urls")),
     path("reports/", include("apps.reports.urls")),
     path("forms/", include("apps.forms.urls")),
+    path("billing/", include("apps.billing.urls")),
 ]
 
 from core.admin_sql import sql_explorer_view, sql_schema_view
