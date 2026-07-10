@@ -7,9 +7,6 @@ from apps.records.api.views.clinical_views import (
     AnamnesisVersionListView,
     ClinicalAiSummaryStatusView,
     ClinicalAnamnesisView,
-    ClinicalDocumentDetailView,
-    ClinicalDocumentDownloadView,
-    ClinicalDocumentListCreateView,
     ClinicalExportDownloadView,
     ClinicalExportListCreateView,
     ClinicalExportRetryView,
@@ -23,6 +20,11 @@ from apps.records.api.views.clinical_views import (
 )
 from apps.records.api.views.finalize_views import EvolutionFinalizeFreshView
 from apps.records.api.views.legacy_views import AnamnesisView, EvolutionViewSet
+from apps.records.api.views.secure_document_views import (
+    SecureClinicalDocumentDetailView,
+    SecureClinicalDocumentDownloadView,
+    SecureClinicalDocumentListCreateView,
+)
 
 from .api.evolution_attachment_detail_views import (
     EvolutionAttachmentDetailView,
@@ -80,7 +82,7 @@ urlpatterns = [
     ),
     path(
         "patients/<int:patient_id>/documents/",
-        ClinicalDocumentListCreateView.as_view(),
+        SecureClinicalDocumentListCreateView.as_view(),
         name="clinical-documents",
     ),
     path(
@@ -165,12 +167,12 @@ urlpatterns = [
     ),
     path(
         "documents/<int:pk>/",
-        ClinicalDocumentDetailView.as_view(),
+        SecureClinicalDocumentDetailView.as_view(),
         name="clinical-document-detail",
     ),
     path(
         "documents/<int:pk>/download/",
-        ClinicalDocumentDownloadView.as_view(),
+        SecureClinicalDocumentDownloadView.as_view(),
         name="clinical-document-download",
     ),
     path("", include(router.urls)),
