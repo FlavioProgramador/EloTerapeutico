@@ -1,8 +1,9 @@
 import logging
+import re
 import secrets
 import time
 from datetime import timedelta
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
 import httpx
@@ -14,6 +15,10 @@ from .base import GatewayConfigurationError, GatewayError, PaymentGateway
 
 logger = logging.getLogger(__name__)
 MONEY = Decimal("0.01")
+_ALLOWED_GATEWAY_PATH = re.compile(
+    r"^/(?:customers|payments|subscriptions|installments)"
+    r"(?:/[A-Za-z0-9_-]+)?(?:/payments)?$"
+)
 
 
 class AsaasGateway(PaymentGateway):
@@ -48,20 +53,26 @@ class AsaasGateway(PaymentGateway):
                 return str(first_error.get("description") or first_error.get("message") or "")
         return str(payload.get("description") or payload.get("message") or "")
 
+    @staticmethod
+    def _validated_path(path: str) -> str:
+        if not isinstance(path, str) or not _ALLOWED_GATEWAY_PATH.fullmatch(path):
+            raise GatewayError("Rota de integração inválida.")
+        return path
+
     def _request(self, method: str, path: str, **kwargs) -> dict[str, Any]:
-        url = f"{self.base_url}{path}"
+        safe_path = self._validated_path(path)
         attempts = 3 if method.upper() == "GET" else 1
         for attempt in range(attempts):
             try:
-                with httpx.Client(timeout=self.timeout) as client:
-                    response = client.request(method, url, headers=self.headers, **kwargs)
+                with httpx.Client(base_url=self.base_url, timeout=self.timeout) as client:
+                    response = client.request(method, safe_path, headers=self.headers, **kwargs)
                     response.raise_for_status()
                     return response.json() if response.content else {}
             except httpx.HTTPStatusError as exc:
                 status_code = exc.response.status_code
                 logger.warning(
                     "asaas_http_error",
-                    extra={"status_code": status_code, "path": path, "attempt": attempt + 1},
+                    extra={"status_code": status_code, "attempt": attempt + 1},
                 )
                 if status_code in {429, 500, 502, 503, 504} and attempt + 1 < attempts:
                     time.sleep(0.25 * (2**attempt))
@@ -81,7 +92,7 @@ class AsaasGateway(PaymentGateway):
                 if attempt + 1 < attempts:
                     time.sleep(0.25 * (2**attempt))
                     continue
-                logger.exception("asaas_request_error", extra={"path": path})
+                logger.exception("asaas_request_error")
                 raise GatewayError("Falha de comunicação com o gateway de pagamento.") from exc
         raise GatewayError("Falha de comunicação com o gateway de pagamento.")
 
@@ -158,7 +169,11 @@ class AsaasGateway(PaymentGateway):
             "value": self._money(plan_price.total_amount),
             "cycle": "YEARLY" if plan_price.billing_interval == "YEARLY" else "MONTHLY",
             "description": checkout_data.get("description") or f"Assinatura Elo Terapêutico - {plan_price.name}",
-            "nextDueDate": str(checkout_data.get("dueDate") or checkout_data.get("nextDueDate") or self._default_due_date()),
+            "nextDueDate": str(
+                checkout_data.get("dueDate")
+                or checkout_data.get("nextDueDate")
+                or self._default_due_date()
+            ),
             "externalReference": checkout_data.get("externalReference"),
         }
         if checkout_data.get("creditCardToken"):
@@ -191,7 +206,6 @@ class AsaasGateway(PaymentGateway):
         payload["totalValue"] = self._money(checkout_data.get("totalValue") or checkout_data.get("value") or 0)
         return self._request("POST", "/payments", json=payload)
 
-    # Compatibilidade temporária com chamadas antigas.
     def create_subscription(
         self,
         user,
