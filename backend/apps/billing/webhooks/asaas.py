@@ -12,9 +12,12 @@ from django.utils import timezone
 
 from apps.billing.models import BillingOrder, Payment, PlanPrice, Subscription, WebhookEvent
 from apps.billing.security import redact_sensitive_data
-from apps.billing.services.access import SubscriptionAccessService
 from apps.billing.services.gateways.asaas import AsaasGateway
 from apps.billing.services.orders import upsert_gateway_payment
+from apps.billing.services.subscriptions import (
+    activate_subscription_from_payment,
+    mark_subscription_past_due,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +71,11 @@ def _legacy_order_for_subscription(gateway_subscription_id: str) -> BillingOrder
         return subscription.billing_order
 
     plan = subscription.plan
-    interval = PlanPrice.BillingInterval.YEARLY if plan.billing_cycle == "YEARLY" else PlanPrice.BillingInterval.MONTHLY
+    interval = (
+        PlanPrice.BillingInterval.YEARLY
+        if plan.billing_cycle == "YEARLY"
+        else PlanPrice.BillingInterval.MONTHLY
+    )
     price, _ = PlanPrice.objects.get_or_create(
         slug=f"{plan.slug}-{interval.lower()}-recurring-webhook-legacy",
         defaults={
@@ -115,14 +122,20 @@ def _legacy_order_for_subscription(gateway_subscription_id: str) -> BillingOrder
     if not subscription.billing_order_id:
         subscription.billing_order = order
         subscription.save(update_fields=["billing_order", "updated_at"])
-    Payment.objects.filter(subscription=subscription, billing_order__isnull=True).update(billing_order=order)
+    Payment.objects.filter(subscription=subscription, billing_order__isnull=True).update(
+        billing_order=order
+    )
     return order
 
 
 def _find_order(payment_data: dict) -> BillingOrder | None:
     payment_id = payment_data.get("id")
     if payment_id:
-        existing = Payment.objects.select_related("billing_order").filter(gateway_payment_id=payment_id).first()
+        existing = (
+            Payment.objects.select_related("billing_order")
+            .filter(gateway_payment_id=payment_id)
+            .first()
+        )
         if existing and existing.billing_order_id:
             return existing.billing_order
 
@@ -152,7 +165,9 @@ def _subscription_for_order(order: BillingOrder, payment_data: dict) -> Subscrip
         return subscription
     gateway_subscription_id = payment_data.get("subscription")
     if gateway_subscription_id:
-        return Subscription.objects.filter(gateway_subscription_id=gateway_subscription_id).first()
+        return Subscription.objects.filter(
+            gateway_subscription_id=gateway_subscription_id
+        ).first()
     source_id = (order.metadata or {}).get("plan_change_from_subscription_id")
     return Subscription.objects.filter(pk=source_id).first() if source_id else None
 
@@ -160,7 +175,9 @@ def _subscription_for_order(order: BillingOrder, payment_data: dict) -> Subscrip
 def _update_order_financial_status(order: BillingOrder) -> None:
     payments = order.payments.all()
     total = payments.count()
-    paid = payments.filter(status__in=[Payment.Status.CONFIRMED, Payment.Status.RECEIVED]).count()
+    paid = payments.filter(
+        status__in=[Payment.Status.CONFIRMED, Payment.Status.RECEIVED]
+    ).count()
     overdue = payments.filter(status=Payment.Status.OVERDUE).exists()
     chargeback = payments.filter(status=Payment.Status.CHARGEBACK).exists()
     refunded = payments.filter(status=Payment.Status.REFUNDED).count()
@@ -183,7 +200,10 @@ def _update_order_financial_status(order: BillingOrder) -> None:
     if order.status != next_status:
         order.status = next_status
         update_fields = ["status", "updated_at"]
-        if next_status in {BillingOrder.Status.PAID, BillingOrder.Status.PARTIALLY_PAID} and not order.confirmed_at:
+        if (
+            next_status in {BillingOrder.Status.PAID, BillingOrder.Status.PARTIALLY_PAID}
+            and not order.confirmed_at
+        ):
             order.confirmed_at = timezone.now()
             update_fields.append("confirmed_at")
         order.save(update_fields=update_fields)
@@ -212,9 +232,9 @@ def _process_payment_event(event_type: str, payment_data: dict) -> str:
         "PAYMENT_RECEIVED",
         "PAYMENT_APPROVED_BY_RISK_ANALYSIS",
     }:
-        SubscriptionAccessService.activate_from_payment(subscription, payment)
+        activate_subscription_from_payment(subscription, payment)
     elif subscription and event_type == "PAYMENT_OVERDUE":
-        SubscriptionAccessService.mark_past_due(subscription)
+        mark_subscription_past_due(subscription)
     elif subscription and event_type in {
         "PAYMENT_CHARGEBACK_REQUESTED",
         "PAYMENT_REPROVED_BY_RISK_ANALYSIS",
@@ -229,14 +249,20 @@ def _process_subscription_event(event_type: str, subscription_data: dict) -> str
     gateway_subscription_id = subscription_data.get("id")
     if not gateway_subscription_id:
         return "ignored: evento de assinatura sem identificador"
-    subscription = Subscription.objects.filter(gateway_subscription_id=gateway_subscription_id).first()
+    subscription = Subscription.objects.filter(
+        gateway_subscription_id=gateway_subscription_id
+    ).first()
     if not subscription:
-        order = BillingOrder.objects.filter(gateway_subscription_id=gateway_subscription_id).first()
+        order = BillingOrder.objects.filter(
+            gateway_subscription_id=gateway_subscription_id
+        ).first()
         subscription = order.subscriptions.order_by("-created_at").first() if order else None
     if not subscription:
         return "retry: assinatura local ainda não localizada"
 
-    subscription.gateway_status = subscription_data.get("status", subscription.gateway_status)
+    subscription.gateway_status = subscription_data.get(
+        "status", subscription.gateway_status
+    )
     subscription.metadata = {
         **(subscription.metadata or {}),
         "last_subscription_webhook": redact_sensitive_data(subscription_data),
@@ -272,7 +298,10 @@ def _persist_webhook_event(
         defaults["event_id"] = None
     try:
         with transaction.atomic():
-            webhook_event, _ = WebhookEvent.objects.get_or_create(**lookup, defaults=defaults)
+            webhook_event, _ = WebhookEvent.objects.get_or_create(
+                **lookup,
+                defaults=defaults,
+            )
             return webhook_event
     except IntegrityError:
         query = Q(payload_hash=event_hash)
@@ -336,7 +365,11 @@ def _hydrate_payment_for_worker(payload: dict) -> dict:
     return {**payment_data, **gateway_payload, "id": payment_id}
 
 
-def process_webhook_event(event: WebhookEvent, *, payload_override: dict | None = None) -> WebhookEvent:
+def process_webhook_event(
+    event: WebhookEvent,
+    *,
+    payload_override: dict | None = None,
+) -> WebhookEvent:
     max_retries = max(int(getattr(settings, "BILLING_WEBHOOK_MAX_RETRIES", 5)), 1)
     with transaction.atomic():
         locked = WebhookEvent.objects.select_for_update().get(pk=event.pk)
@@ -347,33 +380,49 @@ def process_webhook_event(event: WebhookEvent, *, payload_override: dict | None 
         locked.save(update_fields=["status", "attempt_count", "updated_at"])
 
     try:
-        payload = payload_override or event.payload
-        event_type = event.event_type
-        if event_type.startswith("PAYMENT_"):
-            payment_data = (
-                payload.get("payment") or {}
-                if payload_override is not None
-                else _hydrate_payment_for_worker(payload)
-            )
-            result = _process_payment_event(event_type, payment_data)
-        elif event_type.startswith("SUBSCRIPTION_"):
-            result = _process_subscription_event(event_type, payload.get("subscription") or {})
-        else:
-            result = f"ignored: evento não mapeado ({event_type})"
+        with transaction.atomic():
+            payload = payload_override or event.payload
+            event_type = event.event_type
+            if event_type.startswith("PAYMENT_"):
+                payment_data = (
+                    payload.get("payment") or {}
+                    if payload_override is not None
+                    else _hydrate_payment_for_worker(payload)
+                )
+                result = _process_payment_event(event_type, payment_data)
+            elif event_type.startswith("SUBSCRIPTION_"):
+                result = _process_subscription_event(
+                    event_type,
+                    payload.get("subscription") or {},
+                )
+            else:
+                result = f"ignored: evento não mapeado ({event_type})"
         return _finish_event(event.pk, result, max_retries)
     except Exception as exc:
         logger.exception(
             "asaas_webhook_processing_error",
-            extra={"event_type": event.event_type, "exception_type": exc.__class__.__name__},
+            extra={
+                "event_type": event.event_type,
+                "exception_type": exc.__class__.__name__,
+            },
         )
-        return _finish_event(event.pk, "retry: Falha interna ao processar o evento.", max_retries)
+        return _finish_event(
+            event.pk,
+            "retry: Falha interna ao processar o evento.",
+            max_retries,
+        )
 
 
 def _process_inline_enabled() -> bool:
     configured = getattr(settings, "BILLING_WEBHOOK_PROCESS_INLINE", None)
     if configured is not None:
         return bool(configured)
-    return os.getenv("BILLING_WEBHOOK_PROCESS_INLINE", "false").strip().lower() in {"1", "true", "yes", "on"}
+    return os.getenv("BILLING_WEBHOOK_PROCESS_INLINE", "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
 
 def handle_asaas_webhook(request) -> WebhookEvent:
