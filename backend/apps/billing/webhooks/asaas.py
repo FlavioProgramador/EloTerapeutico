@@ -162,8 +162,14 @@ def handle_asaas_webhook(request) -> WebhookEvent:
         webhook_event.processed = True
         webhook_event.processed_at = timezone.now()
         webhook_event.save(update_fields=["processed", "processed_at", "error_message"])
-    except Exception:
-        logger.exception("asaas_webhook_processing_error", extra={"event_type": event_type})
+    except Exception as exc:
+        logger.error(
+            "asaas_webhook_processing_error",
+            extra={
+                "event_type": event_type,
+                "exception_type": exc.__class__.__name__,
+            },
+        )
         webhook_event.error_message = "Falha interna ao processar o evento."
         webhook_event.processed = False
         webhook_event.save(update_fields=["processed", "error_message"])
