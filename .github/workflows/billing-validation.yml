@@ -33,6 +33,7 @@ jobs:
       ASAAS_WEBHOOK_TOKEN: billing-ci-webhook-token-with-sufficient-length
       BILLING_GRACE_PERIOD_DAYS: "5"
       BILLING_WEBHOOK_MAX_RETRIES: "5"
+      BILLING_WEBHOOK_PROCESS_INLINE: "True"
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
