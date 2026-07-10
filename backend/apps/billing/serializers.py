@@ -1,4 +1,6 @@
 import re
+import uuid
+from decimal import Decimal
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
@@ -164,11 +166,15 @@ class ChangePlanSerializer(CreateSubscriptionSerializer):
 
 class CheckoutSerializer(serializers.Serializer):
     BILLING_TYPES = ("PIX", "BOLETO", "CREDIT_CARD")
+    LEGACY_TYPES = ("SUBSCRIPTION", "ONE_TIME")
 
     plan_price_id = serializers.IntegerField(required=False)
     plan_price_slug = serializers.SlugField(required=False)
     plan_id = serializers.IntegerField(required=False, help_text="Compatibilidade temporária")
     plan_slug = serializers.SlugField(required=False, help_text="Compatibilidade temporária")
+    type = serializers.ChoiceField(choices=LEGACY_TYPES, required=False, write_only=True)
+    value = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, write_only=True)
+    cycle = serializers.ChoiceField(choices=("MONTHLY", "YEARLY"), required=False, write_only=True)
     billingType = serializers.ChoiceField(choices=BILLING_TYPES, default="PIX")
     cpfCnpj = serializers.CharField(write_only=True, trim_whitespace=True)
     name = serializers.CharField(max_length=160, required=False, allow_blank=True)
@@ -198,6 +204,40 @@ class CheckoutSerializer(serializers.Serializer):
             raise serializers.ValidationError("Informe CPF ou CNPJ com 11 ou 14 dígitos.")
         return clean_value
 
+    @staticmethod
+    def _legacy_billing_model(attrs) -> str:
+        if attrs.get("type") == "ONE_TIME":
+            return (
+                PlanPrice.BillingModel.INSTALLMENT
+                if int(attrs.get("installmentCount") or 1) > 1
+                else PlanPrice.BillingModel.ONE_TIME
+            )
+        return PlanPrice.BillingModel.RECURRING
+
+    def _legacy_price(self, plan: Plan, attrs) -> PlanPrice:
+        interval = attrs.get("cycle") or plan.billing_cycle
+        model = self._legacy_billing_model(attrs)
+        installment_count = int(attrs.get("installmentCount") or 1)
+        slug = f"{plan.slug}-{interval.lower()}-{model.lower()}-legacy"
+        price, _ = PlanPrice.objects.get_or_create(
+            slug=slug,
+            defaults={
+                "plan": plan,
+                "name": f"{plan.name} — {'Anual' if interval == 'YEARLY' else 'Mensal'}",
+                "currency": plan.currency,
+                "total_amount": plan.price,
+                "billing_interval": interval,
+                "billing_model": model,
+                "discount_percentage": Decimal("0.00"),
+                "installments_enabled": model == PlanPrice.BillingModel.INSTALLMENT,
+                "min_installments": 2 if model == PlanPrice.BillingModel.INSTALLMENT else 1,
+                "max_installments": max(installment_count, 12) if model == PlanPrice.BillingModel.INSTALLMENT else 1,
+                "trial_days": 0,
+                "is_active": plan.is_active,
+            },
+        )
+        return price
+
     def _resolve_plan_price(self, attrs):
         price_id = attrs.get("plan_price_id")
         price_slug = attrs.get("plan_price_slug")
@@ -219,10 +259,10 @@ class CheckoutSerializer(serializers.Serializer):
             plan = plans.get(pk=plan_id) if plan_id else plans.get(slug=plan_slug)
         except Plan.DoesNotExist as exc:
             raise serializers.ValidationError("Plano não encontrado ou indisponível.") from exc
-        price = queryset.filter(plan=plan).order_by("billing_interval", "total_amount").first()
-        if not price:
-            raise serializers.ValidationError("Este plano ainda não possui uma opção de preço ativa.")
-        return price
+
+        desired_model = self._legacy_billing_model(attrs)
+        price = queryset.filter(plan=plan, billing_model=desired_model).order_by("billing_interval", "total_amount").first()
+        return price or self._legacy_price(plan, attrs)
 
     def validate(self, attrs):
         plan_price = self._resolve_plan_price(attrs)
@@ -249,8 +289,9 @@ class CheckoutCreateSerializer(CheckoutSerializer):
         attrs = super().validate(attrs)
         if not attrs.get("idempotency_key"):
             request = self.context.get("request")
-            header = request.headers.get("Idempotency-Key") if request else None
-            attrs["idempotency_key"] = header
+            attrs["idempotency_key"] = request.headers.get("Idempotency-Key") if request else None
+        if not attrs.get("idempotency_key") and (attrs.get("plan_id") or attrs.get("plan_slug")):
+            attrs["idempotency_key"] = f"legacy-{uuid.uuid4()}"
         if not attrs.get("idempotency_key") or len(attrs["idempotency_key"]) < 8:
             raise serializers.ValidationError({"idempotency_key": "Informe uma chave de idempotência válida."})
         return attrs
