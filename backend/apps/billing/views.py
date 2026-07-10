@@ -50,6 +50,22 @@ def _checkout_response_payload(validated_data: dict) -> dict:
     }
 
 
+def _public_payment_payload(gateway_payment: dict) -> dict:
+    """Retorna somente dados do gateway necessários para o fluxo do cliente.
+
+    O payload bruto pode conter dados pessoais, informações de cobrança e campos
+    adicionados pelo provedor no futuro. Por isso, a resposta pública usa uma
+    allowlist explícita em vez de encaminhar o objeto integral ao navegador.
+    """
+
+    return {
+        "gateway_payment_id": gateway_payment.get("id"),
+        "status": gateway_payment.get("status", "PENDING"),
+        "invoiceUrl": gateway_payment.get("invoiceUrl") or gateway_payment.get("invoice_url"),
+        "bankSlipUrl": gateway_payment.get("bankSlipUrl") or gateway_payment.get("bank_slip_url"),
+    }
+
+
 class PlanListView(generics.ListAPIView):
     serializer_class = PlanSerializer
     permission_classes = [AllowAny]
@@ -95,13 +111,7 @@ class CheckoutCreateView(APIView):
 
             gateway_payment = AsaasGateway().create_payment(request.user, checkout_data)
             payload = _checkout_response_payload(checkout_data)
-            payload["payment"] = {
-                "gateway_payment_id": gateway_payment.get("id"),
-                "status": gateway_payment.get("status", "PENDING"),
-                "invoiceUrl": gateway_payment.get("invoiceUrl") or gateway_payment.get("invoice_url"),
-                "bankSlipUrl": gateway_payment.get("bankSlipUrl") or gateway_payment.get("bank_slip_url"),
-                "raw_gateway_response": gateway_payment,
-            }
+            payload["payment"] = _public_payment_payload(gateway_payment)
             return Response(payload, status=status.HTTP_201_CREATED)
         except DjangoValidationError as exc:
             return Response({"detail": _validation_detail(exc)}, status=status.HTTP_400_BAD_REQUEST)
