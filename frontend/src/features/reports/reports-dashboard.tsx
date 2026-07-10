@@ -180,25 +180,29 @@ function buildArcPath(cx: number, cy: number, outerR: number, innerR: number, st
 function DonutChart({ points }: { points: ChartPoint[] }) {
   const [hovered, setHovered] = useState<number | null>(null);
   const total = points.reduce((sum, item) => sum + toNumber(item.value), 0);
-  if (!total) return <EmptyState message="Nenhum dado para exibir neste periodo." />;
 
-  const palette = ["hsl(var(--primary))", "hsl(var(--success))", "hsl(var(--warning))", "hsl(var(--danger))", "hsl(var(--muted-foreground))"];
+  const palette = useMemo(() => ["hsl(var(--primary))", "hsl(var(--success))", "hsl(var(--warning))", "hsl(var(--danger))", "hsl(var(--muted-foreground))"], []);
   const cx = 50; const cy = 50; const outerR = 44; const innerR = 27; const popR = 6;
 
   // Calcula os ângulos de cada fatia
-  let cumAngle = 0;
-  const slices = points.map((item, index) => {
-    const pct = toNumber(item.value) / total;
-    const startDeg = cumAngle;
-    const endDeg = cumAngle + pct * 360;
-    cumAngle = endDeg;
-    const midDeg = startDeg + (endDeg - startDeg) / 2;
-    // Direção do "pop out"
-    const midRad = ((midDeg - 90) * Math.PI) / 180;
-    const dx = Math.cos(midRad) * popR;
-    const dy = Math.sin(midRad) * popR;
-    return { item, index, startDeg, endDeg, midDeg, dx, dy, pct, color: palette[index % palette.length] };
-  });
+  const slices = useMemo(() => {
+    if (!total) return [];
+    let cumAngle = 0;
+    return points.map((item, index) => {
+      const pct = toNumber(item.value) / total;
+      const startDeg = cumAngle;
+      const endDeg = cumAngle + pct * 360;
+      cumAngle = endDeg;
+      const midDeg = startDeg + (endDeg - startDeg) / 2;
+      // Direção do "pop out"
+      const midRad = ((midDeg - 90) * Math.PI) / 180;
+      const dx = Math.cos(midRad) * popR;
+      const dy = Math.sin(midRad) * popR;
+      return { item, index, startDeg, endDeg, midDeg, dx, dy, pct, color: palette[index % palette.length] };
+    });
+  }, [points, total, palette, popR]);
+
+  if (!total) return <EmptyState message="Nenhum dado para exibir neste periodo." />;
 
   const hoveredSlice = hovered !== null ? slices[hovered] : null;
   const hoveredPoint = hoveredSlice?.item ?? null;
