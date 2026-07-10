@@ -224,8 +224,11 @@ class PasswordResetRequestView(APIView):
                     [email],
                     fail_silently=False,
                 )
-            except Exception:
-                logger.exception("Erro ao enviar e-mail de redefinição")
+            except Exception as exc:
+                logger.error(
+                    "password_reset_email_failed",
+                    extra={"exception_type": exc.__class__.__name__},
+                )
         except User.DoesNotExist:
             pass
 
