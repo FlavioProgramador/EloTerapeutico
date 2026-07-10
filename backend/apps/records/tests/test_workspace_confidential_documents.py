@@ -59,7 +59,7 @@ def create_document(*, patient, evolution, uploaded_by, name):
 
 
 @pytest.mark.django_db
-def test_workspace_oculta_documento_confidencial_de_outro_autor(workspace_context):
+def test_workspace_oculta_documento_e_metadados_confidenciais_de_outro_autor(workspace_context):
     owner, _, patient, client = workspace_context
     evolution = Evolution.objects.create(
         patient=patient,
@@ -80,10 +80,14 @@ def test_workspace_oculta_documento_confidencial_de_outro_autor(workspace_contex
     assert response.status_code == 200
     returned_ids = {item["id"] for item in response.data["recent_documents"]}
     assert confidential_document.id not in returned_ids
+    assert response.data["sessions_total"] == 0
+    assert response.data["latest_evolution_id"] is None
+    assert response.data["treatment_start"] == patient.created_at.date()
+    assert response.data["last_update"] == patient.updated_at
 
 
 @pytest.mark.django_db
-def test_workspace_mostra_documento_confidencial_com_permissao_explicita(workspace_context):
+def test_workspace_mostra_documento_e_metadados_com_permissao_explicita(workspace_context):
     owner, linked, patient, client = workspace_context
     evolution = Evolution.objects.create(
         patient=patient,
@@ -111,3 +115,7 @@ def test_workspace_mostra_documento_confidencial_com_permissao_explicita(workspa
     assert response.status_code == 200
     returned_ids = {item["id"] for item in response.data["recent_documents"]}
     assert confidential_document.id in returned_ids
+    assert response.data["sessions_total"] == 1
+    assert response.data["latest_evolution_id"] == evolution.id
+    assert response.data["treatment_start"] == evolution.session_date
+    assert response.data["last_update"] == evolution.updated_at
