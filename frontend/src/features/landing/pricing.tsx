@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getCookie } from "cookies-next";
-import { Check, ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Check, Loader2 } from "lucide-react";
 
 import { listPlans } from "@/features/billing/api";
 import type { Plan } from "@/features/billing/types";
@@ -146,14 +146,18 @@ export function Pricing() {
           <div className="pricing-section__grid">
             {orderedPlans.map((plan, i) => {
               const highlighted = plan.slug === "profissional";
+              const defaultPrice = plan.prices[0];
+              const amount = plan.price ?? defaultPrice?.total_amount ?? "0.00";
+              const currencyCode = plan.currency ?? defaultPrice?.currency ?? "BRL";
+              const interval = plan.billing_cycle ?? defaultPrice?.billing_interval ?? "MONTHLY";
               return (
                 <Reveal key={plan.slug} className={`pricing-card ${highlighted ? "pricing-card--highlighted" : ""}`} delay={i * 0.06}>
                   {highlighted && <span className="pricing-card__badge">Recomendado</span>}
                   <div className="pricing-card__header">
                     <span className="pricing-card__name">{plan.name}</span>
                     <div className="pricing-card__price">
-                      <strong>{currency(plan.price, plan.currency)}</strong>
-                      <small>/{plan.billing_cycle === "MONTHLY" ? "mês" : "ano"}</small>
+                      <strong>{currency(amount, currencyCode)}</strong>
+                      <small>/{interval === "MONTHLY" ? "mês" : "ano"}</small>
                     </div>
                     <p className="pricing-card__desc">{plan.description}</p>
                   </div>
