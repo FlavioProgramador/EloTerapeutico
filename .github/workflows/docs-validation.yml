@@ -1,0 +1,49 @@
+name: Documentation Validation
+
+on:
+  push:
+    branches:
+      - "docs/**"
+    paths:
+      - "README.md"
+      - "docs/**"
+      - "scripts/validate_docs.py"
+      - ".env.example"
+      - "backend/.env.example"
+      - "frontend/.env.example"
+      - ".github/workflows/docs-validation.yml"
+  pull_request:
+    paths:
+      - "README.md"
+      - "docs/**"
+      - "scripts/validate_docs.py"
+      - ".env.example"
+      - "backend/.env.example"
+      - "frontend/.env.example"
+      - ".github/workflows/docs-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Links, Markdown and secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate documentation
+        run: python scripts/validate_docs.py
