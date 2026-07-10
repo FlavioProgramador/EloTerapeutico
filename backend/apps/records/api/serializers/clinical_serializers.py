@@ -492,8 +492,24 @@ class ClinicalDocumentSerializer(serializers.ModelSerializer):
         return uploaded_file
 
     def validate_evolution(self, evolution):
-        if evolution and evolution.patient_id != self.context["patient"].id:
+        if not evolution:
+            return evolution
+
+        patient = self.context["patient"]
+        if evolution.patient_id != patient.id:
             raise serializers.ValidationError("A evolução não pertence ao paciente.")
+
+        # Validação de confidencialidade ao vincular
+        user = self.context["request"].user
+        if evolution.is_confidential:
+            if (
+                evolution.created_by_id != user.id
+                and not user.has_perm("records.view_confidential_evolution")
+            ):
+                raise serializers.ValidationError(
+                    "Você não pode vincular documentos a uma evolução confidencial de outro autor."
+                )
+
         return evolution
 
 

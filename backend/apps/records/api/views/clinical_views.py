@@ -6,6 +6,7 @@ from io import BytesIO
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -270,8 +271,6 @@ class PatientEvolutionListCreateView(ClinicalPatientMixin, APIView):
         # Filtro de confidencialidade
         user = request.user
         if not user.has_perm("records.view_confidential_evolution"):
-            from django.db.models import Q
-
             queryset = queryset.filter(Q(is_confidential=False) | Q(created_by=user))
 
         requested_status = request.query_params.get("status")
@@ -477,6 +476,16 @@ class ClinicalDocumentListCreateView(ClinicalPatientMixin, APIView):
             patient=patient,
             deleted_at__isnull=True,
         ).select_related("evolution", "uploaded_by")
+
+        # Filtro de confidencialidade
+        user = request.user
+        if not user.has_perm("records.view_confidential_evolution"):
+            queryset = queryset.filter(
+                Q(evolution__isnull=True)
+                | Q(evolution__is_confidential=False)
+                | Q(evolution__created_by=user)
+            )
+
         category = request.query_params.get("category")
         if category:
             queryset = queryset.filter(category=category)
@@ -521,12 +530,30 @@ class ClinicalDocumentListCreateView(ClinicalPatientMixin, APIView):
         )
 
 
-class ClinicalDocumentDetailView(ClinicalPatientMixin, APIView):
+class ClinicalDocumentDetailMixin(ClinicalPatientMixin):
     def get_document(self, pk):
-        document = get_object_or_404(ClinicalDocument, pk=pk, deleted_at__isnull=True)
+        document = get_object_or_404(
+            ClinicalDocument.objects.select_related("evolution"),
+            pk=pk,
+            deleted_at__isnull=True,
+        )
         self.get_patient(document.patient_id)
+
+        # Validação de confidencialidade da evolução vinculada
+        if document.evolution_id and document.evolution.is_confidential:
+            user = self.request.user
+            if (
+                document.evolution.created_by_id != user.id
+                and not user.has_perm("records.view_confidential_evolution")
+            ):
+                self.permission_denied(
+                    self.request,
+                    message="Você não tem permissão para acessar documentos de uma evolução confidencial.",
+                )
         return document
 
+
+class ClinicalDocumentDetailView(ClinicalDocumentDetailMixin, APIView):
     def patch(self, request, pk):
         document = self.get_document(pk)
         serializer = ClinicalDocumentSerializer(
@@ -557,10 +584,9 @@ class ClinicalDocumentDetailView(ClinicalPatientMixin, APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class ClinicalDocumentDownloadView(ClinicalPatientMixin, APIView):
+class ClinicalDocumentDownloadView(ClinicalDocumentDetailMixin, APIView):
     def get(self, request, pk):
-        document = get_object_or_404(ClinicalDocument, pk=pk, deleted_at__isnull=True)
-        self.get_patient(document.patient_id)
+        document = self.get_document(pk)
         try:
             stream = document.file.open("rb")
         except FileNotFoundError as exc:
@@ -599,8 +625,6 @@ class PatientRecordPdfView(ClinicalPatientMixin, APIView):
             "clinical_data",
         )
         if not user.has_perm("records.view_confidential_evolution"):
-            from django.db.models import Q
-
             queryset = queryset.filter(Q(is_confidential=False) | Q(created_by=user))
 
         from apps.records.services.utils import render_markdown_safely, safe_url_fetcher
