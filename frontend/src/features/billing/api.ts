@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
 import type {
+  AsaasIntegrationHealth,
   BillingOrder,
   CheckoutPayload,
   CheckoutPreview,
@@ -111,5 +112,10 @@ export async function getPaymentSummary(order?: string): Promise<PaymentSummary>
 
 export async function refreshPayment(paymentId: number): Promise<Payment> {
   const response = await api.post<Payment>(`billing/payments/${paymentId}/refresh/`);
+  return response.data;
+}
+
+export async function getAsaasIntegrationHealth(): Promise<AsaasIntegrationHealth> {
+  const response = await api.get<AsaasIntegrationHealth>("billing/integrations/asaas/health/");
   return response.data;
 }
