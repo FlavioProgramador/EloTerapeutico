@@ -63,6 +63,7 @@ export interface CheckoutPayload {
   plan_slug: string;
   type: CheckoutType;
   billingType: BillingType;
+  cpfCnpj: string;
   dueDate: string;
   value?: string;
   description?: string;
