@@ -39,11 +39,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          show-progress: false
 
       - name: Validate documentation
-        run: python scripts/validate_docs.py
+        run: python3 scripts/validate_docs.py
