@@ -46,7 +46,11 @@ class SubscriptionAccessService:
         order = locked_payment.billing_order or locked_subscription.billing_order
         interval = order.billing_interval if order else PlanPrice.BillingInterval.MONTHLY
         paid_at = locked_payment.paid_at or locked_payment.confirmed_at or timezone.now()
-        is_plan_change = bool(order and (order.metadata or {}).get("is_plan_change"))
+        is_plan_change = bool(
+            order
+            and (order.metadata or {}).get("is_plan_change")
+            and locked_subscription.billing_order_id != order.pk
+        )
 
         if (
             order
@@ -105,16 +109,16 @@ class SubscriptionAccessService:
         if order:
             order.status = BillingOrder.Status.PAID if order.installment_count == 1 else BillingOrder.Status.PARTIALLY_PAID
             order.confirmed_at = order.confirmed_at or paid_at
-            order.metadata = {
-                **(order.metadata or {}),
-                "access_activated_at": timezone.now().isoformat(),
-                "previous_gateway_subscription_id": previous_gateway_subscription_id if is_plan_change else "",
-                "previous_subscription_cancel_pending": bool(
-                    is_plan_change
-                    and previous_gateway_subscription_id
+            order_metadata = dict(order.metadata or {})
+            order_metadata["access_activated_at"] = order_metadata.get("access_activated_at") or timezone.now().isoformat()
+            if is_plan_change:
+                order_metadata["plan_change_completed_at"] = timezone.now().isoformat()
+                order_metadata["previous_gateway_subscription_id"] = previous_gateway_subscription_id
+                order_metadata["previous_subscription_cancel_pending"] = bool(
+                    previous_gateway_subscription_id
                     and previous_gateway_subscription_id != order.gateway_subscription_id
-                ),
-            }
+                )
+            order.metadata = order_metadata
             order.save(update_fields=["status", "confirmed_at", "metadata", "updated_at"])
         return locked_subscription
 
