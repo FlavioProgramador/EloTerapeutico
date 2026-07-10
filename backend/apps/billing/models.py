@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 
@@ -37,6 +38,12 @@ class Plan(models.Model):
         ordering = ["price", "name"]
         verbose_name = "Plano"
         verbose_name_plural = "Planos"
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(price__gte=0),
+                name="billing_plan_price_non_negative",
+            ),
+        ]
 
     def __str__(self) -> str:
         return self.name
@@ -125,6 +132,12 @@ class Payment(models.Model):
             models.Index(fields=["user", "status"], name="billing_pay_user_status_idx"),
             models.Index(fields=["gateway_subscription_id"], name="billing_pay_sub_gateway_idx"),
         ]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(amount__gt=0),
+                name="billing_payment_amount_positive",
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"Pagamento {self.gateway_payment_id or self.pk} — {self.status}"
@@ -146,6 +159,15 @@ class WebhookEvent(models.Model):
         verbose_name = "Evento de webhook"
         verbose_name_plural = "Eventos de webhook"
         indexes = [models.Index(fields=["gateway_name", "event_type"], name="billing_webhook_type_idx")]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    Q(processed=False, processed_at__isnull=True)
+                    | Q(processed=True, processed_at__isnull=False)
+                ),
+                name="billing_webhook_processed_timestamp_consistent",
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"{self.gateway_name} — {self.event_type}"

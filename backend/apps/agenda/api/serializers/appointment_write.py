@@ -7,9 +7,6 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
-from apps.patients.models import Patient
-from apps.users.models import WorkingHours
-
 from apps.agenda.models import (
     Appointment,
     AppointmentRecurrence,
@@ -18,6 +15,8 @@ from apps.agenda.models import (
     TelemedicineRoom,
 )
 from apps.agenda.services.core_services import create_appointment_resources, generate_recurrence_appointments
+from apps.patients.models import Patient
+from apps.users.models import WorkingHours
 
 User = get_user_model()
 
@@ -36,6 +35,33 @@ class AppointmentValidationMixin:
         if not therapist or not therapist.is_therapist:
             raise serializers.ValidationError({"therapist": "Selecione um terapeuta válido."})
         return therapist
+
+    @staticmethod
+    def _raise_conflict_error(conflicts):
+        if not any(conflicts.values()):
+            return
+        labels = {
+            "therapist": "profissional",
+            "patient": "paciente",
+            "room": "sala",
+            "block": "bloqueio de agenda",
+        }
+        active = [labels[key] for key, value in conflicts.items() if value]
+        raise serializers.ValidationError({"start_time": f"Conflito de horário com: {', '.join(active)}."})
+
+    def _check_conflicts(self, *, therapist, patient, participants, start, end, room, exclude_id=None):
+        if not start or not end:
+            return
+        conflicts = Appointment.conflict_details(
+            therapist=therapist,
+            patient=patient,
+            start_time=start,
+            end_time=end,
+            room=room,
+            participants=participants,
+            exclude_id=exclude_id,
+        )
+        self._raise_conflict_error(conflicts)
 
     def _validate_business_rules(self, attrs):
         therapist = self._resolve_therapist(attrs)
@@ -67,24 +93,15 @@ class AppointmentValidationMixin:
             raise serializers.ValidationError({"room": "A sala não pertence ao profissional selecionado."})
 
         if start and end:
-            conflicts = Appointment.conflict_details(
+            self._check_conflicts(
                 therapist=therapist,
                 patient=patient,
-                start_time=start,
-                end_time=end,
-                room=room,
                 participants=participants,
+                start=start,
+                end=end,
+                room=room,
                 exclude_id=getattr(self.instance, "pk", None),
             )
-            if any(conflicts.values()):
-                labels = {
-                    "therapist": "profissional",
-                    "patient": "paciente",
-                    "room": "sala",
-                    "block": "bloqueio de agenda",
-                }
-                active = [labels[key] for key, value in conflicts.items() if value]
-                raise serializers.ValidationError({"start_time": f"Conflito de horário com: {', '.join(active)}."})
             self._validate_working_hours(therapist, start, end)
         return attrs
 
@@ -190,6 +207,23 @@ class AppointmentCreateSerializer(AppointmentValidationMixin, serializers.ModelS
         validated_data["created_by"] = request.user
         validated_data["updated_by"] = request.user
 
+        therapist = User.objects.select_for_update().get(pk=validated_data["therapist"].pk)
+        validated_data["therapist"] = therapist
+        if package:
+            package = PatientPackage.objects.select_for_update().get(pk=package.pk)
+            if not package.can_consume():
+                raise serializers.ValidationError({"package": "O pacote está sem saldo, expirado ou inativo."})
+            validated_data["package"] = package
+
+        self._check_conflicts(
+            therapist=therapist,
+            patient=validated_data["patient"],
+            participants=participants,
+            start=validated_data["start_time"],
+            end=validated_data["end_time"],
+            room=validated_data.get("room"),
+        )
+
         recurrence = None
         if validated_data.get("is_recurring"):
             local_start = timezone.localtime(validated_data["start_time"])
@@ -265,8 +299,25 @@ class AppointmentUpdateSerializer(AppointmentValidationMixin, serializers.ModelS
     def validate(self, attrs):
         return self._validate_business_rules(attrs)
 
+    @transaction.atomic
     def update(self, instance, validated_data):
+        instance = Appointment.objects.select_for_update().get(pk=instance.pk)
         participants = validated_data.pop("participants", None)
+        effective_participants = participants if participants is not None else list(instance.participants.all())
+        therapist = validated_data.get("therapist", instance.therapist)
+        therapist = User.objects.select_for_update().get(pk=therapist.pk)
+        validated_data["therapist"] = therapist
+
+        self._check_conflicts(
+            therapist=therapist,
+            patient=validated_data.get("patient", instance.patient),
+            participants=effective_participants,
+            start=validated_data.get("start_time", instance.start_time),
+            end=validated_data.get("end_time", instance.end_time),
+            room=validated_data.get("room", instance.room),
+            exclude_id=instance.pk,
+        )
+
         instance.updated_by = self.context["request"].user
         instance = super().update(instance, validated_data)
         if participants is not None:
