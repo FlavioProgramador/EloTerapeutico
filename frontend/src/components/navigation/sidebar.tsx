@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { BarChart2, Calendar, ChevronLeft, ChevronRight, ClipboardList, DollarSign, FileText, Home, LogOut, MessageSquare, Settings, Users } from "lucide-react";
+import { BarChart2, Calendar, ChevronLeft, ChevronRight, ClipboardList, CreditCard, DollarSign, FileText, Home, LogOut, MessageSquare, Settings, Users } from "lucide-react";
 
 import { useAuth } from "@/contexts/auth";
 import { cn } from "@/lib/utils";
@@ -22,7 +22,8 @@ const items: Array<{ name: string; href: string; icon: React.ComponentType<{ cla
   { name: "Financeiro", href: "/dashboard/financeiro", icon: DollarSign },
   { name: "Relatórios", href: "/dashboard?view=reports", icon: BarChart2 },
   { name: "Comunicações", href: "#", icon: MessageSquare },
-  { name: "Configurações", href: "/dashboard/configuracoes/assinatura", icon: Settings },
+  { name: "Assinatura", href: "/dashboard/assinatura", icon: CreditCard },
+  { name: "Configurações", href: "/dashboard/configuracoes", icon: Settings },
 ];
 
 export function Sidebar({ className }: SidebarProps) {
