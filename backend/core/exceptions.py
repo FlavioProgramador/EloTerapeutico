@@ -88,7 +88,11 @@ def custom_exception_handler(exc, context):
         )
         return _secure_error_response(response, request_id)
 
-    logger.exception(
+    # Não use logger.exception aqui: a representação textual da exceção pode
+    # conter SQL, tokens, CPF ou conteúdo clínico. O tipo e o request_id são
+    # suficientes para correlação; detalhes devem ser coletados por uma solução
+    # de observabilidade com redaction explícita.
+    logger.error(
         "api_unhandled_exception",
         extra={
             "request_id": request_id,
