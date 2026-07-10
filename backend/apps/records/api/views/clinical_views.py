@@ -1,12 +1,13 @@
 # mypy: ignore-errors
 """Endpoints da experiência integrada do prontuário eletrônico."""
+from django.db.models import Q
 
 from html import escape
 from io import BytesIO
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q
+
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
