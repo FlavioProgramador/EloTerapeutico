@@ -67,11 +67,7 @@ def _legacy_order_for_subscription(gateway_subscription_id: str) -> BillingOrder
         return subscription.billing_order
 
     plan = subscription.plan
-    interval = (
-        PlanPrice.BillingInterval.YEARLY
-        if plan.billing_cycle == "YEARLY"
-        else PlanPrice.BillingInterval.MONTHLY
-    )
+    interval = PlanPrice.BillingInterval.YEARLY if plan.billing_cycle == "YEARLY" else PlanPrice.BillingInterval.MONTHLY
     price, _ = PlanPrice.objects.get_or_create(
         slug=f"{plan.slug}-{interval.lower()}-recurring-webhook-legacy",
         defaults={
@@ -107,11 +103,7 @@ def _legacy_order_for_subscription(gateway_subscription_id: str) -> BillingOrder
             "gateway_customer_id": subscription.gateway_customer_id,
             "gateway_subscription_id": gateway_subscription_id,
             "idempotency_key": external_reference,
-            "commercial_snapshot": {
-                "legacy": True,
-                "plan_name": plan.name,
-                "total_amount": str(price.total_amount),
-            },
+            "commercial_snapshot": {"legacy": True, "plan_name": plan.name, "total_amount": str(price.total_amount)},
             "metadata": {"origin": "legacy_webhook_compatibility"},
         },
     )
@@ -130,15 +122,13 @@ def _find_order(payment_data: dict) -> BillingOrder | None:
             return existing.billing_order
 
     gateway_subscription_id = payment_data.get("subscription")
-    gateway_installment_id = payment_data.get("installment")
-    external_reference = payment_data.get("externalReference")
     query = Q()
     if gateway_subscription_id:
         query |= Q(gateway_subscription_id=gateway_subscription_id)
-    if gateway_installment_id:
-        query |= Q(gateway_installment_id=gateway_installment_id)
-    if external_reference:
-        query |= Q(external_reference=external_reference)
+    if payment_data.get("installment"):
+        query |= Q(gateway_installment_id=payment_data["installment"])
+    if payment_data.get("externalReference"):
+        query |= Q(external_reference=payment_data["externalReference"])
 
     order = None
     if query:
@@ -199,10 +189,7 @@ def _process_payment_event(event_type: str, payment_data: dict) -> str:
         return "retry: contratação local ainda não localizada"
     subscription = _subscription_for_order(order, payment_data)
     normalized = dict(payment_data)
-    normalized["status"] = PAYMENT_STATUS_BY_EVENT.get(
-        event_type,
-        payment_data.get("status") or Payment.Status.PENDING,
-    )
+    normalized["status"] = PAYMENT_STATUS_BY_EVENT.get(event_type, payment_data.get("status") or Payment.Status.PENDING)
     payment = upsert_gateway_payment(
         order=order,
         payload=normalized,
@@ -211,18 +198,11 @@ def _process_payment_event(event_type: str, payment_data: dict) -> str:
     )
     _update_order_financial_status(order)
 
-    if subscription and event_type in {
-        "PAYMENT_CONFIRMED",
-        "PAYMENT_RECEIVED",
-        "PAYMENT_APPROVED_BY_RISK_ANALYSIS",
-    }:
+    if subscription and event_type in {"PAYMENT_CONFIRMED", "PAYMENT_RECEIVED", "PAYMENT_APPROVED_BY_RISK_ANALYSIS"}:
         SubscriptionAccessService.activate_from_payment(subscription, payment)
     elif subscription and event_type == "PAYMENT_OVERDUE":
         SubscriptionAccessService.mark_past_due(subscription)
-    elif subscription and event_type in {
-        "PAYMENT_CHARGEBACK_REQUESTED",
-        "PAYMENT_REPROVED_BY_RISK_ANALYSIS",
-    }:
+    elif subscription and event_type in {"PAYMENT_CHARGEBACK_REQUESTED", "PAYMENT_REPROVED_BY_RISK_ANALYSIS"}:
         subscription.status = Subscription.Status.SUSPENDED
         subscription.suspended_at = timezone.now()
         subscription.save(update_fields=["status", "suspended_at", "updated_at"])
@@ -233,11 +213,7 @@ def _process_subscription_event(event_type: str, subscription_data: dict) -> str
     gateway_subscription_id = subscription_data.get("id")
     if not gateway_subscription_id:
         return "ignored: evento de assinatura sem identificador"
-    subscription = (
-        Subscription.objects.select_related("billing_order")
-        .filter(gateway_subscription_id=gateway_subscription_id)
-        .first()
-    )
+    subscription = Subscription.objects.filter(gateway_subscription_id=gateway_subscription_id).first()
     if not subscription:
         order = BillingOrder.objects.filter(gateway_subscription_id=gateway_subscription_id).first()
         subscription = order.subscriptions.order_by("-created_at").first() if order else None
@@ -283,7 +259,49 @@ def _persist_webhook_event(*, payload: dict, event_type: str, event_hash: str, e
         return WebhookEvent.objects.get(query)
 
 
-def process_webhook_event(event: WebhookEvent) -> WebhookEvent:
+def _finish_event(event_id: int, result: str, max_retries: int) -> WebhookEvent:
+    with transaction.atomic():
+        locked = WebhookEvent.objects.select_for_update().get(pk=event_id)
+        if result.startswith("retry:"):
+            locked.status = WebhookEvent.Status.FAILED if locked.attempt_count >= max_retries else WebhookEvent.Status.RETRY
+            locked.next_retry_at = (
+                None
+                if locked.status == WebhookEvent.Status.FAILED
+                else timezone.now() + timedelta(minutes=min(2**locked.attempt_count, 60))
+            )
+            locked.last_error = result.removeprefix("retry: ")
+            locked.error_message = locked.last_error
+            locked.processed = False
+            locked.processed_at = None
+        elif result.startswith("ignored:"):
+            locked.status = WebhookEvent.Status.IGNORED
+            locked.last_error = result.removeprefix("ignored: ")
+            locked.error_message = locked.last_error
+            locked.processed = True
+            locked.processed_at = timezone.now()
+            locked.next_retry_at = None
+        else:
+            locked.status = WebhookEvent.Status.PROCESSED
+            locked.last_error = ""
+            locked.error_message = ""
+            locked.processed = True
+            locked.processed_at = timezone.now()
+            locked.next_retry_at = None
+        locked.save(
+            update_fields=[
+                "status",
+                "next_retry_at",
+                "last_error",
+                "error_message",
+                "processed",
+                "processed_at",
+                "updated_at",
+            ]
+        )
+        return locked
+
+
+def process_webhook_event(event: WebhookEvent, *, payload_override: dict | None = None) -> WebhookEvent:
     max_retries = max(int(getattr(settings, "BILLING_WEBHOOK_MAX_RETRIES", 5)), 1)
     with transaction.atomic():
         locked = WebhookEvent.objects.select_for_update().get(pk=event.pk)
@@ -294,7 +312,7 @@ def process_webhook_event(event: WebhookEvent) -> WebhookEvent:
         locked.save(update_fields=["status", "attempt_count", "updated_at"])
 
     try:
-        payload = event.payload
+        payload = payload_override or event.payload
         event_type = event.event_type
         if event_type.startswith("PAYMENT_"):
             result = _process_payment_event(event_type, payload.get("payment") or {})
@@ -302,83 +320,13 @@ def process_webhook_event(event: WebhookEvent) -> WebhookEvent:
             result = _process_subscription_event(event_type, payload.get("subscription") or {})
         else:
             result = f"ignored: evento não mapeado ({event_type})"
-
-        with transaction.atomic():
-            locked = WebhookEvent.objects.select_for_update().get(pk=event.pk)
-            if result.startswith("retry:"):
-                locked.status = (
-                    WebhookEvent.Status.FAILED
-                    if locked.attempt_count >= max_retries
-                    else WebhookEvent.Status.RETRY
-                )
-                locked.next_retry_at = (
-                    None
-                    if locked.status == WebhookEvent.Status.FAILED
-                    else timezone.now() + timedelta(minutes=min(2**locked.attempt_count, 60))
-                )
-                locked.last_error = result.removeprefix("retry: ")
-                locked.error_message = locked.last_error
-                locked.processed = False
-                locked.processed_at = None
-            elif result.startswith("ignored:"):
-                locked.status = WebhookEvent.Status.IGNORED
-                locked.last_error = result.removeprefix("ignored: ")
-                locked.error_message = locked.last_error
-                locked.processed = True
-                locked.processed_at = timezone.now()
-                locked.next_retry_at = None
-            else:
-                locked.status = WebhookEvent.Status.PROCESSED
-                locked.last_error = ""
-                locked.error_message = ""
-                locked.processed = True
-                locked.processed_at = timezone.now()
-                locked.next_retry_at = None
-            locked.save(
-                update_fields=[
-                    "status",
-                    "next_retry_at",
-                    "last_error",
-                    "error_message",
-                    "processed",
-                    "processed_at",
-                    "updated_at",
-                ]
-            )
-            return locked
+        return _finish_event(event.pk, result, max_retries)
     except Exception as exc:
         logger.exception(
             "asaas_webhook_processing_error",
             extra={"event_type": event.event_type, "exception_type": exc.__class__.__name__},
         )
-        with transaction.atomic():
-            locked = WebhookEvent.objects.select_for_update().get(pk=event.pk)
-            locked.status = (
-                WebhookEvent.Status.FAILED
-                if locked.attempt_count >= max_retries
-                else WebhookEvent.Status.RETRY
-            )
-            locked.next_retry_at = (
-                None
-                if locked.status == WebhookEvent.Status.FAILED
-                else timezone.now() + timedelta(minutes=min(2**locked.attempt_count, 60))
-            )
-            locked.last_error = "Falha interna ao processar o evento."
-            locked.error_message = locked.last_error
-            locked.processed = False
-            locked.processed_at = None
-            locked.save(
-                update_fields=[
-                    "status",
-                    "next_retry_at",
-                    "last_error",
-                    "error_message",
-                    "processed",
-                    "processed_at",
-                    "updated_at",
-                ]
-            )
-            return locked
+        return _finish_event(event.pk, "retry: Falha interna ao processar o evento.", max_retries)
 
 
 def handle_asaas_webhook(request) -> WebhookEvent:
@@ -390,4 +338,4 @@ def handle_asaas_webhook(request) -> WebhookEvent:
         event_hash=_payload_hash(payload),
         event_identifier=_event_id(payload),
     )
-    return process_webhook_event(webhook_event)
+    return process_webhook_event(webhook_event, payload_override=payload)
