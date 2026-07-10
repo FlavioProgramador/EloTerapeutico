@@ -90,8 +90,11 @@ def log_access(request, action: str, obj=None, obj_repr: str = "") -> None:
             object_id=object_id,
             object_repr=_safe_object_repr(obj, obj_repr),
         )
-    except Exception:
-        logger.exception("Falha ao registrar log de auditoria")
+    except Exception as exc:
+        logger.error(
+            "audit_log_write_failed",
+            extra={"exception_type": exc.__class__.__name__},
+        )
 
 
 class AuditLogMixin:
