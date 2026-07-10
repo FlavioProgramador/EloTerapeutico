@@ -1,11 +1,11 @@
 import uuid
 from datetime import date, datetime
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from apps.billing.models import BillingOrder, Payment, PlanPrice, Subscription
@@ -13,6 +13,13 @@ from apps.billing.security import redact_sensitive_data
 from apps.billing.services.gateways.asaas import AsaasGateway
 
 MONEY = Decimal("0.01")
+OPERATIONAL_SUBSCRIPTION_STATUSES = [
+    Subscription.Status.TRIALING,
+    Subscription.Status.PENDING,
+    Subscription.Status.ACTIVE,
+    Subscription.Status.PAST_DUE,
+    Subscription.Status.SUSPENDED,
+]
 
 
 def get_gateway():
@@ -125,6 +132,7 @@ def upsert_gateway_payment(
         raise ValidationError("Gateway não retornou o identificador da cobrança.")
     count = int(installment_count or order.installment_count or 1)
     number = payload.get("installmentNumber")
+    installment_number = int(number) if number else (1 if count == 1 else None)
     defaults = {
         "billing_order": order,
         "subscription": subscription,
@@ -144,7 +152,7 @@ def upsert_gateway_payment(
         "credit_at": _parse_datetime(payload.get("creditDate")),
         "gateway_subscription_id": payload.get("subscription") or order.gateway_subscription_id,
         "gateway_installment_id": payload.get("installment") or order.gateway_installment_id,
-        "installment_number": int(number) if number else (1 if count == 1 else None),
+        "installment_number": installment_number,
         "installment_count": count,
         "invoice_number": payload.get("invoiceNumber") or "",
         "invoice_url": payload.get("invoiceUrl") or "",
@@ -155,8 +163,32 @@ def upsert_gateway_payment(
         "external_reference": payload.get("externalReference") or order.external_reference,
         "raw_payload": redact_sensitive_data(payload),
     }
-    payment, _ = Payment.objects.update_or_create(gateway_payment_id=payment_id, defaults=defaults)
-    return payment
+
+    existing = Payment.objects.filter(gateway_payment_id=payment_id).first()
+    if not existing and installment_number is not None:
+        existing = Payment.objects.filter(
+            billing_order=order,
+            installment_number=installment_number,
+        ).first()
+    if existing:
+        for field, value in defaults.items():
+            setattr(existing, field, value)
+        existing.gateway_payment_id = payment_id
+        existing.save()
+        return existing
+
+    try:
+        return Payment.objects.create(gateway_payment_id=payment_id, **defaults)
+    except IntegrityError:
+        payment = Payment.objects.select_for_update().get(
+            billing_order=order,
+            installment_number=installment_number,
+        )
+        for field, value in defaults.items():
+            setattr(payment, field, value)
+        payment.gateway_payment_id = payment_id
+        payment.save()
+        return payment
 
 
 def sync_installment_payments(order: BillingOrder, gateway=None) -> list[Payment]:
@@ -165,7 +197,7 @@ def sync_installment_payments(order: BillingOrder, gateway=None) -> list[Payment
     gateway = gateway or get_gateway()
     response = gateway.list_installment_payments(order.gateway_installment_id)
     payloads = response.get("data", response if isinstance(response, list) else [])
-    subscription = order.subscriptions.order_by("-created_at").first()
+    subscription = _subscription_for_order(order)
     return [
         upsert_gateway_payment(
             order=order,
@@ -183,8 +215,31 @@ def sync_subscription_payments(order: BillingOrder, gateway=None) -> list[Paymen
     gateway = gateway or get_gateway()
     response = gateway.list_subscription_payments(order.gateway_subscription_id)
     payloads = response.get("data", response if isinstance(response, list) else [])
-    subscription = order.subscriptions.order_by("-created_at").first()
+    subscription = _subscription_for_order(order)
     return [upsert_gateway_payment(order=order, payload=payload, subscription=subscription) for payload in payloads]
+
+
+def _subscription_for_order(order: BillingOrder) -> Subscription | None:
+    subscription = order.subscriptions.order_by("-created_at").first()
+    if subscription:
+        return subscription
+    source_id = (order.metadata or {}).get("plan_change_from_subscription_id")
+    return Subscription.objects.filter(pk=source_id).first() if source_id else None
+
+
+def _existing_order_subscription(order: BillingOrder, user) -> Subscription:
+    subscription = _subscription_for_order(order)
+    if subscription:
+        return subscription
+    operational = Subscription.objects.filter(user=user, status__in=OPERATIONAL_SUBSCRIPTION_STATUSES).first()
+    if operational:
+        return operational
+    return Subscription.objects.create(
+        user=user,
+        plan=order.plan,
+        billing_order=order,
+        status=Subscription.Status.PENDING,
+    )
 
 
 def create_billing_order(
@@ -206,31 +261,37 @@ def create_billing_order(
             idempotency_key=idempotency_key,
         ).first()
         if existing:
-            subscription = existing.subscriptions.order_by("-created_at").first()
-            if not subscription:
-                subscription = Subscription.objects.create(
-                    user=locked_user,
-                    plan=existing.plan,
-                    billing_order=existing,
-                    status=Subscription.Status.PENDING,
-                )
-            return existing, subscription
+            return existing, _existing_order_subscription(existing, locked_user)
 
-        operational = Subscription.objects.select_for_update().filter(
-            user=locked_user,
-            status__in=[
-                Subscription.Status.TRIALING,
-                Subscription.Status.PENDING,
-                Subscription.Status.ACTIVE,
-                Subscription.Status.PAST_DUE,
-                Subscription.Status.SUSPENDED,
-            ],
-        ).first()
-        if operational:
-            raise ValidationError("Você já possui uma assinatura operacional. Use a troca de plano.")
+        operational = (
+            Subscription.objects.select_for_update()
+            .select_related("billing_order", "billing_order__plan_price")
+            .filter(user=locked_user, status__in=OPERATIONAL_SUBSCRIPTION_STATUSES)
+            .first()
+        )
+        if operational and operational.status in {Subscription.Status.PENDING, Subscription.Status.TRIALING}:
+            raise ValidationError("Já existe uma contratação pendente ou período de teste em andamento.")
+        if operational and operational.billing_order_id and operational.billing_order.plan_price_id == plan_price.pk:
+            raise ValidationError("Você já utiliza esta modalidade de plano.")
 
+        is_plan_change = operational is not None
         public_id = uuid.uuid4()
         external_reference = f"elo-order-{public_id}"
+        metadata = {
+            "checkout": _safe_snapshot(checkout_data),
+            "provisioning_status": "PENDING",
+            "is_plan_change": is_plan_change,
+        }
+        if operational:
+            metadata.update(
+                {
+                    "plan_change_from_subscription_id": operational.pk,
+                    "previous_plan_id": operational.plan_id,
+                    "previous_billing_order_id": operational.billing_order_id,
+                    "previous_gateway_subscription_id": operational.gateway_subscription_id,
+                }
+            )
+
         order = BillingOrder.objects.create(
             public_id=public_id,
             user=locked_user,
@@ -246,21 +307,31 @@ def create_billing_order(
             external_reference=external_reference,
             idempotency_key=idempotency_key,
             commercial_snapshot=_commercial_snapshot(plan_price),
-            metadata={"checkout": _safe_snapshot(checkout_data), "provisioning_status": "PENDING"},
+            metadata=metadata,
         )
-        subscription = Subscription.objects.create(
-            user=locked_user,
-            plan=plan_price.plan,
-            billing_order=order,
-            status=Subscription.Status.PENDING,
-            metadata={"activation_rule": "Acesso liberado somente após confirmação do gateway."},
-        )
+        if operational:
+            subscription = operational
+        else:
+            subscription = Subscription.objects.create(
+                user=locked_user,
+                plan=plan_price.plan,
+                billing_order=order,
+                status=Subscription.Status.PENDING,
+                metadata={"activation_rule": "Acesso liberado somente após confirmação do gateway."},
+            )
 
     gateway = get_gateway()
     customer_id = ""
+    created_new_subscription = not is_plan_change
     try:
-        previous = BillingOrder.objects.filter(user=user).exclude(pk=order.pk).exclude(gateway_customer_id="").order_by("-created_at").first()
-        customer_id = previous.gateway_customer_id if previous else ""
+        previous = (
+            BillingOrder.objects.filter(user=user)
+            .exclude(pk=order.pk)
+            .exclude(gateway_customer_id="")
+            .order_by("-created_at")
+            .first()
+        )
+        customer_id = previous.gateway_customer_id if previous else subscription.gateway_customer_id
         if not customer_id:
             customer = gateway.create_customer(user, checkout_data)
             customer_id = customer.get("id", "")
@@ -283,24 +354,18 @@ def create_billing_order(
                 customer_id=customer_id,
             )
         elif plan_price.billing_model == PlanPrice.BillingModel.INSTALLMENT:
-            response = gateway.create_installment_payment(
-                user,
-                gateway_data,
-                customer_id=customer_id,
-            )
+            response = gateway.create_installment_payment(user, gateway_data, customer_id=customer_id)
         else:
-            response = gateway.create_single_payment(
-                user,
-                gateway_data,
-                customer_id=customer_id,
-            )
+            response = gateway.create_single_payment(user, gateway_data, customer_id=customer_id)
 
         with transaction.atomic():
             locked_order = BillingOrder.objects.select_for_update().get(pk=order.pk)
             locked_subscription = Subscription.objects.select_for_update().get(pk=subscription.pk)
             locked_order.status = BillingOrder.Status.PENDING
             locked_order.gateway_customer_id = customer_id
-            locked_order.gateway_subscription_id = response.get("id", "") if plan_price.billing_model == PlanPrice.BillingModel.RECURRING else ""
+            locked_order.gateway_subscription_id = (
+                response.get("id", "") if plan_price.billing_model == PlanPrice.BillingModel.RECURRING else ""
+            )
             locked_order.gateway_installment_id = response.get("installment") or ""
             locked_order.metadata = {
                 **locked_order.metadata,
@@ -308,15 +373,18 @@ def create_billing_order(
                 "provisioning_status": "COMPLETED",
             }
             locked_order.save()
-            locked_subscription.gateway_customer_id = customer_id
-            locked_subscription.gateway_subscription_id = locked_order.gateway_subscription_id
-            locked_subscription.gateway_status = response.get("status", "")
-            locked_subscription.save(update_fields=[
-                "gateway_customer_id",
-                "gateway_subscription_id",
-                "gateway_status",
-                "updated_at",
-            ])
+            if created_new_subscription:
+                locked_subscription.gateway_customer_id = customer_id
+                locked_subscription.gateway_subscription_id = locked_order.gateway_subscription_id
+                locked_subscription.gateway_status = response.get("status", "")
+                locked_subscription.save(
+                    update_fields=[
+                        "gateway_customer_id",
+                        "gateway_subscription_id",
+                        "gateway_status",
+                        "updated_at",
+                    ]
+                )
 
         if plan_price.billing_model != PlanPrice.BillingModel.RECURRING:
             upsert_gateway_payment(
@@ -341,8 +409,9 @@ def create_billing_order(
                 "error_code": exc.__class__.__name__,
             }
             failed_order.save(update_fields=["status", "failed_at", "metadata", "updated_at"])
-            Subscription.objects.filter(pk=subscription.pk, status=Subscription.Status.PENDING).update(
-                status=Subscription.Status.CANCELED,
-                canceled_at=timezone.now(),
-            )
+            if created_new_subscription:
+                Subscription.objects.filter(pk=subscription.pk, status=Subscription.Status.PENDING).update(
+                    status=Subscription.Status.CANCELED,
+                    canceled_at=timezone.now(),
+                )
         raise
