@@ -72,15 +72,26 @@ jobs:
         run: python manage.py makemigrations --check --dry-run
 
       - name: Ruff nos arquivos Python alterados
+        id: ruff
+        continue-on-error: true
         shell: bash
         run: |
           cd ..
           git diff --name-only --diff-filter=ACMRT origin/main...HEAD -- "backend/**/*.py" > /tmp/changed-python-files.txt
           if [ -s /tmp/changed-python-files.txt ]; then
-            xargs ruff check --config backend/pyproject.toml < /tmp/changed-python-files.txt
+            xargs ruff check --config backend/pyproject.toml < /tmp/changed-python-files.txt 2>&1 | tee /tmp/ruff-output.txt
           else
-            echo "Nenhum arquivo Python alterado."
+            echo "Nenhum arquivo Python alterado." | tee /tmp/ruff-output.txt
           fi
+
+      - name: Publicar relatório do Ruff
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-security-ruff
+          path: /tmp/ruff-output.txt
+          retention-days: 3
+          if-no-files-found: error
 
       - name: Testes automatizados
         run: pytest --create-db
@@ -92,3 +103,7 @@ jobs:
       - name: Auditoria de dependências Python
         continue-on-error: true
         run: pip-audit -r requirements/base.txt
+
+      - name: Falhar quando Ruff encontrar problemas
+        if: always() && steps.ruff.outcome == 'failure'
+        run: exit 1
