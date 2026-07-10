@@ -7,13 +7,9 @@ from apps.records.api.views.clinical_views import (
     AnamnesisVersionListView,
     ClinicalAiSummaryStatusView,
     ClinicalAnamnesisView,
-    ClinicalExportDownloadView,
-    ClinicalExportListCreateView,
-    ClinicalExportRetryView,
     ClinicalFormResponseDetailView,
     ClinicalFormResponseListCreateView,
     EvolutionDuplicateView,
-    PatientRecordPdfView,
     PatientRecordSummaryView,
     TreatmentGoalDetailView,
     TreatmentGoalListCreateView,
@@ -24,6 +20,12 @@ from apps.records.api.views.secure_document_views import (
     SecureClinicalDocumentDetailView,
     SecureClinicalDocumentDownloadView,
     SecureClinicalDocumentListCreateView,
+)
+from apps.records.api.views.secure_export_views import (
+    SecureClinicalExportDownloadView,
+    SecureClinicalExportListCreateView,
+    SecureClinicalExportRetryView,
+    SecurePatientRecordPdfView,
 )
 
 from .api.evolution_attachment_detail_views import (
@@ -87,7 +89,7 @@ urlpatterns = [
     ),
     path(
         "patients/<int:patient_id>/export-pdf/",
-        PatientRecordPdfView.as_view(),
+        SecurePatientRecordPdfView.as_view(),
         name="patient-record-pdf",
     ),
     path(
@@ -107,17 +109,17 @@ urlpatterns = [
     ),
     path(
         "patients/<int:patient_id>/exports/",
-        ClinicalExportListCreateView.as_view(),
+        SecureClinicalExportListCreateView.as_view(),
         name="patient-exports",
     ),
     path(
         "exports/<int:pk>/retry/",
-        ClinicalExportRetryView.as_view(),
+        SecureClinicalExportRetryView.as_view(),
         name="export-retry",
     ),
     path(
         "exports/<int:pk>/download/",
-        ClinicalExportDownloadView.as_view(),
+        SecureClinicalExportDownloadView.as_view(),
         name="export-download",
     ),
     path(
