@@ -130,14 +130,23 @@ def handle_asaas_webhook(request) -> WebhookEvent:
     payload = AsaasGateway(require_api_key=False).parse_webhook(request)
     event_type = payload.get("event", "UNKNOWN")
     event_hash = _payload_hash(payload)
+    event_identifier = _event_id(payload)
+
+    defaults = {
+        "gateway_name": "ASAAS",
+        "event_type": event_type,
+        "payload": redact_sensitive_data(payload),
+    }
+    if event_identifier:
+        lookup = {"event_id": event_identifier}
+        defaults["payload_hash"] = event_hash
+    else:
+        lookup = {"payload_hash": event_hash}
+        defaults["event_id"] = None
+
     webhook_event, created = WebhookEvent.objects.get_or_create(
-        payload_hash=event_hash,
-        defaults={
-            "gateway_name": "ASAAS",
-            "event_id": _event_id(payload),
-            "event_type": event_type,
-            "payload": redact_sensitive_data(payload),
-        },
+        **lookup,
+        defaults=defaults,
     )
     if not created and webhook_event.processed:
         return webhook_event
