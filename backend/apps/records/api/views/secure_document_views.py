@@ -12,7 +12,11 @@ from rest_framework.views import APIView
 
 from apps.records.api.serializers.clinical_serializers import ClinicalDocumentSerializer
 from apps.records.api.views.clinical_views import ClinicalPatientMixin
-from apps.records.services.evolution_security import can_view_confidential_evolution, sanitize_original_filename
+from apps.records.services.evolution_security import (
+    can_view_confidential_evolution,
+    has_explicit_records_permission,
+    sanitize_original_filename,
+)
 from apps.records.treatment_models import ClinicalDocument
 from core.audit import AuditLog, log_access
 
@@ -47,7 +51,7 @@ class SecureClinicalDocumentListCreateView(SecureClinicalDocumentMixin, APIView)
             patient=patient,
             deleted_at__isnull=True,
         ).select_related("evolution", "evolution__created_by", "uploaded_by")
-        if not request.user.has_perm("records.view_confidential_evolution"):
+        if not has_explicit_records_permission(request.user, "view_confidential_evolution"):
             queryset = queryset.filter(
                 Q(evolution__isnull=True) | Q(evolution__is_confidential=False) | Q(evolution__created_by=request.user)
             )
@@ -114,6 +118,12 @@ class SecureClinicalDocumentDetailView(SecureClinicalDocumentMixin, APIView):
             context={"request": request, "patient": document.patient},
         )
         serializer.is_valid(raise_exception=True)
+        evolution = serializer.validated_data.get("evolution")
+        if evolution and not can_view_confidential_evolution(request.user, evolution):
+            self.permission_denied(
+                request,
+                message="Você não pode vincular o documento a esta evolução confidencial.",
+            )
         serializer.save()
         log_access(
             request,
