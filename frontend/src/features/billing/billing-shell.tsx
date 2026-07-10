@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, Download, ExternalLink, Calendar as CalendarIcon, FileText } from "lucide-react";
+import { useAuth } from "@/contexts/auth";
 
 import {
   cancelSubscription,
@@ -63,6 +64,8 @@ export function BillingShell({ mode }: { mode: Mode }) {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<number | "cancel" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showPlans, setShowPlans] = useState(false);
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   const shouldLoadPlans = useMemo(() => ["plans", "subscription", "upgrade"].includes(mode), [mode]);
 
@@ -99,6 +102,12 @@ export function BillingShell({ mode }: { mode: Mode }) {
       setError("Plano não encontrado para checkout.");
       return;
     }
+
+    if (!authLoading && !isAuthenticated) {
+      window.location.href = `/register?next=/checkout?plan=${encodeURIComponent(plan.slug)}`;
+      return;
+    }
+
     setActionLoading(planId);
     window.location.href = `/checkout?plan=${encodeURIComponent(plan.slug)}`;
   }
@@ -128,29 +137,46 @@ export function BillingShell({ mode }: { mode: Mode }) {
 
   if (mode === "payments") {
     return (
-      <section className="space-y-6">
-        <Header title="Faturas" description="Acompanhe cobranças, vencimentos e links enviados pelo gateway." />
+      <section className="space-y-8">
+        <Header title="Minhas Faturas" description="Acompanhe o histórico de cobranças, status e links para pagamento." />
         {error && <Alert>{error}</Alert>}
-        <div className="overflow-hidden rounded-3xl border border-border bg-card">
+        
+        <div className="mx-auto max-w-4xl">
           {payments.length === 0 ? (
-            <EmptyState title="Nenhuma fatura encontrada" description="As faturas aparecerão aqui quando o Asaas criar cobranças para sua assinatura." />
+            <EmptyState title="Nenhuma fatura encontrada" description="As faturas aparecerão aqui quando o Asaas começar a gerar cobranças para sua assinatura." />
           ) : (
-            <div className="divide-y divide-border">
+            <div className="space-y-4">
               {payments.map((payment) => (
-                <div key={payment.id} className="grid gap-3 p-5 md:grid-cols-5 md:items-center">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{currency(payment.amount, payment.currency)}</p>
-                    <p className="text-xs text-muted-foreground">Vencimento: {formatDate(payment.due_date)}</p>
+                <div key={payment.id} className="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-3xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/30 hover:shadow-md">
+                  <div className="flex items-start gap-4">
+                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                      <FileText className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-lg font-bold text-foreground">{currency(payment.amount, payment.currency)}</span>
+                        <Badge>{statusLabel[payment.status] || payment.status}</Badge>
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1.5"><CalendarIcon className="h-3.5 w-3.5" /> Vencimento: {formatDate(payment.due_date)}</span>
+                        {payment.paid_at && <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-success" /> Pago em: {formatDate(payment.paid_at)}</span>}
+                      </div>
+                    </div>
                   </div>
-                  <Badge>{statusLabel[payment.status] || payment.status}</Badge>
-                  <p className="text-xs text-muted-foreground">Pago em: {formatDate(payment.paid_at)}</p>
-                  <div className="md:col-span-2 md:text-right">
-                    {payment.invoice_url || payment.bank_slip_url ? (
-                      <a className="text-sm font-semibold text-primary hover:underline" href={payment.invoice_url || payment.bank_slip_url} target="_blank" rel="noreferrer">
-                        Abrir fatura
+                  
+                  <div className="flex shrink-0 items-center gap-2">
+                    {payment.invoice_url ? (
+                      <a href={payment.invoice_url} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary/10 px-4 py-2.5 text-sm font-bold text-primary transition hover:bg-primary/20">
+                        <ExternalLink className="h-4 w-4" /> Acessar Fatura
+                      </a>
+                    ) : payment.bank_slip_url ? (
+                      <a href={payment.bank_slip_url} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary/10 px-4 py-2.5 text-sm font-bold text-primary transition hover:bg-primary/20">
+                        <Download className="h-4 w-4" /> Boleto
                       </a>
                     ) : (
-                      <span className="text-xs text-muted-foreground">Link indisponível</span>
+                      <span className="inline-flex items-center rounded-xl bg-muted/40 px-4 py-2.5 text-sm font-medium text-muted-foreground">
+                        Link indisponível
+                      </span>
                     )}
                   </div>
                 </div>
@@ -164,28 +190,36 @@ export function BillingShell({ mode }: { mode: Mode }) {
 
   if (mode === "subscription") {
     return (
-      <section className="space-y-6">
-        <Header title="Assinatura" description="Gerencie seu plano, status de cobrança e acesso aos módulos." />
+      <section className="space-y-8">
+        <Header title="Minha Assinatura" description="Gerencie seu plano atual, status de cobrança e acesse suas faturas." />
         {error && <Alert>{error}</Alert>}
-        <div className="grid gap-6 lg:grid-cols-[1fr_1.3fr]">
-          <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+        
+        <div className="mx-auto max-w-4xl">
+          <div className="rounded-3xl border border-border bg-card p-6 shadow-sm md:p-8">
             {subscription ? (
-              <div className="space-y-4">
-                <Badge>{statusLabel[subscription.status] || subscription.status}</Badge>
-                <div>
-                  <h2 className="text-2xl font-bold text-foreground">{subscription.plan.name}</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">{subscription.plan.description}</p>
+              <div className="space-y-6">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-3xl font-extrabold tracking-tight text-foreground">{subscription.plan.name}</h2>
+                    <p className="mt-1 text-sm font-medium text-muted-foreground">{subscription.plan.description}</p>
+                  </div>
+                  <Badge>{statusLabel[subscription.status] || subscription.status}</Badge>
                 </div>
-                <dl className="space-y-3 text-sm">
+                
+                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                   <Info label="Próxima cobrança" value={formatDate(subscription.current_period_end)} />
                   <Info label="Fim do teste" value={formatDate(subscription.trial_ends_at)} />
                   <Info label="Gateway" value={subscription.gateway_name} />
-                </dl>
-                <div className="flex flex-wrap gap-3 pt-2">
-                  <Link href="/dashboard/configuracoes/faturas" className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted">
+                </div>
+                
+                <div className="flex flex-wrap gap-3 pt-4 border-t border-border">
+                  <Link href="/dashboard/assinatura/faturas" className="rounded-xl bg-primary/10 text-primary px-5 py-2.5 text-sm font-bold shadow-sm transition hover:bg-primary/20">
                     Ver faturas
                   </Link>
-                  <button onClick={handleCancel} disabled={actionLoading === "cancel"} className="rounded-xl border border-danger/30 px-4 py-2 text-sm font-semibold text-danger hover:bg-danger-soft disabled:opacity-60">
+                  <button onClick={() => setShowPlans(!showPlans)} className="rounded-xl border border-border bg-background px-5 py-2.5 text-sm font-bold text-foreground transition hover:bg-muted">
+                    {showPlans ? "Ocultar planos" : "Mudar plano"}
+                  </button>
+                  <button onClick={handleCancel} disabled={actionLoading === "cancel"} className="rounded-xl border border-danger/20 text-danger px-5 py-2.5 text-sm font-bold transition hover:bg-danger-soft disabled:opacity-60 ml-auto">
                     {actionLoading === "cancel" ? "Cancelando..." : "Cancelar assinatura"}
                   </button>
                 </div>
@@ -194,8 +228,17 @@ export function BillingShell({ mode }: { mode: Mode }) {
               <EmptyState title="Nenhuma assinatura ativa" description="Escolha um plano para liberar os módulos do Elo Terapêutico." actionHref="/planos" actionLabel="Ver planos" />
             )}
           </div>
-          <PlanGrid plans={plans} subscription={subscription} onSelect={handleSubscribe} actionLoading={actionLoading} />
         </div>
+
+        {showPlans && subscription && (
+          <div className="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="mb-6 text-center">
+              <h3 className="text-2xl font-bold text-foreground">Planos disponíveis</h3>
+              <p className="mt-2 text-sm text-muted-foreground">Escolha um novo plano para fazer upgrade ou downgrade da sua assinatura.</p>
+            </div>
+            <PlanGrid plans={plans} subscription={subscription} onSelect={handleSubscribe} actionLoading={actionLoading} />
+          </div>
+        )}
       </section>
     );
   }
@@ -222,7 +265,7 @@ export function BillingShell({ mode }: { mode: Mode }) {
           <h1 className="mt-5 text-3xl font-bold text-foreground">{copy.title}</h1>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted-foreground">{copy.description}</p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <Link href="/dashboard/configuracoes/assinatura" className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-90">
+            <Link href="/dashboard/assinatura" className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-90">
               Ver assinatura
             </Link>
             <Link href="/planos" className="rounded-xl border border-border px-5 py-2.5 text-sm font-bold text-foreground hover:bg-muted">
@@ -250,27 +293,68 @@ export function BillingShell({ mode }: { mode: Mode }) {
 function PlanGrid({ plans, subscription, onSelect, actionLoading }: { plans: Plan[]; subscription: Subscription | null; onSelect: (planId: number) => void; actionLoading: number | "cancel" | null }) {
   if (plans.length === 0) return <EmptyState title="Nenhum plano disponível" description="Cadastre planos ativos no admin para exibir esta tela." />;
   return (
-    <div className="grid gap-5 lg:grid-cols-3">
-      {plans.map((plan) => {
+    <div className="grid gap-6 lg:grid-cols-3">
+      {plans.map((plan, i) => {
         const recommended = plan.slug === "profissional";
         const current = subscription?.plan.id === plan.id;
+        
         return (
-          <article key={plan.id} className={`relative rounded-3xl border bg-card p-6 shadow-sm ${recommended ? "border-primary/50 ring-2 ring-primary/10" : "border-border"}`}>
-            {recommended && <span className="absolute right-5 top-5 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-primary">Recomendado</span>}
-            <h2 className="text-xl font-bold text-foreground">{plan.name}</h2>
-            <p className="mt-2 min-h-12 text-sm leading-6 text-muted-foreground">{plan.description}</p>
-            <div className="mt-5 flex items-end gap-1">
-              <span className="text-3xl font-extrabold text-foreground">{currency(plan.price, plan.currency)}</span>
-              <span className="pb-1 text-xs text-muted-foreground">/{plan.billing_cycle === "MONTHLY" ? "mês" : "ano"}</span>
+          <article 
+            key={plan.id} 
+            className={`group relative flex flex-col rounded-3xl border bg-card p-7 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg ${recommended ? "border-primary/50 shadow-primary/5" : "border-border"}`}
+            style={{ animationDelay: `${i * 100}ms` }}
+          >
+            {recommended && (
+              <div className="absolute inset-x-0 -top-4 mx-auto w-fit rounded-full bg-gradient-to-r from-primary/80 to-primary px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-primary-foreground shadow-sm">
+                Recomendado
+              </div>
+            )}
+            
+            {current && (
+              <div className="absolute right-5 top-5 rounded-full bg-muted/60 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                Plano Atual
+              </div>
+            )}
+            
+            <h2 className="text-xl font-bold text-foreground mt-2">{plan.name}</h2>
+            <p className="mt-3 min-h-[3rem] text-sm leading-relaxed text-muted-foreground">{plan.description}</p>
+            
+            <div className="mt-6 flex items-baseline gap-1">
+              <span className="text-4xl font-extrabold text-foreground tracking-tight">{currency(plan.price, plan.currency)}</span>
+              <span className="text-sm font-medium text-muted-foreground">/{plan.billing_cycle === "MONTHLY" ? "mês" : "ano"}</span>
             </div>
-            <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
+            
+            <div className="mt-8 mb-6 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent" />
+            
+            <ul className="mb-8 space-y-3.5 text-sm text-muted-foreground flex-1">
               {Object.entries(plan.features).filter(([, enabled]) => enabled).map(([key]) => (
-                <li key={key} className="flex items-center gap-2"><Check className="h-4 w-4 text-primary" /> {featureLabels[key as keyof Plan["features"]]}</li>
+                <li key={key} className="flex items-start gap-3">
+                  <div className="mt-0.5 rounded-full bg-primary/10 p-1">
+                    <Check className="h-3 w-3 text-primary" strokeWidth={3} />
+                  </div>
+                  <span className="font-medium text-foreground/80">{featureLabels[key as keyof Plan["features"]]}</span>
+                </li>
               ))}
-              <li className="flex items-center gap-2"><Check className="h-4 w-4 text-primary" /> {plan.max_patients ? `Até ${plan.max_patients} pacientes` : "Pacientes ilimitados"}</li>
+              <li className="flex items-start gap-3">
+                <div className="mt-0.5 rounded-full bg-primary/10 p-1">
+                  <Check className="h-3 w-3 text-primary" strokeWidth={3} />
+                </div>
+                <span className="font-medium text-foreground/80">{plan.max_patients ? `Até ${plan.max_patients} pacientes` : "Pacientes ilimitados"}</span>
+              </li>
             </ul>
-            <button disabled={current || actionLoading === plan.id} onClick={() => onSelect(plan.id)} className="mt-6 w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">
-              {current ? "Plano atual" : actionLoading === plan.id ? "Abrindo checkout..." : "Escolher plano"}
+            
+            <button 
+              disabled={current || actionLoading === plan.id} 
+              onClick={() => onSelect(plan.id)} 
+              className={`mt-auto w-full rounded-2xl px-4 py-3.5 text-sm font-bold shadow-sm transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:pointer-events-none ${
+                current 
+                  ? "bg-muted/50 text-muted-foreground opacity-100 ring-1 ring-inset ring-border/50" 
+                  : recommended
+                    ? "bg-primary text-primary-foreground hover:opacity-90 hover:shadow-md"
+                    : "bg-primary/10 text-primary hover:bg-primary/20"
+              }`}
+            >
+              {current ? "Sua assinatura atual" : actionLoading === plan.id ? "Abrindo checkout..." : "Assinar " + plan.name}
             </button>
           </article>
         );

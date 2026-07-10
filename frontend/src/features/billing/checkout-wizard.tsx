@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AlertCircle, ArrowLeft, Check, Loader2, ShieldCheck } from "lucide-react";
+
+import { useAuth } from "@/contexts/auth";
 
 import { createCheckout, listPlans, previewCheckout } from "./api";
 import type { BillingType, CheckoutPayload, CheckoutPreview, CheckoutType, Plan } from "./types";
@@ -50,6 +52,8 @@ function extractError(error: unknown) {
 
 export function CheckoutWizard() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const selectedPlanSlug = searchParams.get("plan") || "profissional";
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,6 +97,22 @@ export function CheckoutWizard() {
       setDescription(`Assinatura Elo Terapêutico - ${selectedPlan.name}`);
     }
   }, [description, selectedPlan]);
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push(`/register?next=/checkout?plan=${selectedPlanSlug}`);
+    }
+  }, [authLoading, isAuthenticated, router, selectedPlanSlug]);
+
+  if (authLoading || (!isAuthenticated && !authLoading)) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 text-sm text-muted-foreground shadow-sm">
+          <Loader2 className="h-4 w-4 animate-spin" /> Verificando acesso...
+        </div>
+      </main>
+    );
+  }
 
   const payload = useMemo<CheckoutPayload | null>(() => {
     if (!selectedPlan) return null;
