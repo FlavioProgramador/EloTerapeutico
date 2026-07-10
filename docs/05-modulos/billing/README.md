@@ -1,80 +1,207 @@
-# Módulo de billing e assinatura
+# Módulo de assinaturas, pagamentos e integrações
 
-**Status: implementado; requer Asaas e webhook configurados.**
+**Status:** refatorado para mensal recorrente, anual à vista e anual parcelado. Requer Asaas e webhook configurados.
 
 ## Finalidade
 
-Cobrar o uso do Elo Terapêutico por planos, controlar assinatura, pagamentos e acesso a recursos. Não confundir com o financeiro dos pacientes.
+Controlar a contratação do Elo Terapêutico, o direito de acesso do terapeuta, cobranças, parcelas, faturas, inadimplência e integração com o gateway. Este domínio é separado do financeiro clínico de pacientes.
 
-## Entidades
+## Arquitetura de domínio
 
-### Plan
+### `Plan`
 
-Preço, moeda, ciclo mensal/anual, limites de pacientes/storage e flags de recursos: agenda, pacientes, prontuário, financeiro, documentos, formulários, relatórios e IA.
+Define o produto, limites e recursos habilitados. Os campos legados de preço e ciclo permanecem temporariamente para migração.
 
-### Subscription
+### `PlanPrice`
 
-Status: `TRIALING`, `PENDING`, `ACTIVE`, `PAST_DUE`, `CANCELED`, `EXPIRED`. Vincula usuário, plano, períodos e IDs Asaas.
+Define uma opção comercial do plano:
 
-### Payment
+- `RECURRING`: cobrança recorrente mensal ou anual;
+- `ONE_TIME`: pagamento anual à vista;
+- `INSTALLMENT`: contratação anual parcelada;
+- valor, moeda, desconto, vigência e limite de parcelas.
 
-Status: `PENDING`, `CONFIRMED`, `RECEIVED`, `OVERDUE`, `REFUNDED`, `CANCELED`, `FAILED`. Armazena valores, URLs públicas necessárias, IDs e payload sanitizado.
+O backend sempre usa o preço cadastrado. Valores enviados pelo navegador não determinam a cobrança.
 
-### WebhookEvent e FeatureUsage
+### `BillingOrder`
 
-Eventos são deduplicados por ID/hash e registram processamento. Uso de recurso é agregado por período.
+Representa a contratação. Armazena snapshot comercial, valor total, modalidade, quantidade de parcelas, referência externa, IDs do gateway e chave de idempotência.
 
-## Regras
+Status principais: `DRAFT`, `PENDING`, `PARTIALLY_PAID`, `PAID`, `OVERDUE`, `CANCELED`, `REFUNDED`, `CHARGEBACK`, `FAILED` e `EXPIRED`.
 
-- planos públicos listam apenas ativos;
-- frontend não ativa plano;
-- assinatura fica pendente até confirmação por webhook;
-- produção rejeita URL sandbox e exige API key/token fortes;
-- cartão exige tokenização; dados brutos de cartão não são aceitos como fluxo padrão;
-- respostas do checkout expõem somente campos públicos necessários;
-- erros do gateway retornam mensagem controlada e `502`;
-- pagamentos e assinatura são filtrados pelo usuário;
-- eventos repetidos devem ser idempotentes.
+### `Subscription`
 
-## API
+Representa somente o direito de acesso ao SaaS. Mantém período, carência, cancelamento agendado, suspensão e vínculo com a contratação vigente.
 
-Prefixo principal `/api/v1/billing/`:
+Status: `TRIALING`, `PENDING`, `ACTIVE`, `PAST_DUE`, `SUSPENDED`, `CANCELED` e `EXPIRED`.
 
-- `plans/` pública;
-- `checkout/preview/`;
-- `checkout/create/`;
-- `subscription/me/`;
-- `subscription/create/`;
-- `subscription/cancel/`;
-- `subscription/change-plan/`;
-- `payments/`;
-- `webhooks/asaas/` pública com token no header.
+### `Payment`
 
-Também existe `/api/billing/` apontando para as mesmas URLs. Essa duplicidade deve ser consolidada futuramente.
+Cada registro representa uma cobrança ou parcela individual. Inclui:
+
+- `installment_number` e `installment_count`;
+- valor bruto e líquido;
+- vencimento original e atual;
+- status financeiro;
+- forma de pagamento;
+- links de fatura, boleto e comprovante;
+- IDs de assinatura e parcelamento do Asaas;
+- payload sanitizado.
+
+### `WebhookEvent`
+
+Fila persistida de eventos do gateway. Registra estado, tentativas, próxima tentativa, erro controlado e payload sanitizado.
+
+## Fluxos comerciais
+
+### Mensal recorrente
+
+1. Cria contratação local com idempotência.
+2. Cria assinatura mensal no Asaas.
+3. Mantém acesso pendente.
+4. Webhook confirmado ativa um mês de calendário.
+5. Inadimplência aplica carência e pode suspender o acesso.
+
+### Anual à vista
+
+1. Cria cobrança única.
+2. Persiste a fatura local.
+3. Confirmação concede doze meses de calendário.
+4. A renovação é uma nova contratação.
+
+### Anual parcelado
+
+1. O usuário escolhe entre o mínimo e o máximo configurados.
+2. O backend envia `installmentCount` e `totalValue` ao Asaas.
+3. Salva o ID do parcelamento.
+4. Sincroniza todas as cobranças do parcelamento.
+5. Cada parcela aparece como “Parcela X de Y”.
+6. A confirmação válida concede o período anual conforme a política de acesso.
+
+## Idempotência
+
+`checkout/create/` exige uma chave de idempotência para o contrato novo. Repetições com a mesma chave retornam a mesma contratação e não geram outra cobrança.
+
+O endpoint legado que envia apenas `plan_id` ou `plan_slug` permanece temporariamente compatível e gera uma chave interna, mas novos clientes devem sempre enviar `Idempotency-Key`.
+
+## Troca de plano
+
+A contratação nova é criada sem substituir a assinatura vigente. Somente após pagamento confirmado o serviço de acesso:
+
+- troca plano e preço vigentes;
+- inicia o novo período;
+- atualiza os IDs do gateway;
+- marca a assinatura recorrente anterior para cancelamento na reconciliação.
+
+Assim, uma falha no novo checkout não interrompe o plano atual.
+
+## Cancelamento
+
+- **Ao fim do período:** mantém acesso até `access_ends_at`; a reconciliação cancela a recorrência no gateway e encerra a assinatura local.
+- **Imediato:** operação explícita separada; não implica estorno automático.
+- **Retomar renovação:** remove o cancelamento agendado antes do fim do período.
+
+## Inadimplência
+
+Fluxo padrão:
+
+```text
+Pagamento vencido
+→ PAST_DUE
+→ carência configurável
+→ SUSPENDED
+→ pagamento confirmado
+→ ACTIVE
+```
+
+Dados do usuário não são apagados. Acesso a faturas e regularização deve permanecer disponível.
+
+## Webhooks
+
+Eventos são:
+
+1. autenticados;
+2. persistidos com redaction;
+3. deduplicados por ID/hash;
+4. processados com máquina de estados;
+5. mantidos para retry quando a contratação ainda não existe;
+6. reprocessáveis por worker.
+
+Eventos desconhecidos são registrados como `IGNORED` e não causam erro 500.
+
+### Worker
+
+```bash
+python manage.py run_billing_webhook_worker
+python manage.py run_billing_webhook_worker --once
+```
+
+O worker usa `select_for_update(skip_locked=True)`, lease temporário e retry com backoff.
+
+## Reconciliação
+
+```bash
+python manage.py reconcile_billing
+python manage.py reconcile_billing --order <uuid-publico>
+```
+
+A reconciliação:
+
+- importa parcelas ausentes;
+- atualiza cobranças recorrentes;
+- suspende assinaturas após carência;
+- efetiva cancelamentos ao final do período;
+- encerra recorrências anteriores após troca de plano.
 
 ## Frontend
 
-Páginas de checkout, upgrade, sucesso, pendência, assinatura e faturas. `checkout-wizard.tsx` conduz o fluxo.
+O frontend oferece:
+
+- seletor mensal/anual;
+- anual à vista ou parcelado;
+- cálculo estimado das parcelas;
+- checkout com revisão;
+- resumo da assinatura;
+- cancelamento agendado e retomada;
+- resumo financeiro das faturas;
+- filtros por status;
+- “Parcela X de Y”;
+- atualização manual de uma fatura;
+- links de cobrança, boleto e comprovante.
 
 ## Segurança
 
-- chave Asaas só no backend;
-- token do webhook comparado com `secrets.compare_digest`;
-- payload sensível é redigido antes de persistência/diagnóstico;
-- produção não inicia sem webhook token forte;
-- sem token em desenvolvimento, o webhook é aceito com warning — nunca exponha esse cenário;
-- URLs de boleto/fatura são dados do usuário e não devem vazar.
+- chave do Asaas somente no backend;
+- token do webhook comparado de forma segura;
+- nenhum dado clínico é enviado ao gateway;
+- preço e status nunca são confiados ao frontend;
+- payload de auditoria é sanitizado;
+- cartão bruto e CVV não são persistidos;
+- faturas são filtradas por proprietário;
+- transações e locks protegem concorrência;
+- respostas públicas não expõem customer ID, token ou payload privado.
 
-## Testes
+## Variáveis
 
-Há testes de checkout, assinaturas, gateway, erros, redaction e segurança do webhook.
+```text
+ASAAS_API_KEY
+ASAAS_BASE_URL
+ASAAS_WEBHOOK_TOKEN
+BILLING_TRIAL_DAYS
+BILLING_GRACE_PERIOD_DAYS
+BILLING_MAX_INSTALLMENTS
+BILLING_WEBHOOK_MAX_RETRIES
+BILLING_RECONCILIATION_ENABLED
+BILLING_RECONCILIATION_INTERVAL_MINUTES
+BILLING_CHECKOUT_EXPIRATION_MINUTES
+```
 
-## Limitações
+## Limitações e riscos residuais
 
-- disponibilidade depende do Asaas;
-- reconciliação e chargebacks exigem operação;
-- não há PCI próprio; cartão deve permanecer tokenizado pelo provedor;
-- flags de plano exigem enforcement consistente em todos os módulos;
-- billing não gera automaticamente escrituração financeira clínica completa.
+- cartão de crédito permanece desabilitado no frontend até integração com checkout hospedado ou tokenização oficial do Asaas;
+- a reconciliação precisa ser agendada no ambiente de produção;
+- estorno automático não é aplicado sem política comercial explícita;
+- pró-rata não é calculado automaticamente;
+- mudanças futuras devem remover os campos legados de preço do `Plan` após a migração completa.
 
 [Voltar aos módulos](../README.md)
