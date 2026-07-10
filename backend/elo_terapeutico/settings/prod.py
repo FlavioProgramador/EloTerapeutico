@@ -23,21 +23,25 @@ if not ASAAS_WEBHOOK_TOKEN:  # noqa: F405
 # Segurança e proxy reverso
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
+TRUST_PROXY_CLIENT_IP_HEADERS = env.bool("TRUST_PROXY_CLIENT_IP_HEADERS", default=True)  # noqa: F405
 SECURE_SSL_REDIRECT = True
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = "Lax"
 
 # CORS e CSRF
 CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_CREDENTIALS = False
 _cors = env.list("CORS_ALLOWED_ORIGINS", default=[])  # noqa: F405
 if not _cors:
     raise ImproperlyConfigured("CORS_ALLOWED_ORIGINS deve ser configurada explicitamente em produção.")
@@ -66,7 +70,7 @@ CACHES = {
     }
 }
 
-# Arquivos estáticos
+# Arquivos estáticos e mídia privada
 INSTALLED_APPS = ["whitenoise.runserver_nostatic"] + INSTALLED_APPS  # noqa: F405
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa: F405
 STORAGES = {
@@ -77,6 +81,23 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+
+_private_media_required = env.bool("PRIVATE_MEDIA_STORAGE_REQUIRED", default=False)  # noqa: F405
+if AZURE_STORAGE_CONNECTION_STRING:  # noqa: F405
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.azure_storage.AzureStorage",
+        "OPTIONS": {
+            "connection_string": AZURE_STORAGE_CONNECTION_STRING,  # noqa: F405
+            "azure_container": AZURE_CONTAINER_NAME,  # noqa: F405
+            "expiration_secs": env.int("AZURE_URL_EXPIRATION_SECS", default=300),  # noqa: F405
+            "overwrite_files": False,
+        },
+    }
+elif _private_media_required:
+    raise ImproperlyConfigured(
+        "AZURE_STORAGE_CONNECTION_STRING deve ser configurada quando "
+        "PRIVATE_MEDIA_STORAGE_REQUIRED=True."
+    )
 
 RATELIMIT_ENABLE = True
 
