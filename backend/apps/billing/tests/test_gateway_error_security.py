@@ -1,11 +1,11 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from apps.billing.models import Plan
+from apps.billing.models import Plan, PlanPrice
 from apps.billing.services.gateways.base import GatewayError
 from apps.users.models import User
 
@@ -21,22 +21,31 @@ def test_checkout_nao_expoe_detalhes_internos_do_gateway():
         slug="plano-gateway-security",
         price="89.90",
     )
+    price = PlanPrice.objects.create(
+        plan=plan,
+        name="Plano Gateway anual à vista",
+        slug="plano-gateway-security-anual",
+        total_amount="899.00",
+        billing_interval=PlanPrice.BillingInterval.YEARLY,
+        billing_model=PlanPrice.BillingModel.ONE_TIME,
+    )
     client = APIClient()
     client.force_authenticate(user)
     sensitive_detail = "CPF 52998224725 rejeitado; access_token=segredo-interno"
+    gateway = Mock()
+    gateway.create_customer.return_value = {"id": "cus_gateway_security"}
+    gateway.create_single_payment.side_effect = GatewayError(sensitive_detail)
 
-    with patch(
-        "apps.billing.views.AsaasGateway.create_payment",
-        side_effect=GatewayError(sensitive_detail),
-    ):
+    with patch("apps.billing.services.orders.get_gateway", return_value=gateway):
         response = client.post(
             "/api/v1/billing/checkout/create/",
             {
-                "plan_slug": plan.slug,
-                "type": "ONE_TIME",
+                "plan_price_id": price.pk,
                 "billingType": "PIX",
                 "cpfCnpj": "529.982.247-25",
                 "dueDate": (timezone.localdate() + timedelta(days=1)).isoformat(),
+                "installmentCount": 1,
+                "idempotency_key": "gateway-security-test-001",
             },
             format="json",
         )
