@@ -6,6 +6,9 @@ from django.db import migrations, models
 import django.db.models.deletion
 
 
+OPERATIONAL_STATUSES = ["TRIALING", "PENDING", "ACTIVE", "PAST_DUE", "SUSPENDED"]
+
+
 def migrate_legacy_billing(apps, schema_editor):
     Plan = apps.get_model("billing", "Plan")
     PlanPrice = apps.get_model("billing", "PlanPrice")
@@ -73,13 +76,43 @@ def migrate_legacy_billing(apps, schema_editor):
         subscription.access_starts_at = subscription.current_period_start or subscription.started_at
         subscription.access_ends_at = subscription.current_period_end
         subscription.save(update_fields=["billing_order", "access_starts_at", "access_ends_at"])
-        Payment.objects.filter(subscription_id=subscription.pk, billing_order__isnull=True).update(billing_order_id=order.pk)
+        Payment.objects.filter(subscription_id=subscription.pk, billing_order__isnull=True).update(
+            billing_order_id=order.pk
+        )
+
+    # A constraint parcial exige apenas uma assinatura operacional por usuário.
+    # Mantém a mais recente e encerra registros antigos sem apagar histórico.
+    user_ids = (
+        Subscription.objects.filter(status__in=OPERATIONAL_STATUSES)
+        .values_list("user_id", flat=True)
+        .distinct()
+    )
+    for user_id in user_ids.iterator():
+        subscriptions = list(
+            Subscription.objects.filter(user_id=user_id, status__in=OPERATIONAL_STATUSES)
+            .order_by("-created_at", "-pk")
+        )
+        for duplicate in subscriptions[1:]:
+            duplicate.status = "CANCELED"
+            duplicate.canceled_at = duplicate.updated_at or duplicate.created_at
+            duplicate.save(update_fields=["status", "canceled_at"])
 
 
 def reverse_legacy_billing(apps, schema_editor):
     BillingOrder = apps.get_model("billing", "BillingOrder")
     PlanPrice = apps.get_model("billing", "PlanPrice")
-    BillingOrder.objects.filter(external_reference__startswith="legacy-subscription-").delete()
+    Subscription = apps.get_model("billing", "Subscription")
+    Payment = apps.get_model("billing", "Payment")
+
+    legacy_orders = BillingOrder.objects.filter(external_reference__startswith="legacy-subscription-")
+    legacy_order_ids = list(legacy_orders.values_list("pk", flat=True))
+    Subscription.objects.filter(billing_order_id__in=legacy_order_ids).update(
+        billing_order=None,
+        access_starts_at=None,
+        access_ends_at=None,
+    )
+    Payment.objects.filter(billing_order_id__in=legacy_order_ids).update(billing_order=None)
+    legacy_orders.delete()
     PlanPrice.objects.filter(slug__endswith="-legacy").delete()
 
 
@@ -90,6 +123,30 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.AlterModelOptions(
+            name="plan",
+            options={"ordering": ["name"], "verbose_name": "Plano", "verbose_name_plural": "Planos"},
+        ),
+        migrations.AlterField(
+            model_name="plan",
+            name="price",
+            field=models.DecimalField(decimal_places=2, max_digits=10, verbose_name="Preço legado"),
+        ),
+        migrations.AlterField(
+            model_name="plan",
+            name="currency",
+            field=models.CharField(default="BRL", max_length=3, verbose_name="Moeda legada"),
+        ),
+        migrations.AlterField(
+            model_name="plan",
+            name="billing_cycle",
+            field=models.CharField(
+                choices=[("MONTHLY", "Mensal"), ("YEARLY", "Anual")],
+                default="MONTHLY",
+                max_length=20,
+                verbose_name="Ciclo legado",
+            ),
+        ),
         migrations.CreateModel(
             name="PlanPrice",
             fields=[
@@ -154,6 +211,7 @@ class Migration(migrations.Migration):
         migrations.AddField(model_name="subscription", name="suspended_at", field=models.DateTimeField(blank=True, null=True)),
         migrations.AddField(model_name="subscription", name="reactivated_at", field=models.DateTimeField(blank=True, null=True)),
         migrations.AlterField(model_name="subscription", name="status", field=models.CharField(choices=[("TRIALING", "Em teste"), ("PENDING", "Pendente"), ("ACTIVE", "Ativa"), ("PAST_DUE", "Em atraso"), ("SUSPENDED", "Suspensa"), ("CANCELED", "Cancelada"), ("EXPIRED", "Expirada")], db_index=True, default="PENDING", max_length=20)),
+        migrations.AlterModelOptions(name="payment", options={"ordering": ["due_date", "installment_number", "created_at"], "verbose_name": "Pagamento", "verbose_name_plural": "Pagamentos"}),
         migrations.AddField(model_name="payment", name="billing_order", field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name="payments", to="billing.billingorder")),
         migrations.AlterField(model_name="payment", name="subscription", field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="payments", to="billing.subscription")),
         migrations.AddField(model_name="payment", name="net_amount", field=models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
@@ -187,7 +245,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(model_name="billingorder", constraint=models.CheckConstraint(condition=models.Q(("installment_count__gte", 1)), name="billing_order_installment_positive")),
         migrations.AddIndex(model_name="billingorder", index=models.Index(fields=["user", "status"], name="billing_order_user_status_idx")),
         migrations.AddIndex(model_name="billingorder", index=models.Index(fields=["gateway_installment_id"], name="billing_order_installment_idx")),
-        migrations.AddConstraint(model_name="subscription", constraint=models.UniqueConstraint(condition=models.Q(("status__in", ["TRIALING", "PENDING", "ACTIVE", "PAST_DUE", "SUSPENDED"])), fields=("user",), name="billing_one_operational_subscription")),
+        migrations.AddConstraint(model_name="subscription", constraint=models.UniqueConstraint(condition=models.Q(("status__in", OPERATIONAL_STATUSES)), fields=("user",), name="billing_one_operational_subscription")),
         migrations.AddConstraint(model_name="payment", constraint=models.CheckConstraint(condition=models.Q(("installment_count__gte", 1)), name="billing_payment_installment_positive")),
         migrations.AddConstraint(model_name="payment", constraint=models.UniqueConstraint(condition=models.Q(("billing_order__isnull", False), ("installment_number__isnull", False)), fields=("billing_order", "installment_number"), name="billing_unique_order_installment")),
         migrations.AddIndex(model_name="payment", index=models.Index(fields=["gateway_installment_id"], name="billing_pay_installment_idx")),
