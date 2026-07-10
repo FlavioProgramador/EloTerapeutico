@@ -32,7 +32,7 @@ class SubscriptionAccessService:
             .select_related("plan", "billing_order", "billing_order__plan_price")
             .get(pk=subscription.pk)
         )
-        locked_payment = Payment.objects.select_for_update().get(pk=payment.pk)
+        locked_payment = Payment.objects.select_for_update().select_related("billing_order").get(pk=payment.pk)
         if locked_subscription.status not in cls.ACTIVATABLE:
             raise ValidationError("A assinatura não permite ativação neste estado.")
         if locked_payment.user_id != locked_subscription.user_id:
@@ -46,31 +46,53 @@ class SubscriptionAccessService:
         order = locked_payment.billing_order or locked_subscription.billing_order
         interval = order.billing_interval if order else PlanPrice.BillingInterval.MONTHLY
         paid_at = locked_payment.paid_at or locked_payment.confirmed_at or timezone.now()
+        is_plan_change = bool(order and (order.metadata or {}).get("is_plan_change"))
 
-        if order and order.billing_model == PlanPrice.BillingModel.INSTALLMENT and locked_subscription.started_at:
+        if (
+            order
+            and order.billing_model == PlanPrice.BillingModel.INSTALLMENT
+            and locked_subscription.started_at
+            and not is_plan_change
+        ):
             period_start = locked_subscription.access_starts_at or locked_subscription.started_at
             period_end = locked_subscription.access_ends_at or cls._period_end(period_start, interval)
         else:
             period_start = paid_at
             period_end = cls._period_end(period_start, interval)
 
+        previous_plan_id = locked_subscription.plan_id
+        previous_order_id = locked_subscription.billing_order_id
+        previous_gateway_subscription_id = locked_subscription.gateway_subscription_id
+        was_suspended = locked_subscription.status == Subscription.Status.SUSPENDED
+
         locked_subscription.status = Subscription.Status.ACTIVE
         locked_subscription.plan = order.plan if order else locked_subscription.plan
         locked_subscription.billing_order = order or locked_subscription.billing_order
-        locked_subscription.started_at = locked_subscription.started_at or paid_at
+        locked_subscription.started_at = paid_at if is_plan_change else (locked_subscription.started_at or paid_at)
         locked_subscription.access_starts_at = period_start
         locked_subscription.access_ends_at = period_end
         locked_subscription.current_period_start = period_start
         locked_subscription.current_period_end = period_end
         locked_subscription.grace_period_ends_at = None
         locked_subscription.suspended_at = None
-        locked_subscription.reactivated_at = timezone.now() if subscription.status == Subscription.Status.SUSPENDED else locked_subscription.reactivated_at
+        locked_subscription.reactivated_at = timezone.now() if was_suspended else locked_subscription.reactivated_at
         locked_subscription.canceled_at = None
         locked_subscription.cancel_at_period_end = False
+        if order:
+            locked_subscription.gateway_customer_id = order.gateway_customer_id or locked_subscription.gateway_customer_id
+            locked_subscription.gateway_subscription_id = order.gateway_subscription_id
+            locked_subscription.gateway_status = locked_payment.status
         locked_subscription.metadata = {
             **metadata,
             "last_activated_payment_id": activation_key,
             "last_activated_at": timezone.now().isoformat(),
+            "previous_plan_id": previous_plan_id if is_plan_change else metadata.get("previous_plan_id"),
+            "previous_billing_order_id": previous_order_id if is_plan_change else metadata.get("previous_billing_order_id"),
+            "previous_gateway_subscription_id": (
+                previous_gateway_subscription_id
+                if is_plan_change
+                else metadata.get("previous_gateway_subscription_id")
+            ),
         }
         locked_subscription.save()
 
@@ -83,7 +105,17 @@ class SubscriptionAccessService:
         if order:
             order.status = BillingOrder.Status.PAID if order.installment_count == 1 else BillingOrder.Status.PARTIALLY_PAID
             order.confirmed_at = order.confirmed_at or paid_at
-            order.save(update_fields=["status", "confirmed_at", "updated_at"])
+            order.metadata = {
+                **(order.metadata or {}),
+                "access_activated_at": timezone.now().isoformat(),
+                "previous_gateway_subscription_id": previous_gateway_subscription_id if is_plan_change else "",
+                "previous_subscription_cancel_pending": bool(
+                    is_plan_change
+                    and previous_gateway_subscription_id
+                    and previous_gateway_subscription_id != order.gateway_subscription_id
+                ),
+            }
+            order.save(update_fields=["status", "confirmed_at", "metadata", "updated_at"])
         return locked_subscription
 
     @classmethod
