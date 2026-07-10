@@ -20,6 +20,89 @@ OPERATIONAL_SUBSCRIPTION_STATUSES = [
     Subscription.Status.PAST_DUE,
     Subscription.Status.SUSPENDED,
 ]
+PAYMENT_STATUS_TRANSITIONS = {
+    Payment.Status.PENDING: set(Payment.Status.values),
+    Payment.Status.AUTHORIZED: {
+        Payment.Status.AUTHORIZED,
+        Payment.Status.CONFIRMED,
+        Payment.Status.RECEIVED,
+        Payment.Status.OVERDUE,
+        Payment.Status.CANCELED,
+        Payment.Status.FAILED,
+        Payment.Status.REFUNDED,
+        Payment.Status.PARTIALLY_REFUNDED,
+        Payment.Status.REFUND_IN_PROGRESS,
+        Payment.Status.CHARGEBACK,
+        Payment.Status.CHARGEBACK_DISPUTE,
+        Payment.Status.AWAITING_RISK_ANALYSIS,
+    },
+    Payment.Status.OVERDUE: {
+        Payment.Status.OVERDUE,
+        Payment.Status.CONFIRMED,
+        Payment.Status.RECEIVED,
+        Payment.Status.CANCELED,
+        Payment.Status.REFUNDED,
+        Payment.Status.PARTIALLY_REFUNDED,
+        Payment.Status.REFUND_IN_PROGRESS,
+        Payment.Status.CHARGEBACK,
+        Payment.Status.CHARGEBACK_DISPUTE,
+    },
+    Payment.Status.CONFIRMED: {
+        Payment.Status.CONFIRMED,
+        Payment.Status.RECEIVED,
+        Payment.Status.REFUNDED,
+        Payment.Status.PARTIALLY_REFUNDED,
+        Payment.Status.REFUND_IN_PROGRESS,
+        Payment.Status.CHARGEBACK,
+        Payment.Status.CHARGEBACK_DISPUTE,
+    },
+    Payment.Status.RECEIVED: {
+        Payment.Status.RECEIVED,
+        Payment.Status.REFUNDED,
+        Payment.Status.PARTIALLY_REFUNDED,
+        Payment.Status.REFUND_IN_PROGRESS,
+        Payment.Status.CHARGEBACK,
+        Payment.Status.CHARGEBACK_DISPUTE,
+    },
+    Payment.Status.FAILED: {
+        Payment.Status.FAILED,
+        Payment.Status.PENDING,
+        Payment.Status.AUTHORIZED,
+        Payment.Status.CONFIRMED,
+        Payment.Status.RECEIVED,
+    },
+    Payment.Status.CANCELED: {Payment.Status.CANCELED, Payment.Status.RESTORED},
+    Payment.Status.REFUNDED: {Payment.Status.REFUNDED},
+    Payment.Status.PARTIALLY_REFUNDED: {
+        Payment.Status.PARTIALLY_REFUNDED,
+        Payment.Status.REFUNDED,
+    },
+    Payment.Status.REFUND_IN_PROGRESS: {
+        Payment.Status.REFUND_IN_PROGRESS,
+        Payment.Status.PARTIALLY_REFUNDED,
+        Payment.Status.REFUNDED,
+    },
+    Payment.Status.CHARGEBACK: {
+        Payment.Status.CHARGEBACK,
+        Payment.Status.CHARGEBACK_DISPUTE,
+        Payment.Status.RESTORED,
+    },
+    Payment.Status.CHARGEBACK_DISPUTE: {
+        Payment.Status.CHARGEBACK_DISPUTE,
+        Payment.Status.CHARGEBACK,
+        Payment.Status.RESTORED,
+    },
+    Payment.Status.RESTORED: {
+        Payment.Status.RESTORED,
+        Payment.Status.CONFIRMED,
+        Payment.Status.RECEIVED,
+    },
+    Payment.Status.AWAITING_RISK_ANALYSIS: {
+        Payment.Status.AWAITING_RISK_ANALYSIS,
+        Payment.Status.CONFIRMED,
+        Payment.Status.FAILED,
+    },
+}
 
 
 def get_gateway():
@@ -63,12 +146,13 @@ def preview_order(plan_price: PlanPrice, installment_count: int = 1) -> dict[str
     if not plan_price.is_available():
         raise ValidationError("Esta opção de contratação não está disponível.")
     count = validate_installments(plan_price, installment_count)
-    estimate = (plan_price.total_amount / Decimal(count)).quantize(MONEY, rounding=ROUND_HALF_UP)
+    total_amount = _decimal(plan_price.total_amount)
+    estimate = (total_amount / Decimal(count)).quantize(MONEY, rounding=ROUND_HALF_UP)
     return {
-        "total_amount": plan_price.total_amount,
+        "total_amount": total_amount,
         "installment_count": count,
         "installment_amount_estimate": estimate,
-        "discount_percentage": plan_price.discount_percentage,
+        "discount_percentage": _decimal(plan_price.discount_percentage),
         "billing_model": plan_price.billing_model,
         "billing_interval": plan_price.billing_interval,
     }
@@ -83,11 +167,11 @@ def _commercial_snapshot(plan_price: PlanPrice) -> dict[str, Any]:
         "price_id": plan_price.pk,
         "price_name": plan_price.name,
         "price_slug": plan_price.slug,
-        "total_amount": str(plan_price.total_amount),
+        "total_amount": str(_decimal(plan_price.total_amount)),
         "currency": plan_price.currency,
         "billing_model": plan_price.billing_model,
         "billing_interval": plan_price.billing_interval,
-        "discount_percentage": str(plan_price.discount_percentage),
+        "discount_percentage": str(_decimal(plan_price.discount_percentage)),
         "features": {
             "agenda": plan.has_agenda,
             "patients": plan.has_patients,
@@ -120,6 +204,10 @@ def _parse_datetime(value):
     return timezone.make_aware(parsed, timezone.get_current_timezone()) if timezone.is_naive(parsed) else parsed
 
 
+def _can_transition_payment(current_status: str, next_status: str) -> bool:
+    return next_status in PAYMENT_STATUS_TRANSITIONS.get(current_status, {current_status})
+
+
 def upsert_gateway_payment(
     *,
     order: BillingOrder,
@@ -133,6 +221,7 @@ def upsert_gateway_payment(
     count = int(installment_count or order.installment_count or 1)
     number = payload.get("installmentNumber")
     installment_number = int(number) if number else (1 if count == 1 else None)
+    next_status = payload.get("status") if payload.get("status") in Payment.Status.values else Payment.Status.PENDING
     defaults = {
         "billing_order": order,
         "subscription": subscription,
@@ -144,7 +233,6 @@ def upsert_gateway_payment(
         "discount_amount": _decimal((payload.get("discount") or {}).get("value")),
         "currency": order.currency,
         "billing_type": payload.get("billingType") or Payment.BillingType.UNDEFINED,
-        "status": payload.get("status") if payload.get("status") in Payment.Status.values else Payment.Status.PENDING,
         "due_date": _parse_date(payload.get("dueDate")),
         "original_due_date": _parse_date(payload.get("originalDueDate")),
         "paid_at": _parse_datetime(payload.get("paymentDate") or payload.get("clientPaymentDate")),
@@ -172,20 +260,28 @@ def upsert_gateway_payment(
         ).first()
     if existing:
         for field, value in defaults.items():
-            setattr(existing, field, value)
+            current = getattr(existing, field, None)
+            if value not in (None, "") or current in (None, ""):
+                setattr(existing, field, value)
+        if _can_transition_payment(existing.status, next_status):
+            existing.status = next_status
         existing.gateway_payment_id = payment_id
         existing.save()
         return existing
 
     try:
-        return Payment.objects.create(gateway_payment_id=payment_id, **defaults)
+        return Payment.objects.create(gateway_payment_id=payment_id, status=next_status, **defaults)
     except IntegrityError:
         payment = Payment.objects.select_for_update().get(
             billing_order=order,
             installment_number=installment_number,
         )
         for field, value in defaults.items():
-            setattr(payment, field, value)
+            current = getattr(payment, field, None)
+            if value not in (None, "") or current in (None, ""):
+                setattr(payment, field, value)
+        if _can_transition_payment(payment.status, next_status):
+            payment.status = next_status
         payment.gateway_payment_id = payment_id
         payment.save()
         return payment
@@ -248,6 +344,7 @@ def create_billing_order(
     plan_price: PlanPrice,
     checkout_data: dict[str, Any],
     idempotency_key: str,
+    gateway=None,
 ) -> tuple[BillingOrder, Subscription]:
     if not idempotency_key or len(idempotency_key) < 8:
         raise ValidationError("Informe uma chave de idempotência válida.")
@@ -301,7 +398,7 @@ def create_billing_order(
             billing_model=plan_price.billing_model,
             billing_interval=plan_price.billing_interval,
             currency=plan_price.currency,
-            total_amount=plan_price.total_amount,
+            total_amount=preview["total_amount"],
             installment_count=preview["installment_count"],
             installment_amount_estimate=preview["installment_amount_estimate"],
             external_reference=external_reference,
@@ -317,10 +414,13 @@ def create_billing_order(
                 plan=plan_price.plan,
                 billing_order=order,
                 status=Subscription.Status.PENDING,
-                metadata={"activation_rule": "Acesso liberado somente após confirmação do gateway."},
+                metadata={
+                    "activation_rule": "Acesso liberado somente após confirmação do gateway.",
+                    "provisioning_status": "PENDING",
+                },
             )
 
-    gateway = get_gateway()
+    gateway = gateway or get_gateway()
     customer_id = ""
     created_new_subscription = not is_plan_change
     try:
@@ -340,19 +440,27 @@ def create_billing_order(
 
         gateway_data = {
             **checkout_data,
-            "value": plan_price.total_amount,
-            "totalValue": plan_price.total_amount,
+            "value": preview["total_amount"],
+            "totalValue": preview["total_amount"],
             "installmentCount": order.installment_count,
             "externalReference": order.external_reference,
             "description": checkout_data.get("description") or f"Elo Terapêutico — {plan_price.name}",
         }
         if plan_price.billing_model == PlanPrice.BillingModel.RECURRING:
-            response = gateway.create_recurring_subscription(
-                user,
-                plan_price,
-                gateway_data,
-                customer_id=customer_id,
-            )
+            if hasattr(gateway, "create_recurring_subscription"):
+                response = gateway.create_recurring_subscription(
+                    user,
+                    plan_price,
+                    gateway_data,
+                    customer_id=customer_id,
+                )
+            else:
+                response = gateway.create_subscription(
+                    user,
+                    plan_price.plan,
+                    gateway_data,
+                    customer_id=customer_id,
+                )
         elif plan_price.billing_model == PlanPrice.BillingModel.INSTALLMENT:
             response = gateway.create_installment_payment(user, gateway_data, customer_id=customer_id)
         else:
@@ -377,11 +485,16 @@ def create_billing_order(
                 locked_subscription.gateway_customer_id = customer_id
                 locked_subscription.gateway_subscription_id = locked_order.gateway_subscription_id
                 locked_subscription.gateway_status = response.get("status", "")
+                locked_subscription.metadata = {
+                    **(locked_subscription.metadata or {}),
+                    "provisioning_status": "COMPLETED",
+                }
                 locked_subscription.save(
                     update_fields=[
                         "gateway_customer_id",
                         "gateway_subscription_id",
                         "gateway_status",
+                        "metadata",
                         "updated_at",
                     ]
                 )
@@ -393,9 +506,9 @@ def create_billing_order(
                 subscription=locked_subscription,
                 installment_count=locked_order.installment_count,
             )
-        if locked_order.gateway_installment_id:
+        if locked_order.gateway_installment_id and hasattr(gateway, "list_installment_payments"):
             sync_installment_payments(locked_order, gateway=gateway)
-        elif locked_order.gateway_subscription_id:
+        elif locked_order.gateway_subscription_id and hasattr(gateway, "list_subscription_payments"):
             sync_subscription_payments(locked_order, gateway=gateway)
         return locked_order, locked_subscription
     except Exception as exc:
@@ -410,8 +523,16 @@ def create_billing_order(
             }
             failed_order.save(update_fields=["status", "failed_at", "metadata", "updated_at"])
             if created_new_subscription:
-                Subscription.objects.filter(pk=subscription.pk, status=Subscription.Status.PENDING).update(
-                    status=Subscription.Status.CANCELED,
-                    canceled_at=timezone.now(),
-                )
+                failed_subscription = Subscription.objects.select_for_update().get(pk=subscription.pk)
+                if failed_subscription.status == Subscription.Status.PENDING:
+                    failed_subscription.status = Subscription.Status.CANCELED
+                    failed_subscription.canceled_at = timezone.now()
+                    failed_subscription.metadata = {
+                        **(failed_subscription.metadata or {}),
+                        "provisioning_status": "FAILED",
+                        "provisioning_error_code": exc.__class__.__name__,
+                    }
+                    failed_subscription.save(
+                        update_fields=["status", "canceled_at", "metadata", "updated_at"]
+                    )
         raise
