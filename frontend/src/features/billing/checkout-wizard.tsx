@@ -98,6 +98,21 @@ export function CheckoutWizard() {
     }
   }, [description, selectedPlan]);
 
+  const payload = useMemo<CheckoutPayload | null>(() => {
+    if (!selectedPlan) return null;
+    return {
+      plan_slug: selectedPlan.slug,
+      type: checkoutType,
+      billingType,
+      cpfCnpj: "",
+      dueDate,
+      value: selectedPlan.price,
+      description,
+      cycle: selectedPlan.billing_cycle,
+      installmentCount: checkoutType === "ONE_TIME" ? installmentCount : 1,
+    };
+  }, [billingType, checkoutType, description, dueDate, installmentCount, selectedPlan]);
+
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.push(`/register?next=/checkout?plan=${selectedPlanSlug}`);
@@ -113,20 +128,6 @@ export function CheckoutWizard() {
       </main>
     );
   }
-
-  const payload = useMemo<CheckoutPayload | null>(() => {
-    if (!selectedPlan) return null;
-    return {
-      plan_slug: selectedPlan.slug,
-      type: checkoutType,
-      billingType,
-      dueDate,
-      value: selectedPlan.price,
-      description,
-      cycle: selectedPlan.billing_cycle,
-      installmentCount: checkoutType === "ONE_TIME" ? installmentCount : 1,
-    };
-  }, [billingType, checkoutType, description, dueDate, installmentCount, selectedPlan]);
 
   async function handlePreview() {
     if (!payload) return;
