@@ -10,7 +10,6 @@ from apps.records.api.views.clinical_views import (
     ClinicalFormResponseDetailView,
     ClinicalFormResponseListCreateView,
     EvolutionDuplicateView,
-    PatientRecordSummaryView,
     TreatmentGoalDetailView,
     TreatmentGoalListCreateView,
 )
@@ -27,6 +26,7 @@ from apps.records.api.views.secure_export_views import (
     SecureClinicalExportRetryView,
     SecurePatientRecordPdfView,
 )
+from apps.records.api.views.secure_summary_views import SecurePatientRecordSummaryView
 
 from .api.evolution_attachment_detail_views import (
     EvolutionAttachmentDetailView,
@@ -54,7 +54,7 @@ urlpatterns = [
     ),
     path(
         "patients/<int:patient_id>/workspace/",
-        PatientRecordSummaryView.as_view(),
+        SecurePatientRecordSummaryView.as_view(),
         name="patient-record-workspace",
     ),
     path(
