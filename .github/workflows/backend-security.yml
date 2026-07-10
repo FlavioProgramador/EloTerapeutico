@@ -80,7 +80,7 @@ jobs:
           cd ..
           git diff --name-only --diff-filter=ACMRT origin/main...HEAD -- "backend/**/*.py" > /tmp/changed-python-files.txt
           if [ -s /tmp/changed-python-files.txt ]; then
-            xargs ruff check --config backend/pyproject.toml < /tmp/changed-python-files.txt 2>&1 | tee /tmp/ruff-output.txt
+            xargs ruff check --force-exclude --config backend/pyproject.toml < /tmp/changed-python-files.txt 2>&1 | tee /tmp/ruff-output.txt
           else
             echo "Nenhum arquivo Python alterado." | tee /tmp/ruff-output.txt
           fi
