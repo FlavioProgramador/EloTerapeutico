@@ -1,6 +1,7 @@
 import hashlib
 import json
 import logging
+import os
 from datetime import timedelta
 from decimal import Decimal
 
@@ -103,7 +104,11 @@ def _legacy_order_for_subscription(gateway_subscription_id: str) -> BillingOrder
             "gateway_customer_id": subscription.gateway_customer_id,
             "gateway_subscription_id": gateway_subscription_id,
             "idempotency_key": external_reference,
-            "commercial_snapshot": {"legacy": True, "plan_name": plan.name, "total_amount": str(price.total_amount)},
+            "commercial_snapshot": {
+                "legacy": True,
+                "plan_name": plan.name,
+                "total_amount": str(price.total_amount),
+            },
             "metadata": {"origin": "legacy_webhook_compatibility"},
         },
     )
@@ -148,7 +153,8 @@ def _subscription_for_order(order: BillingOrder, payment_data: dict) -> Subscrip
     gateway_subscription_id = payment_data.get("subscription")
     if gateway_subscription_id:
         return Subscription.objects.filter(gateway_subscription_id=gateway_subscription_id).first()
-    return None
+    source_id = (order.metadata or {}).get("plan_change_from_subscription_id")
+    return Subscription.objects.filter(pk=source_id).first() if source_id else None
 
 
 def _update_order_financial_status(order: BillingOrder) -> None:
@@ -189,7 +195,10 @@ def _process_payment_event(event_type: str, payment_data: dict) -> str:
         return "retry: contratação local ainda não localizada"
     subscription = _subscription_for_order(order, payment_data)
     normalized = dict(payment_data)
-    normalized["status"] = PAYMENT_STATUS_BY_EVENT.get(event_type, payment_data.get("status") or Payment.Status.PENDING)
+    normalized["status"] = PAYMENT_STATUS_BY_EVENT.get(
+        event_type,
+        payment_data.get("status") or Payment.Status.PENDING,
+    )
     payment = upsert_gateway_payment(
         order=order,
         payload=normalized,
@@ -198,11 +207,18 @@ def _process_payment_event(event_type: str, payment_data: dict) -> str:
     )
     _update_order_financial_status(order)
 
-    if subscription and event_type in {"PAYMENT_CONFIRMED", "PAYMENT_RECEIVED", "PAYMENT_APPROVED_BY_RISK_ANALYSIS"}:
+    if subscription and event_type in {
+        "PAYMENT_CONFIRMED",
+        "PAYMENT_RECEIVED",
+        "PAYMENT_APPROVED_BY_RISK_ANALYSIS",
+    }:
         SubscriptionAccessService.activate_from_payment(subscription, payment)
     elif subscription and event_type == "PAYMENT_OVERDUE":
         SubscriptionAccessService.mark_past_due(subscription)
-    elif subscription and event_type in {"PAYMENT_CHARGEBACK_REQUESTED", "PAYMENT_REPROVED_BY_RISK_ANALYSIS"}:
+    elif subscription and event_type in {
+        "PAYMENT_CHARGEBACK_REQUESTED",
+        "PAYMENT_REPROVED_BY_RISK_ANALYSIS",
+    }:
         subscription.status = Subscription.Status.SUSPENDED
         subscription.suspended_at = timezone.now()
         subscription.save(update_fields=["status", "suspended_at", "updated_at"])
@@ -235,7 +251,13 @@ def _process_subscription_event(event_type: str, subscription_data: dict) -> str
     return "processed"
 
 
-def _persist_webhook_event(*, payload: dict, event_type: str, event_hash: str, event_identifier: str | None) -> WebhookEvent:
+def _persist_webhook_event(
+    *,
+    payload: dict,
+    event_type: str,
+    event_hash: str,
+    event_identifier: str | None,
+) -> WebhookEvent:
     defaults = {
         "gateway_name": "ASAAS",
         "event_type": event_type,
@@ -263,7 +285,11 @@ def _finish_event(event_id: int, result: str, max_retries: int) -> WebhookEvent:
     with transaction.atomic():
         locked = WebhookEvent.objects.select_for_update().get(pk=event_id)
         if result.startswith("retry:"):
-            locked.status = WebhookEvent.Status.FAILED if locked.attempt_count >= max_retries else WebhookEvent.Status.RETRY
+            locked.status = (
+                WebhookEvent.Status.FAILED
+                if locked.attempt_count >= max_retries
+                else WebhookEvent.Status.RETRY
+            )
             locked.next_retry_at = (
                 None
                 if locked.status == WebhookEvent.Status.FAILED
@@ -301,6 +327,15 @@ def _finish_event(event_id: int, result: str, max_retries: int) -> WebhookEvent:
         return locked
 
 
+def _hydrate_payment_for_worker(payload: dict) -> dict:
+    payment_data = dict(payload.get("payment") or {})
+    payment_id = payment_data.get("id")
+    if not payment_id:
+        return payment_data
+    gateway_payload = AsaasGateway().get_payment(payment_id)
+    return {**payment_data, **gateway_payload, "id": payment_id}
+
+
 def process_webhook_event(event: WebhookEvent, *, payload_override: dict | None = None) -> WebhookEvent:
     max_retries = max(int(getattr(settings, "BILLING_WEBHOOK_MAX_RETRIES", 5)), 1)
     with transaction.atomic():
@@ -315,7 +350,12 @@ def process_webhook_event(event: WebhookEvent, *, payload_override: dict | None 
         payload = payload_override or event.payload
         event_type = event.event_type
         if event_type.startswith("PAYMENT_"):
-            result = _process_payment_event(event_type, payload.get("payment") or {})
+            payment_data = (
+                payload.get("payment") or {}
+                if payload_override is not None
+                else _hydrate_payment_for_worker(payload)
+            )
+            result = _process_payment_event(event_type, payment_data)
         elif event_type.startswith("SUBSCRIPTION_"):
             result = _process_subscription_event(event_type, payload.get("subscription") or {})
         else:
@@ -329,6 +369,13 @@ def process_webhook_event(event: WebhookEvent, *, payload_override: dict | None 
         return _finish_event(event.pk, "retry: Falha interna ao processar o evento.", max_retries)
 
 
+def _process_inline_enabled() -> bool:
+    configured = getattr(settings, "BILLING_WEBHOOK_PROCESS_INLINE", None)
+    if configured is not None:
+        return bool(configured)
+    return os.getenv("BILLING_WEBHOOK_PROCESS_INLINE", "false").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def handle_asaas_webhook(request) -> WebhookEvent:
     payload = AsaasGateway(require_api_key=False).parse_webhook(request)
     event_type = payload.get("event", "UNKNOWN")
@@ -338,4 +385,6 @@ def handle_asaas_webhook(request) -> WebhookEvent:
         event_hash=_payload_hash(payload),
         event_identifier=_event_id(payload),
     )
-    return process_webhook_event(webhook_event, payload_override=payload)
+    if _process_inline_enabled():
+        return process_webhook_event(webhook_event, payload_override=payload)
+    return webhook_event
