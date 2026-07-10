@@ -1,3 +1,5 @@
+import logging
+
 from apps.billing.models import Payment, Plan
 from apps.billing.serializers import (
     ChangePlanSerializer,
@@ -25,9 +27,22 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+logger = logging.getLogger(__name__)
+
 
 def _validation_detail(exc: DjangoValidationError) -> str:
     return exc.messages[0] if getattr(exc, "messages", None) else str(exc)
+
+
+def _gateway_error_response(operation: str) -> Response:
+    logger.warning(
+        "billing_gateway_operation_failed",
+        extra={"operation": operation},
+    )
+    return Response(
+        {"detail": "Não foi possível concluir a operação de cobrança. Tente novamente mais tarde."},
+        status=status.HTTP_502_BAD_GATEWAY,
+    )
 
 
 def _checkout_response_payload(validated_data: dict) -> dict:
@@ -51,12 +66,7 @@ def _checkout_response_payload(validated_data: dict) -> dict:
 
 
 def _public_payment_payload(gateway_payment: dict) -> dict:
-    """Retorna somente dados do gateway necessários para o fluxo do cliente.
-
-    O payload bruto pode conter dados pessoais, informações de cobrança e campos
-    adicionados pelo provedor no futuro. Por isso, a resposta pública usa uma
-    allowlist explícita em vez de encaminhar o objeto integral ao navegador.
-    """
+    """Retorna somente dados do gateway necessários para o fluxo do cliente."""
 
     return {
         "gateway_payment_id": gateway_payment.get("id"),
@@ -115,8 +125,8 @@ class CheckoutCreateView(APIView):
             return Response(payload, status=status.HTTP_201_CREATED)
         except DjangoValidationError as exc:
             return Response({"detail": _validation_detail(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        except GatewayError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        except GatewayError:
+            return _gateway_error_response("checkout_create")
 
 
 class CreateSubscriptionView(APIView):
@@ -129,8 +139,8 @@ class CreateSubscriptionView(APIView):
             subscription = create_subscription_for_user(request.user, serializer.validated_data["plan"])
         except DjangoValidationError as exc:
             return Response({"detail": _validation_detail(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        except GatewayError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        except GatewayError:
+            return _gateway_error_response("subscription_create")
         return Response(SubscriptionSerializer(subscription).data, status=status.HTTP_201_CREATED)
 
 
@@ -142,8 +152,8 @@ class CancelSubscriptionView(APIView):
             subscription = cancel_subscription(request.user)
         except DjangoValidationError as exc:
             return Response({"detail": _validation_detail(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        except GatewayError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        except GatewayError:
+            return _gateway_error_response("subscription_cancel")
         return Response(SubscriptionSerializer(subscription).data)
 
 
@@ -157,8 +167,8 @@ class ChangePlanView(APIView):
             subscription = change_plan(request.user, serializer.validated_data["plan"])
         except DjangoValidationError as exc:
             return Response({"detail": _validation_detail(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        except GatewayError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        except GatewayError:
+            return _gateway_error_response("subscription_change_plan")
         return Response(SubscriptionSerializer(subscription).data, status=status.HTTP_201_CREATED)
 
 
