@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -68,6 +69,8 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const templateButtonRef = useRef<HTMLButtonElement>(null);
+  const templateMenuId = useId();
+  const templateTriggerId = useId();
   const modalEvolution = props.evolution as EvolutionWithModalData | null | undefined;
   const editing = Boolean(modalEvolution?.id);
   const [form, setForm] = useState<FormState>(() => initialForm(modalEvolution));
@@ -81,6 +84,62 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
   const [pendingTemplate, setPendingTemplate] =
     useState<ClinicalEvolutionTemplate | null>(null);
+
+  const onTemplateMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Tab") {
+      setTemplateMenuOpen(false);
+      return;
+    }
+
+    const items = Array.from(
+      event.currentTarget.querySelectorAll<HTMLButtonElement>(
+        "[role='menuitem']:not(:disabled)",
+      ) ?? [],
+    );
+    const current = items.indexOf(document.activeElement as HTMLButtonElement);
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      items[(current + step + items.length) % items.length]?.focus();
+    }
+    if (event.key === "Home") {
+      event.preventDefault();
+      items[0]?.focus();
+    }
+    if (event.key === "End") {
+      event.preventDefault();
+      items.at(-1)?.focus();
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setTemplateMenuOpen(false);
+      templateButtonRef.current?.focus();
+    }
+  };
+
+  useEffect(() => {
+    if (!templateMenuOpen) return;
+    const menu = document.getElementById(templateMenuId);
+    const firstItem = menu?.querySelector<HTMLButtonElement>(
+      "[role='menuitem']:not(:disabled)",
+    );
+    if (firstItem) {
+      requestAnimationFrame(() => firstItem.focus());
+    }
+
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      const menu = document.getElementById(templateMenuId);
+      if (
+        !templateButtonRef.current?.contains(target) &&
+        !menu?.contains(target)
+      ) {
+        setTemplateMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [templateMenuOpen, templateMenuId]);
 
   const appointmentQuery = useQuery({
     queryKey: ["record-workspace", patientId, "evolution-appointments"],
@@ -546,18 +605,28 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
                 <div className="relative">
                   <Button
                     ref={templateButtonRef}
+                    id={templateTriggerId}
                     type="button"
                     size="sm"
                     variant="outline"
                     onClick={() => setTemplateMenuOpen((value) => !value)}
                     disabled={busy}
+                    aria-haspopup="menu"
+                    aria-expanded={templateMenuOpen}
+                    aria-controls={templateMenuOpen ? templateMenuId : undefined}
                     leftIcon={<FileText className="size-3.5" />}
                     rightIcon={<ChevronDown className="size-3.5" />}
                   >
                     Usar Template
                   </Button>
                   {templateMenuOpen && (
-                    <div className="absolute right-0 top-11 z-20 max-h-64 w-72 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-xl">
+                    <div
+                      id={templateMenuId}
+                      role="menu"
+                      onKeyDown={onTemplateMenuKeyDown}
+                      aria-label="Modelos de evolução clínica"
+                      className="absolute right-0 top-11 z-20 max-h-64 w-72 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-xl"
+                    >
                       {templatesQuery.isLoading ? (
                         <p className="px-3 py-4 text-xs text-muted-foreground">
                           Carregando templates...
@@ -571,6 +640,7 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
                           <button
                             key={template.id}
                             type="button"
+                            role="menuitem"
                             onClick={() => chooseTemplate(template)}
                             className="w-full rounded-md px-3 py-2 text-left transition hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                           >
