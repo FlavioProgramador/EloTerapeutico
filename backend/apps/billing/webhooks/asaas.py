@@ -2,13 +2,14 @@ import hashlib
 import json
 import logging
 from datetime import timedelta
+from decimal import Decimal
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.billing.models import BillingOrder, Payment, Subscription, WebhookEvent
+from apps.billing.models import BillingOrder, Payment, PlanPrice, Subscription, WebhookEvent
 from apps.billing.security import redact_sensitive_data
 from apps.billing.services.access import SubscriptionAccessService
 from apps.billing.services.gateways.asaas import AsaasGateway
@@ -52,6 +53,75 @@ def _event_id(payload: dict) -> str | None:
     return f"{event_type}:{related_id}" if related_id else None
 
 
+def _legacy_order_for_subscription(gateway_subscription_id: str) -> BillingOrder | None:
+    if not gateway_subscription_id:
+        return None
+    subscription = (
+        Subscription.objects.select_related("plan", "billing_order")
+        .filter(gateway_subscription_id=gateway_subscription_id)
+        .first()
+    )
+    if not subscription:
+        return None
+    if subscription.billing_order_id:
+        return subscription.billing_order
+
+    plan = subscription.plan
+    interval = (
+        PlanPrice.BillingInterval.YEARLY
+        if plan.billing_cycle == "YEARLY"
+        else PlanPrice.BillingInterval.MONTHLY
+    )
+    price, _ = PlanPrice.objects.get_or_create(
+        slug=f"{plan.slug}-{interval.lower()}-recurring-webhook-legacy",
+        defaults={
+            "plan": plan,
+            "name": f"{plan.name} — {'Anual' if interval == 'YEARLY' else 'Mensal'}",
+            "currency": plan.currency,
+            "total_amount": plan.price,
+            "billing_interval": interval,
+            "billing_model": PlanPrice.BillingModel.RECURRING,
+            "discount_percentage": Decimal("0.00"),
+            "installments_enabled": False,
+            "min_installments": 1,
+            "max_installments": 1,
+            "is_active": plan.is_active,
+        },
+    )
+    external_reference = f"legacy-webhook-subscription-{subscription.pk}"
+    order, _ = BillingOrder.objects.get_or_create(
+        external_reference=external_reference,
+        defaults={
+            "user": subscription.user,
+            "plan": plan,
+            "plan_price": price,
+            "status": BillingOrder.Status.PENDING,
+            "billing_model": price.billing_model,
+            "billing_interval": price.billing_interval,
+            "currency": price.currency,
+            "total_amount": price.total_amount,
+            "discount_amount": Decimal("0.00"),
+            "installment_count": 1,
+            "installment_amount_estimate": price.total_amount,
+            "gateway_name": subscription.gateway_name,
+            "gateway_customer_id": subscription.gateway_customer_id,
+            "gateway_subscription_id": gateway_subscription_id,
+            "idempotency_key": external_reference,
+            "commercial_snapshot": {
+                "legacy": True,
+                "plan_name": plan.name,
+                "total_amount": str(price.total_amount),
+            },
+            "metadata": {"origin": "legacy_webhook_compatibility"},
+        },
+    )
+    if not subscription.billing_order_id:
+        subscription.billing_order = order
+        subscription.save(update_fields=["billing_order", "updated_at"])
+    Payment.objects.filter(subscription=subscription, billing_order__isnull=True).update(billing_order=order)
+    return order
+
+
 def _find_order(payment_data: dict) -> BillingOrder | None:
     payment_id = payment_data.get("id")
     if payment_id:
@@ -69,14 +139,16 @@ def _find_order(payment_data: dict) -> BillingOrder | None:
         query |= Q(gateway_installment_id=gateway_installment_id)
     if external_reference:
         query |= Q(external_reference=external_reference)
-    if not query:
-        return None
-    return (
-        BillingOrder.objects.select_related("plan", "plan_price", "user")
-        .filter(query)
-        .order_by("-created_at")
-        .first()
-    )
+
+    order = None
+    if query:
+        order = (
+            BillingOrder.objects.select_related("plan", "plan_price", "user")
+            .filter(query)
+            .order_by("-created_at")
+            .first()
+        )
+    return order or _legacy_order_for_subscription(gateway_subscription_id)
 
 
 def _subscription_for_order(order: BillingOrder, payment_data: dict) -> Subscription | None:
