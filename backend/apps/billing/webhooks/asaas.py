@@ -8,6 +8,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.billing.models import Payment, Subscription, WebhookEvent
+from apps.billing.security import redact_sensitive_data
 from apps.billing.services.gateways.asaas import AsaasGateway
 from apps.billing.services.subscriptions import activate_subscription_from_payment, mark_subscription_past_due
 
@@ -78,7 +79,7 @@ def _upsert_payment(subscription: Subscription, payment_data: dict, event_type: 
         "bank_slip_url": payment_data.get("bankSlipUrl") or "",
         "pix_qr_code": payment_data.get("pixQrCode") or "",
         "pix_copy_paste": payment_data.get("pixCopyPaste") or "",
-        "raw_payload": payment_data,
+        "raw_payload": redact_sensitive_data(payment_data),
     }
     if gateway_payment_id:
         payment, _ = Payment.objects.update_or_create(gateway_payment_id=gateway_payment_id, defaults=defaults)
@@ -111,7 +112,10 @@ def _process_subscription_event(event_type: str, subscription_data: dict) -> str
     if not subscription:
         return f"Assinatura local não encontrada para {gateway_subscription_id}."
     subscription.gateway_status = subscription_data.get("status", subscription.gateway_status)
-    subscription.metadata = {**subscription.metadata, "last_subscription_webhook": subscription_data}
+    subscription.metadata = {
+        **subscription.metadata,
+        "last_subscription_webhook": redact_sensitive_data(subscription_data),
+    }
     update_fields = ["gateway_status", "metadata", "updated_at"]
     if event_type == "SUBSCRIPTION_DELETED":
         subscription.status = Subscription.Status.CANCELED
@@ -132,7 +136,7 @@ def handle_asaas_webhook(request) -> WebhookEvent:
             "gateway_name": "ASAAS",
             "event_id": _event_id(payload),
             "event_type": event_type,
-            "payload": payload,
+            "payload": redact_sensitive_data(payload),
         },
     )
     if not created and webhook_event.processed:
@@ -149,9 +153,9 @@ def handle_asaas_webhook(request) -> WebhookEvent:
         webhook_event.processed = True
         webhook_event.processed_at = timezone.now()
         webhook_event.save(update_fields=["processed", "processed_at", "error_message"])
-    except Exception as exc:
+    except Exception:
         logger.exception("asaas_webhook_processing_error", extra={"event_type": event_type})
-        webhook_event.error_message = str(exc)
+        webhook_event.error_message = "Falha interna ao processar o evento."
         webhook_event.processed = False
         webhook_event.save(update_fields=["processed", "error_message"])
     return webhook_event
