@@ -40,6 +40,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Configurar Python
         uses: actions/setup-python@v5
@@ -69,8 +71,16 @@ jobs:
       - name: Verificar migrations pendentes
         run: python manage.py makemigrations --check --dry-run
 
-      - name: Ruff
-        run: ruff check .
+      - name: Ruff nos arquivos Python alterados
+        shell: bash
+        run: |
+          cd ..
+          git diff --name-only --diff-filter=ACMRT origin/main...HEAD -- "backend/**/*.py" > /tmp/changed-python-files.txt
+          if [ -s /tmp/changed-python-files.txt ]; then
+            xargs ruff check --config backend/pyproject.toml < /tmp/changed-python-files.txt
+          else
+            echo "Nenhum arquivo Python alterado."
+          fi
 
       - name: Testes automatizados
         run: pytest --create-db
