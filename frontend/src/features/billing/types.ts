@@ -184,3 +184,13 @@ export interface CheckoutPreview {
   payments?: Payment[];
   status?: SubscriptionStatus;
 }
+
+export interface AsaasIntegrationHealth {
+  gateway: "ASAAS";
+  connected: boolean;
+  environment: "SANDBOX" | "PRODUCTION";
+  detail: string;
+  last_webhook_at: string | null;
+  pending_events: number;
+  failed_events: number;
+}
