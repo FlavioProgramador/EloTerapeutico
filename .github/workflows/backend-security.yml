@@ -97,11 +97,9 @@ jobs:
         run: pytest --create-db
 
       - name: Bandit
-        continue-on-error: true
         run: bandit -r apps core infrastructure elo_terapeutico -c pyproject.toml -f screen
 
       - name: Auditoria de dependências Python
-        continue-on-error: true
         run: pip-audit -r requirements/base.txt
 
       - name: Falhar quando Ruff encontrar problemas
