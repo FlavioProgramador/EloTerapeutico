@@ -1,155 +1,262 @@
-# Elo Terapêutico — Plataforma de Gestão Clínica
+# Elo Terapêutico
 
-> Prontuário eletrônico, agenda e controle financeiro para psicólogos e terapeutas. Conformidade com LGPD. Arquitetura SaaS multi-tenant.
+Plataforma web de gestão para profissionais de saúde e terapeutas, com agenda, pacientes, prontuário eletrônico, financeiro, documentos, formulários, relatórios e cobrança de assinaturas.
 
----
+> **Situação atual:** projeto em desenvolvimento ativo. A base funcional é ampla, mas ainda existem requisitos operacionais e riscos que precisam ser tratados antes de uso com dados clínicos reais em produção.
 
-## 🚀 Quick Start
+## Índice
 
-### Pré-requisitos
+- [Visão geral](#visão-geral)
+- [Módulos](#módulos)
+- [Arquitetura](#arquitetura)
+- [Tecnologias](#tecnologias)
+- [Início rápido](#início-rápido)
+- [Docker](#docker)
+- [Testes e qualidade](#testes-e-qualidade)
+- [Segurança e dados clínicos](#segurança-e-dados-clínicos)
+- [Documentação](#documentação)
+- [Contribuição](#contribuição)
+- [Limitações conhecidas](#limitações-conhecidas)
 
-- Python 3.11+
-- Node.js 20+
-- PostgreSQL 15+
-- Git
+## Visão geral
+
+O Elo Terapêutico centraliza tarefas administrativas e clínicas que normalmente ficam distribuídas entre agendas, planilhas, arquivos e sistemas de cobrança. O público principal é composto por terapeutas e profissionais que realizam atendimentos individuais, em grupo, presenciais ou remotos.
+
+O código atual implementa isolamento de diversos recursos pelo profissional autenticado. Entretanto, **não existe uma entidade explícita de clínica/tenant** que permita afirmar que uma arquitetura multi-clínica está concluída. Consulte [escopo e limitações](docs/01-visao-geral/escopo-atual.md).
+
+## Módulos
+
+| Módulo | Situação resumida |
+| --- | --- |
+| Autenticação e usuários | Implementado, com JWT, rotação, blacklist, bloqueio e redefinição de senha |
+| Pacientes | Implementado, com cadastro, responsáveis, status, importação/exportação e arquivamento lógico |
+| Prontuário | Implementado, com anamnese, evoluções, aditivos, documentos, anexos, metas e exportações |
+| Agenda | Implementado, com consultas, recorrências, salas, bloqueios, pacotes, lembretes e telemedicina |
+| Financeiro | Implementado, com receitas, despesas, mensalidades, pagamentos e relatórios |
+| Documentos | Implementado, com modelos, biblioteca, geração e integridade por hash |
+| Formulários | Implementado, com construtor, templates, submissões e respostas |
+| Relatórios | Implementado para consultas, pacientes, financeiro, agendamento online e exportação |
+| Billing | Implementado com planos, assinaturas, pagamentos e integração Asaas |
+| Auditoria | Implementado para ações sensíveis, com registros imutáveis no modelo |
+| Administração | Implementado com Django Admin e Django Unfold |
+| Dashboard | Implementado no frontend, agregando dados dos módulos |
+
+Detalhes e pendências estão na [matriz de módulos](docs/17-referencia/matriz-de-modulos.md).
+
+## Arquitetura
+
+```mermaid
+flowchart LR
+    U[Usuário] --> F[Next.js 16]
+    F -->|HTTPS / JSON / JWT| A[Django REST Framework]
+    A --> P[(PostgreSQL)]
+    A --> S[Storage local ou Azure Blob]
+    A --> G[Asaas]
+    W[Worker de exportação] --> P
+    W --> S
+```
+
+- **Frontend:** Next.js App Router, React, TypeScript, Tailwind CSS e TanStack Query.
+- **Backend:** Django, Django REST Framework e Simple JWT.
+- **Banco:** PostgreSQL em Docker/produção; SQLite pode ser usado no desenvolvimento e nos testes.
+- **Processamento assíncrono:** fila persistida no banco para exportações clínicas, processada por management command.
+- **Arquivos:** filesystem no desenvolvimento; Azure Blob pode ser configurado em produção.
+
+Leia a [documentação de arquitetura](docs/02-arquitetura/README.md).
+
+## Tecnologias
 
 ### Backend
+
+- Python 3.12 na imagem Docker;
+- Django `>=5.0,<5.2`;
+- Django REST Framework `>=3.15,<3.16`;
+- PostgreSQL 15 no Docker Compose;
+- Simple JWT, django-filter, drf-spectacular e django-ratelimit;
+- WeasyPrint para PDFs;
+- cryptography/Fernet para campos textuais sensíveis;
+- Django Unfold para o backoffice.
+
+### Frontend
+
+- Node.js 24 na imagem Docker e no workflow de CI;
+- Next.js 16.2.9;
+- React 19.2.4;
+- TypeScript 6;
+- Tailwind CSS 4;
+- Axios, TanStack Query, React Hook Form e Zod.
+
+## Início rápido
+
+### Requisitos
+
+- Git;
+- Python 3.12 recomendado;
+- Node.js 24 recomendado;
+- PostgreSQL 15+ ou SQLite para desenvolvimento;
+- bibliotecas nativas do WeasyPrint quando executar fora do Docker.
+
+### Backend sem Docker
 
 ```bash
 cd backend
+python -m venv .venv
+```
 
-# Criar ambiente virtual
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-venv\Scripts\activate     # Windows
+Linux/macOS:
 
-# Instalar dependências
-pip install -r requirements/local.txt
-
-# Configurar variáveis de ambiente
+```bash
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements/dev.txt
 cp .env.example .env
-# Edite .env com suas configurações
-
-# Migrar banco de dados
 python manage.py migrate
-
-# Criar superusuário
 python manage.py createsuperuser
-
-# Iniciar servidor de desenvolvimento
 python manage.py runserver 0.0.0.0:8000
 ```
 
-### Frontend
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements/dev.txt
+Copy-Item .env.example .env
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver 0.0.0.0:8000
+```
+
+### Frontend sem Docker
 
 ```bash
 cd frontend
+npm ci
+```
 
-# Instalar dependências
-npm install
+Crie `frontend/.env.local`:
 
-# Configurar variáveis de ambiente
-cp .env.example .env.local
-# Edite .env.local com NEXT_PUBLIC_API_URL
+```text
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1/
+```
 
-# Iniciar servidor de desenvolvimento
+Depois execute:
+
+```bash
 npm run dev
 ```
 
-Acesse em: http://localhost:3000
+Acesse `http://localhost:3000`. A API fica em `http://localhost:8000/api/v1/` e a documentação OpenAPI em `http://localhost:8000/api/docs/`.
 
----
+## Docker
 
-## 📁 Estrutura do Projeto
+Na raiz do repositório:
 
-```
-elo-terapeutico/
-├── backend/                  # Django REST API
-│   ├── apps/
-│   │   ├── accounts/         # Autenticação e perfis de usuário
-│   │   ├── agenda/           # Agendamento de consultas
-│   │   ├── patients/         # Gerenciamento de pacientes (CRM)
-│   │   ├── records/          # Prontuários e evoluções clínicas
-│   │   └── financeiro/       # Controle financeiro
-│   ├── config/               # Configurações Django (settings, urls, wsgi)
-│   └── requirements/         # Dependências por ambiente
-│
-├── frontend/                 # Next.js App Router
-│   └── src/
-│       ├── app/              # Páginas (App Router)
-│       ├── components/       # Design System (Button, Card, Input...)
-│       ├── features/         # Módulos por domínio (patients, agenda...)
-│       ├── providers/        # Providers raiz (QueryClient, Theme, Auth)
-│       ├── contexts/         # Contextos React (Auth)
-│       ├── lib/              # Utilitários (api, utils)
-│       ├── types/            # Tipos TypeScript de domínio
-│       └── constants/        # Query Keys, labels, rotas
-│
-└── docs/                     # Documentação técnica
-    ├── FRONTEND.md           # Arquitetura do frontend
-    ├── BACKEND.md            # Arquitetura do backend
-    └── DESIGN_SYSTEM.md      # Design System e tokens
+```bash
+cp .env.example .env
+# preencha POSTGRES_PASSWORD e os segredos obrigatórios
+docker compose up --build
 ```
 
----
+Serviços disponíveis:
 
-## 🏗️ Stack Técnica
+- frontend: porta `3000`;
+- backend: porta `8000`;
+- PostgreSQL: exposto apenas em `127.0.0.1:5432`;
+- worker de exportações clínicas.
 
-### Backend
-| Tecnologia | Versão | Propósito |
-|---|---|---|
-| Python | 3.11+ | Linguagem |
-| Django | 5.x | Framework web |
-| Django REST Framework | 3.15 | API REST |
-| PostgreSQL | 15+ | Banco de dados |
-| Azure Blob Storage | — | Arquivos e documentos |
-| Fernet (cryptography) | — | Criptografia de campos sensíveis (LGPD) |
-| Simple JWT | — | Autenticação JWT |
+Consulte o [guia Docker](docs/03-instalacao/instalacao-docker.md).
 
-### Frontend
-| Tecnologia | Versão | Propósito |
-|---|---|---|
-| Next.js | 15+ (App Router) | Framework |
-| TypeScript | 5+ | Linguagem |
-| Tailwind CSS | v4 | Estilização |
-| TanStack Query | v5 | Cache e sync de dados |
-| React Hook Form | — | Formulários |
-| Zod | v4 | Validação de schemas |
-| Sonner | — | Notificações toast |
-| next-themes | — | Dark mode |
-| Framer Motion | — | Animações |
+## Testes e qualidade
 
----
+Backend:
 
-## 🔒 Segurança e Compliance
+```bash
+cd backend
+pytest --create-db
+python manage.py check
+python manage.py makemigrations --check --dry-run
+ruff check .
+mypy .
+```
 
-- **LGPD**: Campos clínicos sensíveis criptografados em repouso com Fernet (AES-256-CBC)
-- **JWT**: Access tokens de 30 minutos com refresh automático silencioso
-- **RBAC**: Controle de acesso por role (therapist/secretary/admin) no middleware Next.js
-- **CSRF**: Proteção nativa do Django para endpoints de formulário
-- **HTTPS**: Obrigatório em produção via configurações HSTS
+Frontend:
 
----
+```bash
+cd frontend
+npm ci
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
 
-## 🌿 Git Flow
+Os números de cobertura variam por commit e não são apresentados como garantia permanente. Veja [testes e qualidade](docs/10-testes/README.md).
 
-| Branch | Propósito |
-|---|---|
-| `main` | Código estável, pronto para produção |
-| `refactor/setup-ecosystem` | Instalação e configuração do ecossistema (Fase 2-4) |
-| `feature/*` | Novas funcionalidades |
-| `fix/*` | Correções de bugs |
+## Segurança e dados clínicos
 
----
+O projeto contém controles de segurança, mas não deve ser considerado automaticamente pronto para produção. Entre os controles implementados estão:
 
-## 📚 Documentação
+- Argon2 como primeiro password hasher;
+- JWT com rotação e blacklist de refresh tokens;
+- bloqueio de conta após tentativas falhas;
+- campos clínicos textuais criptografados antes da persistência;
+- regras específicas para evoluções confidenciais;
+- validação de extensão, MIME e assinatura de uploads clínicos;
+- auditoria de ações sensíveis;
+- validação de segredos e headers de segurança no settings de produção.
 
-- [FRONTEND.md](./docs/FRONTEND.md) — Arquitetura e padrões do frontend
-- [BACKEND.md](./docs/BACKEND.md) — Arquitetura e APIs do backend
-- [DESIGN_SYSTEM.md](./docs/DESIGN_SYSTEM.md) — Tokens, componentes e guidelines
+Antes de armazenar dados reais, configure HTTPS, segredos independentes, PostgreSQL gerenciado, storage privado persistente, backup, monitoramento, e-mail e token de webhook. Também revise o risco de tokens JWT acessíveis ao JavaScript no frontend.
 
----
+Leia o [guia de segurança](docs/08-seguranca/README.md) e o [mapeamento técnico de LGPD](docs/09-lgpd/README.md).
 
-## 📄 Licença
+## Estrutura do projeto
 
-Propriedade privada. Todos os direitos reservados.
+```text
+EloTerapeutico/
+├── backend/                 # Django REST API, worker e backoffice
+├── frontend/                # Next.js App Router
+├── docs/                    # Portal técnico e operacional
+├── docker-compose.yml       # Ambiente local
+├── AGENTS.md                # Regras para agentes e colaboradores
+└── README.md
+```
+
+## Documentação
+
+O portal principal está em [`docs/README.md`](docs/README.md). Ele organiza documentação para:
+
+- desenvolvimento e contribuição;
+- arquitetura e API;
+- segurança e LGPD;
+- instalação, deploy e operação;
+- suporte e troubleshooting;
+- módulos e casos de uso;
+- decisões arquiteturais.
+
+## Contribuição
+
+Não altere diretamente a `main`. Use uma branch específica, commits pequenos em português e Pull Request. Antes de enviar, execute os checks relevantes e verifique migrations.
+
+Consulte [como contribuir](docs/14-contribuicao/README.md).
+
+## Limitações conhecidas
+
+- multi-tenancy por clínica não está concluído;
+- o frontend mantém JWTs em cookies acessíveis ao JavaScript;
+- storage privado e persistente depende de configuração operacional;
+- e-mail real depende de SMTP em produção;
+- Asaas depende de credenciais e webhook configurados;
+- a suíte frontend é menor que a cobertura backend;
+- backup, restauração e observabilidade dependem do ambiente de implantação;
+- recursos de IA clínica não devem ser tratados como diagnóstico ou decisão autônoma.
+
+Veja a lista completa em [limitações](docs/01-visao-geral/limitacoes.md).
+
+## Licenciamento
+
+O repositório não contém um arquivo `LICENSE` na revisão documentada. Não presuma permissão de redistribuição ou uso comercial sem autorização do mantenedor.
+
+## Mantenedor
+
+Repositório mantido por [FlavioProgramador](https://github.com/FlavioProgramador).
