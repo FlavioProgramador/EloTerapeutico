@@ -148,9 +148,15 @@ class SecureClinicalDocumentDownloadView(SecureClinicalDocumentMixin, APIView):
             obj=document,
             obj_repr=f"Download do documento #{document.id}",
         )
-        return FileResponse(
+        response = FileResponse(
             stream,
             as_attachment=True,
             filename=document.original_name,
             content_type=document.content_type,
         )
+        response["Cache-Control"] = "private, no-store, max-age=0"
+        response["Pragma"] = "no-cache"
+        response["Expires"] = "0"
+        response["X-Content-Type-Options"] = "nosniff"
+        response["Cross-Origin-Resource-Policy"] = "same-origin"
+        return response
