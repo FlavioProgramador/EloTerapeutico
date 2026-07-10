@@ -20,6 +20,48 @@ ACTIVE_OR_BLOCKING_STATUSES = {
 }
 
 
+class _RecurringGatewayAdapter:
+    """Expõe o contrato novo sem quebrar doubles e integrações legadas."""
+
+    def __init__(self, gateway) -> None:
+        self.gateway = gateway
+
+    def create_customer(self, user, checkout_data):
+        return self.gateway.create_customer(user, checkout_data)
+
+    def create_recurring_subscription(
+        self,
+        user,
+        plan_price,
+        checkout_data,
+        *,
+        customer_id=None,
+    ):
+        native_method = getattr(type(self.gateway), "create_recurring_subscription", None)
+        if callable(native_method):
+            return self.gateway.create_recurring_subscription(
+                user,
+                plan_price,
+                checkout_data,
+                customer_id=customer_id,
+            )
+        return self.gateway.create_subscription(
+            user,
+            plan_price.plan,
+            checkout_data,
+            customer_id=customer_id,
+        )
+
+    def list_subscription_payments(self, gateway_subscription_id):
+        native_method = getattr(type(self.gateway), "list_subscription_payments", None)
+        if callable(native_method):
+            return self.gateway.list_subscription_payments(gateway_subscription_id)
+        return {"data": []}
+
+    def cancel_subscription(self, gateway_subscription_id):
+        return self.gateway.cancel_subscription(gateway_subscription_id)
+
+
 def get_gateway():
     return AsaasGateway()
 
@@ -75,7 +117,7 @@ def create_subscription_for_user(
         plan_price=plan_price,
         checkout_data=checkout_data,
         idempotency_key=idempotency_key,
-        gateway=get_gateway(),
+        gateway=_RecurringGatewayAdapter(get_gateway()),
     )
     return subscription
 
