@@ -32,13 +32,14 @@ except (ImportError, OSError):
             if hasattr(target, "write"):
                 target.write(dummy_pdf)
             else:
-                with open(target, "wb") as f:
-                    f.write(dummy_pdf)
+                with open(target, "wb") as file_handle:
+                    file_handle.write(dummy_pdf)
 
 
 from django.utils.html import escape
 
 from apps.records.models import Evolution
+from apps.records.services.evolution_security import has_explicit_records_permission
 from apps.records.services.utils import render_markdown_safely, safe_url_fetcher
 from apps.records.treatment_models import ClinicalExport
 
@@ -54,26 +55,25 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS(f"Worker {self.worker_id} iniciado com sucesso."))
 
-        # Registra sinais para encerramento gracioso
         signal.signal(signal.SIGTERM, self.handle_shutdown)
         signal.signal(signal.SIGINT, self.handle_shutdown)
 
         while self.keep_running:
             try:
-                # 1. Recuperação de jobs presos em PROCESSING (timeout de 10 min)
                 self.recover_stuck_jobs()
-
-                # 2. Busca e reserva o próximo job
                 job = self.claim_next_job()
                 if job:
-                    self.stdout.write(f"Processando job #{job.id} para o paciente {job.patient.full_name}")
+                    self.stdout.write(f"Processando job #{job.id} para o paciente #{job.patient_id}")
                     self.process_job(job)
                 else:
-                    # Se não há jobs, dorme por 2 segundos antes de tentar novamente (polling)
                     time.sleep(2)
-            except Exception as e:
-                self.stdout.write(self.style.ERROR(f"Erro no loop do worker: {e}"))
-                time.sleep(5)  # backoff sutil em caso de erro grave
+            except Exception as exc:
+                self.stdout.write(
+                    self.style.ERROR(
+                        f"Erro no loop do worker ({exc.__class__.__name__})."
+                    )
+                )
+                time.sleep(5)
 
         self.stdout.write(self.style.SUCCESS(f"Worker {self.worker_id} encerrado de forma graciosa."))
 
@@ -89,14 +89,15 @@ class Command(BaseCommand):
         """Recupera jobs presos em PROCESSING há mais de 10 minutos."""
         timeout_limit = timezone.now() - timedelta(minutes=10)
         stuck_jobs = ClinicalExport.objects.filter(
-            status=ClinicalExport.Status.PROCESSING, started_at__lt=timeout_limit
+            status=ClinicalExport.Status.PROCESSING,
+            started_at__lt=timeout_limit,
         )
 
         for job in stuck_jobs:
             if job.retries < 3:
                 job.status = ClinicalExport.Status.PENDING
                 job.retries += 1
-                job.next_attempt_at = timezone.now() + timedelta(seconds=job.retries * 10)  # backoff
+                job.next_attempt_at = timezone.now() + timedelta(seconds=job.retries * 10)
                 job.error_message = f"Job travado recuperado. Tentativa {job.retries}."
                 job.save()
                 self.stdout.write(self.style.WARNING(f"Job #{job.id} travado foi retornado para PENDING."))
@@ -108,14 +109,9 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR(f"Job #{job.id} travado falhou permanentemente."))
 
     def claim_next_job(self):
-        """
-        Busca e reserva o próximo job PENDING usando select_for_update.
-        Executado em transação isolada e curta apenas para reservar o status.
-        """
-        # Filtra por jobs prontos para tentativa (respeitando backoff de next_attempt_at)
+        """Reserva o próximo job pendente em uma transação curta."""
         now = timezone.now()
 
-        # Transação curta e atômica apenas para alterar o status
         with transaction.atomic():
             queryset = (
                 ClinicalExport.objects.filter(status=ClinicalExport.Status.PENDING)
@@ -125,13 +121,11 @@ class Command(BaseCommand):
 
             job = None
             try:
-                # Fallback para SQLite que não suporta skip_locked
                 if connection.vendor == "sqlite":
                     job = queryset.select_for_update().first()
                 else:
                     job = queryset.select_for_update(skip_locked=True).first()
             except (NotSupportedError, OperationalError):
-                # Fallback em caso de erro operacional ou não suportado (ex: SQLite sem skip_locked em algumas versões)
                 job = queryset.select_for_update().first()
 
             if job:
@@ -143,11 +137,8 @@ class Command(BaseCommand):
         return None
 
     def process_job(self, job):
-        """
-        Gera o arquivo PDF da exportação fora da transação de claim para não manter locks longos.
-        """
+        """Gera o PDF fora da transação de reserva para evitar locks longos."""
         try:
-            # 1. Busca os dados de evolução do paciente
             patient = job.patient
             evolutions = (
                 Evolution.objects.filter(patient=patient)
@@ -155,34 +146,34 @@ class Command(BaseCommand):
                 .order_by("session_date", "created_at")
             )
 
-            # Filtra evoluções confidenciais baseando-se no criador da exportação
-            # Apenas o autor da evolução ou usuários com permissão view_confidential_evolution podem ver
             created_by = job.created_by
-            if not created_by.has_perm("records.view_confidential_evolution"):
-                from django.db.models import Q
-
-                evolutions = evolutions.filter(Q(is_confidential=False) | Q(created_by=created_by))
+            if not has_explicit_records_permission(created_by, "view_confidential_evolution"):
+                evolutions = evolutions.filter(
+                    models.Q(is_confidential=False) | models.Q(created_by=created_by)
+                )
 
             sections = []
             for evolution in evolutions:
                 clinical_data = getattr(evolution, "clinical_data", None)
-                obs = getattr(clinical_data, "therapist_observations", "") or evolution.content
-                interv = getattr(clinical_data, "interventions", "")
-                steps = getattr(clinical_data, "next_steps", "")
+                observations = getattr(clinical_data, "therapist_observations", "") or evolution.content
+                interventions = getattr(clinical_data, "interventions", "")
+                next_steps = getattr(clinical_data, "next_steps", "")
 
-                obs_html = render_markdown_safely(obs)
-                interv_html = render_markdown_safely(interv)
-                steps_html = render_markdown_safely(steps)
+                observations_html = render_markdown_safely(observations)
+                interventions_html = render_markdown_safely(interventions)
+                next_steps_html = render_markdown_safely(next_steps)
 
-                sections.append(f"""
+                sections.append(
+                    f"""
                     <section style="margin-bottom: 20px; border-bottom: 1px solid #d8e0dd; padding-bottom: 15px;">
                       <h3 style="color: #0f766e; margin-bottom: 5px;">Sessão em {evolution.session_date.strftime("%d/%m/%Y")}</h3>
                       <p><strong>Profissional:</strong> {escape(evolution.created_by.full_name)}</p>
-                      <div style="margin-top: 4px;"><strong>Observações clínicas:</strong> {obs_html}</div>
-                      <div style="margin-top: 4px;"><strong>Intervenções:</strong> {interv_html}</div>
-                      <div style="margin-top: 4px;"><strong>Próximos passos:</strong> {steps_html}</div>
+                      <div style="margin-top: 4px;"><strong>Observações clínicas:</strong> {observations_html}</div>
+                      <div style="margin-top: 4px;"><strong>Intervenções:</strong> {interventions_html}</div>
+                      <div style="margin-top: 4px;"><strong>Próximos passos:</strong> {next_steps_html}</div>
                     </section>
-                    """)
+                    """
+                )
 
             html = f"""
             <html><head><meta charset='utf-8'><style>
@@ -201,35 +192,36 @@ class Command(BaseCommand):
             </body></html>
             """
 
-            # 2. Renderiza o PDF usando WeasyPrint com url_fetcher seguro
             output = BytesIO()
             HTML(string=html, url_fetcher=safe_url_fetcher).write_pdf(output)
             pdf_data = output.getvalue()
 
-            # 3. Salva o PDF no banco de dados (no FileField)
-            filename = job.filename
-            job.file.save(filename, ContentFile(pdf_data), save=False)
+            job.file.save(job.filename, ContentFile(pdf_data), save=False)
             job.size_bytes = len(pdf_data)
             job.status = ClinicalExport.Status.COMPLETED
             job.completed_at = timezone.now()
-            # download_url aponta para o endpoint do download autenticado
             job.download_url = f"/api/v1/records/exports/{job.id}/download/"
             job.error_message = ""
             job.save()
             self.stdout.write(
-                self.style.SUCCESS(f"Job #{job.id} concluído com sucesso. Tamanho: {job.size_bytes} bytes.")
+                self.style.SUCCESS(
+                    f"Job #{job.id} concluído com sucesso. Tamanho: {job.size_bytes} bytes."
+                )
             )
 
-        except Exception as e:
-            self.stdout.write(self.style.ERROR(f"Erro ao processar job #{job.id}: {e}"))
-            # Reprocessamento e contagem de retries
+        except Exception as exc:
+            self.stdout.write(
+                self.style.ERROR(
+                    f"Erro ao processar job #{job.id} ({exc.__class__.__name__})."
+                )
+            )
             job.retries += 1
             if job.retries < 3:
                 job.status = ClinicalExport.Status.PENDING
-                job.next_attempt_at = timezone.now() + timedelta(seconds=job.retries * 30)  # Backoff progressivo
-                job.error_message = f"Erro no processamento: {str(e)[:300]} (Tentativa {job.retries})"
+                job.next_attempt_at = timezone.now() + timedelta(seconds=job.retries * 30)
+                job.error_message = f"Falha temporária no processamento. Tentativa {job.retries}."
             else:
                 job.status = ClinicalExport.Status.FAILED
                 job.completed_at = timezone.now()
-                job.error_message = f"Falha no processamento: {str(e)[:300]}"
+                job.error_message = "Falha no processamento após o limite de tentativas."
             job.save()
