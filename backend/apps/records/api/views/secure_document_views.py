@@ -10,7 +10,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.records.api.serializers.clinical_serializers import ClinicalDocumentSerializer
+from apps.records.api.serializers.secure_document_serializers import SecureClinicalDocumentSerializer
 from apps.records.api.views.clinical_views import ClinicalPatientMixin
 from apps.records.services.evolution_security import (
     can_view_confidential_evolution,
@@ -59,7 +59,7 @@ class SecureClinicalDocumentListCreateView(SecureClinicalDocumentMixin, APIView)
         if category:
             queryset = queryset.filter(category=category)
         return Response(
-            ClinicalDocumentSerializer(
+            SecureClinicalDocumentSerializer(
                 queryset,
                 many=True,
                 context={"request": request, "patient": patient},
@@ -68,7 +68,7 @@ class SecureClinicalDocumentListCreateView(SecureClinicalDocumentMixin, APIView)
 
     def post(self, request, patient_id):
         patient = self.get_patient(patient_id)
-        serializer = ClinicalDocumentSerializer(
+        serializer = SecureClinicalDocumentSerializer(
             data=request.data,
             context={"request": request, "patient": patient},
         )
@@ -100,7 +100,7 @@ class SecureClinicalDocumentListCreateView(SecureClinicalDocumentMixin, APIView)
             obj_repr=f"Documento clínico #{document.id}",
         )
         return Response(
-            ClinicalDocumentSerializer(
+            SecureClinicalDocumentSerializer(
                 document,
                 context={"request": request, "patient": patient},
             ).data,
@@ -111,7 +111,7 @@ class SecureClinicalDocumentListCreateView(SecureClinicalDocumentMixin, APIView)
 class SecureClinicalDocumentDetailView(SecureClinicalDocumentMixin, APIView):
     def patch(self, request, pk):
         document = self.get_document(pk)
-        serializer = ClinicalDocumentSerializer(
+        serializer = SecureClinicalDocumentSerializer(
             document,
             data=request.data,
             partial=True,
