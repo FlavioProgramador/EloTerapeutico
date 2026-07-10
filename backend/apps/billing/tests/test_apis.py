@@ -71,6 +71,7 @@ class BillingAPITests(TestCase):
                 "plan_slug": self.plan.slug,
                 "type": "SUBSCRIPTION",
                 "billingType": "PIX",
+                "cpfCnpj": "529.982.247-25",
                 "dueDate": due_date,
                 "value": "1.00",
                 "description": "Plano Profissional",
@@ -100,6 +101,7 @@ class BillingAPITests(TestCase):
                 "plan_slug": self.plan.slug,
                 "type": "SUBSCRIPTION",
                 "billingType": "BOLETO",
+                "cpfCnpj": "529.982.247-25",
                 "dueDate": due_date,
                 "description": "Assinatura Profissional",
             },
@@ -108,10 +110,31 @@ class BillingAPITests(TestCase):
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["subscription"]["status"], Subscription.Status.PENDING)
+        self.assertEqual(gateway.create_customer.call_args.args[1]["cpfCnpj"], "52998224725")
         gateway.create_subscription.assert_called_once()
         subscription = Subscription.objects.get(gateway_subscription_id="sub_checkout")
         self.assertEqual(subscription.status, Subscription.Status.PENDING)
         self.assertEqual(subscription.metadata["checkout"]["billingType"], "BOLETO")
+        self.assertNotIn("cpfCnpj", subscription.metadata["checkout"])
+
+    def test_checkout_rejects_invalid_cpf_cnpj(self):
+        self.client.force_authenticate(self.user)
+        due_date = (timezone.localdate() + timedelta(days=1)).isoformat()
+
+        response = self.client.post(
+            "/api/v1/billing/checkout/preview/",
+            {
+                "plan_slug": self.plan.slug,
+                "type": "SUBSCRIPTION",
+                "billingType": "BOLETO",
+                "cpfCnpj": "111.111.111-11",
+                "dueDate": due_date,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("cpfCnpj", response.data["error"]["details"])
 
     def test_checkout_rejects_credit_card_without_tokenization(self):
         self.client.force_authenticate(self.user)
@@ -123,6 +146,7 @@ class BillingAPITests(TestCase):
                 "plan_slug": self.plan.slug,
                 "type": "SUBSCRIPTION",
                 "billingType": "CREDIT_CARD",
+                "cpfCnpj": "529.982.247-25",
                 "dueDate": due_date,
             },
             format="json",

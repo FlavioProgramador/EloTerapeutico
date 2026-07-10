@@ -1,7 +1,27 @@
+import re
+
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from rest_framework import serializers
 
 from apps.billing.models import Payment, Plan, Subscription
+from core.validators import validate_cpf as validate_cpf_value
+
+
+def _validate_cnpj(value: str) -> None:
+    if len(value) != 14 or value == value[0] * 14:
+        raise serializers.ValidationError("CNPJ invalido.")
+
+    first_weights = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    first_sum = sum(int(value[index]) * weight for index, weight in enumerate(first_weights))
+    first_digit = 0 if first_sum % 11 < 2 else 11 - (first_sum % 11)
+
+    second_weights = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    second_sum = sum(int(value[index]) * weight for index, weight in enumerate(second_weights))
+    second_digit = 0 if second_sum % 11 < 2 else 11 - (second_sum % 11)
+
+    if first_digit != int(value[12]) or second_digit != int(value[13]):
+        raise serializers.ValidationError("CNPJ invalido.")
 
 
 class PlanSerializer(serializers.ModelSerializer):
@@ -72,6 +92,7 @@ class CheckoutSerializer(serializers.Serializer):
     plan_slug = serializers.SlugField(required=False)
     type = serializers.ChoiceField(choices=CHECKOUT_TYPES, default="SUBSCRIPTION")
     billingType = serializers.ChoiceField(choices=BILLING_TYPES, default="PIX")
+    cpfCnpj = serializers.CharField(write_only=True, trim_whitespace=True)
     dueDate = serializers.DateField()
     value = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
     description = serializers.CharField(max_length=255, required=False, allow_blank=True)
@@ -83,6 +104,19 @@ class CheckoutSerializer(serializers.Serializer):
         if value < timezone.localdate():
             raise serializers.ValidationError("O vencimento não pode ser anterior à data atual.")
         return value
+
+    def validate_cpfCnpj(self, value):
+        clean_value = re.sub(r"\D", "", value or "")
+        if len(clean_value) == 11:
+            try:
+                validate_cpf_value(clean_value)
+            except DjangoValidationError as exc:
+                raise serializers.ValidationError(exc.messages[0]) from exc
+        elif len(clean_value) == 14:
+            _validate_cnpj(clean_value)
+        else:
+            raise serializers.ValidationError("Informe CPF ou CNPJ com 11 ou 14 digitos.")
+        return clean_value
 
     def validate(self, attrs):
         plan_id = attrs.get("plan_id")

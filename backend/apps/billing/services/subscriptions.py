@@ -33,7 +33,7 @@ def get_current_subscription(user):
 def _safe_checkout_snapshot(checkout_data: dict[str, Any] | None) -> dict[str, Any]:
     if not checkout_data:
         return {}
-    blocked_keys = {"plan", "creditCardToken", "creditCard", "creditCardHolderInfo", "remoteIp"}
+    blocked_keys = {"plan", "cpfCnpj", "creditCardToken", "creditCard", "creditCardHolderInfo", "remoteIp"}
     snapshot: dict[str, Any] = {}
     for key, value in checkout_data.items():
         if key in blocked_keys:
@@ -59,7 +59,7 @@ def create_subscription_for_user(user, plan: Plan, checkout_data: dict[str, Any]
         customer_id = last_subscription.gateway_customer_id if last_subscription else ""
         gateway = get_gateway()
         if not customer_id:
-            customer = gateway.create_customer(user)
+            customer = gateway.create_customer(user, checkout_data)
             customer_id = customer.get("id", "")
         if not customer_id:
             raise ValidationError("Gateway não retornou o identificador do cliente.")

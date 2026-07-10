@@ -10,7 +10,7 @@ Fluxo do checkout Asaas:
 2. O usuário escolhe Essencial, Profissional ou Premium.
 3. Se não estiver logado, o frontend redireciona para cadastro/login preservando o plano em `plan` e o destino em `next`.
 4. Se estiver logado, o frontend abre `/checkout?plan=<slug>`.
-5. O checkout em etapas coleta apenas dados não sensíveis: valor do plano, descrição, tipo, parcelamento quando cobrança única, vencimento e `billingType`.
+5. O checkout em etapas coleta os dados necessários para a cobrança: valor do plano, descrição, tipo, parcelamento quando cobrança única, vencimento, `billingType` e CPF/CNPJ do titular para cadastro no Asaas.
 6. O backend cria `customer` e `subscription` no Asaas Sandbox.
 7. A assinatura local é criada como `PENDING`.
 8. O Asaas envia `webhook`.
@@ -103,6 +103,7 @@ POST /api/billing/webhooks/asaas/
   "plan_slug": "profissional",
   "type": "SUBSCRIPTION",
   "billingType": "PIX",
+  "cpfCnpj": "52998224725",
   "dueDate": "2026-07-10",
   "description": "Assinatura Elo Terapêutico - Profissional"
 }
@@ -115,7 +116,7 @@ Resposta inclui:
 - `notice`: “Os pagamentos serão processados pelo Asaas.”
 - `activation_rule`: reforça que a ativação depende do webhook.
 - `plan`: plano serializado do backend.
-- `checkout`: payload normalizado com `billingType`, `dueDate`, `value`, `cycle` e `installmentCount`.
+- `checkout`: payload normalizado com `billingType`, `dueDate`, `value`, `cycle` e `installmentCount`; `cpfCnpj` não é retornado nem salvo no snapshot local do checkout.
 
 ### Criar checkout
 
@@ -124,6 +125,7 @@ Resposta inclui:
   "plan_slug": "profissional",
   "type": "SUBSCRIPTION",
   "billingType": "BOLETO",
+  "cpfCnpj": "52998224725",
   "dueDate": "2026-07-10",
   "description": "Assinatura Elo Terapêutico - Profissional"
 }

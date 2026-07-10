@@ -32,6 +32,19 @@ class AsaasGateway(PaymentGateway):
             "access_token": self.api_key,
         }
 
+    @staticmethod
+    def _response_error_detail(response: httpx.Response) -> str:
+        try:
+            payload = response.json()
+        except ValueError:
+            return ""
+        errors = payload.get("errors")
+        if isinstance(errors, list) and errors:
+            first_error = errors[0]
+            if isinstance(first_error, dict):
+                return str(first_error.get("description") or first_error.get("message") or "")
+        return str(payload.get("description") or payload.get("message") or "")
+
     def _request(self, method: str, path: str, **kwargs) -> dict[str, Any]:
         url = f"{self.base_url}{path}"
         try:
@@ -43,19 +56,28 @@ class AsaasGateway(PaymentGateway):
             status_code = exc.response.status_code
             logger.warning("asaas_http_error", extra={"status_code": status_code, "path": path})
             if status_code in {400, 401, 403, 404}:
+                detail = self._response_error_detail(exc.response)
+                if detail:
+                    raise GatewayError(
+                        "Nao foi possivel concluir a operacao de cobranca. "
+                        f"Detalhe do Asaas: {detail}"
+                    )
                 raise GatewayError("Não foi possível concluir a operação de cobrança. Verifique os dados e tente novamente.")
             raise GatewayError("O gateway de pagamento está temporariamente indisponível.")
         except httpx.HTTPError:
             logger.exception("asaas_request_error", extra={"path": path})
             raise GatewayError("Falha de comunicação com o gateway de pagamento.")
 
-    def create_customer(self, user) -> dict[str, Any]:
+    def create_customer(self, user, checkout_data: dict[str, Any] | None = None) -> dict[str, Any]:
+        checkout_data = checkout_data or {}
         payload = {
             "name": getattr(user, "full_name", "") or getattr(user, "email", ""),
             "email": user.email,
         }
         if getattr(user, "phone", ""):
             payload["mobilePhone"] = user.phone
+        if checkout_data.get("cpfCnpj"):
+            payload["cpfCnpj"] = checkout_data["cpfCnpj"]
         return self._request("POST", "/customers", json=payload)
 
     def _ensure_customer_id(self, user, checkout_data: dict[str, Any] | None = None) -> str:
@@ -63,7 +85,7 @@ class AsaasGateway(PaymentGateway):
         customer_id = checkout_data.get("customer") or checkout_data.get("customer_id")
         if customer_id:
             return str(customer_id)
-        customer = self.create_customer(user)
+        customer = self.create_customer(user, checkout_data)
         customer_id = customer.get("id")
         if not customer_id:
             raise GatewayError("Gateway não retornou o identificador do cliente.")
