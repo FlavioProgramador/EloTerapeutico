@@ -67,26 +67,6 @@ export function CheckoutWizard() {
   const [dueDate, setDueDate] = useState(defaultDueDate);
   const [installmentCount, setInstallmentCount] = useState(1);
   const [description, setDescription] = useState("");
-  const [cpfCnpj, setCpfCnpj] = useState("");
-
-  const selectedPlan = useMemo(() => {
-    return plans.find((plan) => plan.slug === selectedPlanSlug) || plans.find((plan) => plan.slug === "profissional") || plans[0];
-  }, [plans, selectedPlanSlug]);
-
-  const payload = useMemo<CheckoutPayload | null>(() => {
-    if (!selectedPlan) return null;
-    return {
-      plan_slug: selectedPlan.slug,
-      type: checkoutType,
-      billingType,
-      cpfCnpj,
-      dueDate,
-      value: selectedPlan.price,
-      description,
-      cycle: selectedPlan.billing_cycle,
-      installmentCount: checkoutType === "ONE_TIME" ? installmentCount : 1,
-    };
-  }, [billingType, checkoutType, description, dueDate, installmentCount, selectedPlan, cpfCnpj]);
 
   useEffect(() => {
     let mounted = true;
@@ -107,6 +87,10 @@ export function CheckoutWizard() {
       mounted = false;
     };
   }, []);
+
+  const selectedPlan = useMemo(() => {
+    return plans.find((plan) => plan.slug === selectedPlanSlug) || plans.find((plan) => plan.slug === "profissional") || plans[0];
+  }, [plans, selectedPlanSlug]);
 
   useEffect(() => {
     if (selectedPlan && !description) {
@@ -129,6 +113,20 @@ export function CheckoutWizard() {
       </main>
     );
   }
+
+  const payload = useMemo<CheckoutPayload | null>(() => {
+    if (!selectedPlan) return null;
+    return {
+      plan_slug: selectedPlan.slug,
+      type: checkoutType,
+      billingType,
+      dueDate,
+      value: selectedPlan.price,
+      description,
+      cycle: selectedPlan.billing_cycle,
+      installmentCount: checkoutType === "ONE_TIME" ? installmentCount : 1,
+    };
+  }, [billingType, checkoutType, description, dueDate, installmentCount, selectedPlan]);
 
   async function handlePreview() {
     if (!payload) return;
@@ -220,26 +218,15 @@ export function CheckoutWizard() {
                   <ReadonlyField label="Plano" value={selectedPlan.name} />
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="block space-y-2">
-                    <span className="text-sm font-semibold">CPF ou CNPJ (Nota Fiscal)</span>
-                    <input
-                      value={cpfCnpj}
-                      onChange={(event) => setCpfCnpj(event.target.value)}
-                      className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary"
-                      placeholder="Somente números"
-                    />
-                  </label>
-                  <label className="block space-y-2">
-                    <span className="text-sm font-semibold">Descrição</span>
-                    <input
-                      value={description}
-                      onChange={(event) => setDescription(event.target.value)}
-                      className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary"
-                      placeholder="Descrição da cobrança"
-                    />
-                  </label>
-                </div>
+                <label className="block space-y-2">
+                  <span className="text-sm font-semibold">Descrição</span>
+                  <input
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary"
+                    placeholder="Descrição da cobrança"
+                  />
+                </label>
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-3">
@@ -324,7 +311,6 @@ export function CheckoutWizard() {
             {step === 2 && activePreview && (
               <div className="mt-8 space-y-6">
                 <ReviewRow label="Gateway" value={`${activePreview.gateway} ${activePreview.environment === "SANDBOX" ? "Sandbox" : "Produção"}`} />
-                <ReviewRow label="CPF/CNPJ" value={activePreview.checkout.cpfCnpj} />
                 <ReviewRow label="Plano" value={activePreview.plan.name} />
                 <ReviewRow label="Tipo" value={checkoutTypeLabels[activePreview.checkout.type]} />
                 <ReviewRow label="Valor" value={currency(activePreview.checkout.value, activePreview.plan.currency)} />
