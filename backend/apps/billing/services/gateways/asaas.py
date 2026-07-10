@@ -1,4 +1,5 @@
 import logging
+import secrets
 from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any
@@ -162,14 +163,15 @@ class AsaasGateway(PaymentGateway):
         return self._request("GET", f"/payments/{gateway_payment_id}")
 
     def parse_webhook(self, request) -> dict[str, Any]:
-        configured_token = settings.ASAAS_WEBHOOK_TOKEN
-        received_token = (
+        configured_token = str(settings.ASAAS_WEBHOOK_TOKEN or "")
+        received_token = str(
             request.headers.get("asaas-access-token")
             or request.headers.get("x-asaas-token")
             or request.headers.get("x-webhook-token")
             or request.headers.get("authorization", "").removeprefix("Bearer ")
+            or ""
         )
-        if configured_token and received_token != configured_token:
+        if configured_token and not secrets.compare_digest(received_token, configured_token):
             raise PermissionDenied("Webhook Asaas inválido.")
         if not configured_token:
             logger.warning("asaas_webhook_token_not_configured")
