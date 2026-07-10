@@ -46,7 +46,7 @@
     height: 1.25rem
 }
 
-.benefit-rail__item > span:last-child {
+.benefit-rail__item>span:last-child {
     display: grid;
     gap: .25rem
 }

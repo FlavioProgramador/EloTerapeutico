@@ -19,7 +19,7 @@
     box-shadow: 0 14px 34px rgba(18, 60, 59, 0.08)
 }
 
-.story-dashboard__metrics article > span {
+.story-dashboard__metrics article>span {
     display: grid;
     place-items: center;
     width: 2rem;
@@ -66,8 +66,8 @@
     border-bottom: 1px solid hsl(var(--border))
 }
 
-.story-dashboard__timeline header > span,
-.story-patients__profile header > span {
+.story-dashboard__timeline header>span,
+.story-patients__profile header>span {
     display: grid;
     place-items: center;
     width: 2.4rem;
@@ -94,7 +94,7 @@
     font-size: var(--text-sm)
 }
 
-.story-dashboard__timeline > div {
+.story-dashboard__timeline>div {
     display: grid;
     grid-template-columns: auto 1fr auto;
     align-items: center;
@@ -103,18 +103,18 @@
     border-bottom: 1px solid hsl(var(--border) / 0.7)
 }
 
-.story-dashboard__timeline > div:last-child {
+.story-dashboard__timeline>div:last-child {
     border-bottom: 0
 }
 
-.story-dashboard__timeline > div > span {
+.story-dashboard__timeline>div>span {
     width: .55rem;
     height: .55rem;
     border-radius: 50%;
     background: hsl(var(--sage, 142 24% 57%))
 }
 
-.story-dashboard__timeline > div.is-active > span {
+.story-dashboard__timeline>div.is-active>span {
     background: hsl(var(--accent))
 }
 
@@ -171,7 +171,7 @@
     color: hsl(var(--foreground))
 }
 
-.story-patients__directory button > span {
+.story-patients__directory button>span {
     display: grid;
     place-items: center;
     width: 2rem;
@@ -259,7 +259,7 @@
     border-bottom: 1px solid hsl(var(--border))
 }
 
-.story-calendar header > span {
+.story-calendar header>span {
     display: grid;
     place-items: center;
     width: 2.4rem;
@@ -295,7 +295,7 @@
     margin-top: 1rem
 }
 
-.story-calendar__grid > div {
+.story-calendar__grid>div {
     min-height: 14rem;
     border: 1px solid hsl(var(--border));
     border-radius: .85rem;
@@ -356,7 +356,7 @@
     backdrop-filter: blur(14px)
 }
 
-.story-floating-note > svg {
+.story-floating-note>svg {
     width: 1.05rem;
     height: 1.05rem;
     color: hsl(var(--sage, 142 24% 57%))
@@ -412,7 +412,7 @@
     border-bottom: 1px solid hsl(var(--border))
 }
 
-.story-document--front header > span {
+.story-document--front header>span {
     display: grid;
     place-items: center;
     width: 2.45rem;
@@ -575,7 +575,7 @@
     width: 43%
 }
 
-.story-finance__list > div {
+.story-finance__list>div {
     display: grid;
     grid-template-columns: auto 1fr auto;
     align-items: center;
@@ -587,7 +587,7 @@
     box-shadow: 0 14px 32px rgba(0, 0, 0, 0.12)
 }
 
-.story-finance__list > div > span {
+.story-finance__list>div>span {
     display: grid;
     place-items: center;
     width: 2rem;

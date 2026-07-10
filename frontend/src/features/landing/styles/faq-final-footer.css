@@ -73,20 +73,20 @@
     display: none
 }
 
-.faq-section summary > span {
+.faq-section summary>span {
     color: hsl(var(--accent));
     font-size: .62rem;
     letter-spacing: .08em
 }
 
-.faq-section summary > i {
+.faq-section summary>i {
     position: relative;
     width: 1rem;
     height: 1rem
 }
 
-.faq-section summary > i::before,
-.faq-section summary > i::after {
+.faq-section summary>i::before,
+.faq-section summary>i::after {
     content: "";
     position: absolute;
     left: 50%;
@@ -97,12 +97,12 @@
     transform: translate(-50%, -50%)
 }
 
-.faq-section summary > i::after {
+.faq-section summary>i::after {
     transform: translate(-50%, -50%) rotate(90deg);
     transition: transform .2s ease
 }
 
-.faq-section details[open] summary > i::after {
+.faq-section details[open] summary>i::after {
     transform: translate(-50%, -50%) rotate(0deg)
 }
 
@@ -266,7 +266,7 @@
     line-height: 1.75
 }
 
-.site-footer__brand > small {
+.site-footer__brand>small {
     display: block;
     max-width: 30rem;
     color: hsl(var(--text-on-dark) / 0.35);
@@ -286,7 +286,7 @@
     gap: .75rem
 }
 
-.site-footer__columns nav > strong {
+.site-footer__columns nav>strong {
     margin-bottom: .35rem;
     color: hsl(var(--text-on-dark) / 0.7);
     font-size: var(--text-xs);

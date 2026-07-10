@@ -209,18 +209,18 @@
     padding: 0 1rem
 }
 
-.module-selector__bar > span {
+.module-selector__bar>span {
     width: .55rem;
     height: .55rem;
     border-radius: 999px;
     background: hsl(var(--primary) / 0.42)
 }
 
-.module-selector__bar > span:nth-child(2) {
+.module-selector__bar>span:nth-child(2) {
     opacity: .6
 }
 
-.module-selector__bar > span:nth-child(3) {
+.module-selector__bar>span:nth-child(3) {
     opacity: .32
 }
 
@@ -257,6 +257,7 @@
 }
 
 @media(prefers-reduced-motion: reduce) {
+
     .module-tabs__indicator,
     .module-selector__connector {
         transition: none

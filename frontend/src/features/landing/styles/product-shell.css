@@ -88,18 +88,18 @@
     background: hsl(var(--card) / 0.82)
 }
 
-.product-stage__bar > span {
+.product-stage__bar>span {
     width: .55rem;
     height: .55rem;
     border-radius: 50%;
     background: hsl(var(--accent) / 0.45)
 }
 
-.product-stage__bar > span:nth-child(2) {
+.product-stage__bar>span:nth-child(2) {
     opacity: .6
 }
 
-.product-stage__bar > span:nth-child(3) {
+.product-stage__bar>span:nth-child(3) {
     opacity: .3
 }
 
@@ -152,7 +152,7 @@
     padding: 1rem
 }
 
-.product-ui__metrics article > span {
+.product-ui__metrics article>span {
     display: grid;
     place-items: center;
     width: 2rem;
@@ -229,7 +229,7 @@
     font-size: .58rem
 }
 
-.product-ui__activity > span {
+.product-ui__activity>span {
     width: .45rem;
     height: .45rem;
     border-radius: 50%;

@@ -66,7 +66,7 @@
     box-shadow: 0 0 60px hsl(var(--sage, 142 24% 57%) / 0.12)
 }
 
-.trust-core > span {
+.trust-core>span {
     display: grid;
     place-items: center;
     width: 3rem;
@@ -133,8 +133,8 @@
     letter-spacing: -0.04em
 }
 
-.trust-section__copy > div > p,
-.trust-section__copy > p {
+.trust-section__copy>div>p,
+.trust-section__copy>p {
     margin: 0;
     color: hsl(var(--muted-foreground));
     line-height: 1.82
@@ -155,7 +155,7 @@
     padding-top: 1rem
 }
 
-.trust-points article > span {
+.trust-points article>span {
     display: grid;
     place-items: center;
     width: 2.5rem;

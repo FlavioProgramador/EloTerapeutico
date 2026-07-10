@@ -212,11 +212,11 @@
         grid-template-columns: repeat(2, 1fr)
     }
 
-    .story-calendar__grid > div {
+    .story-calendar__grid>div {
         min-height: 8rem
     }
 
-    .story-calendar__grid > div:nth-child(n+3) {
+    .story-calendar__grid>div:nth-child(n+3) {
         display: none
     }
 
@@ -356,7 +356,7 @@
         display: block
     }
 
-    .product-ui__columns section + section {
+    .product-ui__columns section+section {
         margin-top: .65rem
     }
 
@@ -491,7 +491,7 @@
         grid-template-columns: 1fr
     }
 
-    .story-calendar__grid > div:nth-child(2) {
+    .story-calendar__grid>div:nth-child(2) {
         display: none
     }
 
@@ -515,7 +515,7 @@
         width: auto
     }
 
-    .story-finance__list > div:nth-child(3) {
+    .story-finance__list>div:nth-child(3) {
         display: none
     }
 
