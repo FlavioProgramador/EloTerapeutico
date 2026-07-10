@@ -2,14 +2,30 @@
 
 from django.core.exceptions import ImproperlyConfigured
 
+from core.security_config import require_distinct_secrets, require_strong_secret
+
 from .base import *  # noqa: F401,F403
 
 DEBUG = False
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")  # noqa: F405
 
-if FIELD_ENCRYPTION_KEY == LOCAL_FIELD_ENCRYPTION_KEY:  # noqa: F405
-    raise ImproperlyConfigured("FIELD_ENCRYPTION_KEY deve ser configurada explicitamente em produção.")
+require_strong_secret("SECRET_KEY", SECRET_KEY)  # noqa: F405
+require_strong_secret("JWT_SECRET", SIMPLE_JWT["SIGNING_KEY"])  # noqa: F405
+require_strong_secret(
+    "FIELD_ENCRYPTION_KEY",
+    FIELD_ENCRYPTION_KEY,  # noqa: F405
+    forbidden_values={LOCAL_FIELD_ENCRYPTION_KEY},  # noqa: F405
+)
+require_strong_secret("ASAAS_WEBHOOK_TOKEN", ASAAS_WEBHOOK_TOKEN)  # noqa: F405
+require_distinct_secrets(
+    {
+        "SECRET_KEY": SECRET_KEY,  # noqa: F405
+        "JWT_SECRET": SIMPLE_JWT["SIGNING_KEY"],  # noqa: F405
+        "FIELD_ENCRYPTION_KEY": FIELD_ENCRYPTION_KEY,  # noqa: F405
+        "ASAAS_WEBHOOK_TOKEN": ASAAS_WEBHOOK_TOKEN,  # noqa: F405
+    }
+)
 
 if "sandbox" in ASAAS_BASE_URL.lower():  # noqa: F405
     raise ImproperlyConfigured("ASAAS_BASE_URL não pode apontar para sandbox em produção.")
@@ -17,27 +33,28 @@ if "sandbox" in ASAAS_BASE_URL.lower():  # noqa: F405
 if not ASAAS_API_KEY:  # noqa: F405
     raise ImproperlyConfigured("ASAAS_API_KEY deve ser configurada em produção.")
 
-if not ASAAS_WEBHOOK_TOKEN:  # noqa: F405
-    raise ImproperlyConfigured("ASAAS_WEBHOOK_TOKEN deve ser configurado em produção.")
-
 # Segurança e proxy reverso
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
+TRUST_PROXY_CLIENT_IP_HEADERS = env.bool("TRUST_PROXY_CLIENT_IP_HEADERS", default=False)  # noqa: F405
 SECURE_SSL_REDIRECT = True
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = "Lax"
 
 # CORS e CSRF
 CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_CREDENTIALS = False
 _cors = env.list("CORS_ALLOWED_ORIGINS", default=[])  # noqa: F405
 if not _cors:
     raise ImproperlyConfigured("CORS_ALLOWED_ORIGINS deve ser configurada explicitamente em produção.")
@@ -66,7 +83,7 @@ CACHES = {
     }
 }
 
-# Arquivos estáticos
+# Arquivos estáticos e mídia privada
 INSTALLED_APPS = ["whitenoise.runserver_nostatic"] + INSTALLED_APPS  # noqa: F405
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa: F405
 STORAGES = {
@@ -77,6 +94,23 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+
+_private_media_required = env.bool("PRIVATE_MEDIA_STORAGE_REQUIRED", default=False)  # noqa: F405
+if AZURE_STORAGE_CONNECTION_STRING:  # noqa: F405
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.azure_storage.AzureStorage",
+        "OPTIONS": {
+            "connection_string": AZURE_STORAGE_CONNECTION_STRING,  # noqa: F405
+            "azure_container": AZURE_CONTAINER_NAME,  # noqa: F405
+            "expiration_secs": env.int("AZURE_URL_EXPIRATION_SECS", default=300),  # noqa: F405
+            "overwrite_files": False,
+        },
+    }
+elif _private_media_required:
+    raise ImproperlyConfigured(
+        "AZURE_STORAGE_CONNECTION_STRING deve ser configurada quando "
+        "PRIVATE_MEDIA_STORAGE_REQUIRED=True."
+    )
 
 RATELIMIT_ENABLE = True
 

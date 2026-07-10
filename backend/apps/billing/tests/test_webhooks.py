@@ -4,6 +4,7 @@ from django.utils import timezone
 from rest_framework.test import APIRequestFactory
 
 from apps.billing.models import Payment, Plan, Subscription, WebhookEvent
+from apps.billing.security import REDACTED_VALUE
 from apps.billing.views import AsaasWebhookView
 
 WEBHOOK_HEADER_VALUE = "billing-webhook-fixture"
@@ -28,12 +29,12 @@ class AsaasWebhookTests(TestCase):
             gateway_subscription_id="sub_123",
         )
 
-    def post_webhook(self, payload):
+    def post_webhook(self, payload, *, token=WEBHOOK_HEADER_VALUE):
         request = self.factory.post(
             "/api/v1/billing/webhooks/asaas/",
             payload,
             format="json",
-            HTTP_X_WEBHOOK_TOKEN=WEBHOOK_HEADER_VALUE,
+            HTTP_X_WEBHOOK_TOKEN=token,
         )
         return AsaasWebhookView.as_view()(request)
 
@@ -135,3 +136,52 @@ class AsaasWebhookTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(WebhookEvent.objects.count(), 1)
         self.assertIn("sem subscription", WebhookEvent.objects.first().error_message)
+
+    @override_settings(ASAAS_WEBHOOK_TOKEN=WEBHOOK_HEADER_VALUE, ASAAS_API_KEY="")
+    def test_invalid_webhook_token_is_rejected_without_persistence(self):
+        response = self.post_webhook(
+            {"event": "PAYMENT_CREATED", "payment": {"id": "pay_invalid"}},
+            token="invalid-token",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data["detail"], "Webhook inválido.")
+        self.assertFalse(WebhookEvent.objects.exists())
+        self.assertFalse(Payment.objects.filter(gateway_payment_id="pay_invalid").exists())
+
+    @override_settings(ASAAS_WEBHOOK_TOKEN=WEBHOOK_HEADER_VALUE, ASAAS_API_KEY="")
+    def test_sensitive_webhook_fields_are_redacted_in_raw_payloads(self):
+        response = self.post_webhook(
+            {
+                "id": "evt_sensitive_123",
+                "event": "PAYMENT_CONFIRMED",
+                "access_token": "must-not-be-stored",
+                "payment": {
+                    "id": "pay_sensitive_123",
+                    "subscription": "sub_123",
+                    "value": 89.9,
+                    "dueDate": "2026-07-08",
+                    "confirmedDate": timezone.now().isoformat(),
+                    "cpfCnpj": "52998224725",
+                    "creditCardToken": "card-token",
+                    "pixQrCode": "private-qr-code",
+                    "pixCopyPaste": "private-pix-copy-paste",
+                },
+            }
+        )
+
+        self.assertEqual(response.status_code, 200)
+        event = WebhookEvent.objects.get(event_id="evt_sensitive_123")
+        payment = Payment.objects.get(gateway_payment_id="pay_sensitive_123")
+
+        self.assertEqual(event.payload["access_token"], REDACTED_VALUE)
+        self.assertEqual(event.payload["payment"]["cpfCnpj"], REDACTED_VALUE)
+        self.assertEqual(event.payload["payment"]["creditCardToken"], REDACTED_VALUE)
+        self.assertEqual(event.payload["payment"]["pixQrCode"], REDACTED_VALUE)
+        self.assertEqual(payment.raw_payload["cpfCnpj"], REDACTED_VALUE)
+        self.assertEqual(payment.raw_payload["creditCardToken"], REDACTED_VALUE)
+        self.assertEqual(payment.raw_payload["pixCopyPaste"], REDACTED_VALUE)
+
+        # Os campos funcionais continuam disponíveis no registro protegido do pagamento.
+        self.assertEqual(payment.pix_qr_code, "private-qr-code")
+        self.assertEqual(payment.pix_copy_paste, "private-pix-copy-paste")

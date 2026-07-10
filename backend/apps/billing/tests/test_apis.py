@@ -117,6 +117,49 @@ class BillingAPITests(TestCase):
         self.assertEqual(subscription.metadata["checkout"]["billingType"], "BOLETO")
         self.assertNotIn("cpfCnpj", subscription.metadata["checkout"])
 
+    @override_settings(ASAAS_API_KEY="test-api-key")
+    @patch("apps.billing.views.AsaasGateway")
+    def test_one_time_checkout_does_not_expose_raw_gateway_payload(self, gateway_class_mock):
+        gateway_class_mock.return_value.create_payment.return_value = {
+            "id": "pay_public_123",
+            "status": "PENDING",
+            "invoiceUrl": "https://example.com/invoice/123",
+            "bankSlipUrl": "https://example.com/boleto/123",
+            "customer": "cus_private_123",
+            "cpfCnpj": "52998224725",
+            "creditCardToken": "token-that-must-not-leak",
+            "apiKey": "secret-that-must-not-leak",
+        }
+        self.client.force_authenticate(self.user)
+        due_date = (timezone.localdate() + timedelta(days=1)).isoformat()
+
+        response = self.client.post(
+            "/api/v1/billing/checkout/create/",
+            {
+                "plan_slug": self.plan.slug,
+                "type": "ONE_TIME",
+                "billingType": "PIX",
+                "cpfCnpj": "529.982.247-25",
+                "dueDate": due_date,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(
+            response.data["payment"],
+            {
+                "gateway_payment_id": "pay_public_123",
+                "status": "PENDING",
+                "invoiceUrl": "https://example.com/invoice/123",
+                "bankSlipUrl": "https://example.com/boleto/123",
+            },
+        )
+        self.assertNotIn("raw_gateway_response", response.data["payment"])
+        self.assertNotIn("customer", response.data["payment"])
+        self.assertNotIn("cpfCnpj", response.data["payment"])
+        self.assertNotIn("creditCardToken", response.data["payment"])
+
     def test_checkout_rejects_invalid_cpf_cnpj(self):
         self.client.force_authenticate(self.user)
         due_date = (timezone.localdate() + timedelta(days=1)).isoformat()

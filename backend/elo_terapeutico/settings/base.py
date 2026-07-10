@@ -275,8 +275,8 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
-    "CHECK_REVOKE_TOKEN": True,
-    "REVOKE_TOKEN_CLAIM": "hash_password",
+    "CHECK_REVOKE_TOKEN": True,  # nosec B105 -- boolean de configuração do SimpleJWT
+    "REVOKE_TOKEN_CLAIM": "hash_password",  # nosec B105 -- nome público de claim, não senha
 }
 PASSWORD_RESET_TIMEOUT = env.int("PASSWORD_RESET_TIMEOUT", default=900)
 SPECTACULAR_SETTINGS = {

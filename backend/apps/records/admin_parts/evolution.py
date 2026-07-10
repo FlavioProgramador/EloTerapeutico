@@ -1,8 +1,11 @@
 """Admin de evolução clínica."""
 
 from django.contrib import admin
+from django.db.models import Q
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin
+
+from apps.records.services.evolution_security import has_explicit_records_permission
 
 from ..models import Evolution
 from .inlines import EvolutionAddendumInline
@@ -17,11 +20,12 @@ class EvolutionAdmin(ModelAdmin):
         "patient",
         "session_date",
         "cid10",
+        "is_confidential",
         "status_badge",
         "created_by",
         "created_at",
     )
-    list_filter = ("is_locked", "session_date", "created_at")
+    list_filter = ("is_confidential", "is_locked", "session_date", "created_at")
     search_fields = (
         "patient__full_name",
         "cid10",
@@ -38,7 +42,15 @@ class EvolutionAdmin(ModelAdmin):
     fieldsets = (
         (
             "Identificação",
-            {"fields": ("patient", "appointment", "session_date", "cid10")},
+            {
+                "fields": (
+                    "patient",
+                    "appointment",
+                    "session_date",
+                    "cid10",
+                    "is_confidential",
+                )
+            },
         ),
         (
             "Conteúdo da sessão",
@@ -72,7 +84,16 @@ class EvolutionAdmin(ModelAdmin):
         return format_html('<span style="color:#ca8a04;font-weight:bold;">Pendente bloqueio</span>')
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related("patient", "created_by", "appointment")
+        queryset = super().get_queryset(request).select_related(
+            "patient",
+            "created_by",
+            "appointment",
+        )
+        if has_explicit_records_permission(request.user, "view_confidential_evolution"):
+            return queryset
+        return queryset.filter(
+            Q(is_confidential=False) | Q(created_by=request.user)
+        )
 
     def has_delete_permission(self, request, obj=None):
         return False
