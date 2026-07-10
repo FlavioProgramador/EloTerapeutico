@@ -15,9 +15,10 @@ ROOT = Path(__file__).resolve().parents[1]
 EXCLUDED_PARTS = {".git", ".next", ".venv", "venv", "node_modules", "dist", "build"}
 MARKDOWN_LINK = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 SECRET_ASSIGNMENT = re.compile(
-    r"(?im)^\s*(SECRET_KEY|JWT_SECRET|FIELD_ENCRYPTION_KEY(?:_V2)?|"
+    r"(?im)^[ \t]*(SECRET_KEY|JWT_SECRET|FIELD_ENCRYPTION_KEY(?:_V2)?|"
     r"ASAAS_API_KEY|ASAAS_WEBHOOK_TOKEN|AZURE_STORAGE_CONNECTION_STRING|"
-    r"EMAIL_HOST_PASSWORD|POSTGRES_PASSWORD)\s*=\s*([^\s#]+)\s*$"
+    r"EMAIL_HOST_PASSWORD|POSTGRES_PASSWORD)[ \t]*=[ \t]*([^ \t\r\n#]*)"
+    r"[ \t]*(?:#.*)?$"
 )
 TOKEN_PATTERNS = [
     re.compile(r"\bgh[opusr]_[A-Za-z0-9]{20,}\b"),
@@ -111,11 +112,6 @@ def main() -> int:
         fence_count = sum(1 for line in text.splitlines() if line.strip().startswith("```"))
         if fence_count % 2:
             errors.append(f"{relative}: quantidade ímpar de cercas Markdown ({fence_count})")
-
-        mermaid_open = sum(1 for line in text.splitlines() if line.strip() == "```mermaid")
-        if mermaid_open:
-            # A checagem global de cercas acima garante fechamento; aqui apenas registra blocos detectados.
-            pass
 
         for match in MARKDOWN_LINK.finditer(text):
             problem = validate_link(path, match.group(1))
