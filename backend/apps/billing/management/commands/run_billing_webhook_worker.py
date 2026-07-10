@@ -1,4 +1,5 @@
 import time
+from datetime import timedelta
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -41,9 +42,17 @@ class Command(BaseCommand):
         with transaction.atomic():
             event = (
                 WebhookEvent.objects.select_for_update(skip_locked=True)
-                .filter(status__in=[WebhookEvent.Status.RECEIVED, WebhookEvent.Status.RETRY])
+                .filter(
+                    Q(status__in=[WebhookEvent.Status.RECEIVED, WebhookEvent.Status.RETRY])
+                    | Q(status=WebhookEvent.Status.PROCESSING, next_retry_at__lte=now)
+                )
                 .filter(Q(next_retry_at__isnull=True) | Q(next_retry_at__lte=now))
                 .order_by("received_at")
                 .first()
             )
-            return event.pk if event else None
+            if not event:
+                return None
+            event.status = WebhookEvent.Status.PROCESSING
+            event.next_retry_at = now + timedelta(minutes=5)
+            event.save(update_fields=["status", "next_retry_at", "updated_at"])
+            return event.pk
