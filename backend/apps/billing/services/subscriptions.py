@@ -75,6 +75,7 @@ def create_subscription_for_user(
         plan_price=plan_price,
         checkout_data=checkout_data,
         idempotency_key=idempotency_key,
+        gateway=get_gateway(),
     )
     return subscription
 
