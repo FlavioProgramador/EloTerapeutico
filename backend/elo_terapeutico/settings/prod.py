@@ -2,23 +2,36 @@
 
 from django.core.exceptions import ImproperlyConfigured
 
+from core.security_config import require_distinct_secrets, require_strong_secret
+
 from .base import *  # noqa: F401,F403
 
 DEBUG = False
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")  # noqa: F405
 
-if FIELD_ENCRYPTION_KEY == LOCAL_FIELD_ENCRYPTION_KEY:  # noqa: F405
-    raise ImproperlyConfigured("FIELD_ENCRYPTION_KEY deve ser configurada explicitamente em produção.")
+require_strong_secret("SECRET_KEY", SECRET_KEY)  # noqa: F405
+require_strong_secret("JWT_SECRET", SIMPLE_JWT["SIGNING_KEY"])  # noqa: F405
+require_strong_secret(  # noqa: F405
+    "FIELD_ENCRYPTION_KEY",
+    FIELD_ENCRYPTION_KEY,
+    forbidden_values={LOCAL_FIELD_ENCRYPTION_KEY},
+)
+require_strong_secret("ASAAS_WEBHOOK_TOKEN", ASAAS_WEBHOOK_TOKEN)  # noqa: F405
+require_distinct_secrets(  # noqa: F405
+    {
+        "SECRET_KEY": SECRET_KEY,
+        "JWT_SECRET": SIMPLE_JWT["SIGNING_KEY"],
+        "FIELD_ENCRYPTION_KEY": FIELD_ENCRYPTION_KEY,
+        "ASAAS_WEBHOOK_TOKEN": ASAAS_WEBHOOK_TOKEN,
+    }
+)
 
 if "sandbox" in ASAAS_BASE_URL.lower():  # noqa: F405
     raise ImproperlyConfigured("ASAAS_BASE_URL não pode apontar para sandbox em produção.")
 
 if not ASAAS_API_KEY:  # noqa: F405
     raise ImproperlyConfigured("ASAAS_API_KEY deve ser configurada em produção.")
-
-if not ASAAS_WEBHOOK_TOKEN:  # noqa: F405
-    raise ImproperlyConfigured("ASAAS_WEBHOOK_TOKEN deve ser configurado em produção.")
 
 # Segurança e proxy reverso
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
