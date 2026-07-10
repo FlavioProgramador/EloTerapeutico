@@ -1,6 +1,6 @@
 import re
 import uuid
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
@@ -9,6 +9,8 @@ from rest_framework import serializers
 from apps.billing.models import BillingOrder, Payment, Plan, PlanPrice, Subscription
 from apps.billing.services.orders import preview_order
 from core.validators import validate_cpf as validate_cpf_value
+
+MONEY = Decimal("0.01")
 
 
 def _validate_cnpj(value: str) -> None:
@@ -49,7 +51,7 @@ class PlanPriceSerializer(serializers.ModelSerializer):
 
     def get_installment_amount_from_max(self, obj):
         count = obj.max_installments if obj.installments_enabled else 1
-        return str(preview_order(obj, count)["installment_amount_estimate"])
+        return str((obj.total_amount / Decimal(count)).quantize(MONEY, rounding=ROUND_HALF_UP))
 
     def get_available(self, obj):
         return obj.is_available()
