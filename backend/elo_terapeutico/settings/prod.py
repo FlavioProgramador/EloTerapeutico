@@ -12,18 +12,18 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")  # noqa: F405
 
 require_strong_secret("SECRET_KEY", SECRET_KEY)  # noqa: F405
 require_strong_secret("JWT_SECRET", SIMPLE_JWT["SIGNING_KEY"])  # noqa: F405
-require_strong_secret(  # noqa: F405
+require_strong_secret(
     "FIELD_ENCRYPTION_KEY",
-    FIELD_ENCRYPTION_KEY,
-    forbidden_values={LOCAL_FIELD_ENCRYPTION_KEY},
+    FIELD_ENCRYPTION_KEY,  # noqa: F405
+    forbidden_values={LOCAL_FIELD_ENCRYPTION_KEY},  # noqa: F405
 )
 require_strong_secret("ASAAS_WEBHOOK_TOKEN", ASAAS_WEBHOOK_TOKEN)  # noqa: F405
-require_distinct_secrets(  # noqa: F405
+require_distinct_secrets(
     {
-        "SECRET_KEY": SECRET_KEY,
-        "JWT_SECRET": SIMPLE_JWT["SIGNING_KEY"],
-        "FIELD_ENCRYPTION_KEY": FIELD_ENCRYPTION_KEY,
-        "ASAAS_WEBHOOK_TOKEN": ASAAS_WEBHOOK_TOKEN,
+        "SECRET_KEY": SECRET_KEY,  # noqa: F405
+        "JWT_SECRET": SIMPLE_JWT["SIGNING_KEY"],  # noqa: F405
+        "FIELD_ENCRYPTION_KEY": FIELD_ENCRYPTION_KEY,  # noqa: F405
+        "ASAAS_WEBHOOK_TOKEN": ASAAS_WEBHOOK_TOKEN,  # noqa: F405
     }
 )
 
