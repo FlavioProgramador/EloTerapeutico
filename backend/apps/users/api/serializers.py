@@ -17,7 +17,7 @@ from rest_framework_simplejwt.utils import get_md5_hash_password
 from ..models import User, WorkingHours
 
 _INVALID_CREDENTIALS_MESSAGE = "E-mail ou senha incorretos."
-_INVALID_TOKEN_MESSAGE = "Token inválido ou expirado."
+_INVALID_TOKEN_MESSAGE = "Token inválido ou expirado."  # nosec B105 -- mensagem pública, não credencial
 
 
 def _validate_password_strength(password: str, *, user=None, field: str = "password") -> None:
@@ -53,7 +53,9 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         password_confirm = attrs.pop("password_confirm")
         if attrs["password"] != password_confirm:
-            raise serializers.ValidationError({"password_confirm": "As senhas não conferem."})
+            raise serializers.ValidationError(
+                {"password_confirm": "As senhas não conferem."}  # nosec B105 -- mensagem de validação
+            )
 
         candidate_user = User(
             email=attrs.get("email", ""),
@@ -125,7 +127,9 @@ class ChangePasswordSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs["new_password"] != attrs["new_password_confirm"]:
-            raise serializers.ValidationError({"new_password_confirm": "As novas senhas não conferem."})
+            raise serializers.ValidationError(
+                {"new_password_confirm": "As novas senhas não conferem."}  # nosec B105 -- mensagem de validação
+            )
         _validate_password_strength(
             attrs["new_password"],
             user=self.context["request"].user,
@@ -224,16 +228,22 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs["new_password"] != attrs["new_password_confirm"]:
-            raise serializers.ValidationError({"new_password_confirm": "As senhas não conferem."})
+            raise serializers.ValidationError(
+                {"new_password_confirm": "As senhas não conferem."}  # nosec B105 -- mensagem de validação
+            )
 
         try:
             uid = force_str(urlsafe_base64_decode(attrs["uidb64"]))
             user = User.objects.get(pk=uid)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            raise serializers.ValidationError({"token": "O link de redefinição é inválido ou expirou."})
+            raise serializers.ValidationError(
+                {"token": "O link de redefinição é inválido ou expirou."}  # nosec B105 -- mensagem pública
+            )
 
         if not default_token_generator.check_token(user, attrs["token"]):
-            raise serializers.ValidationError({"token": "O link de redefinição é inválido ou expirou."})
+            raise serializers.ValidationError(
+                {"token": "O link de redefinição é inválido ou expirou."}  # nosec B105 -- mensagem pública
+            )
 
         _validate_password_strength(attrs["new_password"], user=user, field="new_password")
         attrs["user"] = user
