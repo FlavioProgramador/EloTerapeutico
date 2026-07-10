@@ -173,6 +173,11 @@ class FinancialTransaction(models.Model):
             models.CheckConstraint(condition=Q(amount__gt=0), name="fin_amount_positive"),
             models.CheckConstraint(condition=Q(paid_amount__gte=0), name="fin_paid_amount_non_negative"),
             models.CheckConstraint(condition=Q(paid_amount__lte=models.F("amount")), name="fin_paid_amount_lte_amount"),
+            models.UniqueConstraint(
+                fields=["appointment"],
+                condition=Q(appointment__isnull=False, source="appointment"),
+                name="fin_unique_appointment_source",
+            ),
         ]
 
     def __str__(self) -> str:

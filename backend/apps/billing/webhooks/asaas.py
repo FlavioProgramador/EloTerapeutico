@@ -4,7 +4,9 @@ import logging
 from datetime import datetime
 from decimal import Decimal
 
-from django.db import transaction
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.billing.models import Payment, Subscription, WebhookEvent
@@ -21,6 +23,42 @@ PAYMENT_STATUS_BY_EVENT = {
     "PAYMENT_OVERDUE": Payment.Status.OVERDUE,
     "PAYMENT_DELETED": Payment.Status.CANCELED,
     "PAYMENT_REFUNDED": Payment.Status.REFUNDED,
+}
+
+PAYMENT_STATUS_TRANSITIONS = {
+    Payment.Status.PENDING: {
+        Payment.Status.PENDING,
+        Payment.Status.CONFIRMED,
+        Payment.Status.RECEIVED,
+        Payment.Status.OVERDUE,
+        Payment.Status.REFUNDED,
+        Payment.Status.CANCELED,
+        Payment.Status.FAILED,
+    },
+    Payment.Status.OVERDUE: {
+        Payment.Status.OVERDUE,
+        Payment.Status.CONFIRMED,
+        Payment.Status.RECEIVED,
+        Payment.Status.REFUNDED,
+        Payment.Status.CANCELED,
+    },
+    Payment.Status.CONFIRMED: {
+        Payment.Status.CONFIRMED,
+        Payment.Status.RECEIVED,
+        Payment.Status.REFUNDED,
+    },
+    Payment.Status.RECEIVED: {
+        Payment.Status.RECEIVED,
+        Payment.Status.REFUNDED,
+    },
+    Payment.Status.REFUNDED: {Payment.Status.REFUNDED},
+    Payment.Status.CANCELED: {Payment.Status.CANCELED},
+    Payment.Status.FAILED: {
+        Payment.Status.FAILED,
+        Payment.Status.PENDING,
+        Payment.Status.CONFIRMED,
+        Payment.Status.RECEIVED,
+    },
 }
 
 
@@ -63,17 +101,24 @@ def _parse_due_date(payment_data: dict):
         return None
 
 
+def _can_transition_payment(current_status: str, next_status: str) -> bool:
+    return next_status in PAYMENT_STATUS_TRANSITIONS.get(current_status, {current_status})
+
+
 def _upsert_payment(subscription: Subscription, payment_data: dict, event_type: str) -> Payment:
     gateway_payment_id = payment_data.get("id")
-    status = PAYMENT_STATUS_BY_EVENT.get(event_type, Payment.Status.PENDING)
+    if not gateway_payment_id:
+        raise ValidationError("Evento de pagamento sem identificador do gateway.")
+
+    next_status = PAYMENT_STATUS_BY_EVENT.get(event_type, Payment.Status.PENDING)
     defaults = {
         "subscription": subscription,
         "user": subscription.user,
         "amount": Decimal(str(payment_data.get("value") or subscription.plan.price)),
         "currency": subscription.plan.currency,
-        "status": status,
+        "status": next_status,
         "due_date": _parse_due_date(payment_data),
-        "paid_at": _parse_paid_at(payment_data) if status in {Payment.Status.CONFIRMED, Payment.Status.RECEIVED} else None,
+        "paid_at": _parse_paid_at(payment_data) if next_status in {Payment.Status.CONFIRMED, Payment.Status.RECEIVED} else None,
         "gateway_subscription_id": payment_data.get("subscription") or subscription.gateway_subscription_id,
         "invoice_url": payment_data.get("invoiceUrl") or "",
         "bank_slip_url": payment_data.get("bankSlipUrl") or "",
@@ -81,21 +126,43 @@ def _upsert_payment(subscription: Subscription, payment_data: dict, event_type: 
         "pix_copy_paste": payment_data.get("pixCopyPaste") or "",
         "raw_payload": redact_sensitive_data(payment_data),
     }
-    if gateway_payment_id:
-        payment, _ = Payment.objects.update_or_create(gateway_payment_id=gateway_payment_id, defaults=defaults)
+
+    payment, created = Payment.objects.select_for_update().get_or_create(
+        gateway_payment_id=gateway_payment_id,
+        defaults=defaults,
+    )
+    if created:
         return payment
-    return Payment.objects.create(gateway_payment_id=None, **defaults)
+
+    update_fields = []
+    for field, value in defaults.items():
+        if field == "status":
+            continue
+        setattr(payment, field, value)
+        update_fields.append(field)
+
+    if _can_transition_payment(payment.status, next_status):
+        payment.status = next_status
+        update_fields.append("status")
+
+    payment.save(update_fields=[*update_fields, "updated_at"])
+    return payment
 
 
 def _process_payment_event(event_type: str, payment_data: dict) -> str:
     gateway_subscription_id = payment_data.get("subscription")
     if not gateway_subscription_id:
         return "Evento de pagamento sem subscription no payload."
-    subscription = Subscription.objects.select_related("plan", "user").filter(
-        gateway_subscription_id=gateway_subscription_id,
-    ).first()
+
+    subscription = (
+        Subscription.objects.select_for_update()
+        .select_related("plan", "user")
+        .filter(gateway_subscription_id=gateway_subscription_id)
+        .first()
+    )
     if not subscription:
         return f"Assinatura local não encontrada para {gateway_subscription_id}."
+
     payment = _upsert_payment(subscription, payment_data, event_type)
     if event_type in {"PAYMENT_CONFIRMED", "PAYMENT_RECEIVED"}:
         activate_subscription_from_payment(subscription, payment)
@@ -108,12 +175,18 @@ def _process_subscription_event(event_type: str, subscription_data: dict) -> str
     gateway_subscription_id = subscription_data.get("id")
     if not gateway_subscription_id:
         return "Evento de assinatura sem id no payload."
-    subscription = Subscription.objects.filter(gateway_subscription_id=gateway_subscription_id).first()
+
+    subscription = (
+        Subscription.objects.select_for_update()
+        .filter(gateway_subscription_id=gateway_subscription_id)
+        .first()
+    )
     if not subscription:
         return f"Assinatura local não encontrada para {gateway_subscription_id}."
+
     subscription.gateway_status = subscription_data.get("status", subscription.gateway_status)
     subscription.metadata = {
-        **subscription.metadata,
+        **(subscription.metadata or {}),
         "last_subscription_webhook": redact_sensitive_data(subscription_data),
     }
     update_fields = ["gateway_status", "metadata", "updated_at"]
@@ -125,13 +198,7 @@ def _process_subscription_event(event_type: str, subscription_data: dict) -> str
     return "processed"
 
 
-@transaction.atomic
-def handle_asaas_webhook(request) -> WebhookEvent:
-    payload = AsaasGateway(require_api_key=False).parse_webhook(request)
-    event_type = payload.get("event", "UNKNOWN")
-    event_hash = _payload_hash(payload)
-    event_identifier = _event_id(payload)
-
+def _persist_webhook_event(*, payload: dict, event_type: str, event_hash: str, event_identifier: str | None) -> WebhookEvent:
     defaults = {
         "gateway_name": "ASAAS",
         "event_type": event_type,
@@ -144,24 +211,54 @@ def handle_asaas_webhook(request) -> WebhookEvent:
         lookup = {"payload_hash": event_hash}
         defaults["event_id"] = None
 
-    webhook_event, created = WebhookEvent.objects.get_or_create(
-        **lookup,
-        defaults=defaults,
+    try:
+        with transaction.atomic():
+            webhook_event, _ = WebhookEvent.objects.get_or_create(
+                **lookup,
+                defaults=defaults,
+            )
+            return webhook_event
+    except IntegrityError:
+        query = Q(payload_hash=event_hash)
+        if event_identifier:
+            query |= Q(event_id=event_identifier)
+        return WebhookEvent.objects.get(query)
+
+
+def handle_asaas_webhook(request) -> WebhookEvent:
+    """Persiste o evento e processa seus efeitos em uma transação separada e curta."""
+    payload = AsaasGateway(require_api_key=False).parse_webhook(request)
+    event_type = payload.get("event", "UNKNOWN")
+    event_hash = _payload_hash(payload)
+    event_identifier = _event_id(payload)
+    webhook_event = _persist_webhook_event(
+        payload=payload,
+        event_type=event_type,
+        event_hash=event_hash,
+        event_identifier=event_identifier,
     )
-    if not created and webhook_event.processed:
+
+    if webhook_event.processed:
         return webhook_event
 
     try:
-        if event_type.startswith("PAYMENT_"):
-            result = _process_payment_event(event_type, payload.get("payment") or {})
-        elif event_type.startswith("SUBSCRIPTION_"):
-            result = _process_subscription_event(event_type, payload.get("subscription") or {})
-        else:
-            result = f"Evento ignorado: {event_type}."
-        webhook_event.error_message = "" if result == "processed" else result
-        webhook_event.processed = True
-        webhook_event.processed_at = timezone.now()
-        webhook_event.save(update_fields=["processed", "processed_at", "error_message"])
+        with transaction.atomic():
+            locked_event = WebhookEvent.objects.select_for_update().get(pk=webhook_event.pk)
+            if locked_event.processed:
+                return locked_event
+
+            if event_type.startswith("PAYMENT_"):
+                result = _process_payment_event(event_type, payload.get("payment") or {})
+            elif event_type.startswith("SUBSCRIPTION_"):
+                result = _process_subscription_event(event_type, payload.get("subscription") or {})
+            else:
+                result = f"Evento ignorado: {event_type}."
+
+            locked_event.error_message = "" if result == "processed" else result
+            locked_event.processed = True
+            locked_event.processed_at = timezone.now()
+            locked_event.save(update_fields=["processed", "processed_at", "error_message"])
+            return locked_event
     except Exception as exc:
         logger.error(
             "asaas_webhook_processing_error",
@@ -170,7 +267,10 @@ def handle_asaas_webhook(request) -> WebhookEvent:
                 "exception_type": exc.__class__.__name__,
             },
         )
-        webhook_event.error_message = "Falha interna ao processar o evento."
-        webhook_event.processed = False
-        webhook_event.save(update_fields=["processed", "error_message"])
-    return webhook_event
+        with transaction.atomic():
+            locked_event = WebhookEvent.objects.select_for_update().get(pk=webhook_event.pk)
+            if not locked_event.processed:
+                locked_event.error_message = "Falha interna ao processar o evento."
+                locked_event.processed_at = None
+                locked_event.save(update_fields=["processed_at", "error_message"])
+            return locked_event
