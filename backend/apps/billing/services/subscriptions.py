@@ -119,6 +119,13 @@ def create_subscription_for_user(
         idempotency_key=idempotency_key,
         gateway=_RecurringGatewayAdapter(get_gateway()),
     )
+    activation_rule = "Acesso liberado somente após webhook de confirmação do gateway."
+    if (subscription.metadata or {}).get("activation_rule") != activation_rule:
+        subscription.metadata = {
+            **(subscription.metadata or {}),
+            "activation_rule": activation_rule,
+        }
+        subscription.save(update_fields=["metadata", "updated_at"])
     return subscription
 
 
