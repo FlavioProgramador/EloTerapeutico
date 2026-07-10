@@ -16,6 +16,7 @@ from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -33,6 +34,17 @@ from .serializers import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _refresh_token_for_user(raw_token: str, user) -> RefreshToken:
+    """Valida o refresh token e confirma que pertence ao usuário autenticado."""
+
+    token = RefreshToken(raw_token)
+    claim_name = settings.SIMPLE_JWT.get("USER_ID_CLAIM", "user_id")
+    token_user_id = token.payload.get(claim_name)
+    if token_user_id is None or str(token_user_id) != str(user.pk):
+        raise TokenError("Refresh token não pertence ao usuário autenticado.")
+    return token
 
 
 @extend_schema(tags=["auth"])
@@ -92,8 +104,8 @@ class LogoutView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         try:
-            RefreshToken(refresh_token).blacklist()
-        except Exception:
+            _refresh_token_for_user(refresh_token, request.user).blacklist()
+        except TokenError:
             return Response(
                 {
                     "error": {
