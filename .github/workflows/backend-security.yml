@@ -97,11 +97,54 @@ jobs:
         run: pytest --create-db
 
       - name: Bandit
-        run: bandit -r apps core infrastructure elo_terapeutico -c pyproject.toml -f screen
+        id: bandit
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          bandit -r apps core infrastructure elo_terapeutico -c pyproject.toml -f screen 2>&1 | tee /tmp/bandit-output.txt
+
+      - name: Publicar relatório do Bandit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-security-bandit
+          path: /tmp/bandit-output.txt
+          retention-days: 3
+          if-no-files-found: error
 
       - name: Auditoria de dependências Python
-        run: pip-audit -r requirements/base.txt
+        id: pip_audit
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          pip-audit -r requirements/base.txt 2>&1 | tee /tmp/pip-audit-output.txt
 
-      - name: Falhar quando Ruff encontrar problemas
-        if: always() && steps.ruff.outcome == 'failure'
-        run: exit 1
+      - name: Publicar relatório do pip-audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-security-pip-audit
+          path: /tmp/pip-audit-output.txt
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Validar gates de segurança
+        if: always()
+        shell: bash
+        run: |
+          failed=0
+          if [ "${{ steps.ruff.outcome }}" = "failure" ]; then
+            echo "Ruff encontrou problemas."
+            failed=1
+          fi
+          if [ "${{ steps.bandit.outcome }}" = "failure" ]; then
+            echo "Bandit encontrou problemas."
+            failed=1
+          fi
+          if [ "${{ steps.pip_audit.outcome }}" = "failure" ]; then
+            echo "pip-audit encontrou vulnerabilidades."
+            failed=1
+          fi
+          exit "$failed"
