@@ -1,4 +1,0 @@
-python manage.py migrate
-pytest apps/financeiro/tests
-npm run lint
-npm run build

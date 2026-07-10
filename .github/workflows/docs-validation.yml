@@ -1,0 +1,65 @@
+name: Documentation Validation
+
+on:
+  push:
+    branches:
+      - "docs/**"
+    paths:
+      - "README.md"
+      - "docs/**"
+      - "scripts/validate_docs.py"
+      - ".env.example"
+      - "backend/.env.example"
+      - "frontend/.env.example"
+      - ".github/workflows/docs-validation.yml"
+  pull_request:
+    paths:
+      - "README.md"
+      - "docs/**"
+      - "scripts/validate_docs.py"
+      - ".env.example"
+      - "backend/.env.example"
+      - "frontend/.env.example"
+      - ".github/workflows/docs-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Links, Markdown and secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Validate documentation
+        id: validation
+        continue-on-error: true
+        run: python3 scripts/validate_docs.py > docs-validation.log 2>&1
+
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-validation-report
+          path: docs-validation.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Show validation report
+        if: always()
+        run: cat docs-validation.log
+
+      - name: Fail when validation found errors
+        if: steps.validation.outcome == 'failure'
+        run: exit 1
