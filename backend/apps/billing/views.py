@@ -38,8 +38,11 @@ from apps.billing.webhooks.asaas import handle_asaas_webhook
 logger = logging.getLogger(__name__)
 
 
-def _validation_detail(exc: DjangoValidationError) -> str:
-    return exc.messages[0] if getattr(exc, "messages", None) else str(exc)
+def _validation_error_response() -> Response:
+    return Response(
+        {"detail": "Não foi possível concluir a operação com os dados informados."},
+        status=status.HTTP_400_BAD_REQUEST,
+    )
 
 
 def _gateway_error_response(operation: str) -> Response:
@@ -78,7 +81,16 @@ def _checkout_response_payload(validated_data: dict) -> dict:
 
 
 def _service_checkout_data(validated_data: dict) -> dict:
-    blocked = {"plan", "plan_price", "preview", "idempotency_key", "plan_id", "plan_slug", "plan_price_id", "plan_price_slug"}
+    blocked = {
+        "plan",
+        "plan_price",
+        "preview",
+        "idempotency_key",
+        "plan_id",
+        "plan_slug",
+        "plan_price_id",
+        "plan_price_slug",
+    }
     return {key: value for key, value in validated_data.items() if key not in blocked}
 
 
@@ -138,12 +150,16 @@ class CheckoutCreateView(APIView):
                 checkout_data=_service_checkout_data(checkout_data),
                 idempotency_key=checkout_data["idempotency_key"],
             )
-        except DjangoValidationError as exc:
-            return Response({"detail": _validation_detail(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except DjangoValidationError:
+            return _validation_error_response()
         except GatewayError:
             return _gateway_error_response("checkout_create")
 
-        order = BillingOrder.objects.select_related("plan", "plan_price").prefetch_related("payments").get(pk=order.pk)
+        order = (
+            BillingOrder.objects.select_related("plan", "plan_price")
+            .prefetch_related("payments")
+            .get(pk=order.pk)
+        )
         payload = _checkout_response_payload(checkout_data)
         payload["order"] = BillingOrderSerializer(order).data
         payload["subscription"] = SubscriptionSerializer(subscription).data
@@ -160,8 +176,8 @@ class CreateSubscriptionView(APIView):
         serializer.is_valid(raise_exception=True)
         try:
             subscription = create_subscription_for_user(request.user, serializer.validated_data["plan"])
-        except DjangoValidationError as exc:
-            return Response({"detail": _validation_detail(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except DjangoValidationError:
+            return _validation_error_response()
         except GatewayError:
             return _gateway_error_response("subscription_create")
         return Response(SubscriptionSerializer(subscription).data, status=status.HTTP_201_CREATED)
@@ -173,8 +189,8 @@ class CancelSubscriptionView(APIView):
     def post(self, request):
         try:
             subscription = cancel_subscription(request.user)
-        except DjangoValidationError as exc:
-            return Response({"detail": _validation_detail(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except DjangoValidationError:
+            return _validation_error_response()
         except GatewayError:
             return _gateway_error_response("subscription_cancel")
         return Response(SubscriptionSerializer(subscription).data)
@@ -186,8 +202,8 @@ class ScheduleCancellationView(APIView):
     def post(self, request):
         try:
             subscription = schedule_subscription_cancellation(request.user)
-        except DjangoValidationError as exc:
-            return Response({"detail": _validation_detail(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except DjangoValidationError:
+            return _validation_error_response()
         return Response(SubscriptionSerializer(subscription).data)
 
 
@@ -197,8 +213,8 @@ class ResumeSubscriptionView(APIView):
     def post(self, request):
         try:
             subscription = resume_subscription_cancellation(request.user)
-        except DjangoValidationError as exc:
-            return Response({"detail": _validation_detail(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except DjangoValidationError:
+            return _validation_error_response()
         return Response(SubscriptionSerializer(subscription).data)
 
 
@@ -210,8 +226,8 @@ class ChangePlanView(APIView):
         serializer.is_valid(raise_exception=True)
         try:
             subscription = change_plan(request.user, serializer.validated_data["plan"])
-        except DjangoValidationError as exc:
-            return Response({"detail": _validation_detail(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except DjangoValidationError:
+            return _validation_error_response()
         return Response(
             {
                 "subscription": SubscriptionSerializer(subscription).data,
@@ -274,12 +290,16 @@ class PaymentRefreshView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
-        payment = Payment.objects.select_related("billing_order", "subscription").filter(
-            pk=pk,
-            user_id=request.user.pk,
-        ).first()
+        payment = (
+            Payment.objects.select_related("billing_order", "subscription")
+            .filter(pk=pk, user_id=request.user.pk)
+            .first()
+        )
         if not payment or not payment.billing_order or not payment.gateway_payment_id:
-            return Response({"detail": "Fatura não encontrada ou indisponível para sincronização."}, status=404)
+            return Response(
+                {"detail": "Fatura não encontrada ou indisponível para sincronização."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         try:
             payload = AsaasGateway().get_payment(payment.gateway_payment_id)
             payment = upsert_gateway_payment(
@@ -336,7 +356,9 @@ class BillingIntegrationHealthView(APIView):
                 "environment": "SANDBOX" if "sandbox" in settings.ASAAS_BASE_URL.lower() else "PRODUCTION",
                 "detail": detail,
                 "last_webhook_at": last_event.received_at if last_event else None,
-                "pending_events": WebhookEvent.objects.filter(status__in=[WebhookEvent.Status.RECEIVED, WebhookEvent.Status.RETRY]).count(),
+                "pending_events": WebhookEvent.objects.filter(
+                    status__in=[WebhookEvent.Status.RECEIVED, WebhookEvent.Status.RETRY]
+                ).count(),
                 "failed_events": WebhookEvent.objects.filter(status=WebhookEvent.Status.FAILED).count(),
             },
             status=status.HTTP_200_OK if connected else status.HTTP_503_SERVICE_UNAVAILABLE,
