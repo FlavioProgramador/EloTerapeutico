@@ -7,22 +7,26 @@ from apps.records.api.views.clinical_views import (
     AnamnesisVersionListView,
     ClinicalAiSummaryStatusView,
     ClinicalAnamnesisView,
-    ClinicalDocumentDetailView,
-    ClinicalDocumentDownloadView,
-    ClinicalDocumentListCreateView,
-    ClinicalExportDownloadView,
-    ClinicalExportListCreateView,
-    ClinicalExportRetryView,
     ClinicalFormResponseDetailView,
     ClinicalFormResponseListCreateView,
     EvolutionDuplicateView,
-    PatientRecordPdfView,
-    PatientRecordSummaryView,
     TreatmentGoalDetailView,
     TreatmentGoalListCreateView,
 )
 from apps.records.api.views.finalize_views import EvolutionFinalizeFreshView
 from apps.records.api.views.legacy_views import AnamnesisView, EvolutionViewSet
+from apps.records.api.views.secure_document_views import (
+    SecureClinicalDocumentDetailView,
+    SecureClinicalDocumentDownloadView,
+    SecureClinicalDocumentListCreateView,
+)
+from apps.records.api.views.secure_export_views import (
+    SecureClinicalExportDownloadView,
+    SecureClinicalExportListCreateView,
+    SecureClinicalExportRetryView,
+    SecurePatientRecordPdfView,
+)
+from apps.records.api.views.secure_summary_views import SecurePatientRecordSummaryView
 
 from .api.evolution_attachment_detail_views import (
     EvolutionAttachmentDetailView,
@@ -50,7 +54,7 @@ urlpatterns = [
     ),
     path(
         "patients/<int:patient_id>/workspace/",
-        PatientRecordSummaryView.as_view(),
+        SecurePatientRecordSummaryView.as_view(),
         name="patient-record-workspace",
     ),
     path(
@@ -80,12 +84,12 @@ urlpatterns = [
     ),
     path(
         "patients/<int:patient_id>/documents/",
-        ClinicalDocumentListCreateView.as_view(),
+        SecureClinicalDocumentListCreateView.as_view(),
         name="clinical-documents",
     ),
     path(
         "patients/<int:patient_id>/export-pdf/",
-        PatientRecordPdfView.as_view(),
+        SecurePatientRecordPdfView.as_view(),
         name="patient-record-pdf",
     ),
     path(
@@ -105,17 +109,17 @@ urlpatterns = [
     ),
     path(
         "patients/<int:patient_id>/exports/",
-        ClinicalExportListCreateView.as_view(),
+        SecureClinicalExportListCreateView.as_view(),
         name="patient-exports",
     ),
     path(
         "exports/<int:pk>/retry/",
-        ClinicalExportRetryView.as_view(),
+        SecureClinicalExportRetryView.as_view(),
         name="export-retry",
     ),
     path(
         "exports/<int:pk>/download/",
-        ClinicalExportDownloadView.as_view(),
+        SecureClinicalExportDownloadView.as_view(),
         name="export-download",
     ),
     path(
@@ -165,12 +169,12 @@ urlpatterns = [
     ),
     path(
         "documents/<int:pk>/",
-        ClinicalDocumentDetailView.as_view(),
+        SecureClinicalDocumentDetailView.as_view(),
         name="clinical-document-detail",
     ),
     path(
         "documents/<int:pk>/download/",
-        ClinicalDocumentDownloadView.as_view(),
+        SecureClinicalDocumentDownloadView.as_view(),
         name="clinical-document-download",
     ),
     path("", include(router.urls)),

@@ -1,6 +1,10 @@
 """Handler global e padronizado de exceções da API REST."""
 
+from __future__ import annotations
+
 import logging
+import re
+import secrets
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import Http404
@@ -10,8 +14,29 @@ from rest_framework.views import exception_handler
 
 logger = logging.getLogger(__name__)
 
+_REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,64}$")
+
+
+def _get_request_id(context) -> str:
+    request = context.get("request") if isinstance(context, dict) else None
+    supplied = ""
+    if request is not None:
+        supplied = str(request.headers.get("X-Request-ID", ""))
+    if supplied and _REQUEST_ID_PATTERN.fullmatch(supplied):
+        return supplied
+    return secrets.token_hex(16)
+
+
+def _secure_error_response(response: Response, request_id: str) -> Response:
+    response["X-Request-ID"] = request_id
+    response["Cache-Control"] = "private, no-store, max-age=0"
+    response["Pragma"] = "no-cache"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
 
 def custom_exception_handler(exc, context):
+    request_id = _get_request_id(context)
     response = exception_handler(exc, context)
 
     if response is not None:
@@ -22,22 +47,23 @@ def custom_exception_handler(exc, context):
                 "details": response.data if isinstance(response.data, dict) else None,
             }
         }
-        return response
+        return _secure_error_response(response, request_id)
 
     if isinstance(exc, ValidationError):
-        return Response(
+        response = Response(
             {
                 "error": {
                     "code": "VALIDATION_ERROR",
-                    "message": str(exc),
+                    "message": _validation_error_message(exc),
                     "details": None,
                 }
             },
             status=status.HTTP_400_BAD_REQUEST,
         )
+        return _secure_error_response(response, request_id)
 
     if isinstance(exc, PermissionDenied):
-        return Response(
+        response = Response(
             {
                 "error": {
                     "code": "PERMISSION_DENIED",
@@ -47,9 +73,10 @@ def custom_exception_handler(exc, context):
             },
             status=status.HTTP_403_FORBIDDEN,
         )
+        return _secure_error_response(response, request_id)
 
     if isinstance(exc, Http404):
-        return Response(
+        response = Response(
             {
                 "error": {
                     "code": "NOT_FOUND",
@@ -59,9 +86,21 @@ def custom_exception_handler(exc, context):
             },
             status=status.HTTP_404_NOT_FOUND,
         )
+        return _secure_error_response(response, request_id)
 
-    logger.exception("Erro interno não tratado: %s", exc)
-    return Response(
+    # Não use logger.exception aqui: a representação textual da exceção pode
+    # conter SQL, tokens, CPF ou conteúdo clínico. O tipo e o request_id são
+    # suficientes para correlação; detalhes devem ser coletados por uma solução
+    # de observabilidade com redaction explícita.
+    logger.error(
+        "api_unhandled_exception",
+        extra={
+            "request_id": request_id,
+            "exception_type": exc.__class__.__name__,
+            "view": _view_name(context),
+        },
+    )
+    response = Response(
         {
             "error": {
                 "code": "INTERNAL_ERROR",
@@ -71,6 +110,19 @@ def custom_exception_handler(exc, context):
         },
         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
+    return _secure_error_response(response, request_id)
+
+
+def _validation_error_message(exc: ValidationError) -> str:
+    messages = getattr(exc, "messages", None)
+    if messages:
+        return str(messages[0])
+    return "Os dados enviados são inválidos."
+
+
+def _view_name(context) -> str:
+    view = context.get("view") if isinstance(context, dict) else None
+    return view.__class__.__name__ if view is not None else "unknown"
 
 
 def _get_error_code(exc, status_code: int) -> str:

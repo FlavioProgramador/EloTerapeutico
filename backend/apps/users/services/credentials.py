@@ -30,5 +30,8 @@ def request_password_reset(*, email: str) -> None:
             user_name=user.full_name,
             reset_url=reset_url,
         )
-    except Exception:
-        logger.exception("Erro ao enviar e-mail de redefinição")
+    except Exception as exc:
+        logger.error(
+            "password_reset_email_failed",
+            extra={"exception_type": exc.__class__.__name__},
+        )

@@ -1,13 +1,73 @@
 # mypy: ignore-errors
 """Trilha de auditoria compartilhada para dados sensíveis."""
 
-import logging
+from __future__ import annotations
 
+import ipaddress
+import logging
+import re
+
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 
 from apps.audit.models import AuditLog
 
 logger = logging.getLogger(__name__)
+
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
+MAX_OBJECT_REPR_LENGTH = 200
+MAX_USER_AGENT_LENGTH = 512
+
+
+def _clean_text(value: object, *, max_length: int) -> str:
+    text = _CONTROL_CHARS.sub(" ", str(value or ""))
+    text = " ".join(text.split())
+    return text[:max_length]
+
+
+def _safe_object_repr(obj=None, explicit: str = "") -> str:
+    """Gera descrição mínima sem depender de ``str(obj)``.
+
+    Métodos ``__str__`` frequentemente incluem nomes, e-mails ou trechos de
+    prontuário. Quando o chamador não fornece uma descrição explícita, o log
+    registra somente o rótulo técnico do modelo e sua chave primária.
+    """
+
+    if explicit:
+        return _clean_text(explicit, max_length=MAX_OBJECT_REPR_LENGTH)
+    if obj is None:
+        return ""
+    model_label = getattr(getattr(obj, "_meta", None), "label", obj.__class__.__name__)
+    object_id = getattr(obj, "pk", None)
+    suffix = f"#{object_id}" if object_id is not None else "#sem-id"
+    return _clean_text(f"{model_label}{suffix}", max_length=MAX_OBJECT_REPR_LENGTH)
+
+
+def _valid_ip(value: object) -> str | None:
+    candidate = str(value or "").strip()
+    if not candidate:
+        return None
+    try:
+        return str(ipaddress.ip_address(candidate))
+    except ValueError:
+        return None
+
+
+def _get_client_ip(request) -> str | None:
+    """Obtém IP sem confiar em cabeçalhos de proxy por padrão."""
+
+    if getattr(settings, "TRUST_PROXY_CLIENT_IP_HEADERS", False):
+        azure_client_ip = _valid_ip(request.META.get("HTTP_X_AZURE_CLIENTIP"))
+        if azure_client_ip:
+            return azure_client_ip
+
+        forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR", "")
+        if forwarded_for:
+            forwarded_ip = _valid_ip(forwarded_for.split(",", 1)[0])
+            if forwarded_ip:
+                return forwarded_ip
+
+    return _valid_ip(request.META.get("REMOTE_ADDR"))
 
 
 def log_access(request, action: str, obj=None, obj_repr: str = "") -> None:
@@ -22,20 +82,19 @@ def log_access(request, action: str, obj=None, obj_repr: str = "") -> None:
             user=request.user if request.user.is_authenticated else None,
             action=action,
             ip_address=_get_client_ip(request),
-            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+            user_agent=_clean_text(
+                request.META.get("HTTP_USER_AGENT", ""),
+                max_length=MAX_USER_AGENT_LENGTH,
+            ),
             content_type=content_type,
             object_id=object_id,
-            object_repr=obj_repr or str(obj),
+            object_repr=_safe_object_repr(obj, obj_repr),
         )
-    except Exception:
-        logger.exception("Falha ao registrar log de auditoria")
-
-
-def _get_client_ip(request) -> str:
-    forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-    if forwarded_for:
-        return forwarded_for.split(",")[0].strip()
-    return request.META.get("REMOTE_ADDR", "")
+    except Exception as exc:
+        logger.error(
+            "audit_log_write_failed",
+            extra={"exception_type": exc.__class__.__name__},
+        )
 
 
 class AuditLogMixin:

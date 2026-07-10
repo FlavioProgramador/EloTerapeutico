@@ -8,3 +8,6 @@ django-health-check>=3.18,<3.19
 
 # Whitenoise para arquivos estáticos
 whitenoise>=6.6,<6.7
+
+# Storage privado e persistente para documentos clínicos
+django-storages[azure]>=1.14,<1.15

@@ -1,4 +1,5 @@
 import pytest
+from django.contrib.auth.models import Permission
 from django.core.files.base import ContentFile
 from django.urls import reverse
 from rest_framework import status
@@ -41,14 +42,16 @@ def patient(therapist_a):
 @pytest.fixture
 def linked_therapist_b(patient, therapist_b, therapist_a):
     return PatientProfessional.objects.create(
-        patient=patient, professional=therapist_b, is_active=True, assigned_by=therapist_a
+        patient=patient,
+        professional=therapist_b,
+        is_active=True,
+        assigned_by=therapist_a,
     )
 
 
 @pytest.mark.django_db
 class TestClinicalExportSecurity:
     def test_linked_therapist_cannot_list_others_exports(self, therapist_a, therapist_b, patient, linked_therapist_b):
-        # Therapist A creates an export
         export_a = ClinicalExport.objects.create(
             patient=patient,
             export_type="pdf",
@@ -64,13 +67,16 @@ class TestClinicalExportSecurity:
         response = client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        export_ids = [e["id"] for e in response.data]
+        export_ids = [item["id"] for item in response.data]
         assert export_a.id not in export_ids
 
     def test_linked_therapist_cannot_download_others_exports(
-        self, therapist_a, therapist_b, patient, linked_therapist_b
+        self,
+        therapist_a,
+        therapist_b,
+        patient,
+        linked_therapist_b,
     ):
-        # Therapist A creates an export with a dummy file
         export_a = ClinicalExport.objects.create(
             patient=patient,
             export_type="pdf",
@@ -88,8 +94,13 @@ class TestClinicalExportSecurity:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_linked_therapist_cannot_retry_others_exports(self, therapist_a, therapist_b, patient, linked_therapist_b):
-        # Therapist A creates a failed export
+    def test_linked_therapist_cannot_retry_others_exports(
+        self,
+        therapist_a,
+        therapist_b,
+        patient,
+        linked_therapist_b,
+    ):
         export_a = ClinicalExport.objects.create(
             patient=patient,
             export_type="pdf",
@@ -119,13 +130,11 @@ class TestClinicalExportSecurity:
         client = APIClient()
         client.force_authenticate(user=therapist_a)
 
-        # Can list
         url_list = reverse("patient-exports", kwargs={"patient_id": patient.id})
-        assert export_a.id in [e["id"] for e in client.get(url_list).data]
+        assert export_a.id in [item["id"] for item in client.get(url_list).data]
 
-        # Can download
-        url_dl = reverse("export-download", kwargs={"pk": export_a.id})
-        assert client.get(url_dl).status_code == status.HTTP_200_OK
+        url_download = reverse("export-download", kwargs={"pk": export_a.id})
+        assert client.get(url_download).status_code == status.HTTP_200_OK
 
     def test_secretary_cannot_access_clinical_exports(self, therapist_a, patient):
         secretary = User.objects.create_user(
@@ -145,15 +154,13 @@ class TestClinicalExportSecurity:
         client = APIClient()
         client.force_authenticate(user=secretary)
 
-        # Cannot list
         url_list = reverse("patient-exports", kwargs={"patient_id": patient.id})
         assert client.get(url_list).status_code == status.HTTP_403_FORBIDDEN
 
-        # Cannot download
-        url_dl = reverse("export-download", kwargs={"pk": export_a.id})
-        assert client.get(url_dl).status_code == status.HTTP_403_FORBIDDEN
+        url_download = reverse("export-download", kwargs={"pk": export_a.id})
+        assert client.get(url_download).status_code == status.HTTP_403_FORBIDDEN
 
-    def test_admin_can_access_all_exports(self, therapist_a, patient):
+    def test_admin_requires_explicit_permission_for_others_exports(self, therapist_a, patient):
         admin = User.objects.create_user(
             email="admin_test@example.com",
             password="password123",
@@ -171,11 +178,19 @@ class TestClinicalExportSecurity:
 
         client = APIClient()
         client.force_authenticate(user=admin)
-
-        # Can list
         url_list = reverse("patient-exports", kwargs={"patient_id": patient.id})
-        assert export_a.id in [e["id"] for e in client.get(url_list).data]
+        url_download = reverse("export-download", kwargs={"pk": export_a.id})
 
-        # Can download
-        url_dl = reverse("export-download", kwargs={"pk": export_a.id})
-        assert client.get(url_dl).status_code == status.HTTP_200_OK
+        assert export_a.id not in [item["id"] for item in client.get(url_list).data]
+        assert client.get(url_download).status_code == status.HTTP_403_FORBIDDEN
+
+        permission = Permission.objects.get(
+            codename="export_confidential_evolution",
+            content_type__app_label="records",
+        )
+        admin.user_permissions.add(permission)
+        admin.refresh_from_db()
+        client.force_authenticate(user=admin)
+
+        assert export_a.id in [item["id"] for item in client.get(url_list).data]
+        assert client.get(url_download).status_code == status.HTTP_200_OK

@@ -1,6 +1,10 @@
 """Serializers de autenticação, perfil e horários de atendimento."""
 
+import secrets
+
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
@@ -11,6 +15,16 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.utils import get_md5_hash_password
 
 from ..models import User, WorkingHours
+
+_INVALID_CREDENTIALS_MESSAGE = "E-mail ou senha incorretos."
+_INVALID_TOKEN_MESSAGE = "Token inválido ou expirado."  # nosec B105 -- mensagem pública, não credencial
+
+
+def _validate_password_strength(password: str, *, user=None, field: str = "password") -> None:
+    try:
+        validate_password(password, user=user)
+    except DjangoValidationError as exc:
+        raise serializers.ValidationError({field: exc.messages}) from exc
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -37,8 +51,17 @@ class RegisterSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
-        if attrs["password"] != attrs.pop("password_confirm"):
-            raise serializers.ValidationError({"password_confirm": "As senhas não conferem."})
+        password_confirm = attrs.pop("password_confirm")
+        if attrs["password"] != password_confirm:
+            raise serializers.ValidationError(
+                {"password_confirm": "As senhas não conferem."}  # nosec B105 -- mensagem de validação
+            )
+
+        candidate_user = User(
+            email=attrs.get("email", ""),
+            full_name=attrs.get("full_name", ""),
+        )
+        _validate_password_strength(attrs["password"], user=candidate_user)
         return attrs
 
     def create(self, validated_data):
@@ -60,24 +83,22 @@ class LoginSerializer(serializers.Serializer):
             user = User.objects.get(email=email)
         except User.DoesNotExist:
             User().set_password(password)
-            raise serializers.ValidationError("E-mail ou senha incorretos.")
+            raise serializers.ValidationError(_INVALID_CREDENTIALS_MESSAGE)
 
+        password_is_valid = user.check_password(password)
         if user.is_locked():
-            locked_time = user.locked_until.strftime("%H:%M")
-            raise serializers.ValidationError(
-                f"Conta bloqueada por tentativas excessivas. Tente novamente após {locked_time}."
-            )
+            raise serializers.ValidationError(_INVALID_CREDENTIALS_MESSAGE)
 
-        if not user.check_password(password):
+        if not password_is_valid:
             user.failed_login_attempts += 1
             if user.failed_login_attempts >= 5:
                 user.lock_account(minutes=30)
             else:
                 user.save(update_fields=["failed_login_attempts"])
-            raise serializers.ValidationError("E-mail ou senha incorretos.")
+            raise serializers.ValidationError(_INVALID_CREDENTIALS_MESSAGE)
 
         if not user.is_active:
-            raise serializers.ValidationError("Conta inativa. Entre em contato com o suporte.")
+            raise serializers.ValidationError(_INVALID_CREDENTIALS_MESSAGE)
 
         user.reset_login_attempts()
         attrs["user"] = user
@@ -106,7 +127,14 @@ class ChangePasswordSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs["new_password"] != attrs["new_password_confirm"]:
-            raise serializers.ValidationError({"new_password_confirm": "As novas senhas não conferem."})
+            raise serializers.ValidationError(
+                {"new_password_confirm": "As novas senhas não conferem."}  # nosec B105 -- mensagem de validação
+            )
+        _validate_password_strength(
+            attrs["new_password"],
+            user=self.context["request"].user,
+            field="new_password",
+        )
         return attrs
 
     def save(self):
@@ -200,17 +228,24 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs["new_password"] != attrs["new_password_confirm"]:
-            raise serializers.ValidationError({"new_password_confirm": "As senhas não conferem."})
+            raise serializers.ValidationError(
+                {"new_password_confirm": "As senhas não conferem."}  # nosec B105 -- mensagem de validação
+            )
 
         try:
             uid = force_str(urlsafe_base64_decode(attrs["uidb64"]))
             user = User.objects.get(pk=uid)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            raise serializers.ValidationError({"token": "O link de redefinição é inválido ou expirou."})
+            raise serializers.ValidationError(
+                {"token": "O link de redefinição é inválido ou expirou."}  # nosec B105 -- mensagem pública
+            )
 
         if not default_token_generator.check_token(user, attrs["token"]):
-            raise serializers.ValidationError({"token": "O link de redefinição é inválido ou expirou."})
+            raise serializers.ValidationError(
+                {"token": "O link de redefinição é inválido ou expirou."}  # nosec B105 -- mensagem pública
+            )
 
+        _validate_password_strength(attrs["new_password"], user=user, field="new_password")
         attrs["user"] = user
         return attrs
 
@@ -230,14 +265,15 @@ class SafeTokenRefreshSerializer(TokenRefreshSerializer):
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
-            raise InvalidToken("Usuário não encontrado.")
-
-        if not user.is_active:
-            raise InvalidToken("Conta inativa. Entre em contato com o suporte.")
+            raise InvalidToken(_INVALID_TOKEN_MESSAGE)
 
         current_hash = get_md5_hash_password(user.password)
-        if not token_hash or token_hash != current_hash:
-            raise InvalidToken("O token foi invalidado devido a uma alteração de senha.")
+        if (
+            not user.is_active
+            or not token_hash
+            or not secrets.compare_digest(str(token_hash), str(current_hash))
+        ):
+            raise InvalidToken(_INVALID_TOKEN_MESSAGE)
 
         data = {"access": str(refresh.access_token)}
         if api_settings.ROTATE_REFRESH_TOKENS:

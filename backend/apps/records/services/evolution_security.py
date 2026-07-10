@@ -142,6 +142,25 @@ def validate_session_date(session_date: date, user) -> date:
     return session_date
 
 
+def has_explicit_records_permission(user, codename: str) -> bool:
+    """Verifica permissão atribuída ao usuário ou grupo sem bypass de superusuário.
+
+    Dados clínicos confidenciais não devem ficar disponíveis apenas por um papel
+    administrativo global. O acesso precisa ser concedido de forma explícita.
+    """
+
+    if not user or not user.is_authenticated:
+        return False
+
+    permission_filter = {
+        "content_type__app_label": "records",
+        "codename": codename,
+    }
+    if user.user_permissions.filter(**permission_filter).exists():
+        return True
+    return user.groups.filter(permissions__content_type__app_label="records", permissions__codename=codename).exists()
+
+
 def can_view_confidential_evolution(user, evolution) -> bool:
     if not evolution.is_confidential:
         return True
@@ -150,7 +169,6 @@ def can_view_confidential_evolution(user, evolution) -> bool:
         and user.is_authenticated
         and (
             evolution.created_by_id == user.id
-            or getattr(user, "is_superuser", False)
-            or user.has_perm("records.view_confidential_evolution")
+            or has_explicit_records_permission(user, "view_confidential_evolution")
         )
     )

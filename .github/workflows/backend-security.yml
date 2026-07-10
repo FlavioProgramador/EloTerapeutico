@@ -1,0 +1,150 @@
+name: Backend Security
+
+on:
+  push:
+    branches:
+      - "security/**"
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-security.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-security.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      DJANGO_SETTINGS_MODULE: elo_terapeutico.settings.test
+      SECRET_KEY: ci-only-secret-key-not-used-outside-actions
+      JWT_SECRET: ci-only-jwt-key-not-used-outside-actions
+      DATABASE_URL: sqlite:///test.sqlite3
+      FIELD_ENCRYPTION_KEY: ci-only-field-encryption-key
+      ASAAS_API_KEY: ""
+      ASAAS_WEBHOOK_TOKEN: ci-webhook-token
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements/base.txt
+            backend/requirements/dev.txt
+
+      - name: Instalar bibliotecas do sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            libpango-1.0-0 \
+            libpangoft2-1.0-0
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements/dev.txt
+          python -m pip install "bandit>=1.7,<2.0" "pip-audit>=2.7,<3.0"
+
+      - name: Django check
+        run: python manage.py check
+
+      - name: Verificar migrations pendentes
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Ruff nos arquivos Python alterados
+        id: ruff
+        continue-on-error: true
+        shell: bash
+        run: |
+          cd ..
+          git diff --name-only --diff-filter=ACMRT origin/main...HEAD -- "backend/**/*.py" > /tmp/changed-python-files.txt
+          if [ -s /tmp/changed-python-files.txt ]; then
+            xargs ruff check --config backend/pyproject.toml < /tmp/changed-python-files.txt 2>&1 | tee /tmp/ruff-output.txt
+          else
+            echo "Nenhum arquivo Python alterado." | tee /tmp/ruff-output.txt
+          fi
+
+      - name: Publicar relatório do Ruff
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-security-ruff
+          path: /tmp/ruff-output.txt
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Testes automatizados
+        run: pytest --create-db
+
+      - name: Bandit
+        id: bandit
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          bandit -r apps core infrastructure elo_terapeutico -c pyproject.toml -f screen 2>&1 | tee /tmp/bandit-output.txt
+
+      - name: Publicar relatório do Bandit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-security-bandit
+          path: /tmp/bandit-output.txt
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Auditoria de dependências Python
+        id: pip_audit
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          pip-audit -r requirements/base.txt 2>&1 | tee /tmp/pip-audit-output.txt
+
+      - name: Publicar relatório do pip-audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-security-pip-audit
+          path: /tmp/pip-audit-output.txt
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Validar gates de segurança
+        if: always()
+        shell: bash
+        run: |
+          failed=0
+          if [ "${{ steps.ruff.outcome }}" = "failure" ]; then
+            echo "Ruff encontrou problemas."
+            failed=1
+          fi
+          if [ "${{ steps.bandit.outcome }}" = "failure" ]; then
+            echo "Bandit encontrou problemas."
+            failed=1
+          fi
+          if [ "${{ steps.pip_audit.outcome }}" = "failure" ]; then
+            echo "pip-audit encontrou vulnerabilidades."
+            failed=1
+          fi
+          exit "$failed"
