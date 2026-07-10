@@ -6,6 +6,7 @@ from io import BytesIO
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -270,8 +271,6 @@ class PatientEvolutionListCreateView(ClinicalPatientMixin, APIView):
         # Filtro de confidencialidade
         user = request.user
         if not user.has_perm("records.view_confidential_evolution"):
-            from django.db.models import Q
-
             queryset = queryset.filter(Q(is_confidential=False) | Q(created_by=user))
 
         requested_status = request.query_params.get("status")
@@ -481,8 +480,6 @@ class ClinicalDocumentListCreateView(ClinicalPatientMixin, APIView):
         # Filtro de confidencialidade
         user = request.user
         if not user.has_perm("records.view_confidential_evolution"):
-            from django.db.models import Q
-
             queryset = queryset.filter(
                 Q(evolution__isnull=True)
                 | Q(evolution__is_confidential=False)
@@ -628,8 +625,6 @@ class PatientRecordPdfView(ClinicalPatientMixin, APIView):
             "clinical_data",
         )
         if not user.has_perm("records.view_confidential_evolution"):
-            from django.db.models import Q
-
             queryset = queryset.filter(Q(is_confidential=False) | Q(created_by=user))
 
         from apps.records.services.utils import render_markdown_safely, safe_url_fetcher
