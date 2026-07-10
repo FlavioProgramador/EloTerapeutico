@@ -3,12 +3,29 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, ArrowLeft, Check, Loader2, ShieldCheck } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Check,
+  CreditCard,
+  FileText,
+  Loader2,
+  QrCode,
+  ShieldCheck,
+} from "lucide-react";
 
 import { useAuth } from "@/contexts/auth";
 
 import { createCheckout, listPlans, previewCheckout } from "./api";
-import type { BillingType, CheckoutPayload, CheckoutPreview, CheckoutType, Plan } from "./types";
+import type {
+  BillingInterval,
+  BillingModel,
+  BillingType,
+  CheckoutPayload,
+  CheckoutPreview,
+  Plan,
+  PlanPrice,
+} from "./types";
 
 const billingTypeLabels: Record<BillingType, string> = {
   PIX: "PIX",
@@ -16,12 +33,13 @@ const billingTypeLabels: Record<BillingType, string> = {
   CREDIT_CARD: "Cartão de crédito",
 };
 
-const checkoutTypeLabels: Record<CheckoutType, string> = {
-  SUBSCRIPTION: "Assinatura",
-  ONE_TIME: "Cobrança única",
+const billingModelLabels: Record<BillingModel, string> = {
+  RECURRING: "Cobrança recorrente",
+  ONE_TIME: "Pagamento anual à vista",
+  INSTALLMENT: "Pagamento anual parcelado",
 };
 
-const featureLabels: Record<keyof Plan["features"], string> = {
+const featureLabels: Record<string, string> = {
   agenda: "Agenda",
   patients: "Pacientes",
   clinical_records: "Prontuário",
@@ -42,12 +60,29 @@ function currency(value: string, currencyCode = "BRL") {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: currencyCode }).format(Number(value));
 }
 
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("pt-BR").format(new Date(`${value}T00:00:00`));
+}
+
 function extractError(error: unknown) {
   if (typeof error === "object" && error !== null && "response" in error) {
-    const response = (error as { response?: { data?: { detail?: string; non_field_errors?: string[] } } }).response;
-    return response?.data?.detail || response?.data?.non_field_errors?.[0] || "Não foi possível concluir o checkout.";
+    const response = (error as {
+      response?: { data?: { detail?: string; non_field_errors?: string[]; error?: { details?: Record<string, string[]> } } };
+    }).response;
+    if (response?.data?.detail) return response.data.detail;
+    if (response?.data?.non_field_errors?.[0]) return response.data.non_field_errors[0];
+    const details = response?.data?.error?.details;
+    if (details) return Object.values(details).flat()[0] || "Não foi possível concluir o checkout.";
   }
   return "Não foi possível concluir o checkout.";
+}
+
+function chooseDefaultPrice(plan: Plan, interval: BillingInterval): PlanPrice | undefined {
+  const prices = plan.prices.filter((price) => price.available && price.billing_interval === interval);
+  if (interval === "YEARLY") {
+    return prices.find((price) => price.billing_model === "INSTALLMENT") || prices.find((price) => price.billing_model === "ONE_TIME") || prices[0];
+  }
+  return prices.find((price) => price.billing_model === "RECURRING") || prices[0];
 }
 
 export function CheckoutWizard() {
@@ -55,6 +90,7 @@ export function CheckoutWizard() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const selectedPlanSlug = searchParams.get("plan") || "profissional";
+
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -62,12 +98,19 @@ export function CheckoutWizard() {
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<CheckoutPreview | null>(null);
   const [result, setResult] = useState<CheckoutPreview | null>(null);
-  const [checkoutType, setCheckoutType] = useState<CheckoutType>("SUBSCRIPTION");
+  const [interval, setInterval] = useState<BillingInterval>("MONTHLY");
+  const [selectedPriceId, setSelectedPriceId] = useState<number | null>(null);
   const [billingType, setBillingType] = useState<BillingType>("PIX");
   const [dueDate, setDueDate] = useState(defaultDueDate);
   const [installmentCount, setInstallmentCount] = useState(1);
-  const [description, setDescription] = useState("");
   const [cpfCnpj, setCpfCnpj] = useState("");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [idempotencyKey, setIdempotencyKey] = useState("");
+
+  useEffect(() => {
+    setIdempotencyKey(crypto.randomUUID());
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -89,30 +132,31 @@ export function CheckoutWizard() {
     };
   }, []);
 
-  const selectedPlan = useMemo(() => {
-    return plans.find((plan) => plan.slug === selectedPlanSlug) || plans.find((plan) => plan.slug === "profissional") || plans[0];
-  }, [plans, selectedPlanSlug]);
+  const selectedPlan = useMemo(
+    () => plans.find((plan) => plan.slug === selectedPlanSlug) || plans[0],
+    [plans, selectedPlanSlug],
+  );
+
+  const intervalPrices = useMemo(
+    () => selectedPlan?.prices.filter((price) => price.available && price.billing_interval === interval) || [],
+    [interval, selectedPlan],
+  );
+
+  const selectedPrice = useMemo(
+    () => intervalPrices.find((price) => price.id === selectedPriceId) || intervalPrices[0],
+    [intervalPrices, selectedPriceId],
+  );
 
   useEffect(() => {
-    if (selectedPlan && !description) {
-      setDescription(`Assinatura Elo Terapêutico - ${selectedPlan.name}`);
-    }
-  }, [description, selectedPlan]);
+    if (!selectedPlan) return;
+    const price = chooseDefaultPrice(selectedPlan, interval);
+    setSelectedPriceId(price?.id ?? null);
+  }, [interval, selectedPlan]);
 
-  const payload = useMemo<CheckoutPayload | null>(() => {
-    if (!selectedPlan) return null;
-    return {
-      plan_slug: selectedPlan.slug,
-      type: checkoutType,
-      billingType,
-      cpfCnpj,
-      dueDate,
-      value: selectedPlan.price,
-      description,
-      cycle: selectedPlan.billing_cycle,
-      installmentCount: checkoutType === "ONE_TIME" ? installmentCount : 1,
-    };
-  }, [billingType, checkoutType, cpfCnpj, description, dueDate, installmentCount, selectedPlan]);
+  useEffect(() => {
+    if (!selectedPrice) return;
+    setInstallmentCount(selectedPrice.billing_model === "INSTALLMENT" ? selectedPrice.max_installments : 1);
+  }, [selectedPrice]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -120,15 +164,20 @@ export function CheckoutWizard() {
     }
   }, [authLoading, isAuthenticated, router, selectedPlanSlug]);
 
-  if (authLoading || (!isAuthenticated && !authLoading)) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
-        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 text-sm text-muted-foreground shadow-sm">
-          <Loader2 className="h-4 w-4 animate-spin" /> Verificando acesso...
-        </div>
-      </main>
-    );
-  }
+  const payload = useMemo<CheckoutPayload | null>(() => {
+    if (!selectedPrice) return null;
+    return {
+      plan_price_id: selectedPrice.id,
+      billingType,
+      cpfCnpj,
+      name,
+      phone,
+      dueDate,
+      installmentCount: selectedPrice.billing_model === "INSTALLMENT" ? installmentCount : 1,
+      description: `Elo Terapêutico — ${selectedPrice.name}`,
+      idempotency_key: idempotencyKey,
+    };
+  }, [billingType, cpfCnpj, dueDate, idempotencyKey, installmentCount, name, phone, selectedPrice]);
 
   async function handlePreview() {
     if (!payload) return;
@@ -160,23 +209,23 @@ export function CheckoutWizard() {
     }
   }
 
-  if (loading) {
+  if (authLoading || (!isAuthenticated && !authLoading) || loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
         <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 text-sm text-muted-foreground shadow-sm">
-          <Loader2 className="h-4 w-4 animate-spin" /> Carregando checkout Asaas...
+          <Loader2 className="h-4 w-4 animate-spin" /> Preparando checkout seguro...
         </div>
       </main>
     );
   }
 
-  if (!selectedPlan) {
+  if (!selectedPlan || !selectedPrice) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
         <div className="max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
           <AlertCircle className="mx-auto h-8 w-8 text-danger" />
-          <h1 className="mt-4 text-xl font-bold">Plano indisponível</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Não encontramos planos ativos para iniciar o checkout.</p>
+          <h1 className="mt-4 text-xl font-bold">Opção de contratação indisponível</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Cadastre um preço ativo para este plano no painel administrativo.</p>
           <Link href="/planos" className="mt-5 inline-flex rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground">
             Ver planos
           </Link>
@@ -194,14 +243,16 @@ export function CheckoutWizard() {
           <ArrowLeft className="h-4 w-4" /> Voltar para planos
         </Link>
 
-        <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <section className="grid gap-6 lg:grid-cols-[1.12fr_0.88fr]">
           <div className="rounded-3xl border border-border bg-card p-6 shadow-sm md:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <span className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">Checkout Asaas</span>
+                <span className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                  Checkout seguro Asaas
+                </span>
                 <h1 className="mt-4 text-3xl font-bold tracking-tight md:text-4xl">Finalize sua assinatura</h1>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                  Configure a cobrança no sandbox do Asaas. O plano só será liberado depois que o backend receber o webhook de confirmação.
+                  O plano será liberado somente após a confirmação do pagamento pelo backend.
                 </p>
               </div>
               <StepIndicator step={step} />
@@ -214,13 +265,65 @@ export function CheckoutWizard() {
             )}
 
             {step === 1 && (
-              <div className="mt-8 space-y-6">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <ReadonlyField label="Valor" value={currency(selectedPlan.price, selectedPlan.currency)} />
-                  <ReadonlyField label="Plano" value={selectedPlan.name} />
+              <div className="mt-8 space-y-7">
+                <div>
+                  <span className="text-sm font-semibold">Período do plano</span>
+                  <div className="mt-3 grid grid-cols-2 gap-2 rounded-2xl bg-muted/50 p-1.5">
+                    {(["MONTHLY", "YEARLY"] as BillingInterval[]).map((item) => {
+                      const enabled = selectedPlan.prices.some((price) => price.available && price.billing_interval === item);
+                      return (
+                        <button
+                          key={item}
+                          type="button"
+                          disabled={!enabled}
+                          onClick={() => setInterval(item)}
+                          className={`rounded-xl px-4 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                            interval === item ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {item === "MONTHLY" ? "Mensal" : "Anual"}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
+                {intervalPrices.length > 1 && (
+                  <div>
+                    <span className="text-sm font-semibold">Modalidade</span>
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                      {intervalPrices.map((price) => (
+                        <button
+                          key={price.id}
+                          type="button"
+                          onClick={() => setSelectedPriceId(price.id)}
+                          className={`rounded-2xl border p-4 text-left transition ${
+                            selectedPrice.id === price.id
+                              ? "border-primary bg-primary/10"
+                              : "border-border bg-background hover:border-primary/30"
+                          }`}
+                        >
+                          <span className="block text-sm font-bold">{billingModelLabels[price.billing_model]}</span>
+                          <span className="mt-1 block text-sm text-muted-foreground">
+                            {currency(price.total_amount, price.currency)}
+                            {price.billing_model === "INSTALLMENT" && ` em até ${price.max_installments}x`}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid gap-4 md:grid-cols-2">
+                  <label className="block space-y-2">
+                    <span className="text-sm font-semibold">Nome para cobrança</span>
+                    <input
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                      className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary"
+                      placeholder="Seu nome completo"
+                    />
+                  </label>
                   <label className="block space-y-2">
                     <span className="text-sm font-semibold">CPF ou CNPJ</span>
                     <input
@@ -230,37 +333,17 @@ export function CheckoutWizard() {
                       placeholder="000.000.000-00"
                     />
                   </label>
-
                   <label className="block space-y-2">
-                    <span className="text-sm font-semibold">Descrição</span>
+                    <span className="text-sm font-semibold">Telefone</span>
                     <input
-                      value={description}
-                      onChange={(event) => setDescription(event.target.value)}
+                      value={phone}
+                      onChange={(event) => setPhone(event.target.value)}
                       className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary"
-                      placeholder="Descrição da cobrança"
+                      placeholder="(21) 99999-9999"
                     />
                   </label>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-3">
-                    <span className="text-sm font-semibold">Tipo</span>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {(["SUBSCRIPTION", "ONE_TIME"] as CheckoutType[]).map((item) => (
-                        <button
-                          key={item}
-                          type="button"
-                          onClick={() => setCheckoutType(item)}
-                          className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${checkoutType === item ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-foreground hover:bg-muted"}`}
-                        >
-                          {checkoutTypeLabels[item]}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
                   <label className="block space-y-2">
-                    <span className="text-sm font-semibold">Vencimento</span>
+                    <span className="text-sm font-semibold">Primeiro vencimento</span>
                     <input
                       type="date"
                       value={dueDate}
@@ -270,38 +353,45 @@ export function CheckoutWizard() {
                   </label>
                 </div>
 
-                {checkoutType === "ONE_TIME" && (
+                {selectedPrice.billing_model === "INSTALLMENT" && (
                   <label className="block space-y-2">
-                    <span className="text-sm font-semibold">Parcelamento</span>
+                    <span className="text-sm font-semibold">Quantidade de parcelas</span>
                     <select
                       value={installmentCount}
                       onChange={(event) => setInstallmentCount(Number(event.target.value))}
                       className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary"
                     >
-                      {Array.from({ length: 12 }, (_, index) => index + 1).map((count) => (
+                      {Array.from(
+                        { length: selectedPrice.max_installments - selectedPrice.min_installments + 1 },
+                        (_, index) => selectedPrice.min_installments + index,
+                      ).map((count) => (
                         <option key={count} value={count}>
-                          {count === 1 ? "À vista" : `${count} parcelas`}
+                          {count}x de aproximadamente {currency(String(Number(selectedPrice.total_amount) / count), selectedPrice.currency)}
                         </option>
                       ))}
                     </select>
                   </label>
                 )}
 
-                <div className="space-y-3">
+                <div>
                   <span className="text-sm font-semibold">Forma de pagamento</span>
-                  <div className="grid gap-3 md:grid-cols-3">
+                  <div className="mt-3 grid gap-3 md:grid-cols-3">
                     {(["PIX", "BOLETO", "CREDIT_CARD"] as BillingType[]).map((item) => {
                       const disabled = item === "CREDIT_CARD";
+                      const Icon = item === "PIX" ? QrCode : item === "BOLETO" ? FileText : CreditCard;
                       return (
                         <button
                           key={item}
                           type="button"
                           disabled={disabled}
                           onClick={() => setBillingType(item)}
-                          className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-55 ${billingType === item ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-foreground hover:bg-muted"}`}
+                          className={`rounded-2xl border p-4 text-left text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-55 ${
+                            billingType === item ? "border-primary bg-primary/10 text-primary" : "border-border bg-background hover:bg-muted"
+                          }`}
                         >
+                          <Icon className="mb-2 h-5 w-5" />
                           {billingTypeLabels[item]}
-                          {disabled && <small className="mt-1 block text-xs font-medium text-muted-foreground">Via checkout/tokenização futura</small>}
+                          {disabled && <small className="mt-1 block text-xs font-medium text-muted-foreground">Exige checkout/tokenização oficial</small>}
                         </button>
                       );
                     })}
@@ -309,35 +399,36 @@ export function CheckoutWizard() {
                 </div>
 
                 <Notice />
-
                 <button
                   type="button"
                   onClick={handlePreview}
-                  disabled={submitting}
+                  disabled={submitting || !cpfCnpj}
                   className="inline-flex w-full items-center justify-center rounded-2xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:opacity-60 md:w-auto"
                 >
-                  {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Revisar checkout
+                  {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Revisar contratação
                 </button>
               </div>
             )}
 
             {step === 2 && activePreview && (
-              <div className="mt-8 space-y-6">
-                <ReviewRow label="Gateway" value={`${activePreview.gateway} ${activePreview.environment === "SANDBOX" ? "Sandbox" : "Produção"}`} />
+              <div className="mt-8 space-y-5">
                 <ReviewRow label="Plano" value={activePreview.plan.name} />
-                <ReviewRow label="CPF/CNPJ" value={cpfCnpj} />
-                <ReviewRow label="Tipo" value={checkoutTypeLabels[activePreview.checkout.type]} />
-                <ReviewRow label="Valor" value={currency(activePreview.checkout.value, activePreview.plan.currency)} />
-                <ReviewRow label="Vencimento" value={new Intl.DateTimeFormat("pt-BR").format(new Date(`${activePreview.checkout.dueDate}T00:00:00`))} />
+                <ReviewRow label="Modalidade" value={billingModelLabels[activePreview.checkout.billingModel]} />
+                <ReviewRow label="Valor total" value={currency(activePreview.checkout.totalAmount, activePreview.plan_price.currency)} />
+                <ReviewRow
+                  label="Parcelamento"
+                  value={
+                    activePreview.checkout.installmentCount > 1
+                      ? `${activePreview.checkout.installmentCount}x de aproximadamente ${currency(activePreview.checkout.installmentAmountEstimate, activePreview.plan_price.currency)}`
+                      : "À vista"
+                  }
+                />
+                <ReviewRow label="Primeiro vencimento" value={formatDate(activePreview.checkout.dueDate)} />
                 <ReviewRow label="Forma de pagamento" value={billingTypeLabels[activePreview.checkout.billingType]} />
-                <ReviewRow label="Descrição" value={activePreview.checkout.description} />
-
-                <Notice />
                 <div className="rounded-2xl border border-warning/20 bg-warning-soft px-4 py-3 text-sm font-semibold text-warning">
-                  Nada no frontend ativa o plano. A assinatura será criada como PENDING e só vira ACTIVE após webhook do Asaas.
+                  A contratação será criada como pendente e o acesso só será liberado após o webhook do Asaas.
                 </div>
-
                 <div className="flex flex-col gap-3 sm:flex-row">
                   <button type="button" onClick={() => setStep(1)} className="rounded-2xl border border-border px-5 py-3 text-sm font-bold hover:bg-muted">
                     Editar dados
@@ -348,8 +439,8 @@ export function CheckoutWizard() {
                     disabled={submitting}
                     className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-90 disabled:opacity-60"
                   >
-                    {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Criar no Asaas Sandbox
+                    {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Confirmar contratação
                   </button>
                 </div>
               </div>
@@ -361,20 +452,20 @@ export function CheckoutWizard() {
                   <div className="rounded-2xl bg-primary/10 p-2 text-primary">
                     <ShieldCheck className="h-5 w-5" />
                   </div>
-                  <div>
-                    <h2 className="text-xl font-bold">Checkout criado com segurança</h2>
+                  <div className="flex-1">
+                    <h2 className="text-xl font-bold">Contratação criada com segurança</h2>
                     <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                      {result.subscription
-                        ? "A assinatura foi salva como PENDING. Aguarde a confirmação do pagamento pelo webhook do Asaas para liberar os módulos do plano."
-                        : "A cobrança única foi criada no Asaas. Acompanhe o link de cobrança retornado pelo gateway."}
+                      {result.payments?.length
+                        ? `${result.payments.length} fatura(s) já foram sincronizadas. Acompanhe cada parcela na área de faturas.`
+                        : "A contratação está aguardando a primeira cobrança gerada pelo Asaas."}
                     </p>
                     <div className="mt-5 flex flex-wrap gap-3">
-                      <Link href="/billing/pendente" className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground">
-                        Acompanhar assinatura
+                      <Link href="/dashboard/assinatura/faturas" className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground">
+                        Ver minhas faturas
                       </Link>
-                      {result.payment?.invoiceUrl && (
-                        <a href={result.payment.invoiceUrl} target="_blank" rel="noreferrer" className="rounded-xl border border-border px-5 py-2.5 text-sm font-bold hover:bg-muted">
-                          Abrir cobrança
+                      {result.payments?.[0]?.invoice_url && (
+                        <a href={result.payments[0].invoice_url} target="_blank" rel="noreferrer" className="rounded-xl border border-border px-5 py-2.5 text-sm font-bold hover:bg-muted">
+                          Abrir primeira cobrança
                         </a>
                       )}
                     </div>
@@ -385,15 +476,14 @@ export function CheckoutWizard() {
           </div>
 
           <aside className="space-y-4">
-            <PlanSummary plan={selectedPlan} />
+            <PlanSummary plan={selectedPlan} price={selectedPrice} installmentCount={installmentCount} />
             <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-              <h2 className="text-lg font-bold">Fluxo seguro</h2>
+              <h2 className="text-lg font-bold">Proteções do fluxo</h2>
               <ol className="mt-4 space-y-3 text-sm text-muted-foreground">
-                <li>1. Você confirma os dados do checkout.</li>
-                <li>2. O backend cria customer e subscription no Asaas.</li>
-                <li>3. A assinatura local nasce como PENDING.</li>
-                <li>4. O webhook do Asaas confirma o pagamento.</li>
-                <li>5. O backend libera os módulos do plano.</li>
+                <li>1. O backend usa o preço cadastrado, nunca o valor enviado pelo navegador.</li>
+                <li>2. A chave de idempotência evita cobranças duplicadas.</li>
+                <li>3. Parcelas são sincronizadas e exibidas individualmente.</li>
+                <li>4. Somente o webhook confirmado libera o acesso.</li>
               </ol>
             </div>
           </aside>
@@ -405,21 +495,12 @@ export function CheckoutWizard() {
 
 function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2" aria-label={`Etapa ${step} de 3`}>
       {[1, 2, 3].map((item) => (
         <span key={item} className={`grid h-8 w-8 place-items-center rounded-full text-xs font-bold ${step >= item ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
           {step > item ? <Check className="h-4 w-4" /> : item}
         </span>
       ))}
-    </div>
-  );
-}
-
-function ReadonlyField({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-border bg-muted/40 px-4 py-3">
-      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
-      <p className="mt-1 text-sm font-bold text-foreground">{value}</p>
     </div>
   );
 }
@@ -436,33 +517,39 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 function Notice() {
   return (
     <div className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary">
-      Os pagamentos serão processados pelo Asaas.
+      Os pagamentos são processados pelo Asaas. Nenhum dado clínico é enviado ao gateway.
     </div>
   );
 }
 
-function PlanSummary({ plan }: { plan: Plan }) {
+function PlanSummary({ plan, price, installmentCount }: { plan: Plan; price: PlanPrice; installmentCount: number }) {
+  const count = price.billing_model === "INSTALLMENT" ? installmentCount : 1;
   return (
     <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
       <span className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">Plano selecionado</span>
       <h2 className="mt-4 text-2xl font-bold">{plan.name}</h2>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">{plan.description}</p>
-      <div className="mt-5 flex items-end gap-1">
-        <strong className="text-3xl font-extrabold">{currency(plan.price, plan.currency)}</strong>
-        <span className="pb-1 text-xs text-muted-foreground">/{plan.billing_cycle === "MONTHLY" ? "mês" : "ano"}</span>
+      <div className="mt-5">
+        <strong className="text-3xl font-extrabold">{currency(price.total_amount, price.currency)}</strong>
+        <span className="ml-1 text-xs text-muted-foreground">/{price.billing_interval === "MONTHLY" ? "mês" : "ano"}</span>
       </div>
+      {count > 1 && (
+        <p className="mt-2 text-sm font-semibold text-primary">
+          {count}x de aproximadamente {currency(String(Number(price.total_amount) / count), price.currency)}
+        </p>
+      )}
+      {Number(price.discount_percentage) > 0 && (
+        <p className="mt-2 text-sm font-semibold text-success">Economia de {price.discount_percentage}%</p>
+      )}
       <ul className="mt-5 space-y-2 text-sm text-muted-foreground">
         {Object.entries(plan.features)
           .filter(([, enabled]) => enabled)
-          .slice(0, 6)
+          .slice(0, 7)
           .map(([key]) => (
             <li key={key} className="flex items-center gap-2">
-              <Check className="h-4 w-4 text-primary" /> {featureLabels[key as keyof Plan["features"]]}
+              <Check className="h-4 w-4 text-primary" /> {featureLabels[key] || key}
             </li>
           ))}
-        <li className="flex items-center gap-2">
-          <Check className="h-4 w-4 text-primary" /> {plan.max_patients ? `Até ${plan.max_patients} pacientes` : "Pacientes ilimitados"}
-        </li>
       </ul>
     </div>
   );
