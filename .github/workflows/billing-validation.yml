@@ -8,6 +8,7 @@ on:
       - "backend/requirements/**"
       - "backend/requirements.txt"
       - "frontend/src/features/billing/**"
+      - "frontend/src/features/landing/pricing.tsx"
       - "frontend/src/app/checkout/**"
       - ".github/workflows/billing-validation.yml"
   workflow_dispatch:
@@ -38,7 +39,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: pip
           cache-dependency-path: backend/requirements.txt
       - run: python -m pip install -r requirements.txt
