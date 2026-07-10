@@ -36,6 +36,7 @@ jobs:
       FIELD_ENCRYPTION_KEY: ci-only-field-encryption-key
       ASAAS_API_KEY: ""
       ASAAS_WEBHOOK_TOKEN: ci-webhook-token
+      BILLING_WEBHOOK_PROCESS_INLINE: "True"
 
     steps:
       - name: Checkout
