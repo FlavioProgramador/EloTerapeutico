@@ -50,6 +50,8 @@ function planFeatures(plan: Plan) {
     .filter(([, active]) => active)
     .map(([key]) => featureLabels[key as keyof Plan["features"]]);
 
+  if (!enabled.includes(featureLabels.patients)) enabled.unshift(featureLabels.patients);
+
   const limits = [
     plan.max_patients ? `Até ${plan.max_patients} pacientes` : "Pacientes ilimitados",
     plan.max_storage_mb ? `${plan.max_storage_mb} MB de armazenamento` : "Armazenamento conforme plano",
@@ -61,7 +63,11 @@ function planFeatures(plan: Plan) {
 function checkoutHref(slug: string, isAuthenticated: boolean) {
   const checkout = `/checkout?plan=${encodeURIComponent(slug)}`;
   if (isAuthenticated) return checkout;
-  return `/register?plan=${encodeURIComponent(slug)}&next=${encodeURIComponent(checkout)}`;
+  return `/register?plan=${encodeURIComponent(slug)}&mode=paid&next=${encodeURIComponent(checkout)}`;
+}
+
+function trialHref(slug: string) {
+  return `/register?plan=${encodeURIComponent(slug)}&mode=trial&next=${encodeURIComponent("/dashboard")}`;
 }
 
 export function Pricing() {
@@ -106,7 +112,7 @@ export function Pricing() {
           <span className="landing-eyebrow">Planos</span>
           <h2>Escolha o plano certo para sua prática.</h2>
           <p>
-            Os valores e limites vêm direto do backend. A contratação segue para o checkout Asaas, sem armazenar cartão, CVV ou dados sensíveis no Elo Terapêutico.
+            Comece com 7 dias grátis ou assine diretamente. Os pagamentos são processados pelo Asaas, sem armazenar cartão, CVV ou dados sensíveis no Elo Terapêutico.
           </p>
         </Reveal>
 
@@ -169,10 +175,23 @@ export function Pricing() {
                       </li>
                     ))}
                   </ul>
-                  <Link href={checkoutHref(plan.slug, isAuthenticated)} className={`pricing-card__cta ${highlighted ? "pricing-card__cta--primary" : ""}`}>
-                    {isAuthenticated ? "Escolher plano" : "Começar agora"}
-                    <ArrowRight aria-hidden="true" />
-                  </Link>
+                  {isAuthenticated ? (
+                    <Link href={checkoutHref(plan.slug, true)} className={`pricing-card__cta ${highlighted ? "pricing-card__cta--primary" : ""}`}>
+                      Escolher plano
+                      <ArrowRight aria-hidden="true" />
+                    </Link>
+                  ) : (
+                    <div className="grid gap-2">
+                      <Link href={trialHref(plan.slug)} className="pricing-card__cta pricing-card__cta--primary">
+                        Começar teste grátis
+                        <ArrowRight aria-hidden="true" />
+                      </Link>
+                      <Link href={checkoutHref(plan.slug, false)} className="pricing-card__cta">
+                        Assinar agora
+                        <ArrowRight aria-hidden="true" />
+                      </Link>
+                    </div>
+                  )}
                 </Reveal>
               );
             })}

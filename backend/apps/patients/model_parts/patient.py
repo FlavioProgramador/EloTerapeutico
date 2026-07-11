@@ -234,5 +234,10 @@ class Patient(PatientComputedPropertiesMixin, PatientLifecycleMixin, models.Mode
             models.Index(fields=["payer_type", "insurance_name"], name="patient_payer_insurance_idx"),
         ]
 
+    def save(self, *args, **kwargs):
+        if self.tags is None:
+            self.tags = []
+        return super().save(*args, **kwargs)
+
     def __str__(self) -> str:
         return f"Paciente #{self.pk}"

@@ -1,5 +1,6 @@
 from django.urls import path
 
+from apps.billing.access_views import EntitlementStatusView
 from apps.billing.views import (
     AsaasWebhookView,
     BillingIntegrationHealthView,
@@ -24,6 +25,7 @@ from apps.billing.views import (
 urlpatterns = [
     path("plans/", PlanListView.as_view(), name="billing-plans"),
     path("plan-prices/", PlanPriceListView.as_view(), name="billing-plan-prices"),
+    path("entitlement/", EntitlementStatusView.as_view(), name="billing-entitlement"),
     path("checkout/preview/", CheckoutPreviewView.as_view(), name="billing-checkout-preview"),
     path("checkout/create/", CheckoutCreateView.as_view(), name="billing-checkout-create"),
     path("subscription/me/", CurrentSubscriptionView.as_view(), name="billing-subscription-me"),

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Rotas públicas que não necessitam de autenticação
-const publicRoutes = ["/login", "/register", "/cadastro", "/forgot-password"];
+const publicRoutes = ["/login", "/register", "/cadastro", "/forgot-password", "/planos"];
 
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
@@ -21,6 +21,20 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const isRegisterRoute = pathname.startsWith("/register") || pathname.startsWith("/cadastro");
+  const selectedPlan =
+    request.nextUrl.searchParams.get("plan") ||
+    request.nextUrl.searchParams.get("plan_slug") ||
+    request.nextUrl.searchParams.get("plan_price_slug") ||
+    request.nextUrl.searchParams.get("plan_price_id");
+
+  // Cadastro público só pode ser iniciado depois da seleção de um plano.
+  if (!token && isRegisterRoute && !selectedPlan) {
+    const plansUrl = new URL("/planos", request.url);
+    plansUrl.searchParams.set("reason", "plan_required");
+    return NextResponse.redirect(plansUrl);
+  }
+
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route) || pathname === route);
   const isDashboardRoute = pathname.startsWith("/dashboard") || pathname === "/dashboard";
   const isCheckoutRoute = pathname.startsWith("/checkout") || pathname.startsWith("/billing");
@@ -34,7 +48,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Caso 2: Usuário JÁ autenticado tentando acessar páginas públicas de login/cadastro
-  if (token && isPublicRoute) {
+  if (token && (pathname.startsWith("/login") || isRegisterRoute)) {
     const next = request.nextUrl.searchParams.get("next") || request.nextUrl.searchParams.get("redirect");
     if (next && next.startsWith("/") && !next.startsWith("//")) {
       return NextResponse.redirect(new URL(next, request.url));

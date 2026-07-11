@@ -1,5 +1,7 @@
 from django.urls import path
 
+from apps.billing.registration import PlanRegistrationView
+
 from .api.views import (
     ChangePasswordView,
     LoginView,
@@ -7,14 +9,13 @@ from .api.views import (
     MeView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
-    RegisterView,
     SafeTokenRefreshView,
     WorkingHoursDetailView,
     WorkingHoursListCreateView,
 )
 
 urlpatterns = [
-    path("register/", RegisterView.as_view(), name="auth-register"),
+    path("register/", PlanRegistrationView.as_view(), name="auth-register"),
     path("login/", LoginView.as_view(), name="auth-login"),
     path("logout/", LogoutView.as_view(), name="auth-logout"),
     path(
