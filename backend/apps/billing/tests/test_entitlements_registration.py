@@ -27,7 +27,7 @@ class SubscriptionRegistrationAndAccessTests(TestCase):
         )
         self.price = PlanPrice.objects.create(
             plan=self.plan,
-            name="Profissional Mensal",
+            name="Essencial Mensal",
             slug="essencial-mensal-access-test",
             total_amount="49.90",
             billing_interval=PlanPrice.BillingInterval.MONTHLY,
