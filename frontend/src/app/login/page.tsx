@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Mail, Lock, LogIn, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Mail, Lock, LogIn, Eye, EyeOff } from "lucide-react";
 import { AxiosError } from "axios";
 import { useAuth } from "@/contexts/auth";
 import { Button } from "@/components/ui/button";
@@ -22,24 +22,9 @@ import {
   type LoginFormData,
 } from "@/features/auth/schemas/auth.schemas";
 
-function registerHrefFromLogin() {
-  if (typeof window === "undefined") return "/register";
-  const params = new URLSearchParams(window.location.search);
-  const next = params.get("next") || params.get("redirect");
-  const planFromNext = next?.match(/[?&]plan=([^&]+)/)?.[1];
-  const selectedPlan = params.get("plan") || (planFromNext ? decodeURIComponent(planFromNext) : "");
-  const registerParams = new URLSearchParams();
-
-  if (selectedPlan) registerParams.set("plan", selectedPlan);
-  if (next && next.startsWith("/") && !next.startsWith("//")) registerParams.set("next", next);
-
-  return `/register${registerParams.size ? `?${registerParams.toString()}` : ""}`;
-}
-
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
-  const registerHref = registerHrefFromLogin();
 
   const {
     register,
@@ -47,7 +32,7 @@ export default function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    mode: "onBlur", // valida ao sair do campo, não a cada keystroke
+    mode: "onBlur",
   });
 
   const onSubmit = async (data: LoginFormData) => {
@@ -72,6 +57,15 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background text-foreground font-sans">
       <div className="w-full max-w-md space-y-6">
+        <Link
+          href="/"
+          aria-label="Voltar para a página inicial"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Voltar para o início
+        </Link>
+
         <div className="flex flex-col items-center text-center">
           <div className="h-10 w-10 rounded-md bg-primary flex items-center justify-center mb-3">
             <Lock className="h-5 w-5 text-primary-foreground" />
@@ -172,12 +166,12 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-5 text-center text-xs text-muted-foreground">
-              Não possui uma conta?{" "}
+              Ainda não possui acesso?{" "}
               <Link
-                href={registerHref}
+                href="/planos"
                 className="text-primary hover:underline font-semibold"
               >
-                Cadastre-se grátis
+                Conheça os planos
               </Link>
             </div>
           </CardContent>

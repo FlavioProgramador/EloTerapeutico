@@ -17,6 +17,11 @@ export interface User {
   default_session_value?: string;
 }
 
+interface SubscriptionSnapshot {
+  status: "TRIALING" | "PENDING" | "ACTIVE" | "PAST_DUE" | "SUSPENDED" | "CANCELED" | "EXPIRED";
+  has_access: boolean;
+}
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -38,6 +43,33 @@ function safeRedirectFromQuery() {
   return "/dashboard";
 }
 
+async function resolvePostLoginRedirect() {
+  const requested = safeRedirectFromQuery();
+
+  // Checkout e gestão da cobrança precisam permanecer acessíveis mesmo antes
+  // da ativação do plano.
+  if (requested.startsWith("/checkout") || requested.startsWith("/billing")) {
+    return requested;
+  }
+
+  try {
+    const response = await api.get<{ subscription: SubscriptionSnapshot | null }>(
+      "billing/subscription/me/",
+    );
+    const subscription = response.data.subscription;
+    if (subscription?.has_access) return requested;
+    if (
+      subscription &&
+      ["PENDING", "PAST_DUE", "SUSPENDED"].includes(subscription.status)
+    ) {
+      return "/billing";
+    }
+    return "/planos";
+  } catch {
+    return "/planos";
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,14 +77,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isAuthenticated = !!user;
 
-  // Busca as informações do perfil do usuário logado
   const fetchUserProfile = async () => {
     try {
       const response = await api.get("auth/me/");
       setUser(response.data);
-      // Salva a role em cookie para o Middleware ler
       setCookie("auth_role", response.data.role, {
-        maxAge: 7 * 24 * 60 * 60, // 7 dias
+        maxAge: 7 * 24 * 60 * 60,
         path: "/",
         sameSite: "lax",
       });
@@ -64,7 +94,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Efeito de inicialização: roda apenas no cliente para recuperar a sessão
   useEffect(() => {
     const token = getCookie("auth_token");
     const initAuth = async () => {
@@ -83,20 +112,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await api.post("auth/login/", credentials);
       const { access, refresh, user: userData } = response.data;
 
-      // Armazena os tokens nos cookies de forma segura
       setCookie("auth_token", access, {
-        maxAge: 30 * 60, // 30 minutos
+        maxAge: 30 * 60,
         path: "/",
         sameSite: "lax",
       });
 
       setCookie("auth_refresh_token", refresh, {
-        maxAge: 7 * 24 * 60 * 60, // 7 dias
+        maxAge: 7 * 24 * 60 * 60,
         path: "/",
         sameSite: "lax",
       });
 
-      // Se o login já retornou as informações de usuário
       if (userData) {
         setUser(userData);
         setCookie("auth_role", userData.role, {
@@ -105,12 +132,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           sameSite: "lax",
         });
       } else {
-        // Fallback caso não retorne o user no payload do login
         await fetchUserProfile();
       }
 
+      const destination = await resolvePostLoginRedirect();
       setIsLoading(false);
-      router.push(safeRedirectFromQuery());
+      router.push(destination);
     } catch (error) {
       setIsLoading(false);
       throw error;
@@ -122,13 +149,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const refreshToken = getCookie("auth_refresh_token");
       if (refreshToken) {
-        // Envia requisição de logout para o backend invalidar os tokens
         await api.post("auth/logout/", { refresh: refreshToken });
       }
     } catch (error) {
       console.error("Erro no logout no servidor:", error);
     } finally {
-      // Limpa os cookies locais e o estado de qualquer forma
       deleteCookie("auth_token", { path: "/" });
       deleteCookie("auth_refresh_token", { path: "/" });
       deleteCookie("auth_role", { path: "/" });

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -35,15 +35,34 @@ import {
   type RegisterFormData,
 } from "@/features/auth/schemas/auth.schemas";
 
-function loginHrefAfterRegister() {
+type AccessMode = "TRIAL" | "PAID";
+
+interface RegistrationResponse {
+  next: string;
+}
+
+function registrationSelection(): { plan: string; accessMode: AccessMode } {
+  if (typeof window === "undefined") return { plan: "", accessMode: "TRIAL" };
+  const params = new URLSearchParams(window.location.search);
+  const plan =
+    params.get("plan") ||
+    params.get("plan_slug") ||
+    params.get("plan_price_slug") ||
+    params.get("plan_price_id") ||
+    "";
+  const accessMode = params.get("mode")?.toUpperCase() === "PAID" ? "PAID" : "TRIAL";
+  return { plan, accessMode };
+}
+
+function loginHrefAfterRegister(nextOverride?: string) {
   if (typeof window === "undefined") return "/login";
   const currentParams = new URLSearchParams(window.location.search);
   const selectedPlan = currentParams.get("plan");
-  const next = currentParams.get("next") || (selectedPlan ? `/checkout?plan=${encodeURIComponent(selectedPlan)}` : "");
+  const next = nextOverride || currentParams.get("next") || "/dashboard";
   const loginParams = new URLSearchParams();
 
   if (selectedPlan) loginParams.set("plan", selectedPlan);
-  if (next && next.startsWith("/") && !next.startsWith("//")) loginParams.set("next", next);
+  if (next.startsWith("/") && !next.startsWith("//")) loginParams.set("next", next);
 
   return `/login${loginParams.size ? `?${loginParams.toString()}` : ""}`;
 }
@@ -54,6 +73,11 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const { plan } = registrationSelection();
+    if (!plan) router.replace("/planos?reason=plan_required");
+  }, [router]);
 
   const {
     register,
@@ -82,6 +106,12 @@ export default function RegisterPage() {
   };
 
   const onSubmit = async (data: RegisterFormData) => {
+    const { plan, accessMode } = registrationSelection();
+    if (!plan) {
+      router.replace("/planos?reason=plan_required");
+      return;
+    }
+
     setIsLoading(true);
     const payload = {
       email: data.email,
@@ -90,14 +120,19 @@ export default function RegisterPage() {
       password_confirm: data.confirm_password,
       crp: data.crp,
       specialty: data.specialty,
+      plan,
+      access_mode: accessMode,
     };
 
     try {
-      await api.post("auth/register/", payload);
+      const response = await api.post<RegistrationResponse>("auth/register/", payload);
       toast.success("Cadastro realizado com sucesso!", {
-        description: "Sua conta foi criada. Faça login para continuar.",
+        description:
+          accessMode === "TRIAL"
+            ? "Seu teste gratuito de 7 dias foi ativado. Faça login para continuar."
+            : "Sua conta foi criada. Faça login para concluir a assinatura.",
       });
-      router.push(loginHrefAfterRegister());
+      router.push(loginHrefAfterRegister(response.data.next));
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const responseData = error.response?.data;
@@ -110,6 +145,7 @@ export default function RegisterPage() {
             password: "password",
             password_confirm: "confirm_password",
             crp: "crp",
+            crp_number: "crp",
             specialty: "specialty",
           };
 
@@ -118,9 +154,9 @@ export default function RegisterPage() {
             const mappedKey = fieldMap[key];
             if (mappedKey) {
               setError(mappedKey, {
-                message: Array.isArray(value) ? value[0] : String(value),
+                message: Array.isArray(value) ? String(value[0]) : String(value),
               });
-              if (["email", "full_name", "password", "confirm_password"].includes(key)) {
+              if (["email", "full_name", "password", "password_confirm"].includes(key)) {
                 hasStep1Error = true;
               }
             }
@@ -149,10 +185,20 @@ export default function RegisterPage() {
   };
 
   const loginHref = loginHrefAfterRegister();
+  const accessMode = typeof window === "undefined" ? "TRIAL" : registrationSelection().accessMode;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background text-foreground font-sans">
       <div className="w-full max-w-md space-y-6">
+        <Link
+          href="/"
+          aria-label="Voltar para a página inicial"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Voltar para o início
+        </Link>
+
         <div className="flex flex-col items-center text-center">
           <div className="h-10 w-10 rounded-md bg-primary flex items-center justify-center mb-3">
             <UserPlus className="h-5 w-5 text-primary-foreground" />
@@ -161,7 +207,9 @@ export default function RegisterPage() {
             Elo Terapêutico
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Cadastre sua clínica ou perfil profissional em minutos
+            {accessMode === "TRIAL"
+              ? "Teste gratuito de 7 dias no plano selecionado"
+              : "Crie sua conta para concluir a assinatura"}
           </p>
         </div>
 
@@ -317,7 +365,7 @@ export default function RegisterPage() {
                     isLoading={isLoading}
                     rightIcon={<UserPlus className="h-4 w-4" />}
                   >
-                    Criar Conta
+                    {accessMode === "TRIAL" ? "Iniciar teste" : "Criar conta"}
                   </Button>
                 </div>
               </form>

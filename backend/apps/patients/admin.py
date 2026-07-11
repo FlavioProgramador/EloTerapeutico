@@ -187,6 +187,10 @@ class PatientAdmin(PatientAdminActionsMixin, PatientAdminDisplayMixin, ModelAdmi
         "action_mark_inactive",
     ]
 
+    def save_model(self, request, obj, form, change):
+        obj.tags = obj.tags or []
+        super().save_model(request, obj, form, change)
+
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser
 

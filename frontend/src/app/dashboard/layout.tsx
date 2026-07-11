@@ -3,10 +3,12 @@
 import React, { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sidebar } from "@/components/navigation/sidebar";
-import { Header } from "@/components/navigation/header";
-import { useAuth } from "@/contexts/auth";
 import { Activity } from "lucide-react";
+
+import { Header } from "@/components/navigation/header";
+import { Sidebar } from "@/components/navigation/sidebar";
+import { useAuth } from "@/contexts/auth";
+import { SubscriptionAccessBanner } from "@/features/billing/subscription-access-banner";
 
 export default function DashboardLayout({
   children,
@@ -33,27 +35,24 @@ export default function DashboardLayout({
         </div>
         <div className="flex flex-col items-center gap-1 z-10">
           <h2 className="text-sm font-semibold tracking-tight text-foreground">Carregando painel...</h2>
-          <p className="text-xs text-muted-foreground">Sincronizando seus dados clínicos protegidos</p>
+          <p className="text-xs text-muted-foreground">Validando sua assinatura e seus dados clínicos protegidos</p>
         </div>
       </div>
     );
   }
 
   if (!isAuthenticated) {
-    return null; // Evita exibir flashes de layout não autorizado enquanto o redirecionamento ocorre
+    return null;
   }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background">
-      {/* Sidebar Persistente */}
       <Sidebar />
 
-      {/* Área de Conteúdo Principal */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        {/* Header Superior */}
         <Header />
+        <SubscriptionAccessBanner />
 
-        {/* Conteúdo Dinâmico com Transição Suave */}
         <main className="flex-1 overflow-y-auto p-6 md:p-8 z-10">
           <AnimatePresence mode="wait">
             <motion.div
