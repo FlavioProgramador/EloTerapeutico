@@ -18,6 +18,7 @@ class EntitlementStatusView(APIView):
                 "message": entitlement.message,
                 "redirect_to": entitlement.redirect_to,
                 "trial_days_remaining": entitlement.trial_days_remaining,
+                "onboarding_required": entitlement.onboarding_required,
                 "subscription": (
                     SubscriptionSerializer(entitlement.subscription).data
                     if entitlement.subscription
