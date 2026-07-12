@@ -9,11 +9,13 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.billing.models import Plan, PlanPrice, Subscription
+from apps.billing.services.entitlements import get_entitlement
 from apps.billing.services.features import can_use_feature, enforce_patient_limit
+from apps.billing.services.trials import start_trial
 from apps.patients.models import Patient
 
 
-@override_settings(BILLING_REQUIRE_SUBSCRIPTION=True)
+@override_settings(BILLING_REQUIRE_SUBSCRIPTION=True, BILLING_TRIAL_DAYS=7)
 class SubscriptionRegistrationAndAccessTests(TestCase):
     def setUp(self):
         self.client = APIClient()
@@ -43,8 +45,11 @@ class SubscriptionRegistrationAndAccessTests(TestCase):
             "password": self.password,
             "password_confirm": self.password,
             "specialty": "Psicologia clínica",
+            "phone": "21999999999",
             "plan": self.plan.slug,
             "access_mode": "TRIAL",
+            "terms_accepted": True,
+            "privacy_accepted": True,
         }
         payload.update(overrides)
         return payload
@@ -53,14 +58,29 @@ class SubscriptionRegistrationAndAccessTests(TestCase):
         token = RefreshToken.for_user(user).access_token
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
 
-    def test_registration_requires_selected_plan(self):
+    def test_registration_without_plan_creates_account_and_redirects_to_plans(self):
         payload = self.registration_payload()
         payload.pop("plan")
 
         response = self.client.post("/api/v1/auth/register/", payload, format="json")
 
+        self.assertEqual(response.status_code, 201)
+        user = get_user_model().objects.get(email="novo.terapeuta@example.com")
+        self.assertEqual(response.data["next"], "/planos")
+        self.assertFalse(Subscription.objects.filter(user=user).exists())
+        self.assertIsNotNone(user.terms_accepted_at)
+        self.assertIsNotNone(user.privacy_accepted_at)
+
+    def test_registration_rejects_missing_legal_acceptance(self):
+        response = self.client.post(
+            "/api/v1/auth/register/",
+            self.registration_payload(terms_accepted=False),
+            format="json",
+        )
+
         self.assertEqual(response.status_code, 400)
         self.assertEqual(get_user_model().objects.count(), 0)
+        self.assertIn("terms_accepted", response.data)
 
     def test_trial_registration_creates_exact_seven_day_access(self):
         response = self.client.post(
@@ -77,7 +97,40 @@ class SubscriptionRegistrationAndAccessTests(TestCase):
         self.assertEqual(subscription.trial_ends_at - subscription.started_at, timedelta(days=7))
         self.assertEqual(subscription.access_ends_at, subscription.trial_ends_at)
         self.assertTrue(subscription.has_access)
-        self.assertEqual(response.data["next"], "/dashboard")
+        self.assertIsNotNone(user.trial_used_at)
+        self.assertEqual(response.data["next"], "/onboarding")
+
+    def test_paid_registration_creates_pending_local_subscription_before_checkout(self):
+        response = self.client.post(
+            "/api/v1/auth/register/",
+            self.registration_payload(access_mode="PAID"),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        user = get_user_model().objects.get(email="novo.terapeuta@example.com")
+        subscription = Subscription.objects.get(user=user)
+        self.assertEqual(subscription.status, Subscription.Status.PENDING)
+        self.assertIsNone(subscription.billing_order_id)
+        self.assertTrue(subscription.metadata["awaiting_checkout"])
+        self.assertIn("/checkout?", response.data["next"])
+        self.assertIn(self.price.slug, response.data["next"])
+
+    def test_trial_cannot_be_restarted_after_cancellation_or_plan_change(self):
+        user = get_user_model().objects.create_user(
+            email="trial.used@example.com",
+            full_name="Trial Usado",
+            password=self.password,
+        )
+        first = start_trial(user=user, plan_price=self.price)
+        first.status = Subscription.Status.CANCELED
+        first.canceled_at = timezone.now()
+        first.save(update_fields=["status", "canceled_at", "updated_at"])
+
+        with self.assertRaisesMessage(Exception, "já foi utilizado"):
+            start_trial(user=user, plan_price=self.price)
+
+        self.assertEqual(Subscription.objects.filter(user=user).count(), 1)
 
     def test_user_without_subscription_is_blocked_from_private_api(self):
         user = get_user_model().objects.create_user(
@@ -98,21 +151,111 @@ class SubscriptionRegistrationAndAccessTests(TestCase):
             full_name="Terapeuta Trial",
             password=self.password,
         )
-        now = timezone.now()
-        Subscription.objects.create(
-            user=user,
-            plan=self.plan,
-            status=Subscription.Status.TRIALING,
-            started_at=now,
-            access_starts_at=now,
-            access_ends_at=now + timedelta(days=7),
-            trial_ends_at=now + timedelta(days=7),
-        )
+        start_trial(user=user, plan_price=self.price)
         self.authenticate(user)
 
         response = self.client.get("/api/v1/auth/working-hours/")
 
         self.assertEqual(response.status_code, 200)
+
+    def test_past_due_user_is_blocked_even_inside_legacy_grace_period(self):
+        user = get_user_model().objects.create_user(
+            email="past.due@example.com",
+            full_name="Pagamento Vencido",
+            password=self.password,
+        )
+        now = timezone.now()
+        subscription = Subscription.objects.create(
+            user=user,
+            plan=self.plan,
+            status=Subscription.Status.PAST_DUE,
+            started_at=now,
+            access_starts_at=now,
+            access_ends_at=now + timedelta(days=30),
+            grace_period_ends_at=now + timedelta(days=5),
+        )
+        self.authenticate(user)
+
+        response = self.client.get("/api/v1/auth/working-hours/")
+        decision = get_entitlement(user)
+
+        self.assertEqual(response.status_code, 402)
+        self.assertFalse(decision.allowed)
+        self.assertEqual(decision.code, "PAYMENT_PAST_DUE")
+        self.assertEqual(decision.redirect_to, "/billing/past-due")
+        subscription.refresh_from_db()
+        self.assertEqual(subscription.status, Subscription.Status.PAST_DUE)
+
+    def test_expired_trial_is_persisted_as_expired_and_redirected(self):
+        user = get_user_model().objects.create_user(
+            email="expired.trial@example.com",
+            full_name="Trial Expirado",
+            password=self.password,
+        )
+        now = timezone.now()
+        subscription = Subscription.objects.create(
+            user=user,
+            plan=self.plan,
+            status=Subscription.Status.TRIALING,
+            started_at=now - timedelta(days=8),
+            access_starts_at=now - timedelta(days=8),
+            access_ends_at=now - timedelta(days=1),
+            trial_ends_at=now - timedelta(days=1),
+        )
+
+        decision = get_entitlement(user)
+        subscription.refresh_from_db()
+
+        self.assertFalse(decision.allowed)
+        self.assertEqual(decision.code, "TRIAL_EXPIRED")
+        self.assertEqual(decision.redirect_to, "/billing/expired")
+        self.assertEqual(subscription.status, Subscription.Status.EXPIRED)
+
+    def test_active_user_is_sent_to_onboarding_until_completed(self):
+        user = get_user_model().objects.create_user(
+            email="onboarding@example.com",
+            full_name="Sem Onboarding",
+            password=self.password,
+        )
+        now = timezone.now()
+        Subscription.objects.create(
+            user=user,
+            plan=self.plan,
+            status=Subscription.Status.ACTIVE,
+            started_at=now,
+            access_starts_at=now,
+            access_ends_at=now + timedelta(days=30),
+        )
+
+        decision = get_entitlement(user)
+
+        self.assertTrue(decision.allowed)
+        self.assertTrue(decision.onboarding_required)
+        self.assertEqual(decision.redirect_to, "/onboarding")
+
+    def test_onboarding_endpoint_is_available_without_subscription(self):
+        user = get_user_model().objects.create_user(
+            email="onboarding.no.plan@example.com",
+            full_name="Conta Sem Plano",
+            password=self.password,
+        )
+        self.authenticate(user)
+
+        response = self.client.post(
+            "/api/v1/auth/onboarding/",
+            {
+                "clinic_name": "Clínica Elo",
+                "specialty": "Psicologia",
+                "complete": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        user.refresh_from_db()
+        self.assertTrue(user.onboarding_completed)
+        self.assertEqual(user.clinic_name, "Clínica Elo")
+        self.assertEqual(response.data["next"], "/dashboard")
 
     def test_patients_are_available_even_when_legacy_plan_flag_is_false(self):
         user = get_user_model().objects.create_user(
