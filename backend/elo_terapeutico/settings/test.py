@@ -34,6 +34,13 @@ STORAGES = {
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = []
 
+# Valores sintéticos impedem que testes dependam de credenciais ou rede reais.
+ASAAS_API_KEY = "test-asaas-api-key"
+ASAAS_BASE_URL = "https://api-sandbox.asaas.com/v3"
+ASAAS_WEBHOOK_TOKEN = "test-asaas-webhook-token"
+BILLING_ENABLED = True
+BILLING_WEBHOOK_PROCESS_INLINE = True
+
 RATELIMIT_ENABLE = False
 BILLING_ENFORCE_PATIENT_LIMITS = False
 BILLING_REQUIRE_SUBSCRIPTION = False
