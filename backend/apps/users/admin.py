@@ -15,24 +15,67 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
         "full_name",
         "role",
         "crp_number",
+        "onboarding_status",
+        "trial_used_at",
         "is_active",
         "is_staff",
         "locked_status",
         "date_joined",
     ]
-    list_filter = ["role", "is_active", "is_staff", "is_superuser", "date_joined"]
-    search_fields = ["email", "full_name", "crp_number", "phone"]
+    list_filter = [
+        "role",
+        "is_active",
+        "is_staff",
+        "is_superuser",
+        "terms_accepted_at",
+        "trial_used_at",
+        "onboarding_completed_at",
+        "date_joined",
+    ]
+    search_fields = ["email", "full_name", "crp_number", "phone", "clinic_name"]
     ordering = ["full_name"]
-    readonly_fields = ["date_joined", "last_login", "failed_login_attempts", "locked_until"]
+    readonly_fields = [
+        "date_joined",
+        "last_login",
+        "failed_login_attempts",
+        "locked_until",
+        "terms_accepted_at",
+        "privacy_accepted_at",
+        "trial_used_at",
+        "onboarding_completed_at",
+    ]
     actions = ["action_activate_users", "action_deactivate_users", "action_unlock_users"]
 
     fieldsets = (
         ("Credenciais", {"fields": ("email", "password")}),
         ("Dados pessoais", {"fields": ("full_name", "phone", "avatar", "bio")}),
-        ("Perfil profissional", {"fields": ("role", "specialty", "crp_number")}),
+        (
+            "Perfil profissional",
+            {
+                "fields": (
+                    "role",
+                    "specialty",
+                    "crp_number",
+                    "clinic_name",
+                    "professional_address",
+                )
+            },
+        ),
         (
             "Configurações de agenda",
             {"fields": ("default_session_duration", "default_session_value")},
+        ),
+        (
+            "Ciclo de vida da conta",
+            {
+                "fields": (
+                    "terms_accepted_at",
+                    "privacy_accepted_at",
+                    "trial_used_at",
+                    "onboarding_completed_at",
+                ),
+                "classes": ("collapse",),
+            },
         ),
         (
             "Segurança",
@@ -63,6 +106,10 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
     @admin.display(description="Bloqueio", boolean=True)
     def locked_status(self, obj):
         return bool(obj.locked_until and obj.locked_until > timezone.now())
+
+    @admin.display(description="Onboarding", boolean=True)
+    def onboarding_status(self, obj):
+        return obj.onboarding_completed
 
     def save_model(self, request, obj, form, change):
         if "password" in form.changed_data:
