@@ -7,7 +7,10 @@ class GatewayError(Exception):
 
     code = "GATEWAY_ERROR"
     http_status = 502
-    public_message = "Não foi possível concluir a operação de cobrança."
+    public_message = (
+        "Não foi possível concluir a operação de cobrança. "
+        "Tente novamente mais tarde."
+    )
 
     def __init__(
         self,
