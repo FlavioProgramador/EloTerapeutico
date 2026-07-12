@@ -182,14 +182,23 @@ export interface CheckoutPreview {
   order?: BillingOrder;
   subscription?: Subscription;
   payments?: Payment[];
-  status?: SubscriptionStatus;
+  status?: string;
+  idempotent_replay?: boolean;
+  payment_url?: string | null;
+  invoice_url?: string | null;
+  pix?: {
+    copy_paste: string | null;
+    qr_code: string | null;
+  } | null;
 }
 
 export interface AsaasIntegrationHealth {
   gateway: "ASAAS";
   connected: boolean;
+  configured: boolean;
   environment: "SANDBOX" | "PRODUCTION";
   detail: string;
+  error_code: string | null;
   last_webhook_at: string | null;
   pending_events: number;
   failed_events: number;
