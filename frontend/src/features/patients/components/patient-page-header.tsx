@@ -12,7 +12,7 @@ export function PatientPageHeader({ onNew }: { onNew: () => void }) {
         </div>
         <p className="mt-1 text-sm text-muted-foreground">Gerencie os pacientes da clínica</p>
       </div>
-      <Button size="default" onClick={onNew} leftIcon={<Plus className="h-4 w-4" />}>
+      <Button size="md" onClick={onNew} leftIcon={<Plus className="h-4 w-4" />}>
         Novo paciente
       </Button>
     </header>
