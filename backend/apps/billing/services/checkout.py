@@ -155,13 +155,20 @@ def create_checkout_order(
             .filter(user=locked_user, status__in=OPERATIONAL_SUBSCRIPTION_STATUSES)
             .first()
         )
-        if operational and operational.status == Subscription.Status.PENDING:
+        registration_pending = bool(
+            operational
+            and operational.status == Subscription.Status.PENDING
+            and operational.billing_order_id is None
+            and (operational.metadata or {}).get("awaiting_checkout")
+        )
+        if operational and operational.status == Subscription.Status.PENDING and not registration_pending:
             details: dict[str, Any] = {}
             if operational.billing_order_id:
                 details["order_public_id"] = str(operational.billing_order.public_id)
             raise CheckoutAlreadyPendingError(details=details)
         if (
             operational
+            and not registration_pending
             and operational.status != Subscription.Status.TRIALING
             and operational.billing_order_id
             and operational.billing_order.plan_price_id == plan_price.pk
@@ -172,12 +179,17 @@ def create_checkout_order(
         is_trial_conversion = bool(
             operational and operational.status == Subscription.Status.TRIALING
         )
-        is_plan_change = bool(operational and operational.plan_id != plan_price.plan_id)
+        is_plan_change = bool(
+            operational
+            and not registration_pending
+            and operational.plan_id != plan_price.plan_id
+        )
         metadata: dict[str, Any] = {
             "checkout": _safe_snapshot(checkout_data),
             "provisioning_status": "PENDING",
             "is_plan_change": is_plan_change,
             "conversion_from_trial": is_trial_conversion,
+            "registration_checkout": registration_pending,
             "client_idempotency_key": str(idempotency_key),
         }
         if operational:
@@ -210,8 +222,14 @@ def create_checkout_order(
         created_new_subscription = operational is None
         if operational:
             subscription = operational
+            if registration_pending:
+                subscription.plan = plan_price.plan
+                subscription.billing_order = order
             subscription.metadata = {
                 **(subscription.metadata or {}),
+                "awaiting_checkout": False,
+                "selected_plan_price_id": plan_price.pk,
+                "selected_plan_price_slug": plan_price.slug,
                 "pending_checkout": {
                     "order_public_id": str(order.public_id),
                     "target_plan_id": plan_price.plan_id,
@@ -219,7 +237,10 @@ def create_checkout_order(
                     "requested_at": timezone.now().isoformat(),
                 },
             }
-            subscription.save(update_fields=["metadata", "updated_at"])
+            update_fields = ["metadata", "updated_at"]
+            if registration_pending:
+                update_fields.extend(["plan", "billing_order"])
+            subscription.save(update_fields=update_fields)
         else:
             subscription = Subscription.objects.create(
                 user=locked_user,
@@ -229,6 +250,8 @@ def create_checkout_order(
                 metadata={
                     "activation_rule": "Acesso liberado somente após confirmação do gateway.",
                     "provisioning_status": "PENDING",
+                    "selected_plan_price_id": plan_price.pk,
+                    "selected_plan_price_slug": plan_price.slug,
                 },
             )
 
@@ -289,7 +312,7 @@ def create_checkout_order(
             }
             locked_order.save()
 
-            if created_new_subscription:
+            if created_new_subscription or registration_pending:
                 locked_subscription.gateway_customer_id = customer_id
                 locked_subscription.gateway_subscription_id = locked_order.gateway_subscription_id
                 locked_subscription.gateway_status = str(response.get("status") or "")
@@ -356,13 +379,14 @@ def create_checkout_order(
                 failed_subscription.save(
                     update_fields=["status", "canceled_at", "metadata", "updated_at"]
                 )
-            elif not created_new_subscription:
+            else:
                 pending_checkout = dict((failed_subscription.metadata or {}).get("pending_checkout") or {})
                 if pending_checkout.get("order_public_id") == str(order.public_id):
                     pending_checkout["status"] = "FAILED"
                     failed_subscription.metadata = {
                         **(failed_subscription.metadata or {}),
                         "pending_checkout": pending_checkout,
+                        "provisioning_status": "FAILED",
                     }
                     failed_subscription.save(update_fields=["metadata", "updated_at"])
         raise

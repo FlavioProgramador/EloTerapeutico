@@ -26,6 +26,8 @@ export interface User {
   specialty?: string;
   crp?: string;
   phone?: string;
+  clinic_name?: string;
+  onboarding_completed?: boolean;
   default_session_value?: string;
 }
 
@@ -38,6 +40,7 @@ interface EntitlementSnapshot {
   allowed: boolean;
   code: string;
   redirect_to?: string | null;
+  onboarding_required?: boolean;
   subscription: SubscriptionSnapshot | null;
 }
 
@@ -68,6 +71,7 @@ async function resolveRedirectAfterLogin(): Promise<string> {
       entitlementAllowed: entitlement.allowed,
       subscriptionStatus: entitlement.subscription?.status,
       entitlementRedirect: entitlement.redirect_to,
+      onboardingRequired: entitlement.onboarding_required,
     });
   } catch {
     return resolvePostLoginDestination({
@@ -75,6 +79,7 @@ async function resolveRedirectAfterLogin(): Promise<string> {
       entitlementAllowed: false,
       subscriptionStatus: null,
       entitlementRedirect: "/planos",
+      onboardingRequired: false,
     });
   }
 }

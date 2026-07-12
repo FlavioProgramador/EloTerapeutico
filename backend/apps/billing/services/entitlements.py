@@ -17,6 +17,7 @@ class EntitlementDecision:
     redirect_to: str
     subscription: Subscription | None = None
     trial_days_remaining: int | None = None
+    onboarding_required: bool = False
 
 
 def has_admin_bypass(user) -> bool:
@@ -46,6 +47,14 @@ def _latest_subscription(user) -> Subscription | None:
     )
 
 
+def _onboarding_required(user) -> bool:
+    return bool(
+        user
+        and user.is_authenticated
+        and not getattr(user, "onboarding_completed", False)
+    )
+
+
 def _expire_stale_trial(subscription: Subscription, now) -> Subscription:
     if (
         subscription.status == Subscription.Status.TRIALING
@@ -61,7 +70,30 @@ def _expire_stale_trial(subscription: Subscription, now) -> Subscription:
             ):
                 locked.status = Subscription.Status.EXPIRED
                 locked.access_ends_at = locked.access_ends_at or locked.trial_ends_at
-                locked.save(update_fields=["status", "access_ends_at", "updated_at"])
+                locked.metadata = {
+                    **(locked.metadata or {}),
+                    "trial_expired_at": now.isoformat(),
+                }
+                locked.save(
+                    update_fields=["status", "access_ends_at", "metadata", "updated_at"]
+                )
+            return locked
+    return subscription
+
+
+def _expire_finished_subscription(subscription: Subscription, now) -> Subscription:
+    end_at = subscription.access_ends_at or subscription.current_period_end
+    if subscription.status == Subscription.Status.ACTIVE and end_at and end_at < now:
+        with transaction.atomic():
+            locked = Subscription.objects.select_for_update().get(pk=subscription.pk)
+            locked_end = locked.access_ends_at or locked.current_period_end
+            if locked.status == Subscription.Status.ACTIVE and locked_end and locked_end < now:
+                locked.status = Subscription.Status.EXPIRED
+                locked.metadata = {
+                    **(locked.metadata or {}),
+                    "subscription_expired_at": now.isoformat(),
+                }
+                locked.save(update_fields=["status", "metadata", "updated_at"])
             return locked
     return subscription
 
@@ -77,92 +109,91 @@ def get_entitlement(user, *, now=None) -> EntitlementDecision:
             redirect_to="/dashboard",
         )
 
+    onboarding_required = _onboarding_required(user)
     subscription = _latest_subscription(user)
     if not subscription:
         return EntitlementDecision(
             allowed=False,
             code="SUBSCRIPTION_REQUIRED",
-            message="É necessário possuir uma assinatura ativa ou um teste gratuito válido.",
+            message="Escolha um plano ou inicie o teste gratuito para liberar as ferramentas.",
             redirect_to="/planos",
+            onboarding_required=onboarding_required,
         )
 
     subscription = _expire_stale_trial(subscription, now)
+    subscription = _expire_finished_subscription(subscription, now)
 
     if subscription.status == Subscription.Status.TRIALING:
-        if not subscription.trial_ends_at or subscription.trial_ends_at < now:
+        if not subscription.trial_ends_at or subscription.trial_ends_at <= now:
             return EntitlementDecision(
                 allowed=False,
                 code="TRIAL_EXPIRED",
                 message="Seu teste gratuito expirou. Escolha um plano para continuar.",
-                redirect_to="/planos?reason=trial_expired",
+                redirect_to="/billing/expired",
                 subscription=subscription,
                 trial_days_remaining=0,
+                onboarding_required=onboarding_required,
             )
         seconds = max((subscription.trial_ends_at - now).total_seconds(), 0)
         return EntitlementDecision(
             allowed=True,
             code="TRIAL_ACTIVE",
             message="Teste gratuito ativo.",
-            redirect_to="/dashboard",
+            redirect_to="/onboarding" if onboarding_required else "/dashboard",
             subscription=subscription,
             trial_days_remaining=ceil(seconds / 86400),
+            onboarding_required=onboarding_required,
         )
 
     if subscription.status == Subscription.Status.ACTIVE:
-        end_at = subscription.access_ends_at or subscription.current_period_end
-        if end_at and end_at < now:
-            return EntitlementDecision(
-                allowed=False,
-                code="SUBSCRIPTION_EXPIRED",
-                message="Sua assinatura expirou. Renove o plano para continuar.",
-                redirect_to="/planos?reason=subscription_expired",
-                subscription=subscription,
-            )
         return EntitlementDecision(
             allowed=True,
             code="SUBSCRIPTION_ACTIVE",
             message="Assinatura ativa.",
-            redirect_to="/dashboard",
+            redirect_to="/onboarding" if onboarding_required else "/dashboard",
             subscription=subscription,
+            onboarding_required=onboarding_required,
         )
 
-    if subscription.status == Subscription.Status.PAST_DUE:
-        if not subscription.grace_period_ends_at or subscription.grace_period_ends_at >= now:
-            return EntitlementDecision(
-                allowed=True,
-                code="PAYMENT_GRACE_PERIOD",
-                message="Pagamento em atraso dentro do período de tolerância.",
-                redirect_to="/billing",
-                subscription=subscription,
-            )
+    if (
+        subscription.status == Subscription.Status.EXPIRED
+        and (subscription.metadata or {}).get("trial_expired_at")
+    ):
         return EntitlementDecision(
             allowed=False,
-            code="PAYMENT_PAST_DUE",
-            message="Há um pagamento em atraso. Regularize a assinatura para continuar.",
-            redirect_to="/billing?reason=past_due",
+            code="TRIAL_EXPIRED",
+            message="Seu teste gratuito expirou. Escolha um plano para continuar.",
+            redirect_to="/billing/expired",
             subscription=subscription,
+            trial_days_remaining=0,
+            onboarding_required=onboarding_required,
         )
 
     code_map = {
         Subscription.Status.PENDING: (
             "PAYMENT_PENDING",
             "A assinatura ainda aguarda confirmação do pagamento.",
-            "/billing?reason=pending",
+            "/billing/pending",
+        ),
+        Subscription.Status.PAST_DUE: (
+            "PAYMENT_PAST_DUE",
+            "Há um pagamento em atraso. Regularize a assinatura para continuar.",
+            "/billing/past-due",
         ),
         Subscription.Status.SUSPENDED: (
             "SUBSCRIPTION_SUSPENDED",
-            "Sua assinatura está suspensa. Regularize o pagamento para continuar.",
-            "/billing?reason=suspended",
+            "Sua assinatura está suspensa. Entre em contato com o suporte ou regularize a cobrança.",
+            "/billing/past-due",
         ),
         Subscription.Status.CANCELED: (
             "SUBSCRIPTION_CANCELED",
-            "Sua assinatura foi cancelada. Escolha um plano para continuar.",
-            "/planos?reason=canceled",
+            "Sua assinatura foi cancelada. Escolha um plano para reativar a conta.",
+            "/billing/expired",
         ),
         Subscription.Status.EXPIRED: (
             "SUBSCRIPTION_EXPIRED",
             "Seu acesso expirou. Escolha um plano para continuar.",
-            "/planos?reason=expired",
+            "/billing/expired",
         ),
     }
     code, message, redirect_to = code_map.get(
@@ -179,6 +210,7 @@ def get_entitlement(user, *, now=None) -> EntitlementDecision:
         message=message,
         redirect_to=redirect_to,
         subscription=subscription,
+        onboarding_required=onboarding_required,
     )
 
 

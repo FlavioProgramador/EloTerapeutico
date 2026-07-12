@@ -21,19 +21,33 @@ test("usuário com entitlement acessa o destino interno solicitado", () => {
       requested: "/dashboard/patients",
       entitlementAllowed: true,
       subscriptionStatus: "ACTIVE",
+      onboardingRequired: false,
     }),
     "/dashboard/patients",
   );
 });
 
-test("trial válido segue para o dashboard solicitado", () => {
+test("trial válido exige onboarding quando ainda não concluído", () => {
   assert.equal(
     resolvePostLoginDestination({
       requested: "/dashboard",
       entitlementAllowed: true,
       subscriptionStatus: "TRIALING",
+      onboardingRequired: true,
     }),
-    "/dashboard",
+    "/onboarding",
+  );
+});
+
+test("billing continua acessível mesmo quando onboarding está pendente", () => {
+  assert.equal(
+    resolvePostLoginDestination({
+      requested: "/billing/pending",
+      entitlementAllowed: true,
+      subscriptionStatus: "TRIALING",
+      onboardingRequired: true,
+    }),
+    "/billing/pending",
   );
 });
 
@@ -49,14 +63,36 @@ test("usuário sem assinatura é direcionado para planos", () => {
   );
 });
 
-test("pagamento pendente direciona para billing", () => {
+test("pagamento pendente direciona para página específica", () => {
   assert.equal(
     resolvePostLoginDestination({
       requested: "/dashboard",
       entitlementAllowed: false,
       subscriptionStatus: "PENDING",
     }),
-    "/billing",
+    "/billing/pending",
+  );
+});
+
+test("pagamento vencido direciona para regularização", () => {
+  assert.equal(
+    resolvePostLoginDestination({
+      requested: "/dashboard",
+      entitlementAllowed: false,
+      subscriptionStatus: "PAST_DUE",
+    }),
+    "/billing/past-due",
+  );
+});
+
+test("assinatura expirada direciona para renovação", () => {
+  assert.equal(
+    resolvePostLoginDestination({
+      requested: "/dashboard",
+      entitlementAllowed: false,
+      subscriptionStatus: "EXPIRED",
+    }),
+    "/billing/expired",
   );
 });
 

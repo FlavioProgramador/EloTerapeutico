@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Rotas públicas que não necessitam de autenticação
-const publicRoutes = ["/login", "/register", "/cadastro", "/forgot-password", "/planos"];
+const publicRoutes = [
+  "/login",
+  "/register",
+  "/cadastro",
+  "/forgot-password",
+  "/planos",
+  "/termos-de-uso",
+  "/politica-de-privacidade",
+];
 
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-
-  // A presença do cookie só indica uma sessão candidata. A validade é confirmada
-  // pelo frontend em /auth/me/ para evitar loops causados por tokens antigos.
   const token = request.cookies.get("auth_token")?.value;
   const role = request.cookies.get("auth_role")?.value;
 
@@ -21,42 +25,26 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const isRegisterRoute = pathname.startsWith("/register") || pathname.startsWith("/cadastro");
-  const selectedPlan =
-    request.nextUrl.searchParams.get("plan") ||
-    request.nextUrl.searchParams.get("plan_slug") ||
-    request.nextUrl.searchParams.get("plan_price_slug") ||
-    request.nextUrl.searchParams.get("plan_price_id");
-
-  // Cadastro público só pode ser iniciado depois da seleção de um plano.
-  if (!token && isRegisterRoute && !selectedPlan) {
-    const plansUrl = new URL("/planos", request.url);
-    plansUrl.searchParams.set("reason", "plan_required");
-    return NextResponse.redirect(plansUrl);
-  }
-
   const isPublicRoute = publicRoutes.some(
     (route) => pathname.startsWith(route) || pathname === route,
   );
   const isDashboardRoute = pathname.startsWith("/dashboard") || pathname === "/dashboard";
   const isCheckoutRoute = pathname.startsWith("/checkout") || pathname.startsWith("/billing");
-  const isProtectedRoute = isDashboardRoute || isCheckoutRoute;
+  const isOnboardingRoute = pathname.startsWith("/onboarding");
+  const isProtectedRoute = isDashboardRoute || isCheckoutRoute || isOnboardingRoute;
 
-  // Usuário sem cookie tentando acessar rota protegida.
   if (!token && isProtectedRoute) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", `${pathname}${search}`);
     return NextResponse.redirect(loginUrl);
   }
 
-  // Login e cadastro não redirecionam apenas pela presença do cookie. Isso
-  // permite que uma sessão expirada seja limpa sem loop login → dashboard.
+  // A validade do cookie e o estado da assinatura são confirmados pelas APIs.
+  // Assim, login/cadastro permanecem acessíveis para limpar sessões expiradas.
   if (isPublicRoute) {
     return NextResponse.next();
   }
 
-  // Controle RBAC de acesso para rotas do Dashboard. A API continua sendo a
-  // autoridade final; este bloqueio é apenas uma proteção de navegação.
   if (token && isDashboardRoute) {
     if (role === "secretary" && pathname.startsWith("/dashboard/records")) {
       const dashboardUrl = new URL("/dashboard", request.url);

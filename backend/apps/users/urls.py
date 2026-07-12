@@ -2,6 +2,7 @@ from django.urls import path
 
 from apps.billing.registration import PlanRegistrationView
 
+from .api.onboarding import OnboardingView
 from .api.views import (
     ChangePasswordView,
     LoginView,
@@ -39,6 +40,7 @@ urlpatterns = [
         name="auth-password-reset-confirm",
     ),
     path("me/", MeView.as_view(), name="user-me"),
+    path("onboarding/", OnboardingView.as_view(), name="user-onboarding"),
     path(
         "working-hours/",
         WorkingHoursListCreateView.as_view(),
