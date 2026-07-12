@@ -47,10 +47,13 @@ export async function previewCheckout(payload: CheckoutPayload): Promise<Checkou
 }
 
 export async function createCheckout(payload: CheckoutPayload): Promise<CheckoutPreview> {
-  const idempotencyKey = payload.idempotency_key || crypto.randomUUID();
+  const idempotencyKey = payload.idempotency_key;
+  if (!idempotencyKey) {
+    throw new Error("A tentativa de checkout não possui chave de idempotência.");
+  }
   const response = await api.post<CheckoutPreview>(
     "billing/checkout/create/",
-    { ...payload, idempotency_key: idempotencyKey },
+    payload,
     { headers: { "Idempotency-Key": idempotencyKey } },
   );
   return response.data;
