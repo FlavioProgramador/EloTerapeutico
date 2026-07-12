@@ -51,6 +51,7 @@ class SubscriptionAccessService:
             and (order.metadata or {}).get("is_plan_change")
             and locked_subscription.billing_order_id != order.pk
         )
+        was_trial = locked_subscription.status == Subscription.Status.TRIALING
 
         if (
             order
@@ -77,6 +78,7 @@ class SubscriptionAccessService:
         locked_subscription.access_ends_at = period_end
         locked_subscription.current_period_start = period_start
         locked_subscription.current_period_end = period_end
+        locked_subscription.trial_ends_at = None if was_trial else locked_subscription.trial_ends_at
         locked_subscription.grace_period_ends_at = None
         locked_subscription.suspended_at = None
         locked_subscription.reactivated_at = timezone.now() if was_suspended else locked_subscription.reactivated_at
@@ -86,10 +88,26 @@ class SubscriptionAccessService:
             locked_subscription.gateway_customer_id = order.gateway_customer_id or locked_subscription.gateway_customer_id
             locked_subscription.gateway_subscription_id = order.gateway_subscription_id
             locked_subscription.gateway_status = locked_payment.status
+
+        pending_checkout = dict(metadata.get("pending_checkout") or {})
+        if order and pending_checkout.get("order_public_id") == str(order.public_id):
+            pending_checkout.update(
+                {
+                    "status": "COMPLETED",
+                    "completed_at": timezone.now().isoformat(),
+                }
+            )
+
         locked_subscription.metadata = {
             **metadata,
+            "pending_checkout": pending_checkout or metadata.get("pending_checkout"),
             "last_activated_payment_id": activation_key,
             "last_activated_at": timezone.now().isoformat(),
+            "converted_from_trial_at": (
+                timezone.now().isoformat()
+                if was_trial
+                else metadata.get("converted_from_trial_at")
+            ),
             "previous_plan_id": previous_plan_id if is_plan_change else metadata.get("previous_plan_id"),
             "previous_billing_order_id": previous_order_id if is_plan_change else metadata.get("previous_billing_order_id"),
             "previous_gateway_subscription_id": (
