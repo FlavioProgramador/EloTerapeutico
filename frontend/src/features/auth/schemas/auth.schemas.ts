@@ -33,6 +33,12 @@ export const registerSchema = z
       .string()
       .min(1, "E-mail é obrigatório.")
       .email("Informe um e-mail válido."),
+    phone: z
+      .string()
+      .optional()
+      .refine((value) => !value || value.replace(/\D/g, "").length >= 10, {
+        message: "Informe um telefone com DDD.",
+      }),
     password: z
       .string()
       .min(8, "A senha deve ter pelo menos 8 caracteres.")
@@ -42,6 +48,12 @@ export const registerSchema = z
     role: z.enum(["therapist", "secretary", "admin"]).default("therapist"),
     crp: z.string().optional(),
     specialty: z.string().optional(),
+    terms_accepted: z.literal(true, {
+      errorMap: () => ({ message: "Aceite os Termos de Uso para continuar." }),
+    }),
+    privacy_accepted: z.literal(true, {
+      errorMap: () => ({ message: "Aceite a Política de Privacidade para continuar." }),
+    }),
   })
   .refine((data) => data.password === data.confirm_password, {
     message: "As senhas não coincidem.",
@@ -49,7 +61,6 @@ export const registerSchema = z
   });
 
 export type RegisterFormData = z.input<typeof registerSchema>;
-
 
 // ─── Esqueci a senha ──────────────────────────────────────────────────────────
 
@@ -61,7 +72,6 @@ export const forgotPasswordSchema = z.object({
 });
 
 export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
-
 
 // ─── Redefinir senha ──────────────────────────────────────────────────────────
 
