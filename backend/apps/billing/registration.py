@@ -90,6 +90,23 @@ class PlanRegistrationSerializer(serializers.Serializer):
         return attrs
 
 
+def _validation_error_response(errors) -> Response:
+    """Mantém o envelope seguro e compatibilidade com formulários por campo."""
+
+    details = dict(errors)
+    return Response(
+        {
+            **details,
+            "error": {
+                "code": "REGISTRATION_VALIDATION_ERROR",
+                "message": "Revise os dados informados para criar a conta.",
+                "details": details,
+            },
+        },
+        status=status.HTTP_400_BAD_REQUEST,
+    )
+
+
 def _send_account_created_email(user, *, trial_started: bool) -> None:
     subject = (
         "Seu teste gratuito no Elo Terapêutico começou"
@@ -127,7 +144,8 @@ class PlanRegistrationView(APIView):
     @transaction.atomic
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return _validation_error_response(serializer.errors)
         data = serializer.validated_data
         plan_price = data.get("plan_price")
 
@@ -141,7 +159,8 @@ class PlanRegistrationView(APIView):
             "phone": data.get("phone", ""),
         }
         user_serializer = RegisterSerializer(data=user_payload)
-        user_serializer.is_valid(raise_exception=True)
+        if not user_serializer.is_valid():
+            return _validation_error_response(user_serializer.errors)
         user = user_serializer.save()
 
         accepted_at = timezone.now()
@@ -155,9 +174,8 @@ class PlanRegistrationView(APIView):
             try:
                 subscription = start_trial(user=user, plan_price=plan_price)
             except DjangoValidationError as exc:
-                raise serializers.ValidationError(
-                    {"access_mode": list(exc.messages)}
-                ) from exc
+                transaction.set_rollback(True)
+                return _validation_error_response({"access_mode": list(exc.messages)})
             next_url = "/onboarding"
         elif plan_price:
             subscription = Subscription.objects.create(
