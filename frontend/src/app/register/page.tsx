@@ -81,9 +81,11 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
+    setMounted(true);
     const { plan } = registrationSelection();
     if (!plan) router.replace("/planos?reason=plan_required");
   }, [router]);
@@ -232,8 +234,8 @@ export default function RegisterPage() {
     }
   };
 
-  const loginHref = loginHrefAfterRegister();
-  const accessMode = typeof window === "undefined" ? "TRIAL" : registrationSelection().accessMode;
+  const loginHref = mounted ? loginHrefAfterRegister() : "/login";
+  const accessMode = mounted ? registrationSelection().accessMode : "TRIAL";
 
   return (
     <div className="min-h-screen flex bg-white font-sans overflow-hidden">
