@@ -105,30 +105,30 @@ export function PatientDesktopRow(props: RowProps) {
             <button
               type="button"
               onClick={() => router.push(`/dashboard/patients/${patient.id}`)}
-              className="block max-w-52 truncate text-left text-xs font-semibold text-foreground hover:text-primary"
+              className="block max-w-52 truncate text-left text-sm font-semibold text-foreground hover:text-primary"
             >
               {patient.display_name}
             </button>
-            <p className="mt-1 text-[10px] text-muted-foreground">
+            <p className="mt-1 text-xs text-muted-foreground">
               {patient.masked_cpf}
             </p>
           </div>
         </div>
       </td>
       <td className="max-w-64 px-3 py-3">
-        <p className="flex items-center gap-2 truncate text-[11px] text-foreground">
+        <p className="flex items-center gap-2 truncate text-sm text-foreground">
           <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           {patient.email || "E-mail não informado"}
         </p>
-        <p className="mt-1 flex items-center gap-2 truncate text-[10px] text-muted-foreground">
+        <p className="mt-1 flex items-center gap-2 truncate text-xs text-muted-foreground">
           <Phone className="h-3.5 w-3.5 shrink-0" />
           {patient.phone || "Telefone não informado"}
         </p>
       </td>
-      <td className="px-3 py-3 text-xs text-foreground">
+      <td className="px-3 py-3 text-sm text-foreground">
         {typeof patient.age === "number" ? `${patient.age} anos` : "Não informada"}
       </td>
-      <td className="max-w-48 px-3 py-3 text-xs text-foreground">
+      <td className="max-w-48 px-3 py-3 text-sm text-foreground">
         <span className="block truncate">{patientPayerLabel(patient)}</span>
       </td>
       <td className="px-3 py-3 text-center">
@@ -170,7 +170,7 @@ export function PatientMobileCard(props: RowProps) {
             >
               {patient.display_name}
             </button>
-            <p className="mt-1 text-[10px] text-muted-foreground">
+            <p className="mt-1 text-xs text-muted-foreground">
               {patient.masked_cpf}
             </p>
           </div>
@@ -178,9 +178,9 @@ export function PatientMobileCard(props: RowProps) {
         <ActionMenu {...props} />
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
         <div>
-          <p className="text-[9px] font-semibold uppercase text-muted-foreground">
+          <p className="text-[10px] font-semibold uppercase text-muted-foreground">
             Idade
           </p>
           <p className="mt-1 text-foreground">
@@ -188,7 +188,7 @@ export function PatientMobileCard(props: RowProps) {
           </p>
         </div>
         <div>
-          <p className="text-[9px] font-semibold uppercase text-muted-foreground">
+          <p className="text-[10px] font-semibold uppercase text-muted-foreground">
             Pagador
           </p>
           <p className="mt-1 truncate text-foreground">
@@ -196,13 +196,13 @@ export function PatientMobileCard(props: RowProps) {
           </p>
         </div>
         <div className="col-span-2 min-w-0">
-          <p className="text-[9px] font-semibold uppercase text-muted-foreground">
+          <p className="text-[10px] font-semibold uppercase text-muted-foreground">
             Contato
           </p>
           <p className="mt-1 truncate text-foreground">
             {patient.phone || "Telefone não informado"}
           </p>
-          <p className="mt-1 truncate text-[10px] text-muted-foreground">
+          <p className="mt-1 truncate text-xs text-muted-foreground">
             {patient.email || "E-mail não informado"}
           </p>
         </div>
@@ -213,7 +213,7 @@ export function PatientMobileCard(props: RowProps) {
           {patient.status_display}
         </Badge>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-muted-foreground">Lembrete</span>
+          <span className="text-xs text-muted-foreground">Lembrete</span>
           <ReminderSwitch
             patient={patient}
             disabled={!props.canManage}

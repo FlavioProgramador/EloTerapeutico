@@ -87,7 +87,7 @@ export function PatientTable({
     <section className="overflow-visible rounded-xl border border-border bg-card">
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[980px] border-collapse text-left">
-          <thead className="border-b border-border bg-secondary/30 text-[10px] uppercase tracking-wide text-muted-foreground">
+          <thead className="border-b border-border bg-secondary/30 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               {[
                 "Paciente",
@@ -121,14 +121,14 @@ export function PatientTable({
         ))}
       </div>
 
-      <footer className="flex flex-col gap-3 border-t border-border bg-secondary/15 px-4 py-3 text-[11px] text-muted-foreground lg:flex-row lg:items-center lg:justify-between">
+      <footer className="flex flex-col gap-3 border-t border-border bg-secondary/15 px-4 py-3 text-sm text-muted-foreground lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <label htmlFor="patients-page-size">Mostrar</label>
           <select
             id="patients-page-size"
             value={pageSize}
             onChange={(event) => onPageSizeChange(Number(event.target.value))}
-            className="h-9 rounded-md border border-border bg-background px-2 text-xs text-foreground"
+            className="h-9 rounded-md border border-border bg-background px-2 text-sm text-foreground"
           >
             {[10, 25, 50].map((size) => (
               <option key={size}>{size}</option>

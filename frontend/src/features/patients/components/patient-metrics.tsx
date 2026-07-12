@@ -52,13 +52,13 @@ export function PatientMetricsGrid({ metrics }: { metrics?: PatientMetrics }) {
         >
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[10px] font-semibold text-muted-foreground">
+              <p className="text-xs font-semibold text-muted-foreground">
                 {label}
               </p>
-              <strong className="mt-1 block text-xl text-foreground">
+              <strong className="mt-1 block text-3xl font-extrabold text-foreground">
                 {value}
               </strong>
-              <p className="mt-2 text-[9px] text-muted-foreground">
+              <p className="mt-2 text-xs text-muted-foreground">
                 {detail}
               </p>
             </div>
