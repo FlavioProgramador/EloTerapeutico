@@ -60,6 +60,16 @@ class User(AbstractBaseUser, PermissionsMixin):
         blank=True,
         verbose_name="Foto de perfil",
     )
+    clinic_name = models.CharField(
+        max_length=160,
+        blank=True,
+        verbose_name="Nome da clínica",
+    )
+    professional_address = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="Endereço profissional",
+    )
 
     # ── Configurações de agenda ─────────────────────────────────────────────
     default_session_duration = models.PositiveIntegerField(
@@ -71,6 +81,29 @@ class User(AbstractBaseUser, PermissionsMixin):
         decimal_places=2,
         default=0,
         verbose_name="Valor padrão da sessão (R$)",
+    )
+
+    # ── Ciclo de vida da conta ──────────────────────────────────────────────
+    terms_accepted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Termos aceitos em",
+    )
+    privacy_accepted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Política de privacidade aceita em",
+    )
+    trial_used_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name="Teste gratuito utilizado em",
+    )
+    onboarding_completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Onboarding concluído em",
     )
 
     # ── Controle de conta ───────────────────────────────────────────────────
@@ -107,6 +140,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def is_admin_role(self) -> bool:
         return self.role == self.Role.ADMIN
+
+    @property
+    def onboarding_completed(self) -> bool:
+        return self.onboarding_completed_at is not None
+
+    @property
+    def has_used_trial(self) -> bool:
+        return self.trial_used_at is not None
 
     def lock_account(self, minutes: int = 30) -> None:
         """Bloqueia a conta por X minutos após tentativas falhas consecutivas."""
