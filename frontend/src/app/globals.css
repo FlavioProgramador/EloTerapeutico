@@ -470,7 +470,7 @@ body {
  * ============================================================
  */
 .landing-page {
-  --background: 87 14% 89%;          /* Papel Névoa mais contrastado #DFE5DA */
+  --background: 0 0% 100%;           /* Branco puro */
   --background-dark: 172 46% 11%;    /* Tinta Elo Escura #0B2725 */
   --foreground: 147 30% 12%;         /* Grafite-Musgo #16241F */
   --card: 0 0% 100%;                 /* Branco puro para destacar os cards */
