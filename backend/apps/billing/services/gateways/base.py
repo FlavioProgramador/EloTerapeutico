@@ -3,11 +3,54 @@ from typing import Any
 
 
 class GatewayError(Exception):
-    """Erro de domínio para falhas controladas de gateway."""
+    """Falha controlada de gateway com contrato público estável."""
+
+    code = "GATEWAY_ERROR"
+    http_status = 502
+    public_message = "Não foi possível concluir a operação de cobrança."
+
+    def __init__(
+        self,
+        message: str | None = None,
+        *,
+        details: dict[str, Any] | None = None,
+        safe_gateway_message: str | None = None,
+    ) -> None:
+        super().__init__(message or self.public_message)
+        self.details = details or {}
+        self.safe_gateway_message = safe_gateway_message or ""
 
 
 class GatewayConfigurationError(GatewayError):
-    """Configuração ausente ou inválida do gateway."""
+    """Configuração ausente ou incompatível do gateway."""
+
+    code = "ASAAS_CONFIGURATION_ERROR"
+    http_status = 503
+    public_message = "A integração de pagamentos não está configurada."
+
+
+class GatewayAuthenticationError(GatewayError):
+    """Credencial rejeitada pelo gateway."""
+
+    code = "ASAAS_AUTHENTICATION_ERROR"
+    http_status = 502
+    public_message = "Não foi possível autenticar a integração de pagamentos."
+
+
+class GatewayValidationError(GatewayError):
+    """Dados de cobrança rejeitados antes ou durante a chamada ao gateway."""
+
+    code = "ASAAS_VALIDATION_ERROR"
+    http_status = 400
+    public_message = "Verifique os dados de cobrança informados."
+
+
+class GatewayUnavailableError(GatewayError):
+    """Timeout, limite de requisições ou indisponibilidade temporária."""
+
+    code = "ASAAS_UNAVAILABLE"
+    http_status = 503
+    public_message = "Não foi possível conectar ao Asaas. Tente novamente em instantes."
 
 
 class PaymentGateway(ABC):
