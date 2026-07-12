@@ -12,12 +12,12 @@ from django.utils import timezone
 
 from apps.billing.models import BillingOrder, PlanPrice, Subscription
 from apps.billing.security import redact_sensitive_data
+from apps.billing.services import orders as order_services
 from apps.billing.services.orders import (
     OPERATIONAL_SUBSCRIPTION_STATUSES,
     _commercial_snapshot,
     _existing_order_subscription,
     _safe_snapshot,
-    get_gateway,
     preview_order,
     sync_installment_payments,
     sync_subscription_payments,
@@ -233,7 +233,7 @@ def create_checkout_order(
             )
 
     try:
-        gateway = gateway or get_gateway()
+        gateway = gateway or order_services.get_gateway()
         customer_id = _gateway_customer_id(user, subscription)
         if not customer_id:
             customer = gateway.create_customer(user, checkout_data)
