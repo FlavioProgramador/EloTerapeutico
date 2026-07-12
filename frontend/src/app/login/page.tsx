@@ -2,25 +2,20 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { ArrowLeft, Mail, Lock, LogIn, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, LogIn, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { AxiosError } from "axios";
 import { useAuth } from "@/contexts/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
-import {
   loginSchema,
   type LoginFormData,
 } from "@/features/auth/schemas/auth.schemas";
+import { Brand } from "@/features/landing/brand";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -63,128 +58,116 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background text-foreground font-sans">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen flex bg-white font-sans overflow-hidden">
+      
+      {/* Left Column - Form */}
+      <div className="w-full lg:w-[45%] xl:w-[40%] p-8 sm:p-12 md:p-24 flex flex-col justify-center relative z-10">
+        
+        {/* Back Button */}
         <Link
           href="/"
-          aria-label="Voltar para a página inicial"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="absolute top-8 left-8 sm:top-12 sm:left-12 inline-flex items-center gap-2 text-sm text-gray-400 hover:text-gray-800 transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Voltar para o início
+          <ArrowLeft className="h-4 w-4" />
+          Voltar
         </Link>
 
-        <div className="flex flex-col items-center text-center">
-          <div className="h-10 w-10 rounded-md bg-primary flex items-center justify-center mb-3">
-            <Lock className="h-5 w-5 text-primary-foreground" />
+        <div className="max-w-sm w-full mx-auto space-y-10 relative mt-8">
+          
+          {/* Header */}
+          <div className="flex flex-col gap-6">
+            <div className="flex-shrink-0 [&_span]:!text-[#F97316] [&_.grid]:!bg-white [&_.grid]:!border-[#F97316]/30 [&_.grid]:!shadow-none [&_.grid]:!w-14 [&_.grid]:!h-14 [&_svg]:!w-8 [&_svg]:!h-8">
+              <Brand />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-[#1A2E26] tracking-tight mb-1">
+                Bem-vindo(a) de volta!
+              </h1>
+              <p className="text-gray-500 text-sm">
+                Acesse sua conta para gerenciar seus atendimentos.
+              </p>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Elo Terapêutico
-          </h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            Gestão clínica e prontuários para profissionais
-          </p>
-        </div>
 
-        <Card className="border-border/80 bg-card shadow-xs">
-          <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-xl font-bold text-foreground">
-              Entrar
-            </CardTitle>
-            <CardDescription className="text-xs text-muted-foreground">
-              Digite seu e-mail e senha para acessar o painel clínico.
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent>
-            <form
-              onSubmit={handleSubmit(onSubmit)}
-              className="space-y-4"
-              noValidate
-            >
-              <div className="space-y-1">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8" noValidate>
+            
+            <div className="space-y-6">
+              <div className="space-y-2 group">
+                <label htmlFor="login-email" className="text-xs font-bold text-gray-400 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">
+                  E-mail
+                </label>
                 <Input
                   id="login-email"
-                  label="E-mail profissional"
                   placeholder="seuemail@exemplo.com"
                   type="email"
                   autoComplete="email"
-                  leftIcon={<Mail className="h-4.5 w-4.5 text-muted-foreground" />}
                   error={errors.email?.message}
+                  leftIcon={<Mail className="h-5 w-5 text-gray-400 group-focus-within:text-[#F97316] transition-colors duration-300" />}
                   {...register("email")}
+                  className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none !pl-10 pr-2 shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base transition-all duration-300 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1A2E26]"
                 />
               </div>
 
-              <div className="space-y-1">
-                <Input
-                  id="login-password"
-                  label="Senha"
-                  placeholder="••••••••"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  leftIcon={<Lock className="h-4.5 w-4.5 text-muted-foreground" />}
-                  rightIcon={
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                      className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4.5 w-4.5" />
-                      ) : (
-                        <Eye className="h-4.5 w-4.5" />
-                      )}
-                    </button>
-                  }
-                  error={errors.password?.message}
-                  {...register("password")}
-                />
-              </div>
-
-              <div className="flex items-center justify-between text-xs pt-1">
-                <label
-                  htmlFor="remember-me"
-                  className="flex items-center gap-2 text-muted-foreground cursor-pointer select-none"
-                >
-                  <input
-                    id="remember-me"
-                    type="checkbox"
-                    className="rounded-xs border-border bg-secondary text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-shadow"
-                  />
-                  Lembrar de mim
+              <div className="space-y-2 group">
+                <label htmlFor="login-password" className="text-xs font-bold text-gray-400 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">
+                  Senha
                 </label>
-                <Link
-                  href="/forgot-password"
-                  className="text-primary hover:underline font-medium"
-                >
-                  Esqueceu a senha?
-                </Link>
+                <div className="relative">
+                  <Input
+                    id="login-password"
+                    placeholder="••••••••"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    error={errors.password?.message}
+                    leftIcon={<Lock className="h-5 w-5 text-gray-400 group-focus-within:text-[#F97316] transition-colors duration-300" />}
+                    {...register("password")}
+                    className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none !pl-10 shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base pr-10 transition-all duration-300 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1A2E26]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#F97316] transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
               </div>
+            </div>
 
+            <div className="flex justify-between items-center">
               <Button
                 id="login-submit"
                 type="submit"
-                className="w-full text-white font-semibold mt-2"
+                className="w-auto px-10 py-6 hover:bg-[#EA580C] text-white rounded-full font-bold shadow-none transition-all"
+                style={{ backgroundColor: "#F97316" }} /* Overriding with Brand Orange */
                 isLoading={isSubmitting}
-                rightIcon={<LogIn className="h-4 w-4" />}
               >
-                Entrar no Painel
+                ENTRAR
               </Button>
-            </form>
-
-            <div className="mt-5 text-center text-xs text-muted-foreground">
-              Ainda não possui acesso?{" "}
-              <Link
-                href="/planos"
-                className="text-primary hover:underline font-semibold"
-              >
-                Conheça os planos
-              </Link>
             </div>
-          </CardContent>
-        </Card>
+          </form>
+
+          <div className="pt-8 text-sm text-gray-400 font-medium flex items-center gap-2">
+            Ainda não possui acesso? 
+            <Link href="/planos" className="text-[#A855F7] hover:underline" style={{ color: "#F97316" }}>
+              Cadastre-se
+            </Link>
+          </div>
+        </div>
       </div>
+
+      {/* Right Column - Illustration */}
+      <div className="hidden lg:block lg:w-[55%] xl:w-[60%] relative bg-white">
+        {/* The massive curved container (now using the image's native white background curves) */}
+        <div className="absolute inset-0 overflow-hidden">
+          <img 
+            src="/login_illustration_final.jpg" 
+            alt="Ambiente Terapêutico" 
+            className="w-full h-full object-cover object-[left_center] scale-[1.05] origin-left"
+          />
+        </div>
+      </div>
+      
     </div>
   );
 }

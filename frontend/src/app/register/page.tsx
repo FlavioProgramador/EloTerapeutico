@@ -35,6 +35,7 @@ import {
   registerSchema,
   type RegisterFormData,
 } from "@/features/auth/schemas/auth.schemas";
+import { Brand } from "@/features/landing/brand";
 
 type AccessMode = "TRIAL" | "PAID";
 
@@ -235,201 +236,212 @@ export default function RegisterPage() {
   const accessMode = typeof window === "undefined" ? "TRIAL" : registrationSelection().accessMode;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background text-foreground font-sans">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen flex bg-white font-sans overflow-hidden">
+      
+      {/* Left Column - Form */}
+      <div className="w-full lg:w-[45%] xl:w-[40%] p-8 sm:p-12 md:p-16 flex flex-col justify-center relative z-10 overflow-y-auto">
+        
+        {/* Back Button */}
         <Link
           href="/"
-          aria-label="Voltar para a página inicial"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="absolute top-8 left-8 sm:top-12 sm:left-12 inline-flex items-center gap-2 text-sm text-gray-400 hover:text-gray-800 transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Voltar para o início
+          <ArrowLeft className="h-4 w-4" />
+          Voltar
         </Link>
 
-        <div className="flex flex-col items-center text-center">
-          <div className="h-10 w-10 rounded-md bg-primary flex items-center justify-center mb-3">
-            <UserPlus className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Elo Terapêutico
-          </h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            {accessMode === "TRIAL"
-              ? "Teste gratuito de 7 dias no plano selecionado"
-              : "Crie sua conta para concluir a assinatura"}
-          </p>
-        </div>
-
-        <Card className="border-border/80 bg-card shadow-xs">
-          <CardHeader className="space-y-2 pb-4">
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <div
-                className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold transition-colors duration-200 ${
-                  step === 1
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-primary/20 text-primary"
-                }`}
-              >
-                {step > 1 ? <Check className="h-4 w-4" /> : "1"}
-              </div>
-              <div
-                className={`h-[2px] w-12 transition-colors duration-200 ${
-                  step > 1 ? "bg-primary/40" : "bg-border"
-                }`}
-              />
-              <div
-                className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold transition-colors duration-200 ${
-                  step === 2
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-muted-foreground"
-                }`}
-              >
-                2
-              </div>
+        <div className="max-w-sm w-full mx-auto space-y-10 relative mt-8">
+          
+          {/* Header */}
+          <div className="flex flex-col gap-6">
+            <div className="flex-shrink-0 [&_span]:!text-[#F97316] [&_.grid]:!bg-white [&_.grid]:!border-[#F97316]/30 [&_.grid]:!shadow-none [&_.grid]:!w-14 [&_.grid]:!h-14 [&_svg]:!w-8 [&_svg]:!h-8">
+              <Brand />
             </div>
+            <div>
+              <h1 className="text-3xl font-bold text-[#1A2E26] tracking-tight mb-1">
+                {step === 1 ? "Crie sua conta" : "Quase lá!"}
+              </h1>
+              <p className="text-gray-500 text-sm">
+                {step === 1
+                  ? (accessMode === "TRIAL" ? "Inicie seu teste gratuito de 7 dias." : "Junte-se ao Elo Terapêutico.")
+                  : "Complete seu perfil profissional."}
+              </p>
+            </div>
+          </div>
 
-            <CardTitle className="text-xl font-bold text-foreground text-center">
-              {step === 1 ? "Dados de Acesso" : "Informações Profissionais"}
-            </CardTitle>
-            <CardDescription className="text-xs text-muted-foreground text-center">
-              {step === 1
-                ? "Crie sua credencial de acesso segura para a plataforma"
-                : "Complete o perfil profissional para iniciar os atendimentos"}
-            </CardDescription>
-          </CardHeader>
+          <div className="flex items-center gap-2 mb-2">
+            <div className={`h-1.5 flex-1 rounded-full transition-colors ${step >= 1 ? 'bg-[#F97316]' : 'bg-gray-200'}`} />
+            <div className={`h-1.5 flex-1 rounded-full transition-colors ${step >= 2 ? 'bg-[#F97316]' : 'bg-gray-200'}`} />
+          </div>
 
-          <CardContent>
+          <form onSubmit={step === 1 ? handleNext : handleSubmit(onSubmit)} className="space-y-8" noValidate>
+            
             {step === 1 ? (
-              <form onSubmit={handleNext} className="space-y-4" noValidate>
-                <Input
-                  id="register-name"
-                  label="Nome Completo"
-                  placeholder="Seu nome completo"
-                  autoComplete="name"
-                  leftIcon={<User className="h-4.5 w-4.5 text-muted-foreground" />}
-                  error={errors.full_name?.message}
-                  {...register("full_name")}
-                />
+              <div className="space-y-6">
+                <div className="space-y-2 group">
+                  <label htmlFor="register-name" className="text-xs font-bold text-gray-400 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">
+                    Nome Completo
+                  </label>
+                  <Input
+                    id="register-name"
+                    placeholder="Seu nome completo"
+                    autoComplete="name"
+                    error={errors.full_name?.message}
+                    leftIcon={<User className="h-5 w-5 text-gray-400 group-focus-within:text-[#F97316] transition-colors duration-300" />}
+                    {...register("full_name")}
+                    className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none !pl-10 pr-2 shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base transition-all duration-300 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1A2E26]"
+                  />
+                </div>
 
-                <Input
-                  id="register-email"
-                  label="E-mail profissional"
-                  placeholder="seuemail@exemplo.com"
-                  type="email"
-                  autoComplete="email"
-                  leftIcon={<Mail className="h-4.5 w-4.5 text-muted-foreground" />}
-                  error={errors.email?.message}
-                  {...register("email")}
-                />
+                <div className="space-y-2 group">
+                  <label htmlFor="register-email" className="text-xs font-bold text-gray-400 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">
+                    E-mail
+                  </label>
+                  <Input
+                    id="register-email"
+                    placeholder="seuemail@exemplo.com"
+                    type="email"
+                    autoComplete="email"
+                    error={errors.email?.message}
+                    leftIcon={<Mail className="h-5 w-5 text-gray-400 group-focus-within:text-[#F97316] transition-colors duration-300" />}
+                    {...register("email")}
+                    className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none !pl-10 pr-2 shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base transition-all duration-300 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1A2E26]"
+                  />
+                </div>
 
-                <Input
-                  id="register-password"
-                  label="Senha"
-                  placeholder="Mínimo de 8 caracteres"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="new-password"
-                  leftIcon={<Lock className="h-4.5 w-4.5 text-muted-foreground" />}
-                  rightIcon={
+                <div className="space-y-2 group">
+                  <label htmlFor="register-password" className="text-xs font-bold text-gray-400 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">
+                    Senha
+                  </label>
+                  <div className="relative">
+                    <Input
+                      id="register-password"
+                      placeholder="Mínimo de 8 caracteres"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      error={errors.password?.message}
+                      leftIcon={<Lock className="h-5 w-5 text-gray-400 group-focus-within:text-[#F97316] transition-colors duration-300" />}
+                      {...register("password")}
+                      className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none !pl-10 shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base pr-10 transition-all duration-300 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1A2E26]"
+                    />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                      className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                      className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#F97316] transition-colors"
                     >
-                      {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
-                  }
-                  error={errors.password?.message}
-                  {...register("password")}
-                />
+                  </div>
+                </div>
 
-                <Input
-                  id="register-confirm-password"
-                  label="Confirmar Senha"
-                  placeholder="Repita a senha"
-                  type={showConfirmPassword ? "text" : "password"}
-                  autoComplete="new-password"
-                  leftIcon={<Lock className="h-4.5 w-4.5 text-muted-foreground" />}
-                  rightIcon={
+                <div className="space-y-2 group">
+                  <label htmlFor="register-confirm-password" className="text-xs font-bold text-gray-400 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">
+                    Confirmar Senha
+                  </label>
+                  <div className="relative">
+                    <Input
+                      id="register-confirm-password"
+                      placeholder="Repita a senha"
+                      type={showConfirmPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      error={errors.confirm_password?.message}
+                      leftIcon={<Lock className="h-5 w-5 text-gray-400 group-focus-within:text-[#F97316] transition-colors duration-300" />}
+                      {...register("confirm_password")}
+                      className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none !pl-10 shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base pr-10 transition-all duration-300 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1A2E26]"
+                    />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      aria-label={showConfirmPassword ? "Ocultar confirmação" : "Mostrar confirmação"}
-                      className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                      className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#F97316] transition-colors"
                     >
-                      {showConfirmPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                      {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
-                  }
-                  error={errors.confirm_password?.message}
-                  {...register("confirm_password")}
-                />
+                  </div>
+                </div>
 
-                <Button
-                  id="register-next"
-                  type="submit"
-                  className="w-full text-white font-semibold mt-6"
-                  rightIcon={<ArrowRight className="h-4 w-4" />}
-                >
-                  Próxima Etapa
-                </Button>
-              </form>
-            ) : (
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-                <Input
-                  id="register-crp"
-                  label="Registro Profissional (CRP / CRM / Registro)"
-                  placeholder="Ex: CRP 06/123456"
-                  leftIcon={<FileText className="h-4.5 w-4.5 text-muted-foreground" />}
-                  error={errors.crp?.message}
-                  {...register("crp")}
-                />
-
-                <Input
-                  id="register-specialty"
-                  label="Especialidade Principal"
-                  placeholder="Ex: Psicologia Clínica, TCC, Psicanálise"
-                  leftIcon={<Briefcase className="h-4.5 w-4.5 text-muted-foreground" />}
-                  error={errors.specialty?.message}
-                  {...register("specialty")}
-                />
-
-                <div className="flex gap-4 mt-6">
+                <div className="pt-2">
                   <Button
-                    id="register-back"
-                    type="button"
-                    variant="outline"
-                    className="w-1/3"
-                    onClick={() => setStep(1)}
-                    leftIcon={<ArrowLeft className="h-4 w-4" />}
+                    id="register-next"
+                    type="submit"
+                    className="w-auto px-10 py-6 hover:bg-[#EA580C] text-white rounded-full font-bold shadow-none transition-all flex items-center gap-2"
+                    style={{ backgroundColor: "#F97316" }}
                   >
-                    Voltar
+                    PRÓXIMA ETAPA <ArrowRight className="h-4 w-4" />
                   </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="space-y-2 group">
+                  <label htmlFor="register-crp" className="text-xs font-bold text-gray-400 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">
+                    Registro Profissional
+                  </label>
+                  <Input
+                    id="register-crp"
+                    placeholder="Ex: CRP 06/123456"
+                    error={errors.crp?.message}
+                    leftIcon={<FileText className="h-5 w-5 text-gray-400 group-focus-within:text-[#F97316] transition-colors duration-300" />}
+                    {...register("crp")}
+                    className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none !pl-10 pr-2 shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base transition-all duration-300 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1A2E26]"
+                  />
+                </div>
 
+                <div className="space-y-2 group">
+                  <label htmlFor="register-specialty" className="text-xs font-bold text-gray-400 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">
+                    Especialidade Principal
+                  </label>
+                  <Input
+                    id="register-specialty"
+                    placeholder="Ex: Psicologia Clínica, TCC"
+                    error={errors.specialty?.message}
+                    leftIcon={<Briefcase className="h-5 w-5 text-gray-400 group-focus-within:text-[#F97316] transition-colors duration-300" />}
+                    {...register("specialty")}
+                    className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none !pl-10 pr-2 shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base transition-all duration-300 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1A2E26]"
+                  />
+                </div>
+
+                <div className="flex items-center gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="text-gray-400 hover:text-[#F97316] font-semibold text-sm transition-colors flex items-center gap-1"
+                  >
+                    <ArrowLeft className="h-4 w-4" /> Voltar
+                  </button>
                   <Button
                     id="register-submit"
                     type="submit"
-                    className="w-2/3 text-white font-semibold"
+                    className="w-auto px-10 py-6 hover:bg-[#EA580C] text-white rounded-full font-bold shadow-none transition-all flex items-center gap-2"
+                    style={{ backgroundColor: "#F97316" }}
                     isLoading={isLoading}
-                    rightIcon={<UserPlus className="h-4 w-4" />}
                   >
-                    {accessMode === "TRIAL" ? "Iniciar teste" : "Criar conta"}
+                    {accessMode === "TRIAL" ? "INICIAR TESTE" : "CRIAR CONTA"}
                   </Button>
                 </div>
-              </form>
+              </div>
             )}
+          </form>
 
-            <div className="mt-5 text-center text-xs text-muted-foreground">
-              Já possui uma conta?{" "}
-              <Link
-                href={loginHref}
-                className="text-primary hover:underline font-semibold"
-              >
-                Faça login
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+          <div className="pt-8 text-sm text-gray-400 font-medium flex items-center gap-2">
+            Já possui uma conta? 
+            <Link href={loginHref} className="text-[#A855F7] hover:underline" style={{ color: "#F97316" }}>
+              Faça login
+            </Link>
+          </div>
+        </div>
       </div>
+
+      {/* Right Column - Illustration */}
+      <div className="hidden lg:block lg:w-[55%] xl:w-[60%] relative bg-white">
+        <div className="absolute inset-0 overflow-hidden">
+          <img 
+            src="/register_illustration.jpg" 
+            alt="Ambiente Terapêutico de Cadastro" 
+            className="w-full h-full object-cover object-[left_center] scale-[1.05] origin-left"
+          />
+        </div>
+      </div>
+      
     </div>
   );
 }
