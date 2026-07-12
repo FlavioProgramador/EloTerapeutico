@@ -10,6 +10,13 @@ on:
       - "frontend/src/features/billing/**"
       - "frontend/src/features/landing/pricing.tsx"
       - "frontend/src/app/checkout/**"
+      - "frontend/src/lib/api.ts"
+      - "frontend/src/lib/auth-flow.ts"
+      - "frontend/src/lib/auth-session.ts"
+      - "frontend/src/contexts/auth.tsx"
+      - "frontend/auth-flow.test.mjs"
+      - "frontend/package.json"
+      - "frontend/package-lock.json"
       - ".github/workflows/billing-validation.yml"
   workflow_dispatch:
 
@@ -66,4 +73,5 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm run test:auth
       - run: npm run build
