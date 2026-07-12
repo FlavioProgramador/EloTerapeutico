@@ -12,6 +12,19 @@ import { queryClient } from "./query-client";
  * Providers raiz da aplicação.
  * Ordem: tema → dados remotos → autenticação → notificações.
  */
+
+if (typeof window !== "undefined") {
+  const originalError = console.error;
+  console.error = (...args) => {
+    if (
+      typeof args[0] === "string" &&
+      args[0].includes("Encountered a script tag while rendering React component")
+    ) {
+      return;
+    }
+    originalError(...args);
+  };
+}
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>

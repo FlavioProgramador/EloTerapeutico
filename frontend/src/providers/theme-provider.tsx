@@ -11,16 +11,6 @@ import { type ThemeProviderProps } from "next-themes";
  * escolhida pelo usuário permanece armazenada pelo next-themes.
  */
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
-  const [mounted, setMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return <>{children}</>;
-  }
-
   return (
     <NextThemesProvider
       attribute="class"

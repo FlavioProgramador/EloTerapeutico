@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { AlertTriangle, Clock3 } from "lucide-react";
 
 import { api } from "@/lib/api";
@@ -35,6 +35,7 @@ function trialMessage(daysRemaining: number | null, trialEndsAt?: string | null)
 
 export function SubscriptionAccessBanner() {
   const router = useRouter();
+  const pathname = usePathname();
   const [entitlement, setEntitlement] = useState<EntitlementResponse | null>(null);
 
   useEffect(() => {
@@ -46,7 +47,7 @@ export function SubscriptionAccessBanner() {
         if (!mounted) return;
 
         setEntitlement(response.data);
-        if (!response.data.allowed) {
+        if (!response.data.allowed && !pathname.startsWith("/dashboard/assinatura")) {
           router.replace(response.data.redirect_to || "/planos");
         }
       } catch {
@@ -59,7 +60,7 @@ export function SubscriptionAccessBanner() {
     return () => {
       mounted = false;
     };
-  }, [router]);
+  }, [router, pathname]);
 
   if (!entitlement?.allowed) return null;
 
