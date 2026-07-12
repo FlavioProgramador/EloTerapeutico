@@ -58,7 +58,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-white font-sans overflow-hidden">
+    <div className="min-h-screen flex bg-[#F9F9F9] font-sans overflow-hidden">
       
       {/* Left Column - Form */}
       <div className="w-full lg:w-[45%] xl:w-[40%] p-8 sm:p-12 md:p-24 flex flex-col justify-center relative z-10">
@@ -157,7 +157,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right Column - Illustration */}
-      <div className="hidden lg:block lg:w-[55%] xl:w-[60%] relative bg-white">
+      <div className="hidden lg:block lg:w-[55%] xl:w-[60%] relative bg-[#F9F9F9]">
         {/* The massive curved container (now using the image's native white background curves) */}
         <div className="absolute inset-0 overflow-hidden">
           <img 

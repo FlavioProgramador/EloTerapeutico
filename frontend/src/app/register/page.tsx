@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
+  Lock,
   Mail,
   Phone,
   ShieldCheck,
@@ -211,93 +212,146 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="min-h-screen bg-white text-[#1A2E26] lg:grid lg:grid-cols-[minmax(0,1fr)_420px]">
-      <section className="relative flex min-h-screen items-center px-6 py-20 sm:px-10 lg:px-16">
-        <Link href="/" className="absolute left-6 top-7 inline-flex items-center gap-2 text-sm font-semibold text-gray-500 transition hover:text-[#F97316] sm:left-10">
-          <ArrowLeft className="h-4 w-4" /> Voltar para a página inicial
-        </Link>
+    <main className="min-h-screen flex bg-[#F9F9F9] font-sans text-[#1A2E26] overflow-hidden">
+      {/* Left Column - Form */}
+      <div className="w-full lg:w-[45%] xl:w-[40%] flex flex-col justify-center px-6 sm:px-10 lg:px-16 z-10 bg-[#F9F9F9] overflow-y-auto py-12">
 
-        <div className="mx-auto w-full max-w-xl">
-          <Brand />
+
+        <div className="mx-auto w-full max-w-xl mt-12 lg:mt-0">
+          <div className="inline-block flex-shrink-0 [&_span]:!text-[#F97316] [&_.grid]:!bg-white [&_.grid]:!border-[#F97316]/30 [&_.grid]:!shadow-none [&_.grid]:!w-14 [&_.grid]:!h-14 [&_svg]:!w-8 [&_svg]:!h-8 hover:opacity-80 transition-opacity">
+            <Brand />
+          </div>
           <div className="mt-8">
             <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#F97316]">Crie sua conta</p>
-            <h1 className="mt-3 text-4xl font-extrabold tracking-tight">Comece com segurança e sem surpresas.</h1>
+            <h1 className="mt-3 text-4xl font-extrabold tracking-tight text-[#1A2E26]">Comece com segurança e sem surpresas.</h1>
             <p className="mt-3 text-sm leading-6 text-gray-500">A conta é criada primeiro. O acesso às ferramentas só é liberado com assinatura ativa ou teste gratuito válido.</p>
           </div>
 
           <form className="mt-9 grid gap-5" onSubmit={handleSubmit(onSubmit)} noValidate>
-            <Input label="Nome completo" leftIcon={<User className="h-4 w-4" />} error={errors.full_name?.message} autoComplete="name" {...register("full_name")} />
-            <div className="grid gap-5 sm:grid-cols-2">
-              <Input label="E-mail" type="email" leftIcon={<Mail className="h-4 w-4" />} error={errors.email?.message} autoComplete="email" {...register("email")} />
-              <Input label="Telefone" leftIcon={<Phone className="h-4 w-4" />} error={errors.phone?.message} autoComplete="tel" {...register("phone")} />
+            <div className="space-y-2 group">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">Nome completo</label>
+              <Input type="text" error={errors.full_name?.message} autoComplete="name" leftIcon={<User className="h-5 w-5 text-gray-400 group-focus-within:text-[#F97316] transition-colors duration-300" />} {...register("full_name")} className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none !pl-10 pr-2 shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base transition-all duration-300" />
             </div>
+            
             <div className="grid gap-5 sm:grid-cols-2">
-              <div className="relative">
-                <Input label="Senha" type={showPassword ? "text" : "password"} error={errors.password?.message} autoComplete="new-password" {...register("password")} />
-                <button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-3 top-9 text-gray-400 hover:text-[#F97316]" aria-label="Mostrar ou ocultar senha">
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+              <div className="space-y-2 group">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">E-mail</label>
+                <Input type="email" error={errors.email?.message} autoComplete="email" leftIcon={<Mail className="h-5 w-5 text-gray-400 group-focus-within:text-[#F97316] transition-colors duration-300" />} {...register("email")} className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none !pl-10 pr-2 shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base transition-all duration-300" />
               </div>
-              <div className="relative">
-                <Input label="Confirmar senha" type={showConfirmPassword ? "text" : "password"} error={errors.confirm_password?.message} autoComplete="new-password" {...register("confirm_password")} />
-                <button type="button" onClick={() => setShowConfirmPassword((value) => !value)} className="absolute right-3 top-9 text-gray-400 hover:text-[#F97316]" aria-label="Mostrar ou ocultar confirmação de senha">
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+              <div className="space-y-2 group">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">Telefone</label>
+                <Input type="tel" error={errors.phone?.message} autoComplete="tel" leftIcon={<Phone className="h-5 w-5 text-gray-400 group-focus-within:text-[#F97316] transition-colors duration-300" />} {...register("phone")} className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none !pl-10 pr-2 shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base transition-all duration-300" />
               </div>
             </div>
+
             <div className="grid gap-5 sm:grid-cols-2">
-              <Input label="Registro profissional" placeholder="Ex.: 06/123456" error={errors.crp?.message} {...register("crp")} />
-              <Input label="Especialidade" placeholder="Ex.: Psicologia clínica" error={errors.specialty?.message} {...register("specialty")} />
+              <div className="space-y-2 group">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">Senha</label>
+                <div className="relative">
+                  <Input type={showPassword ? "text" : "password"} error={errors.password?.message} autoComplete="new-password" leftIcon={<Lock className="h-5 w-5 text-gray-400 group-focus-within:text-[#F97316] transition-colors duration-300" />} {...register("password")} className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none !pl-10 shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base pr-10 transition-all duration-300" />
+                  <button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#F97316] transition-colors"><span className="sr-only">Mostrar ou ocultar senha</span>{showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button>
+                </div>
+              </div>
+              <div className="space-y-2 group">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">Confirmar Senha</label>
+                <div className="relative">
+                  <Input type={showConfirmPassword ? "text" : "password"} error={errors.confirm_password?.message} autoComplete="new-password" leftIcon={<Lock className="h-5 w-5 text-gray-400 group-focus-within:text-[#F97316] transition-colors duration-300" />} {...register("confirm_password")} className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none !pl-10 shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base pr-10 transition-all duration-300" />
+                  <button type="button" onClick={() => setShowConfirmPassword((value) => !value)} className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#F97316] transition-colors"><span className="sr-only">Mostrar ou ocultar confirmação de senha</span>{showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-3 rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm">
-              <label className="flex items-start gap-3">
-                <input type="checkbox" className="mt-1 h-4 w-4 accent-[#F97316]" {...register("terms_accepted")} />
-                <span>Aceito os <Link href="/termos-de-uso" className="font-bold text-[#F97316] hover:underline">Termos de Uso</Link>.</span>
-              </label>
-              {errors.terms_accepted && <p className="text-xs text-red-600">{errors.terms_accepted.message}</p>}
-              <label className="flex items-start gap-3">
-                <input type="checkbox" className="mt-1 h-4 w-4 accent-[#F97316]" {...register("privacy_accepted")} />
-                <span>Aceito a <Link href="/politica-de-privacidade" className="font-bold text-[#F97316] hover:underline">Política de Privacidade</Link>.</span>
-              </label>
-              {errors.privacy_accepted && <p className="text-xs text-red-600">{errors.privacy_accepted.message}</p>}
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="space-y-2 group">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">Registro profissional</label>
+                <Input placeholder="Ex.: 06/123456" error={errors.crp?.message} {...register("crp")} className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base transition-all duration-300" />
+              </div>
+              <div className="space-y-2 group">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">Especialidade</label>
+                <Input placeholder="Ex.: Psicologia clínica" error={errors.specialty?.message} {...register("specialty")} className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base transition-all duration-300" />
+              </div>
             </div>
 
-            <Button type="submit" isLoading={isLoading} className="mt-2 h-12 rounded-xl bg-[#F97316] font-bold text-white hover:bg-[#EA580C]">
+            <div className="space-y-3 rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm mt-2">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" className="mt-1 h-4 w-4 accent-[#F97316] rounded border-gray-300 cursor-pointer" {...register("terms_accepted")} />
+                <span className="text-gray-600 font-medium">Aceito os <Link href="/termos-de-uso" className="font-bold text-[#F97316] hover:underline">Termos de Uso</Link>.</span>
+              </label>
+              {errors.terms_accepted && <p className="text-xs text-red-600 font-medium">{errors.terms_accepted.message}</p>}
+              
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" className="mt-1 h-4 w-4 accent-[#F97316] rounded border-gray-300 cursor-pointer" {...register("privacy_accepted")} />
+                <span className="text-gray-600 font-medium">Aceito a <Link href="/politica-de-privacidade" className="font-bold text-[#F97316] hover:underline">Política de Privacidade</Link>.</span>
+              </label>
+              {errors.privacy_accepted && <p className="text-xs text-red-600 font-medium">{errors.privacy_accepted.message}</p>}
+            </div>
+
+            <Button type="submit" isLoading={isLoading} className="mt-4 h-12 rounded-full bg-[#F97316] font-bold text-white hover:bg-[#EA580C] shadow-none transition-all">
               {selection.plan ? (accessMode === "TRIAL" ? "Iniciar teste gratuito" : "Criar conta e ir ao checkout") : "Criar conta e escolher plano"}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </form>
 
-          <p className="mt-7 text-sm text-gray-500">Já possui conta? <Link href={loginHref} className="font-bold text-[#F97316] hover:underline">Entrar</Link></p>
+          <p className="mt-8 text-sm text-gray-500 font-medium">Já possui conta? <Link href={loginHref} className="font-bold text-[#F97316] hover:underline">Entrar</Link></p>
         </div>
-      </section>
+      </div>
 
-      <aside className="hidden border-l border-gray-100 bg-[#F7FAF8] p-8 lg:flex lg:flex-col lg:justify-center">
-        <div className="rounded-3xl border border-[#1A2E26]/10 bg-white p-7 shadow-sm">
-          <ShieldCheck className="h-9 w-9 text-[#2F855A]" />
-          <h2 className="mt-5 text-xl font-extrabold">Resumo da contratação</h2>
+      {/* Right Column - Illustration & Floating Summary */}
+      <aside className="hidden lg:block lg:w-[55%] xl:w-[60%] relative bg-[#F9F9F9] overflow-hidden">
+        {/* Background Illustration */}
+        <div className="absolute inset-0">
+          <img 
+            src="/register_illustration.jpg" 
+            alt="Ambiente Terapêutico" 
+            className="w-full h-full object-cover object-[left_center] scale-[1.05] origin-left"
+          />
+        </div>
+
+        {/* Floating Resumo da Contratação (Glassmorphism) */}
+        <div className="absolute bottom-8 right-8 z-10 w-96 rounded-3xl border border-white/40 bg-white/60 backdrop-blur-xl p-7 shadow-2xl">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#2F855A]/10">
+              <ShieldCheck className="h-6 w-6 text-[#2F855A]" />
+            </div>
+            <h2 className="text-lg font-extrabold text-gray-900">Resumo da contratação</h2>
+          </div>
+          
           {selected.plan && selected.price ? (
-            <div className="mt-5 space-y-4">
+            <div className="space-y-4">
               <div>
-                <p className="text-sm text-gray-500">Plano</p>
-                <p className="text-lg font-bold">{selected.plan.name}</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Plano Selecionado</p>
+                <p className="text-xl font-extrabold text-gray-900">{selected.plan.name}</p>
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-xl bg-gray-50 p-3"><span className="text-gray-500">Ciclo</span><strong className="mt-1 block">{selected.price.billing_interval === "YEARLY" ? "Anual" : "Mensal"}</strong></div>
-                <div className="rounded-xl bg-gray-50 p-3"><span className="text-gray-500">Modalidade</span><strong className="mt-1 block">{selected.price.billing_model === "INSTALLMENT" ? "Parcelado" : selected.price.billing_model === "ONE_TIME" ? "À vista" : "Recorrente"}</strong></div>
+                <div className="rounded-xl bg-white/50 p-3 border border-white/30">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Ciclo</span>
+                  <strong className="mt-1 block text-gray-900">{selected.price.billing_interval === "YEARLY" ? "Anual" : "Mensal"}</strong>
+                </div>
+                <div className="rounded-xl bg-white/50 p-3 border border-white/30">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Modalidade</span>
+                  <strong className="mt-1 block text-gray-900">{selected.price.billing_model === "INSTALLMENT" ? "Parcelado" : selected.price.billing_model === "ONE_TIME" ? "À vista" : "Recorrente"}</strong>
+                </div>
               </div>
-              <div className="rounded-2xl bg-[#FFF7ED] p-4">
-                <p className="text-sm text-gray-500">Valor total</p>
-                <p className="mt-1 text-2xl font-extrabold text-[#F97316]">{currency(selected.price.total_amount, selected.price.currency)}</p>
-                {selected.price.billing_model === "INSTALLMENT" && <p className="mt-1 text-xs text-gray-600">Até {selected.price.max_installments} parcelas, conforme o checkout.</p>}
+              <div className="rounded-2xl bg-[#F97316]/10 p-4 border border-[#F97316]/20">
+                <p className="text-xs font-bold uppercase tracking-wider text-[#F97316]">Valor total</p>
+                <p className="mt-1 text-3xl font-extrabold text-[#F97316]">{currency(selected.price.total_amount, selected.price.currency)}</p>
+                {selected.price.billing_model === "INSTALLMENT" && <p className="mt-1 text-xs text-[#F97316]/70">Até {selected.price.max_installments} parcelas, conforme o checkout.</p>}
               </div>
-              {accessMode === "TRIAL" && <div className="flex gap-3 rounded-2xl bg-[#ECFDF5] p-4 text-sm text-[#166534]"><CheckCircle2 className="h-5 w-5 shrink-0" /> 7 dias gratuitos. O teste não reinicia ao trocar de plano.</div>}
+              {accessMode === "TRIAL" && (
+                <div className="flex items-center gap-3 rounded-2xl bg-[#ECFDF5]/80 p-3 text-sm text-[#166534] border border-[#2F855A]/20">
+                  <CheckCircle2 className="h-5 w-5 shrink-0" />
+                  <span className="font-medium leading-tight">7 dias gratuitos incluídos.</span>
+                </div>
+              )}
             </div>
           ) : (
-            <div className="mt-5 rounded-2xl bg-gray-50 p-5 text-sm text-gray-600">Nenhum plano selecionado. Sua conta será criada e você será direcionado para comparar os planos.</div>
+            <div className="rounded-2xl bg-white/50 p-5 text-sm text-gray-600 border border-white/30 font-medium">
+              Nenhum plano selecionado. Sua conta será criada e você será direcionado para comparar os planos disponíveis.
+            </div>
           )}
-          <Link href="/planos" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#F97316] hover:underline">Alterar ou escolher plano <ArrowRight className="h-4 w-4" /></Link>
+          <Link href="/planos" className="mt-5 flex items-center justify-center gap-2 text-sm font-bold text-[#F97316] hover:text-[#EA580C] hover:underline transition-colors w-full rounded-xl p-2 hover:bg-[#F97316]/5">
+            Alterar ou escolher plano <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </aside>
     </main>
