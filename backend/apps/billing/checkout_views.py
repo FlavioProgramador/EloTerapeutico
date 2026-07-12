@@ -149,10 +149,9 @@ class CheckoutCreateView(APIView):
                 **_payment_links(serialized_payments),
             }
         )
-        return Response(
-            payload,
-            status=status.HTTP_201_CREATED if result.created else status.HTTP_200_OK,
-        )
+        # Mantém o contrato histórico do endpoint: uma repetição idempotente
+        # continua sendo uma resposta de criação bem-sucedida, sem nova cobrança.
+        return Response(payload, status=status.HTTP_201_CREATED)
 
 
 class BillingIntegrationHealthView(APIView):
