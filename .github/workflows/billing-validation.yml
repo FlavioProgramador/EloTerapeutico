@@ -53,18 +53,7 @@ jobs:
       - run: python manage.py check
       - run: python manage.py makemigrations --check --dry-run
       - run: python manage.py migrate --noinput
-      - name: Run billing tests
-        run: |
-          set -o pipefail
-          pytest apps/billing/tests -q --tb=short 2>&1 | tee billing-test-output.txt
-      - name: Upload billing test report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: billing-test-output
-          path: backend/billing-test-output.txt
-          if-no-files-found: error
-          retention-days: 3
+      - run: pytest apps/billing/tests -q --tb=short
 
   frontend:
     name: Frontend billing
