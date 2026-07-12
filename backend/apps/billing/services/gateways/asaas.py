@@ -2,34 +2,59 @@ import logging
 import re
 import secrets
 import time
-from datetime import timedelta
-from decimal import ROUND_HALF_UP, Decimal
+from datetime import date, timedelta
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any
 
 import httpx
 from django.conf import settings
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.validators import validate_email
 from django.utils import timezone
 
-from .base import GatewayConfigurationError, GatewayError, PaymentGateway
+from .base import (
+    GatewayAuthenticationError,
+    GatewayConfigurationError,
+    GatewayError,
+    GatewayUnavailableError,
+    GatewayValidationError,
+    PaymentGateway,
+)
 
 logger = logging.getLogger(__name__)
 MONEY = Decimal("0.01")
+_ALLOWED_BASE_URLS = {
+    "https://api-sandbox.asaas.com/v3": "SANDBOX",
+    "https://api.asaas.com/v3": "PRODUCTION",
+}
 _ALLOWED_GATEWAY_PATH = re.compile(
     r"^/(?:customers|payments|subscriptions|installments)"
     r"(?:/[A-Za-z0-9_-]+)?(?:/payments)?$"
 )
 
 
+def _digits(value: Any) -> str:
+    return re.sub(r"\D", "", str(value or ""))
+
+
 class AsaasGateway(PaymentGateway):
     gateway_name = "ASAAS"
 
     def __init__(self, *, require_api_key: bool = True) -> None:
-        self.api_key = settings.ASAAS_API_KEY
-        self.base_url = settings.ASAAS_BASE_URL.rstrip("/")
+        self.api_key = str(getattr(settings, "ASAAS_API_KEY", "") or "").strip()
+        self.base_url = str(getattr(settings, "ASAAS_BASE_URL", "") or "").rstrip("/")
         self.timeout = httpx.Timeout(20.0, connect=5.0)
+        if self.base_url not in _ALLOWED_BASE_URLS:
+            raise GatewayConfigurationError(
+                "ASAAS_BASE_URL inválida.",
+                details={"base_url": "Use a URL oficial do Sandbox ou da Produção."},
+            )
         if require_api_key and not self.api_key:
             raise GatewayConfigurationError("ASAAS_API_KEY não está configurada.")
+
+    @property
+    def environment(self) -> str:
+        return _ALLOWED_BASE_URLS[self.base_url]
 
     @property
     def headers(self) -> dict[str, str]:
@@ -56,11 +81,14 @@ class AsaasGateway(PaymentGateway):
     @staticmethod
     def _validated_path(path: str) -> str:
         if not isinstance(path, str) or not _ALLOWED_GATEWAY_PATH.fullmatch(path):
-            raise GatewayError("Rota de integração inválida.")
+            raise GatewayValidationError("Rota de integração inválida.")
         return path
 
     def _request(self, method: str, path: str, **kwargs) -> dict[str, Any]:
+        if not self.api_key:
+            raise GatewayConfigurationError("ASAAS_API_KEY não está configurada.")
         safe_path = self._validated_path(path)
+        operation = f"{method.upper()} {safe_path.split('/')[1]}"
         attempts = 3 if method.upper() == "GET" else 1
         for attempt in range(attempts):
             try:
@@ -70,48 +98,115 @@ class AsaasGateway(PaymentGateway):
                     return response.json() if response.content else {}
             except httpx.HTTPStatusError as exc:
                 status_code = exc.response.status_code
+                safe_detail = self._response_error_detail(exc.response)
                 logger.warning(
                     "asaas_http_error",
-                    extra={"status_code": status_code, "attempt": attempt + 1},
+                    extra={
+                        "gateway": self.gateway_name,
+                        "environment": self.environment,
+                        "operation": operation,
+                        "http_status": status_code,
+                        "error_type": "HTTPStatusError",
+                    },
                 )
-                if status_code in {429, 500, 502, 503, 504} and attempt + 1 < attempts:
-                    time.sleep(0.25 * (2**attempt))
-                    continue
-                if status_code in {400, 401, 403, 404, 422}:
-                    detail = self._response_error_detail(exc.response)
-                    if detail:
-                        raise GatewayError(
-                            "Não foi possível concluir a operação de cobrança. "
-                            f"Detalhe do Asaas: {detail}"
-                        ) from exc
-                    raise GatewayError(
-                        "Não foi possível concluir a operação de cobrança. Verifique os dados e tente novamente."
-                    ) from exc
-                raise GatewayError("O gateway de pagamento está temporariamente indisponível.") from exc
-            except httpx.HTTPError as exc:
+                if status_code in {429, 500, 502, 503, 504}:
+                    if attempt + 1 < attempts:
+                        time.sleep(0.25 * (2**attempt))
+                        continue
+                    raise GatewayUnavailableError(safe_gateway_message=safe_detail) from exc
+                if status_code in {401, 403}:
+                    raise GatewayAuthenticationError(safe_gateway_message=safe_detail) from exc
+                if status_code in {400, 404, 422}:
+                    raise GatewayValidationError(safe_gateway_message=safe_detail) from exc
+                raise GatewayError(safe_gateway_message=safe_detail) from exc
+            except (httpx.TimeoutException, httpx.NetworkError) as exc:
                 if attempt + 1 < attempts:
                     time.sleep(0.25 * (2**attempt))
                     continue
-                logger.exception("asaas_request_error")
-                raise GatewayError("Falha de comunicação com o gateway de pagamento.") from exc
-        raise GatewayError("Falha de comunicação com o gateway de pagamento.")
+                logger.warning(
+                    "asaas_request_unavailable",
+                    extra={
+                        "gateway": self.gateway_name,
+                        "environment": self.environment,
+                        "operation": operation,
+                        "error_type": exc.__class__.__name__,
+                    },
+                )
+                raise GatewayUnavailableError() from exc
+            except httpx.HTTPError as exc:
+                logger.exception(
+                    "asaas_request_error",
+                    extra={
+                        "gateway": self.gateway_name,
+                        "environment": self.environment,
+                        "operation": operation,
+                        "error_type": exc.__class__.__name__,
+                    },
+                )
+                raise GatewayUnavailableError() from exc
+        raise GatewayUnavailableError()
 
     @staticmethod
-    def _money(value) -> float:
-        return float(Decimal(str(value)).quantize(MONEY, rounding=ROUND_HALF_UP))
+    def _money(value: Any) -> float:
+        try:
+            amount = Decimal(str(value)).quantize(MONEY, rounding=ROUND_HALF_UP)
+        except (InvalidOperation, TypeError, ValueError) as exc:
+            raise GatewayValidationError(details={"value": ["Informe um valor monetário válido."]}) from exc
+        if amount <= 0:
+            raise GatewayValidationError(details={"value": ["O valor deve ser maior que zero."]})
+        return float(amount)
+
+    @staticmethod
+    def _normalize_customer_data(user, checkout_data: dict[str, Any]) -> dict[str, str]:
+        name = str(
+            checkout_data.get("name")
+            or getattr(user, "full_name", "")
+            or getattr(user, "email", "")
+            or ""
+        ).strip()
+        if not name:
+            raise GatewayValidationError(details={"name": ["Informe o nome para cobrança."]})
+
+        email = str(checkout_data.get("email") or getattr(user, "email", "") or "").strip().lower()
+        try:
+            validate_email(email)
+        except ValidationError as exc:
+            raise GatewayValidationError(details={"email": ["Informe um e-mail válido."]}) from exc
+
+        payload = {"name": name, "email": email}
+        document = _digits(checkout_data.get("cpfCnpj"))
+        if document:
+            if len(document) not in {11, 14}:
+                raise GatewayValidationError(
+                    details={"cpfCnpj": ["Informe CPF com 11 dígitos ou CNPJ com 14 dígitos."]}
+                )
+            payload["cpfCnpj"] = document
+
+        phone = _digits(checkout_data.get("phone") or getattr(user, "phone", ""))
+        if phone:
+            if len(phone) not in {10, 11}:
+                raise GatewayValidationError(details={"phone": ["Informe telefone com DDD."]})
+            payload["mobilePhone"] = phone
+        return payload
+
+    @staticmethod
+    def _normalize_due_date(value: Any) -> str:
+        try:
+            parsed = value if isinstance(value, date) else date.fromisoformat(str(value))
+        except (TypeError, ValueError) as exc:
+            raise GatewayValidationError(details={"dueDate": ["Informe uma data de vencimento válida."]}) from exc
+        if parsed < timezone.localdate():
+            raise GatewayValidationError(
+                details={"dueDate": ["O vencimento não pode estar no passado."]}
+            )
+        return parsed.isoformat()
 
     def create_customer(self, user, checkout_data: dict[str, Any] | None = None) -> dict[str, Any]:
-        checkout_data = checkout_data or {}
-        payload = {
-            "name": checkout_data.get("name") or getattr(user, "full_name", "") or getattr(user, "email", ""),
-            "email": checkout_data.get("email") or user.email,
-        }
-        phone = checkout_data.get("phone") or getattr(user, "phone", "")
-        if phone:
-            payload["mobilePhone"] = phone
-        if checkout_data.get("cpfCnpj"):
-            payload["cpfCnpj"] = checkout_data["cpfCnpj"]
-        return self._request("POST", "/customers", json=payload)
+        return self._request(
+            "POST",
+            "/customers",
+            json=self._normalize_customer_data(user, checkout_data or {}),
+        )
 
     def _ensure_customer_id(self, user, checkout_data: dict[str, Any] | None = None) -> str:
         checkout_data = checkout_data or {}
@@ -136,14 +231,18 @@ class AsaasGateway(PaymentGateway):
         customer_id: str | None = None,
     ) -> dict[str, Any]:
         customer_id = customer_id or self._ensure_customer_id(user, checkout_data)
-        billing_type = checkout_data.get("billingType") or "PIX"
+        billing_type = str(checkout_data.get("billingType") or "PIX").upper()
+        if billing_type not in {"PIX", "BOLETO", "CREDIT_CARD", "UNDEFINED"}:
+            raise GatewayValidationError(details={"billingType": ["Forma de pagamento inválida."]})
         if billing_type == "CREDIT_CARD" and not checkout_data.get("creditCardToken"):
-            raise GatewayError("Cartão de crédito exige tokenização segura ou checkout hospedado.")
+            raise GatewayValidationError(
+                details={"billingType": ["Cartão exige tokenização segura ou checkout hospedado do Asaas."]}
+            )
         payload: dict[str, Any] = {
             "customer": customer_id,
             "billingType": billing_type,
-            "dueDate": str(checkout_data.get("dueDate") or self._default_due_date()),
-            "description": checkout_data.get("description") or "Cobrança Elo Terapêutico",
+            "dueDate": self._normalize_due_date(checkout_data.get("dueDate") or self._default_due_date()),
+            "description": str(checkout_data.get("description") or "Cobrança Elo Terapêutico").strip(),
             "externalReference": checkout_data.get("externalReference"),
         }
         if checkout_data.get("creditCardToken"):
@@ -160,16 +259,20 @@ class AsaasGateway(PaymentGateway):
     ) -> dict[str, Any]:
         checkout_data = checkout_data or {}
         customer_id = customer_id or self._ensure_customer_id(user, checkout_data)
-        billing_type = checkout_data.get("billingType") or "UNDEFINED"
+        billing_type = str(checkout_data.get("billingType") or "UNDEFINED").upper()
         if billing_type == "CREDIT_CARD" and not checkout_data.get("creditCardToken"):
-            raise GatewayError("Cartão de crédito exige tokenização segura ou checkout hospedado.")
+            raise GatewayValidationError(
+                details={"billingType": ["Cartão exige tokenização segura ou checkout hospedado do Asaas."]}
+            )
         payload = {
             "customer": customer_id,
             "billingType": billing_type,
             "value": self._money(plan_price.total_amount),
             "cycle": "YEARLY" if plan_price.billing_interval == "YEARLY" else "MONTHLY",
-            "description": checkout_data.get("description") or f"Assinatura Elo Terapêutico - {plan_price.name}",
-            "nextDueDate": str(
+            "description": str(
+                checkout_data.get("description") or f"Assinatura Elo Terapêutico - {plan_price.name}"
+            ).strip(),
+            "nextDueDate": self._normalize_due_date(
                 checkout_data.get("dueDate")
                 or checkout_data.get("nextDueDate")
                 or self._default_due_date()
@@ -188,7 +291,7 @@ class AsaasGateway(PaymentGateway):
         customer_id: str | None = None,
     ) -> dict[str, Any]:
         payload = self._payment_base_payload(user, checkout_data, customer_id=customer_id)
-        payload["value"] = self._money(checkout_data.get("value") or checkout_data.get("totalValue") or 0)
+        payload["value"] = self._money(checkout_data.get("value") or checkout_data.get("totalValue"))
         return self._request("POST", "/payments", json=payload)
 
     def create_installment_payment(
@@ -200,10 +303,12 @@ class AsaasGateway(PaymentGateway):
     ) -> dict[str, Any]:
         installment_count = int(checkout_data.get("installmentCount") or 0)
         if installment_count < 2:
-            raise GatewayError("Parcelamentos exigem no mínimo duas parcelas.")
+            raise GatewayValidationError(details={"installmentCount": ["Selecione ao menos duas parcelas."]})
         payload = self._payment_base_payload(user, checkout_data, customer_id=customer_id)
         payload["installmentCount"] = installment_count
-        payload["totalValue"] = self._money(checkout_data.get("totalValue") or checkout_data.get("value") or 0)
+        payload["totalValue"] = self._money(
+            checkout_data.get("totalValue") or checkout_data.get("value")
+        )
         return self._request("POST", "/payments", json=payload)
 
     def create_subscription(
@@ -250,19 +355,30 @@ class AsaasGateway(PaymentGateway):
         return self._request("GET", f"/installments/{gateway_installment_id}/payments")
 
     def health_check(self) -> dict[str, Any]:
-        return self._request("GET", "/customers", params={"limit": 1})
+        configured = bool(self.api_key)
+        if not configured:
+            return {
+                "gateway": self.gateway_name,
+                "connected": False,
+                "configured": False,
+                "environment": self.environment,
+            }
+        self._request("GET", "/customers", params={"limit": 1})
+        return {
+            "gateway": self.gateway_name,
+            "connected": True,
+            "configured": True,
+            "environment": self.environment,
+        }
 
     def parse_webhook(self, request) -> dict[str, Any]:
-        configured_token = str(settings.ASAAS_WEBHOOK_TOKEN or "")
-        received_token = str(
-            request.headers.get("asaas-access-token")
-            or request.headers.get("x-asaas-token")
-            or request.headers.get("x-webhook-token")
-            or request.headers.get("authorization", "").removeprefix("Bearer ")
-            or ""
-        )
-        if configured_token and not secrets.compare_digest(received_token, configured_token):
-            raise PermissionDenied("Webhook Asaas inválido.")
-        if not configured_token:
+        configured_token = str(getattr(settings, "ASAAS_WEBHOOK_TOKEN", "") or "")
+        received_token = str(request.headers.get("asaas-access-token") or "")
+        if configured_token:
+            if not received_token or not secrets.compare_digest(received_token, configured_token):
+                raise PermissionDenied("Webhook Asaas inválido.")
+        elif not settings.DEBUG:
+            raise PermissionDenied("Webhook Asaas não configurado.")
+        else:
             logger.warning("asaas_webhook_token_not_configured")
         return request.data
