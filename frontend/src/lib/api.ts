@@ -88,12 +88,14 @@ api.interceptors.response.use(
       const code = String(rawError.response.data?.error?.code || "SUBSCRIPTION_REQUIRED");
       const isBillingRequest = String(originalRequest?.url || "").includes("billing/");
       if (typeof window !== "undefined" && !isBillingRequest) {
-        const paymentRelated = [
-          "PAYMENT_PENDING",
-          "PAYMENT_PAST_DUE",
-          "SUBSCRIPTION_SUSPENDED",
-        ].includes(code);
-        const target = paymentRelated ? "/billing" : "/planos";
+        let target = "/planos";
+        if (code === "PAYMENT_PENDING") {
+          target = "/billing/pending";
+        } else if (code === "PAYMENT_PAST_DUE" || code === "SUBSCRIPTION_SUSPENDED") {
+          target = "/billing/past-due";
+        } else if (code === "TRIAL_EXPIRED" || code === "SUBSCRIPTION_EXPIRED" || code === "SUBSCRIPTION_CANCELED") {
+          target = "/billing/expired";
+        }
         window.location.assign(`${target}?reason=${encodeURIComponent(code.toLowerCase())}`);
       }
       return Promise.reject(rawError);
