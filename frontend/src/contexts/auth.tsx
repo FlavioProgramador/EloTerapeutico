@@ -4,6 +4,11 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
+  resolvePostLoginDestination,
+  safeInternalPath,
+  type AccessSubscriptionStatus,
+} from "@/lib/auth-flow";
+import {
   clearAuthSession,
   getAccessToken,
   getRefreshToken,
@@ -25,7 +30,7 @@ export interface User {
 }
 
 interface SubscriptionSnapshot {
-  status: "TRIALING" | "PENDING" | "ACTIVE" | "PAST_DUE" | "SUSPENDED" | "CANCELED" | "EXPIRED";
+  status: AccessSubscriptionStatus;
   has_access: boolean;
 }
 
@@ -47,33 +52,30 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function safeRedirectFromQuery(): string {
+function requestedPathFromQuery(): string {
   if (typeof window === "undefined") return "/dashboard";
   const params = new URLSearchParams(window.location.search);
-  const candidate = params.get("next") || params.get("redirect");
-  if (candidate && candidate.startsWith("/") && !candidate.startsWith("//")) {
-    return candidate;
-  }
-  return "/dashboard";
+  return safeInternalPath(params.get("next") || params.get("redirect"));
 }
 
-async function resolvePostLoginRedirect(): Promise<string> {
-  const requested = safeRedirectFromQuery();
-  const billingDestination = requested.startsWith("/checkout") || requested.startsWith("/billing");
-
+async function resolveRedirectAfterLogin(): Promise<string> {
+  const requested = requestedPathFromQuery();
   try {
     const response = await api.get<EntitlementSnapshot>("billing/entitlement/");
     const entitlement = response.data;
-    if (entitlement.allowed) return requested;
-    if (billingDestination) return requested;
-
-    const status = entitlement.subscription?.status;
-    if (status && ["PENDING", "PAST_DUE", "SUSPENDED"].includes(status)) {
-      return "/billing";
-    }
-    return entitlement.redirect_to || "/planos";
+    return resolvePostLoginDestination({
+      requested,
+      entitlementAllowed: entitlement.allowed,
+      subscriptionStatus: entitlement.subscription?.status,
+      entitlementRedirect: entitlement.redirect_to,
+    });
   } catch {
-    return billingDestination ? requested : "/planos";
+    return resolvePostLoginDestination({
+      requested,
+      entitlementAllowed: false,
+      subscriptionStatus: null,
+      entitlementRedirect: "/planos",
+    });
   }
 }
 
@@ -118,16 +120,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearAuthSession();
     setUser(null);
     try {
-      const response = await api.post<{ access?: string; refresh?: string }>("auth/login/", credentials);
+      const response = await api.post<{ access?: string; refresh?: string }>(
+        "auth/login/",
+        credentials,
+      );
       const { access, refresh } = response.data;
-      if (typeof access !== "string" || !access || typeof refresh !== "string" || !refresh) {
+      if (
+        typeof access !== "string" ||
+        !access ||
+        typeof refresh !== "string" ||
+        !refresh
+      ) {
         throw new Error("Resposta de autenticação inválida.");
       }
 
       persistAuthTokens(access, refresh);
       await fetchUserProfile();
-      const destination = await resolvePostLoginRedirect();
-      router.replace(destination);
+      router.replace(await resolveRedirectAfterLogin());
     } catch (error) {
       clearAuthSession();
       setUser(null);
