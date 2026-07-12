@@ -439,6 +439,11 @@ class TreatmentGoalDetailView(ClinicalPatientMixin, APIView):
 
     def patch(self, request, pk):
         goal = self.get_goal(pk)
+        if goal.created_by_id != request.user.id and not request.user.is_admin_role:
+            self.permission_denied(
+                request,
+                message="Somente o autor ou administrador pode alterar a meta.",
+            )
         serializer = TreatmentGoalSerializer(
             goal,
             data=request.data,
@@ -457,6 +462,11 @@ class TreatmentGoalDetailView(ClinicalPatientMixin, APIView):
 
     def delete(self, request, pk):
         goal = self.get_goal(pk)
+        if goal.created_by_id != request.user.id and not request.user.is_admin_role:
+            self.permission_denied(
+                request,
+                message="Somente o autor ou administrador pode arquivar a meta.",
+            )
         goal.archive()
         log_access(
             request,

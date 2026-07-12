@@ -7,15 +7,15 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from core.audit import AuditLog, log_access
-
 from apps.agenda.api.filters import RecurrenceFilter
-from apps.agenda.models import Appointment, AppointmentRecurrence, Room
 from apps.agenda.api.serializers import (
     AppointmentDetailSerializer,
     AppointmentRecurrenceSerializer,
     AppointmentUpdateSerializer,
 )
+from apps.agenda.models import Appointment, AppointmentRecurrence, Room
+from core.audit import AuditLog, log_access
+
 from .base import ScopedAgendaMixin
 
 

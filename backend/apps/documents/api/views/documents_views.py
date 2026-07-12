@@ -11,10 +11,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.audit import AuditLog, log_access
-
-from apps.documents.models import DocumentTemplate, GeneratedDocument
-from apps.documents.services.placeholders import list_placeholders
 from apps.documents.api.serializers.documents_serializers import (
     DocumentTemplateListSerializer,
     DocumentTemplateSerializer,
@@ -24,12 +20,15 @@ from apps.documents.api.serializers.documents_serializers import (
     GeneratedDocumentListSerializer,
     TemplatePreviewRequestSerializer,
 )
+from apps.documents.models import DocumentTemplate, GeneratedDocument
 from apps.documents.services.core_services import (
     DocumentDomainError,
     duplicate_template,
     generate_pdf,
     import_library_template,
 )
+from apps.documents.services.placeholders import list_placeholders
+from core.audit import AuditLog, log_access
 
 
 class IsClinicalDocumentUser(IsAuthenticated):

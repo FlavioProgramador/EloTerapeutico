@@ -35,14 +35,13 @@ except (ImportError, OSError):
                 return dummy_pdf
 
 
-from apps.patients.models import Patient
-
 from apps.documents.models import DocumentSequence, DocumentTemplate, GeneratedDocument
 from apps.documents.services.placeholders import (
     build_document_context,
     render_safe_markdown,
     validate_template_content,
 )
+from apps.patients.models import Patient
 
 
 class DocumentDomainError(Exception):
