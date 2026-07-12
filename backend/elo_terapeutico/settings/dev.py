@@ -6,8 +6,13 @@ DEBUG = True
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])  # noqa: F405
 
-# CORS – Permite qualquer origem em desenvolvimento
-CORS_ALLOW_ALL_ORIGINS = True
+# Origens explícitas evitam esconder erros de CORS durante o desenvolvimento.
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = env.list(  # noqa: F405
+    "CORS_ALLOWED_ORIGINS",
+    default=["http://localhost:3000"],
+)
+CORS_ALLOW_CREDENTIALS = False
 
 # Banco de dados local (Usa a DATABASE_URL definida no .env, com fallback para SQLite)
 DATABASES = {"default": env.db("DATABASE_URL", default="sqlite:///db.sqlite3")}  # noqa: F405

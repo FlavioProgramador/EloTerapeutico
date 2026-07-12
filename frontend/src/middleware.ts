@@ -7,11 +7,11 @@ const publicRoutes = ["/login", "/register", "/cadastro", "/forgot-password", "/
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
-  // Obtém os cookies de autenticação
+  // A presença do cookie só indica uma sessão candidata. A validade é confirmada
+  // pelo frontend em /auth/me/ para evitar loops causados por tokens antigos.
   const token = request.cookies.get("auth_token")?.value;
   const role = request.cookies.get("auth_role")?.value;
 
-  // Verifica se é uma rota estática do Next.js, imagens ou favicon para ignorar o middleware
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/static") ||
@@ -35,37 +35,35 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(plansUrl);
   }
 
-  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route) || pathname === route);
+  const isPublicRoute = publicRoutes.some(
+    (route) => pathname.startsWith(route) || pathname === route,
+  );
   const isDashboardRoute = pathname.startsWith("/dashboard") || pathname === "/dashboard";
   const isCheckoutRoute = pathname.startsWith("/checkout") || pathname.startsWith("/billing");
   const isProtectedRoute = isDashboardRoute || isCheckoutRoute;
 
-  // Caso 1: Usuário NÃO autenticado tentando acessar rotas protegidas
+  // Usuário sem cookie tentando acessar rota protegida.
   if (!token && isProtectedRoute) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", `${pathname}${search}`);
     return NextResponse.redirect(loginUrl);
   }
 
-  // Caso 2: Usuário JÁ autenticado tentando acessar páginas públicas de login/cadastro
-  if (token && (pathname.startsWith("/login") || isRegisterRoute)) {
-    const next = request.nextUrl.searchParams.get("next") || request.nextUrl.searchParams.get("redirect");
-    if (next && next.startsWith("/") && !next.startsWith("//")) {
-      return NextResponse.redirect(new URL(next, request.url));
-    }
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+  // Login e cadastro não redirecionam apenas pela presença do cookie. Isso
+  // permite que uma sessão expirada seja limpa sem loop login → dashboard.
+  if (isPublicRoute) {
+    return NextResponse.next();
   }
 
-  // Caso 3: Controle RBAC de acesso para rotas do Dashboard
+  // Controle RBAC de acesso para rotas do Dashboard. A API continua sendo a
+  // autoridade final; este bloqueio é apenas uma proteção de navegação.
   if (token && isDashboardRoute) {
-    // 3a. Secretárias não têm acesso a nenhuma rota de prontuários clínicos (/dashboard/records/*)
     if (role === "secretary" && pathname.startsWith("/dashboard/records")) {
       const dashboardUrl = new URL("/dashboard", request.url);
       dashboardUrl.searchParams.set("error", "access_denied_records");
       return NextResponse.redirect(dashboardUrl);
     }
 
-    // 3b. Apenas administradores acessam painéis de gestão interna da clínica (/dashboard/admin/*)
     if (role !== "admin" && pathname.startsWith("/dashboard/admin")) {
       const dashboardUrl = new URL("/dashboard", request.url);
       dashboardUrl.searchParams.set("error", "access_denied_admin");
@@ -76,7 +74,6 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// Define em quais caminhos o Middleware deve ser ativado
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

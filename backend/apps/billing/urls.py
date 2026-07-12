@@ -1,14 +1,13 @@
 from django.urls import path
 
 from apps.billing.access_views import EntitlementStatusView
+from apps.billing.checkout_views import BillingIntegrationHealthView, CheckoutCreateView
 from apps.billing.views import (
     AsaasWebhookView,
-    BillingIntegrationHealthView,
     BillingOrderDetailView,
     BillingOrderListView,
     CancelSubscriptionView,
     ChangePlanView,
-    CheckoutCreateView,
     CheckoutPreviewView,
     CreateSubscriptionView,
     CurrentSubscriptionView,

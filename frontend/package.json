@@ -8,9 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test agenda-calendar.test.mjs",
-    "test:coverage": "node --experimental-strip-types --experimental-test-coverage --test --test-coverage-lines=80 --test-coverage-functions=75 --test-coverage-branches=70 agenda-calendar.test.mjs",
-    "test:agenda": "node --experimental-strip-types --test agenda-calendar.test.mjs"
+    "test": "node --experimental-strip-types --test *.test.mjs",
+    "test:coverage": "node --experimental-strip-types --experimental-test-coverage --test --test-coverage-lines=80 --test-coverage-functions=75 --test-coverage-branches=70 *.test.mjs",
+    "test:agenda": "node --experimental-strip-types --test agenda-calendar.test.mjs",
+    "test:auth": "node --experimental-strip-types --test auth-flow.test.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

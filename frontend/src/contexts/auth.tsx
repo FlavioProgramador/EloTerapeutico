@@ -1,8 +1,20 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getCookie, setCookie, deleteCookie } from "cookies-next";
+
+import {
+  resolvePostLoginDestination,
+  safeInternalPath,
+  type AccessSubscriptionStatus,
+} from "@/lib/auth-flow";
+import {
+  clearAuthSession,
+  getAccessToken,
+  getRefreshToken,
+  persistAuthRole,
+  persistAuthTokens,
+} from "@/lib/auth-session";
 import { api } from "@/lib/api";
 import { LoginCredentials } from "@/types";
 
@@ -18,8 +30,15 @@ export interface User {
 }
 
 interface SubscriptionSnapshot {
-  status: "TRIALING" | "PENDING" | "ACTIVE" | "PAST_DUE" | "SUSPENDED" | "CANCELED" | "EXPIRED";
+  status: AccessSubscriptionStatus;
   has_access: boolean;
+}
+
+interface EntitlementSnapshot {
+  allowed: boolean;
+  code: string;
+  redirect_to?: string | null;
+  subscription: SubscriptionSnapshot | null;
 }
 
 interface AuthContextType {
@@ -33,40 +52,30 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function safeRedirectFromQuery() {
+function requestedPathFromQuery(): string {
   if (typeof window === "undefined") return "/dashboard";
   const params = new URLSearchParams(window.location.search);
-  const candidate = params.get("next") || params.get("redirect");
-  if (candidate && candidate.startsWith("/") && !candidate.startsWith("//")) {
-    return candidate;
-  }
-  return "/dashboard";
+  return safeInternalPath(params.get("next") || params.get("redirect"));
 }
 
-async function resolvePostLoginRedirect() {
-  const requested = safeRedirectFromQuery();
-
-  // Checkout e gestão da cobrança precisam permanecer acessíveis mesmo antes
-  // da ativação do plano.
-  if (requested.startsWith("/checkout") || requested.startsWith("/billing")) {
-    return requested;
-  }
-
+async function resolveRedirectAfterLogin(): Promise<string> {
+  const requested = requestedPathFromQuery();
   try {
-    const response = await api.get<{ subscription: SubscriptionSnapshot | null }>(
-      "billing/subscription/me/",
-    );
-    const subscription = response.data.subscription;
-    if (subscription?.has_access) return requested;
-    if (
-      subscription &&
-      ["PENDING", "PAST_DUE", "SUSPENDED"].includes(subscription.status)
-    ) {
-      return "/billing";
-    }
-    return "/planos";
+    const response = await api.get<EntitlementSnapshot>("billing/entitlement/");
+    const entitlement = response.data;
+    return resolvePostLoginDestination({
+      requested,
+      entitlementAllowed: entitlement.allowed,
+      subscriptionStatus: entitlement.subscription?.status,
+      entitlementRedirect: entitlement.redirect_to,
+    });
   } catch {
-    return "/planos";
+    return resolvePostLoginDestination({
+      requested,
+      entitlementAllowed: false,
+      subscriptionStatus: null,
+      entitlementRedirect: "/planos",
+    });
   }
 }
 
@@ -75,98 +84,87 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  const isAuthenticated = !!user;
+  const isAuthenticated = Boolean(user);
 
-  const fetchUserProfile = async () => {
-    try {
-      const response = await api.get("auth/me/");
-      setUser(response.data);
-      setCookie("auth_role", response.data.role, {
-        maxAge: 7 * 24 * 60 * 60,
-        path: "/",
-        sameSite: "lax",
-      });
-    } catch (error) {
-      console.error("Falha ao buscar perfil do usuário:", error);
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
+  const fetchUserProfile = async (): Promise<User> => {
+    const response = await api.get<User>("auth/me/");
+    setUser(response.data);
+    persistAuthRole(response.data.role);
+    return response.data;
   };
 
   useEffect(() => {
-    const token = getCookie("auth_token");
+    let mounted = true;
     const initAuth = async () => {
-      if (token) {
+      if (!getAccessToken() && !getRefreshToken()) {
+        if (mounted) setIsLoading(false);
+        return;
+      }
+      try {
         await fetchUserProfile();
-      } else {
-        setIsLoading(false);
+      } catch {
+        clearAuthSession();
+        if (mounted) setUser(null);
+      } finally {
+        if (mounted) setIsLoading(false);
       }
     };
-    initAuth();
+    void initAuth();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const login = async (credentials: LoginCredentials) => {
     setIsLoading(true);
+    clearAuthSession();
+    setUser(null);
     try {
-      const response = await api.post("auth/login/", credentials);
-      const { access, refresh, user: userData } = response.data;
-
-      setCookie("auth_token", access, {
-        maxAge: 30 * 60,
-        path: "/",
-        sameSite: "lax",
-      });
-
-      setCookie("auth_refresh_token", refresh, {
-        maxAge: 7 * 24 * 60 * 60,
-        path: "/",
-        sameSite: "lax",
-      });
-
-      if (userData) {
-        setUser(userData);
-        setCookie("auth_role", userData.role, {
-          maxAge: 7 * 24 * 60 * 60,
-          path: "/",
-          sameSite: "lax",
-        });
-      } else {
-        await fetchUserProfile();
+      const response = await api.post<{ access?: string; refresh?: string }>(
+        "auth/login/",
+        credentials,
+      );
+      const { access, refresh } = response.data;
+      if (
+        typeof access !== "string" ||
+        !access ||
+        typeof refresh !== "string" ||
+        !refresh
+      ) {
+        throw new Error("Resposta de autenticação inválida.");
       }
 
-      const destination = await resolvePostLoginRedirect();
-      setIsLoading(false);
-      router.push(destination);
+      persistAuthTokens(access, refresh);
+      await fetchUserProfile();
+      router.replace(await resolveRedirectAfterLogin());
     } catch (error) {
-      setIsLoading(false);
+      clearAuthSession();
+      setUser(null);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const logout = async () => {
     setIsLoading(true);
+    const refresh = getRefreshToken();
     try {
-      const refreshToken = getCookie("auth_refresh_token");
-      if (refreshToken) {
-        await api.post("auth/logout/", { refresh: refreshToken });
+      if (refresh) {
+        await api.post("auth/logout/", { refresh });
       }
     } catch (error) {
       console.error("Erro no logout no servidor:", error);
     } finally {
-      deleteCookie("auth_token", { path: "/" });
-      deleteCookie("auth_refresh_token", { path: "/" });
-      deleteCookie("auth_role", { path: "/" });
+      clearAuthSession();
       setUser(null);
       setIsLoading(false);
-      router.push("/login");
+      router.replace("/login");
     }
   };
 
   const updateUser = (updatedUser: Partial<User>) => {
-    if (user) {
-      setUser({ ...user, ...updatedUser });
-    }
+    setUser((current) => (current ? { ...current, ...updatedUser } : current));
   };
 
   return (

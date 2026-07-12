@@ -1,6 +1,8 @@
 # mypy: ignore-errors
 """Configurações determinísticas e rápidas para a suíte de testes."""
 
+from django.utils.crypto import get_random_string
+
 from .base import *  # noqa: F403,F401
 
 DEBUG = False
@@ -33,6 +35,13 @@ STORAGES = {
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = []
+
+# Valores sintéticos aleatórios impedem dependência de credenciais ou rede reais.
+ASAAS_API_KEY = f"test-{get_random_string(32)}"
+ASAAS_BASE_URL = "https://api-sandbox.asaas.com/v3"
+ASAAS_WEBHOOK_TOKEN = get_random_string(32)
+BILLING_ENABLED = True
+BILLING_WEBHOOK_PROCESS_INLINE = True
 
 RATELIMIT_ENABLE = False
 BILLING_ENFORCE_PATIENT_LIMITS = False
