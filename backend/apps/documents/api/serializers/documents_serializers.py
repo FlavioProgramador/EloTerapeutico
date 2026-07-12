@@ -8,16 +8,15 @@ import json
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
-from apps.patients.models import Patient
-
 from apps.documents.models import DocumentTemplate, GeneratedDocument
+from apps.documents.services.core_services import DocumentDomainError, create_generated_document
 from apps.documents.services.placeholders import (
     build_document_context,
     render_safe_markdown,
     sample_document_context,
     validate_template_content,
 )
-from apps.documents.services.core_services import DocumentDomainError, create_generated_document
+from apps.patients.models import Patient
 
 
 class DocumentTemplateSerializer(serializers.ModelSerializer):

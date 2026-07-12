@@ -1,6 +1,6 @@
 from rest_framework.permissions import BasePermission
 
-from apps.billing.services.features import can_use_feature, is_subscription_usable, get_current_subscription
+from apps.billing.services.features import can_use_feature, get_current_subscription, is_subscription_usable
 
 
 class RequireActiveSubscription(BasePermission):

@@ -4,10 +4,9 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
+from apps.agenda.models import Appointment, Room, ScheduleBlock
 from apps.patients.models import Patient
 from apps.users.models import WorkingHours
-
-from apps.agenda.models import Appointment, Room, ScheduleBlock
 
 
 class ScheduleBlockSerializer(serializers.ModelSerializer):

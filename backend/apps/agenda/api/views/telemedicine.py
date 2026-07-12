@@ -5,10 +5,10 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.agenda.api.serializers import AppointmentReminderSerializer, TelemedicineRoomSerializer
+from apps.agenda.models import AppointmentReminder, TelemedicineRoom
 from core.audit import AuditLog, log_access
 
-from apps.agenda.models import AppointmentReminder, TelemedicineRoom
-from apps.agenda.api.serializers import AppointmentReminderSerializer, TelemedicineRoomSerializer
 from .base import ScopedAgendaMixin
 
 

@@ -7,6 +7,7 @@ from rest_framework import serializers
 
 from apps.agenda.models import Appointment, AppointmentRecurrence, PatientPackage, Room
 from apps.agenda.services.core_services import create_appointment_resources, generate_recurrence_appointments
+
 from .summary import PackageSessionSerializer
 
 

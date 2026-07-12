@@ -3,10 +3,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from core.audit import AuditLog, log_access
-
 from apps.agenda.api.filters import PackageFilter, ScheduleBlockFilter
-from apps.agenda.models import Appointment, PackageSession, PatientPackage, Room, ScheduleBlock
 from apps.agenda.api.serializers import (
     AppointmentCreateSerializer,
     AppointmentDetailSerializer,
@@ -15,6 +12,9 @@ from apps.agenda.api.serializers import (
     RoomSerializer,
     ScheduleBlockSerializer,
 )
+from apps.agenda.models import Appointment, PackageSession, PatientPackage, Room, ScheduleBlock
+from core.audit import AuditLog, log_access
+
 from .base import ScopedAgendaMixin
 
 

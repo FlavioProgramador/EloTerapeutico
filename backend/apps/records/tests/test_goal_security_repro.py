@@ -1,10 +1,13 @@
-import pytest
 from datetime import date
+
+import pytest
 from rest_framework import status
 from rest_framework.test import APIClient
+
 from apps.patients.models import Patient, PatientProfessional
 from apps.records.treatment_models import TreatmentGoal
 from apps.users.models import User
+
 
 @pytest.fixture
 def security_context(db):
