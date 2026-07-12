@@ -283,9 +283,12 @@ function AppointmentDetailModal({
 }) {
   const transition = useAppointmentTransition();
   const [reason, setReason] = useState("");
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+
   if (!appointment) return null;
 
   function run(action: "confirm" | "cancel" | "complete" | "mark-no-show") {
+    setPendingAction(action);
     transition.mutate(
       {
         id: appointment!.id,
@@ -293,7 +296,10 @@ function AppointmentDetailModal({
         payload:
           action === "cancel" ? { cancellation_reason: reason } : undefined,
       },
-      { onSuccess: onClose },
+      {
+        onSuccess: onClose,
+        onSettled: () => setPendingAction(null),
+      },
     );
   }
 
@@ -346,15 +352,50 @@ function AppointmentDetailModal({
         <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
           {appointment.status === "scheduled" && (
             <>
-              <Button size="sm" variant="outline" onClick={() => run("mark-no-show")}>Marcar falta</Button>
-              <Button size="sm" variant="outline" onClick={() => run("cancel")} disabled={!reason.trim()}>Cancelar</Button>
-              <Button size="sm" onClick={() => run("confirm")}>Confirmar</Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => run("mark-no-show")}
+                isLoading={pendingAction === "mark-no-show"}
+                disabled={transition.isPending}
+              >
+                Marcar falta
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => run("cancel")}
+                isLoading={pendingAction === "cancel"}
+                disabled={transition.isPending || !reason.trim()}
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => run("confirm")}
+                isLoading={pendingAction === "confirm"}
+                disabled={transition.isPending}
+              >
+                Confirmar
+              </Button>
             </>
           )}
           {appointment.status === "confirmed" && (
-            <Button size="sm" onClick={() => run("complete")}>Marcar realizada</Button>
+            <Button
+              size="sm"
+              onClick={() => run("complete")}
+              isLoading={pendingAction === "complete"}
+              disabled={transition.isPending}
+            >
+              Marcar realizada
+            </Button>
           )}
-          <Button size="icon" variant="ghost" aria-label="Mais ações">
+          <Button
+            size="icon"
+            variant="ghost"
+            aria-label="Mais ações"
+            disabled={transition.isPending}
+          >
             <MoreHorizontal className="size-4" />
           </Button>
         </div>
