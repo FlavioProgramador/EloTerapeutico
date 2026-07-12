@@ -25,6 +25,7 @@ class SubscriptionJWTAuthentication(JWTAuthentication):
         "/api/v1/auth/login/",
         "/api/v1/auth/logout/",
         "/api/v1/auth/me/",
+        "/api/v1/auth/onboarding/",
         "/api/v1/auth/token/refresh/",
         "/api/v1/auth/password/change/",
         "/api/v1/auth/password/reset/",
