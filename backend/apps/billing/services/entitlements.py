@@ -155,6 +155,20 @@ def get_entitlement(user, *, now=None) -> EntitlementDecision:
             onboarding_required=onboarding_required,
         )
 
+    if (
+        subscription.status == Subscription.Status.EXPIRED
+        and (subscription.metadata or {}).get("trial_expired_at")
+    ):
+        return EntitlementDecision(
+            allowed=False,
+            code="TRIAL_EXPIRED",
+            message="Seu teste gratuito expirou. Escolha um plano para continuar.",
+            redirect_to="/billing/expired",
+            subscription=subscription,
+            trial_days_remaining=0,
+            onboarding_required=onboarding_required,
+        )
+
     code_map = {
         Subscription.Status.PENDING: (
             "PAYMENT_PENDING",
