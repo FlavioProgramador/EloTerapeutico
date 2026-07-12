@@ -53,12 +53,14 @@ function readSelection(): RegistrationSelection {
     return { plan: "", price: "", accessMode: "TRIAL" };
   }
   const params = new URLSearchParams(window.location.search);
+  const rawBillingCycle = (params.get("billing_cycle") || params.get("interval") || "").toUpperCase();
+  const rawPaymentMode = (params.get("payment_mode") || "").toUpperCase();
   const querySelection: RegistrationSelection = {
     plan: params.get("plan") || params.get("plan_slug") || "",
     price: params.get("price") || params.get("plan_price_slug") || params.get("plan_price_id") || "",
     accessMode: params.get("mode")?.toUpperCase() === "PAID" ? "PAID" : "TRIAL",
-    billingCycle: (params.get("billing_cycle") || params.get("interval") || "").toUpperCase() as BillingCycle || undefined,
-    paymentMode: (params.get("payment_mode") || "").toUpperCase() as PaymentMode || undefined,
+    billingCycle: rawBillingCycle ? rawBillingCycle as BillingCycle : undefined,
+    paymentMode: rawPaymentMode ? rawPaymentMode as PaymentMode : undefined,
   };
   if (querySelection.plan || querySelection.price) {
     sessionStorage.setItem(SELECTION_KEY, JSON.stringify(querySelection));
@@ -70,6 +72,18 @@ function readSelection(): RegistrationSelection {
   } catch {
     return querySelection;
   }
+}
+
+function registrationSelection(): RegistrationSelection {
+  return readSelection();
+}
+
+function loginHrefAfterRegister(): string {
+  const current = registrationSelection();
+  const params = new URLSearchParams();
+  if (current.plan) params.set("plan", current.plan);
+  if (current.price) params.set("price", current.price);
+  return `/login${params.size ? `?${params.toString()}` : ""}`;
 }
 
 function currency(value: string, currencyCode = "BRL") {
@@ -100,9 +114,11 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setSelection(readSelection());
+    setMounted(true);
+    setSelection(registrationSelection());
     void listPlans().then(setPlans).catch(() => setPlans([]));
   }, []);
 
@@ -122,6 +138,9 @@ export default function RegisterPage() {
     },
   });
 
+  const loginHref = mounted ? loginHrefAfterRegister() : "/login";
+  const accessMode = mounted ? registrationSelection().accessMode : "TRIAL";
+
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
     const payload = {
@@ -138,7 +157,7 @@ export default function RegisterPage() {
       plan_price_slug: selection.price || undefined,
       billing_cycle: selection.billingCycle,
       payment_mode: selection.paymentMode,
-      access_mode: selection.accessMode,
+      access_mode: accessMode,
     };
 
     try {
@@ -149,7 +168,7 @@ export default function RegisterPage() {
       if (response.data.user?.role) persistAuthRole(response.data.user.role);
       sessionStorage.removeItem(SELECTION_KEY);
       toast.success("Conta criada com sucesso", {
-        description: selection.accessMode === "TRIAL" && selection.plan
+        description: accessMode === "TRIAL" && selection.plan
           ? "Seu teste gratuito de 7 dias foi iniciado."
           : selection.plan
             ? "Agora conclua o pagamento para liberar as ferramentas."
@@ -190,11 +209,6 @@ export default function RegisterPage() {
       setIsLoading(false);
     }
   };
-
-  const loginParams = new URLSearchParams();
-  if (selection.plan) loginParams.set("plan", selection.plan);
-  if (selection.price) loginParams.set("price", selection.price);
-  const loginHref = `/login${loginParams.size ? `?${loginParams.toString()}` : ""}`;
 
   return (
     <main className="min-h-screen bg-white text-[#1A2E26] lg:grid lg:grid-cols-[minmax(0,1fr)_420px]">
@@ -250,7 +264,7 @@ export default function RegisterPage() {
             </div>
 
             <Button type="submit" isLoading={isLoading} className="mt-2 h-12 rounded-xl bg-[#F97316] font-bold text-white hover:bg-[#EA580C]">
-              {selection.plan ? (selection.accessMode === "TRIAL" ? "Iniciar teste gratuito" : "Criar conta e ir ao checkout") : "Criar conta e escolher plano"}
+              {selection.plan ? (accessMode === "TRIAL" ? "Iniciar teste gratuito" : "Criar conta e ir ao checkout") : "Criar conta e escolher plano"}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </form>
@@ -278,7 +292,7 @@ export default function RegisterPage() {
                 <p className="mt-1 text-2xl font-extrabold text-[#F97316]">{currency(selected.price.total_amount, selected.price.currency)}</p>
                 {selected.price.billing_model === "INSTALLMENT" && <p className="mt-1 text-xs text-gray-600">Até {selected.price.max_installments} parcelas, conforme o checkout.</p>}
               </div>
-              {selection.accessMode === "TRIAL" && <div className="flex gap-3 rounded-2xl bg-[#ECFDF5] p-4 text-sm text-[#166534]"><CheckCircle2 className="h-5 w-5 shrink-0" /> 7 dias gratuitos. O teste não reinicia ao trocar de plano.</div>}
+              {accessMode === "TRIAL" && <div className="flex gap-3 rounded-2xl bg-[#ECFDF5] p-4 text-sm text-[#166534]"><CheckCircle2 className="h-5 w-5 shrink-0" /> 7 dias gratuitos. O teste não reinicia ao trocar de plano.</div>}
             </div>
           ) : (
             <div className="mt-5 rounded-2xl bg-gray-50 p-5 text-sm text-gray-600">Nenhum plano selecionado. Sua conta será criada e você será direcionado para comparar os planos.</div>
