@@ -34,11 +34,13 @@ def _plain_details(value: Any) -> Any:
 def _error_response(*, code: str, message: str, http_status: int, details=None) -> Response:
     return Response(
         {
+            # Compatibilidade com consumidores legados do DRF.
+            "detail": message,
             "error": {
                 "code": code,
                 "message": message,
                 "details": _plain_details(details or {}),
-            }
+            },
         },
         status=http_status,
     )
