@@ -1,6 +1,12 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 
 import {
+  createSingleFlight,
+  extractApiErrorMessage,
+  prepareRetryRequest,
+  type ApiErrorEnvelope,
+} from "@/lib/auth-flow";
+import {
   clearAuthSession,
   getAccessToken,
   getRefreshToken,
@@ -10,15 +16,6 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1/";
 
 type RetriableRequest = InternalAxiosRequestConfig & { _retry?: boolean };
-
-type ErrorEnvelope = {
-  detail?: string;
-  error?: {
-    code?: string;
-    message?: string;
-    details?: Record<string, unknown>;
-  };
-};
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -38,13 +35,14 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-let refreshPromise: Promise<string> | null = null;
+const runRefreshSingleFlight = createSingleFlight<string>();
 let redirectingToLogin = false;
 
-function normalizeErrorEnvelope(error: AxiosError<ErrorEnvelope>): void {
+function normalizeErrorEnvelope(error: AxiosError<ApiErrorEnvelope>): void {
   const payload = error.response?.data;
-  if (payload && !payload.detail && payload.error?.message) {
-    payload.detail = payload.error.message;
+  const message = extractApiErrorMessage(payload, "");
+  if (payload && !payload.detail && message) {
+    payload.detail = message;
   }
 }
 
@@ -59,35 +57,30 @@ function redirectToLoginOnce(): void {
   window.location.replace(`${login.pathname}${login.search}`);
 }
 
-async function refreshAccessToken(): Promise<string> {
-  if (refreshPromise) return refreshPromise;
+function refreshAccessToken(): Promise<string> {
+  return runRefreshSingleFlight(async () => {
+    const refresh = getRefreshToken();
+    if (!refresh) {
+      throw new Error("REFRESH_TOKEN_MISSING");
+    }
 
-  const refresh = getRefreshToken();
-  if (!refresh) {
-    throw new Error("REFRESH_TOKEN_MISSING");
-  }
-
-  refreshPromise = axios
-    .post<{ access?: string; refresh?: string }>(`${API_URL}auth/token/refresh/`, { refresh })
-    .then((response) => {
-      const access = response.data.access;
-      if (typeof access !== "string" || !access) {
-        throw new Error("INVALID_REFRESH_RESPONSE");
-      }
-      persistAuthTokens(access, response.data.refresh || null);
-      api.defaults.headers.common.Authorization = `Bearer ${access}`;
-      return access;
-    })
-    .finally(() => {
-      refreshPromise = null;
-    });
-
-  return refreshPromise;
+    const response = await axios.post<{ access?: string; refresh?: string }>(
+      `${API_URL}auth/token/refresh/`,
+      { refresh },
+    );
+    const access = response.data.access;
+    if (typeof access !== "string" || !access) {
+      throw new Error("INVALID_REFRESH_RESPONSE");
+    }
+    persistAuthTokens(access, response.data.refresh || null);
+    api.defaults.headers.common.Authorization = `Bearer ${access}`;
+    return access;
+  });
 }
 
 api.interceptors.response.use(
   (response) => response,
-  async (rawError: AxiosError<ErrorEnvelope>) => {
+  async (rawError: AxiosError<ApiErrorEnvelope>) => {
     normalizeErrorEnvelope(rawError);
     const originalRequest = rawError.config as RetriableRequest | undefined;
 
@@ -121,7 +114,13 @@ api.interceptors.response.use(
     originalRequest._retry = true;
     try {
       const access = await refreshAccessToken();
-      originalRequest.headers.Authorization = `Bearer ${access}`;
+      prepareRetryRequest(
+        originalRequest as unknown as {
+          headers: Record<string, unknown>;
+          data?: unknown;
+        },
+        access,
+      );
       // Axios preserva data e headers customizados, inclusive Idempotency-Key.
       return api(originalRequest);
     } catch (refreshError) {
