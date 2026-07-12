@@ -260,6 +260,10 @@ class AsaasGateway(PaymentGateway):
         checkout_data = checkout_data or {}
         customer_id = customer_id or self._ensure_customer_id(user, checkout_data)
         billing_type = str(checkout_data.get("billingType") or "UNDEFINED").upper()
+        if billing_type not in {"PIX", "BOLETO", "CREDIT_CARD", "UNDEFINED"}:
+            raise GatewayValidationError(
+                details={"billingType": ["Forma de pagamento inválida."]}
+            )
         if billing_type == "CREDIT_CARD" and not checkout_data.get("creditCardToken"):
             raise GatewayValidationError(
                 details={"billingType": ["Cartão exige tokenização segura ou checkout hospedado do Asaas."]}
@@ -373,7 +377,11 @@ class AsaasGateway(PaymentGateway):
 
     def parse_webhook(self, request) -> dict[str, Any]:
         configured_token = str(getattr(settings, "ASAAS_WEBHOOK_TOKEN", "") or "")
-        received_token = str(request.headers.get("asaas-access-token") or "")
+        received_token = str(
+            request.headers.get("asaas-access-token")
+            or request.headers.get("X-Webhook-Token")
+            or ""
+        )
         if configured_token:
             if not received_token or not secrets.compare_digest(received_token, configured_token):
                 raise PermissionDenied("Webhook Asaas inválido.")
