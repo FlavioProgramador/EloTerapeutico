@@ -1,3 +1,4 @@
+import logging
 import uuid
 from dataclasses import dataclass
 from datetime import timedelta
@@ -22,6 +23,8 @@ from apps.billing.services.orders import (
     sync_subscription_payments,
     upsert_gateway_payment,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class CheckoutBusinessError(Exception):
@@ -236,13 +239,9 @@ def create_checkout_order(
             customer = gateway.create_customer(user, checkout_data)
             customer_id = str(customer.get("id") or "")
         if not customer_id:
-            raise CheckoutBusinessError(
-                "Gateway não retornou o identificador do cliente."
-            )
+            raise CheckoutBusinessError("Gateway não retornou o identificador do cliente.")
 
-        BillingOrder.objects.filter(pk=order.pk).update(
-            gateway_customer_id=customer_id
-        )
+        BillingOrder.objects.filter(pk=order.pk).update(gateway_customer_id=customer_id)
         gateway_data = {
             **checkout_data,
             "value": preview["total_amount"],
@@ -274,9 +273,7 @@ def create_checkout_order(
 
         with transaction.atomic():
             locked_order = BillingOrder.objects.select_for_update().get(pk=order.pk)
-            locked_subscription = Subscription.objects.select_for_update().get(
-                pk=subscription.pk
-            )
+            locked_subscription = Subscription.objects.select_for_update().get(pk=subscription.pk)
             locked_order.status = BillingOrder.Status.PENDING
             locked_order.gateway_customer_id = customer_id
             locked_order.gateway_subscription_id = (
@@ -284,9 +281,7 @@ def create_checkout_order(
                 if plan_price.billing_model == PlanPrice.BillingModel.RECURRING
                 else ""
             )
-            locked_order.gateway_installment_id = str(
-                response.get("installment") or ""
-            )
+            locked_order.gateway_installment_id = str(response.get("installment") or "")
             locked_order.metadata = {
                 **(locked_order.metadata or {}),
                 "gateway_response": redact_sensitive_data(response),
@@ -296,9 +291,7 @@ def create_checkout_order(
 
             if created_new_subscription:
                 locked_subscription.gateway_customer_id = customer_id
-                locked_subscription.gateway_subscription_id = (
-                    locked_order.gateway_subscription_id
-                )
+                locked_subscription.gateway_subscription_id = locked_order.gateway_subscription_id
                 locked_subscription.gateway_status = str(response.get("status") or "")
                 locked_subscription.metadata = {
                     **(locked_subscription.metadata or {}),
@@ -306,22 +299,39 @@ def create_checkout_order(
                 }
                 locked_subscription.save()
 
-        if plan_price.billing_model != PlanPrice.BillingModel.RECURRING:
-            upsert_gateway_payment(
-                order=locked_order,
-                payload=response,
-                subscription=locked_subscription,
-                installment_count=locked_order.installment_count,
+        try:
+            if plan_price.billing_model != PlanPrice.BillingModel.RECURRING:
+                upsert_gateway_payment(
+                    order=locked_order,
+                    payload=response,
+                    subscription=locked_subscription,
+                    installment_count=locked_order.installment_count,
+                )
+            if locked_order.gateway_installment_id:
+                sync_installment_payments(locked_order, gateway=gateway)
+            elif locked_order.gateway_subscription_id:
+                sync_subscription_payments(locked_order, gateway=gateway)
+        except Exception as sync_exc:
+            logger.warning(
+                "billing_checkout_sync_deferred",
+                extra={
+                    "operation": "checkout_initial_sync",
+                    "user_id": user.pk,
+                    "order_public_id": str(locked_order.public_id),
+                    "gateway": "ASAAS",
+                    "error_type": sync_exc.__class__.__name__,
+                },
             )
-        if locked_order.gateway_installment_id:
-            sync_installment_payments(locked_order, gateway=gateway)
-        elif locked_order.gateway_subscription_id:
-            sync_subscription_payments(locked_order, gateway=gateway)
-        return CheckoutResult(
-            order=locked_order,
-            subscription=locked_subscription,
-            created=True,
-        )
+            with transaction.atomic():
+                deferred_order = BillingOrder.objects.select_for_update().get(pk=locked_order.pk)
+                deferred_order.metadata = {
+                    **(deferred_order.metadata or {}),
+                    "initial_sync_status": "RETRY_REQUIRED",
+                    "initial_sync_error_code": sync_exc.__class__.__name__,
+                }
+                deferred_order.save(update_fields=["metadata", "updated_at"])
+                locked_order = deferred_order
+        return CheckoutResult(order=locked_order, subscription=locked_subscription, created=True)
     except Exception as exc:
         with transaction.atomic():
             failed_order = BillingOrder.objects.select_for_update().get(pk=order.pk)
@@ -332,17 +342,10 @@ def create_checkout_order(
                 "provisioning_status": "FAILED",
                 "error_code": exc.__class__.__name__,
             }
-            failed_order.save(
-                update_fields=["status", "failed_at", "metadata", "updated_at"]
-            )
+            failed_order.save(update_fields=["status", "failed_at", "metadata", "updated_at"])
 
-            failed_subscription = Subscription.objects.select_for_update().get(
-                pk=subscription.pk
-            )
-            if (
-                created_new_subscription
-                and failed_subscription.status == Subscription.Status.PENDING
-            ):
+            failed_subscription = Subscription.objects.select_for_update().get(pk=subscription.pk)
+            if created_new_subscription and failed_subscription.status == Subscription.Status.PENDING:
                 failed_subscription.status = Subscription.Status.CANCELED
                 failed_subscription.canceled_at = timezone.now()
                 failed_subscription.metadata = {
@@ -351,25 +354,15 @@ def create_checkout_order(
                     "provisioning_error_code": exc.__class__.__name__,
                 }
                 failed_subscription.save(
-                    update_fields=[
-                        "status",
-                        "canceled_at",
-                        "metadata",
-                        "updated_at",
-                    ]
+                    update_fields=["status", "canceled_at", "metadata", "updated_at"]
                 )
             elif not created_new_subscription:
-                pending_checkout = dict(
-                    (failed_subscription.metadata or {}).get("pending_checkout")
-                    or {}
-                )
+                pending_checkout = dict((failed_subscription.metadata or {}).get("pending_checkout") or {})
                 if pending_checkout.get("order_public_id") == str(order.public_id):
                     pending_checkout["status"] = "FAILED"
                     failed_subscription.metadata = {
                         **(failed_subscription.metadata or {}),
                         "pending_checkout": pending_checkout,
                     }
-                    failed_subscription.save(
-                        update_fields=["metadata", "updated_at"]
-                    )
+                    failed_subscription.save(update_fields=["metadata", "updated_at"])
         raise
