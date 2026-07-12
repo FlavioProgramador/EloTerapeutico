@@ -32,20 +32,35 @@ export function resolvePostLoginDestination(input: {
   entitlementAllowed: boolean;
   subscriptionStatus?: AccessSubscriptionStatus | null;
   entitlementRedirect?: string | null;
+  onboardingRequired?: boolean;
 }): string {
   const requested = safeInternalPath(input.requested);
   const billingDestination =
-    requested.startsWith("/checkout") || requested.startsWith("/billing");
+    requested.startsWith("/checkout") ||
+    requested.startsWith("/billing") ||
+    requested.startsWith("/planos");
 
-  if (input.entitlementAllowed || billingDestination) {
+  if (input.entitlementAllowed) {
+    if (
+      input.onboardingRequired &&
+      !billingDestination &&
+      !requested.startsWith("/onboarding")
+    ) {
+      return "/onboarding";
+    }
     return requested;
   }
 
-  if (
-    input.subscriptionStatus &&
-    ["PENDING", "PAST_DUE", "SUSPENDED"].includes(input.subscriptionStatus)
-  ) {
-    return "/billing";
+  if (billingDestination) return requested;
+
+  if (input.subscriptionStatus === "PENDING") {
+    return "/billing/pending";
+  }
+  if (["PAST_DUE", "SUSPENDED"].includes(input.subscriptionStatus || "")) {
+    return "/billing/past-due";
+  }
+  if (["CANCELED", "EXPIRED"].includes(input.subscriptionStatus || "")) {
+    return "/billing/expired";
   }
 
   return safeInternalPath(input.entitlementRedirect, "/planos");
