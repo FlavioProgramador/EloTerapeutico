@@ -1,11 +1,12 @@
 import uuid
-from datetime import timedelta
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.billing.models import BillingOrder, PlanPrice, Subscription
@@ -68,14 +69,16 @@ def _storage_idempotency_key(user_id: int, key: str) -> str:
     return namespaced
 
 
-def _pending_order_for_user(user, plan_price: PlanPrice) -> BillingOrder | None:
-    expiration_minutes = max(int(getattr(settings, "BILLING_CHECKOUT_EXPIRATION_MINUTES", 30)), 1)
+def _pending_order_for_user(user) -> BillingOrder | None:
+    expiration_minutes = max(
+        int(getattr(settings, "BILLING_CHECKOUT_EXPIRATION_MINUTES", 30)),
+        1,
+    )
     cutoff = timezone.now() - timedelta(minutes=expiration_minutes)
     candidates = (
         BillingOrder.objects.select_for_update()
         .filter(
             user=user,
-            plan_price=plan_price,
             status__in=[BillingOrder.Status.DRAFT, BillingOrder.Status.PENDING],
         )
         .order_by("-created_at")
@@ -115,9 +118,13 @@ def create_checkout_order(
 
     with transaction.atomic():
         locked_user = user_model.objects.select_for_update().get(pk=user.pk)
+        raw_key = str(idempotency_key).strip()
         existing = (
             BillingOrder.objects.select_related("plan", "plan_price")
-            .filter(user=locked_user, idempotency_key=storage_key)
+            .filter(
+                Q(idempotency_key=storage_key) | Q(idempotency_key=raw_key),
+                user=locked_user,
+            )
             .first()
         )
         if existing:
@@ -127,12 +134,16 @@ def create_checkout_order(
                 created=False,
             )
 
-        pending_order = _pending_order_for_user(locked_user, plan_price)
+        pending_order = _pending_order_for_user(locked_user)
         if pending_order:
-            return CheckoutResult(
-                order=pending_order,
-                subscription=_existing_order_subscription(pending_order, locked_user),
-                created=False,
+            if pending_order.plan_price_id == plan_price.pk:
+                return CheckoutResult(
+                    order=pending_order,
+                    subscription=_existing_order_subscription(pending_order, locked_user),
+                    created=False,
+                )
+            raise CheckoutAlreadyPendingError(
+                details={"order_public_id": str(pending_order.public_id)}
             )
 
         operational = (
@@ -218,23 +229,28 @@ def create_checkout_order(
                 },
             )
 
-    gateway = gateway or AsaasGateway()
     try:
+        gateway = gateway or AsaasGateway()
         customer_id = _gateway_customer_id(user, subscription)
         if not customer_id:
             customer = gateway.create_customer(user, checkout_data)
             customer_id = str(customer.get("id") or "")
         if not customer_id:
-            raise CheckoutBusinessError("Gateway não retornou o identificador do cliente.")
+            raise CheckoutBusinessError(
+                "Gateway não retornou o identificador do cliente."
+            )
 
-        BillingOrder.objects.filter(pk=order.pk).update(gateway_customer_id=customer_id)
+        BillingOrder.objects.filter(pk=order.pk).update(
+            gateway_customer_id=customer_id
+        )
         gateway_data = {
             **checkout_data,
             "value": preview["total_amount"],
             "totalValue": preview["total_amount"],
             "installmentCount": order.installment_count,
             "externalReference": order.external_reference,
-            "description": checkout_data.get("description") or f"Elo Terapêutico — {plan_price.name}",
+            "description": checkout_data.get("description")
+            or f"Elo Terapêutico — {plan_price.name}",
         }
         if plan_price.billing_model == PlanPrice.BillingModel.RECURRING:
             response = gateway.create_recurring_subscription(
@@ -258,7 +274,9 @@ def create_checkout_order(
 
         with transaction.atomic():
             locked_order = BillingOrder.objects.select_for_update().get(pk=order.pk)
-            locked_subscription = Subscription.objects.select_for_update().get(pk=subscription.pk)
+            locked_subscription = Subscription.objects.select_for_update().get(
+                pk=subscription.pk
+            )
             locked_order.status = BillingOrder.Status.PENDING
             locked_order.gateway_customer_id = customer_id
             locked_order.gateway_subscription_id = (
@@ -266,7 +284,9 @@ def create_checkout_order(
                 if plan_price.billing_model == PlanPrice.BillingModel.RECURRING
                 else ""
             )
-            locked_order.gateway_installment_id = str(response.get("installment") or "")
+            locked_order.gateway_installment_id = str(
+                response.get("installment") or ""
+            )
             locked_order.metadata = {
                 **(locked_order.metadata or {}),
                 "gateway_response": redact_sensitive_data(response),
@@ -276,7 +296,9 @@ def create_checkout_order(
 
             if created_new_subscription:
                 locked_subscription.gateway_customer_id = customer_id
-                locked_subscription.gateway_subscription_id = locked_order.gateway_subscription_id
+                locked_subscription.gateway_subscription_id = (
+                    locked_order.gateway_subscription_id
+                )
                 locked_subscription.gateway_status = str(response.get("status") or "")
                 locked_subscription.metadata = {
                     **(locked_subscription.metadata or {}),
@@ -295,7 +317,11 @@ def create_checkout_order(
             sync_installment_payments(locked_order, gateway=gateway)
         elif locked_order.gateway_subscription_id:
             sync_subscription_payments(locked_order, gateway=gateway)
-        return CheckoutResult(order=locked_order, subscription=locked_subscription, created=True)
+        return CheckoutResult(
+            order=locked_order,
+            subscription=locked_subscription,
+            created=True,
+        )
     except Exception as exc:
         with transaction.atomic():
             failed_order = BillingOrder.objects.select_for_update().get(pk=order.pk)
@@ -306,10 +332,17 @@ def create_checkout_order(
                 "provisioning_status": "FAILED",
                 "error_code": exc.__class__.__name__,
             }
-            failed_order.save(update_fields=["status", "failed_at", "metadata", "updated_at"])
+            failed_order.save(
+                update_fields=["status", "failed_at", "metadata", "updated_at"]
+            )
 
-            failed_subscription = Subscription.objects.select_for_update().get(pk=subscription.pk)
-            if created_new_subscription and failed_subscription.status == Subscription.Status.PENDING:
+            failed_subscription = Subscription.objects.select_for_update().get(
+                pk=subscription.pk
+            )
+            if (
+                created_new_subscription
+                and failed_subscription.status == Subscription.Status.PENDING
+            ):
                 failed_subscription.status = Subscription.Status.CANCELED
                 failed_subscription.canceled_at = timezone.now()
                 failed_subscription.metadata = {
@@ -318,15 +351,25 @@ def create_checkout_order(
                     "provisioning_error_code": exc.__class__.__name__,
                 }
                 failed_subscription.save(
-                    update_fields=["status", "canceled_at", "metadata", "updated_at"]
+                    update_fields=[
+                        "status",
+                        "canceled_at",
+                        "metadata",
+                        "updated_at",
+                    ]
                 )
             elif not created_new_subscription:
-                pending_checkout = dict((failed_subscription.metadata or {}).get("pending_checkout") or {})
+                pending_checkout = dict(
+                    (failed_subscription.metadata or {}).get("pending_checkout")
+                    or {}
+                )
                 if pending_checkout.get("order_public_id") == str(order.public_id):
                     pending_checkout["status"] = "FAILED"
                     failed_subscription.metadata = {
                         **(failed_subscription.metadata or {}),
                         "pending_checkout": pending_checkout,
                     }
-                    failed_subscription.save(update_fields=["metadata", "updated_at"])
+                    failed_subscription.save(
+                        update_fields=["metadata", "updated_at"]
+                    )
         raise
