@@ -1,6 +1,7 @@
 import os
 from datetime import timedelta
 from pathlib import Path
+from corsheaders.defaults import default_headers
 
 import environ
 
@@ -210,6 +211,12 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+CORS_ALLOW_HEADERS = [
+    *default_headers,
+    "idempotency-key",
+]
+
 ROOT_URLCONF = "elo_terapeutico.urls"
 TEMPLATES = [
     {

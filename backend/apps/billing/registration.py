@@ -42,11 +42,11 @@ class PlanRegistrationSerializer(serializers.Serializer):
         if attrs.get("plan_price_id"):
             price = prices.filter(pk=attrs["plan_price_id"]).first()
         elif attrs.get("plan_price_slug"):
-            price = prices.filter(slug=attrs["plan_price_slug"]).first()
+            price = prices.filter(slug__iexact=attrs["plan_price_slug"]).first()
         else:
             plan_slug = attrs.get("plan_slug") or attrs.get("plan")
             if plan_slug:
-                price = prices.filter(plan__slug=plan_slug).order_by(
+                price = prices.filter(plan__slug__iexact=plan_slug).order_by(
                     "billing_interval",
                     "total_amount",
                 ).first()

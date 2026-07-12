@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { setCookie } from "cookies-next";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
@@ -39,6 +40,13 @@ type AccessMode = "TRIAL" | "PAID";
 
 interface RegistrationResponse {
   next: string;
+  tokens?: {
+    access: string;
+    refresh: string;
+  };
+  user?: {
+    role?: string;
+  };
 }
 
 function registrationSelection(): { plan: string; accessMode: AccessMode } {
@@ -126,13 +134,41 @@ export default function RegisterPage() {
 
     try {
       const response = await api.post<RegistrationResponse>("auth/register/", payload);
+
+      // Store tokens from registration response to auto-login
+      const { tokens, user: userData, next: nextUrl } = response.data;
+      if (tokens?.access) {
+        setCookie("auth_token", tokens.access, {
+          maxAge: 30 * 60,
+          path: "/",
+          sameSite: "lax",
+        });
+      }
+      if (tokens?.refresh) {
+        setCookie("auth_refresh_token", tokens.refresh, {
+          maxAge: 7 * 24 * 60 * 60,
+          path: "/",
+          sameSite: "lax",
+        });
+      }
+      if (userData?.role) {
+        setCookie("auth_role", userData.role, {
+          maxAge: 7 * 24 * 60 * 60,
+          path: "/",
+          sameSite: "lax",
+        });
+      }
+
       toast.success("Cadastro realizado com sucesso!", {
         description:
           accessMode === "TRIAL"
-            ? "Seu teste gratuito de 7 dias foi ativado. Faça login para continuar."
-            : "Sua conta foi criada. Faça login para concluir a assinatura.",
+            ? "Seu teste gratuito de 7 dias foi ativado."
+            : "Sua conta foi criada com sucesso.",
       });
-      router.push(loginHrefAfterRegister(response.data.next));
+
+      // Redirect directly to the next URL (no need to re-login)
+      const destination = nextUrl || "/dashboard";
+      router.push(destination);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const responseData = error.response?.data;
@@ -162,13 +198,24 @@ export default function RegisterPage() {
             }
           });
 
-          if (hasStep1Error) setStep(1);
-
-          toast.error("Erro no cadastro", {
-            description:
-              responseData?.error?.message ||
-              "Por favor, corrija os erros e tente novamente.",
-          });
+          if (serverErrors.plan) {
+            toast.error("Erro ao selecionar plano", {
+              description: Array.isArray(serverErrors.plan) ? String(serverErrors.plan[0]) : String(serverErrors.plan),
+            });
+          } else if (hasStep1Error) {
+            setStep(1);
+            toast.error("Erro no cadastro", {
+              description:
+                responseData?.error?.message ||
+                "Por favor, corrija os erros e tente novamente.",
+            });
+          } else {
+            toast.error("Erro no cadastro", {
+              description:
+                responseData?.error?.message ||
+                "Por favor, corrija os erros e tente novamente.",
+            });
+          }
         } else {
           toast.error("Erro no cadastro", {
             description: "Ocorreu um erro ao criar sua conta. Tente novamente.",

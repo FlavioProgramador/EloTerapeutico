@@ -42,11 +42,19 @@ export default function LoginPage() {
         description: "Login realizado com sucesso.",
       });
     } catch (error: unknown) {
-      const axiosError = error as AxiosError<{ error?: { message?: string }; detail?: string }>;
-      const serverMessage =
-        axiosError?.response?.data?.error?.message ||
-        axiosError?.response?.data?.detail ||
-        "Verifique suas credenciais e tente novamente.";
+      const axiosError = error as AxiosError<Record<string, unknown>>;
+      const data = axiosError?.response?.data;
+
+      let serverMessage = "Verifique suas credenciais e tente novamente.";
+      if (data) {
+        if (Array.isArray(data.non_field_errors) && data.non_field_errors.length > 0) {
+          serverMessage = String(data.non_field_errors[0]);
+        } else if (typeof (data.error as Record<string, unknown>)?.message === "string") {
+          serverMessage = (data.error as Record<string, unknown>).message as string;
+        } else if (typeof data.detail === "string") {
+          serverMessage = data.detail;
+        }
+      }
 
       toast.error("Falha na autenticação", {
         description: serverMessage,
