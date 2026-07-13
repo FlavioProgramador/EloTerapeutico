@@ -1,0 +1,198 @@
+name: One-time branch cleanup
+
+on:
+  push:
+    branches:
+      - chore/one-time-branch-cleanup-20260713
+
+permissions:
+  contents: write
+  pull-requests: read
+  issues: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Remove unnecessary branches safely
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          CURRENT_BRANCH: ${{ github.ref_name }}
+          REPORT_PR: "150"
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+          from datetime import datetime, timezone
+
+          token = os.environ["GH_TOKEN"]
+          repository = os.environ["REPOSITORY"]
+          current_branch = os.environ["CURRENT_BRANCH"]
+          report_pr = os.environ["REPORT_PR"]
+          api = "https://api.github.com"
+
+          def request(method, path, payload=None):
+              data = None
+              if payload is not None:
+                  data = json.dumps(payload).encode("utf-8")
+              req = urllib.request.Request(
+                  f"{api}{path}",
+                  data=data,
+                  method=method,
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Accept": "application/vnd.github+json",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "User-Agent": "EloTerapeutico-branch-cleanup",
+                  },
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as response:
+                      body = response.read()
+                      return json.loads(body) if body else None
+              except urllib.error.HTTPError as exc:
+                  body = exc.read().decode("utf-8", errors="replace")
+                  raise RuntimeError(f"GitHub API {method} {path} falhou: {exc.code} {body}") from exc
+
+          def paginate(path):
+              items = []
+              page = 1
+              separator = "&" if "?" in path else "?"
+              while True:
+                  chunk = request("GET", f"{path}{separator}per_page=100&page={page}")
+                  items.extend(chunk)
+                  if len(chunk) < 100:
+                      return items
+                  page += 1
+
+          def parse_date(value):
+              if not value:
+                  return datetime.min.replace(tzinfo=timezone.utc)
+              return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+          repo = request("GET", f"/repos/{repository}")
+          default_branch = repo["default_branch"]
+          branches = paginate(f"/repos/{repository}/branches?")
+          pulls = paginate(f"/repos/{repository}/pulls?state=open")
+
+          open_heads = {
+              pr["head"]["ref"]
+              for pr in pulls
+              if pr.get("head", {}).get("repo")
+              and pr["head"]["repo"].get("full_name") == repository
+          }
+          conventional = {
+              "main",
+              "master",
+              "develop",
+              "development",
+              "staging",
+              "production",
+              "prod",
+              "release",
+              "gh-pages",
+          }
+          protected = {default_branch, current_branch, *open_heads, *conventional}
+          protected.update(branch["name"] for branch in branches if branch.get("protected"))
+
+          candidates = []
+          inspection_failures = []
+          for branch in branches:
+              name = branch["name"]
+              if name in protected:
+                  continue
+              encoded_default = urllib.parse.quote(default_branch, safe="")
+              encoded_name = urllib.parse.quote(name, safe="")
+              try:
+                  comparison = request(
+                      "GET",
+                      f"/repos/{repository}/compare/{encoded_default}...{encoded_name}",
+                  )
+                  commit = request("GET", f"/repos/{repository}/commits/{branch['commit']['sha']}")
+                  updated_at = (
+                      commit.get("commit", {}).get("committer", {}).get("date")
+                      or commit.get("commit", {}).get("author", {}).get("date")
+                  )
+                  merged = comparison.get("status") in {"behind", "identical"} or comparison.get("ahead_by", 0) == 0
+                  candidates.append(
+                      {
+                          "name": name,
+                          "merged": merged,
+                          "updated_at": parse_date(updated_at),
+                          "status": comparison.get("status", "unknown"),
+                      }
+                  )
+              except Exception as exc:
+                  inspection_failures.append(f"{name}: {exc}")
+
+          merged_candidates = sorted(
+              (item for item in candidates if item["merged"]),
+              key=lambda item: (item["updated_at"], item["name"]),
+          )
+          unmerged_candidates = sorted(
+              (item for item in candidates if not item["merged"]),
+              key=lambda item: (item["updated_at"], item["name"]),
+          )
+
+          # A branch temporária ainda existe durante a execução. Mantemos no máximo
+          # 21 neste ponto para terminar com no máximo 20 após a autoexclusão.
+          planned = list(merged_candidates)
+          remaining_after_merged = len(branches) - len(planned)
+          if remaining_after_merged > 21:
+              planned.extend(unmerged_candidates[: remaining_after_merged - 21])
+
+          deleted = []
+          deletion_failures = []
+          for item in planned:
+              name = item["name"]
+              try:
+                  encoded_name = urllib.parse.quote(name, safe="")
+                  request("DELETE", f"/repos/{repository}/git/refs/heads/{encoded_name}")
+                  deleted.append(item)
+              except Exception as exc:
+                  deletion_failures.append(f"{name}: {exc}")
+
+          cleanup_branch_deleted = False
+          try:
+              encoded_current = urllib.parse.quote(current_branch, safe="")
+              request("DELETE", f"/repos/{repository}/git/refs/heads/{encoded_current}")
+              cleanup_branch_deleted = True
+          except Exception as exc:
+              deletion_failures.append(f"{current_branch}: {exc}")
+
+          final_count = len(branches) - len(deleted) - (1 if cleanup_branch_deleted else 0)
+          deleted_lines = "\n".join(
+              f"- `{item['name']}` ({'mesclada' if item['merged'] else 'antiga sem PR aberto'}, último commit em {item['updated_at'].date().isoformat()})"
+              for item in deleted
+          ) or "- Nenhuma branch removida."
+          failure_lines = "\n".join(f"- {line}" for line in deletion_failures + inspection_failures) or "- Nenhuma falha."
+          kept_open = "\n".join(f"- `{name}`" for name in sorted(open_heads)) or "- Nenhuma."
+
+          body = f"""## Limpeza automática de branches concluída
+
+- Branches antes da limpeza: **{len(branches)}**
+- Branches removidas: **{len(deleted) + (1 if cleanup_branch_deleted else 0)}**
+- Branches restantes: **{final_count}**
+- Branch padrão preservada: `{default_branch}`
+- Branch temporária de limpeza removida: **{'sim' if cleanup_branch_deleted else 'não'}**
+
+### Branches com PR aberto preservadas
+{kept_open}
+
+### Branches removidas
+{deleted_lines}
+
+### Falhas ou branches não inspecionadas
+{failure_lines}
+"""
+          request("POST", f"/repos/{repository}/issues/{report_pr}/comments", {"body": body})
+          print(body)
+
+          if final_count > 20:
+              raise SystemExit(f"A limpeza terminou com {final_count} branches; revise as falhas acima.")
+          PY
