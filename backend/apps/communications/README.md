@@ -6,6 +6,12 @@ A documentação operacional e arquitetural deste app está em:
 docs/05-modulos/comunicacoes/README.md
 ```
 
+Para erros de runtime, banco sem migrations ou respostas `COMMUNICATIONS_DATABASE_NOT_READY`, consulte:
+
+```text
+docs/05-modulos/comunicacoes/diagnostico-runtime.md
+```
+
 Comandos principais:
 
 ```bash
