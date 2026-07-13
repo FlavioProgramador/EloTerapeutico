@@ -1,0 +1,40 @@
+name: Format Communications Sources
+
+on:
+  push:
+    branches:
+      - feat/modulo-comunicacoes
+    paths:
+      - "backend/apps/communications/**"
+      - ".github/workflows/format-communications.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Ruff
+        run: python -m pip install "ruff>=0.9,<1.0"
+
+      - name: Apply Ruff fixes
+        run: |
+          ruff check backend/apps/communications \
+            --config backend/pyproject.toml \
+            --fix
+
+      - name: Upload formatted sources
+        uses: actions/upload-artifact@v4
+        with:
+          name: communications-ruff-fixed
+          path: backend/apps/communications
+          retention-days: 1
