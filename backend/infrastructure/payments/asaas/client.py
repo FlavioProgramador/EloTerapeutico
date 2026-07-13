@@ -12,7 +12,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.validators import validate_email
 from django.utils import timezone
 
-from .base import (
+from apps.billing.services.gateways.base import (
     GatewayAuthenticationError,
     GatewayConfigurationError,
     GatewayError,

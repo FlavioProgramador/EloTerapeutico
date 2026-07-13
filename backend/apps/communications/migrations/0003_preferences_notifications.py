@@ -5,7 +5,7 @@ import uuid
 from django.conf import settings
 from django.db import migrations, models
 
-import core.fields
+import apps.core.fields
 
 
 class Migration(migrations.Migration):
@@ -69,7 +69,7 @@ class Migration(migrations.Migration):
                 ("channel", models.CharField(choices=[("in_app", "Notificação interna"), ("email", "E-mail"), ("whatsapp_manual", "WhatsApp manual"), ("whatsapp", "WhatsApp Business"), ("sms", "SMS")], max_length=24)),
                 ("provider", models.CharField(max_length=60)),
                 ("external_id", models.CharField(max_length=160)),
-                ("body", core.fields.EncryptedTextField(blank=True)),
+                ("body", apps.core.fields.EncryptedTextField(blank=True)),
                 ("status", models.CharField(choices=[("unmatched", "Não identificada"), ("received", "Recebida"), ("reviewed", "Revisada"), ("linked", "Relacionada"), ("archived", "Arquivada")], default="received", max_length=20)),
                 ("received_at", models.DateTimeField(default=django.utils.timezone.now)),
                 ("reviewed_at", models.DateTimeField(blank=True, null=True)),

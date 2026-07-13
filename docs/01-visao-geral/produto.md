@@ -35,6 +35,6 @@ Implementação relacionada:
 
 - `backend/apps/`
 - `frontend/src/features/`
-- `backend/elo_terapeutico/urls.py`
+- `backend/config/urls.py`
 
 [Voltar](README.md)

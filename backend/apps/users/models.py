@@ -7,7 +7,7 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
 from django.utils import timezone
 
-from core.validators import validate_crp, validate_phone
+from apps.core.validators import validate_crp, validate_phone
 
 from .managers import UserManager
 

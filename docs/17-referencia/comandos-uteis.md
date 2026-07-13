@@ -19,7 +19,7 @@ python manage.py run_export_worker
 pytest --create-db
 ruff check .
 mypy .
-bandit -r apps core infrastructure elo_terapeutico -c pyproject.toml
+bandit -r apps infrastructure config -c pyproject.toml
 pip-audit -r requirements/base.txt
 npm run lint
 npm run typecheck

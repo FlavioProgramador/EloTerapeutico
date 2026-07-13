@@ -8,8 +8,8 @@ from django.utils import timezone
 
 from apps.billing.models import Payment, Plan, PlanPrice, Subscription
 from apps.billing.services.access import SubscriptionAccessService
-from apps.billing.services.gateways.asaas import AsaasGateway
 from apps.billing.services.orders import create_billing_order
+from infrastructure.payments.asaas.client import AsaasGateway
 
 ACTIVE_OR_BLOCKING_STATUSES = {
     Subscription.Status.TRIALING,

@@ -13,7 +13,7 @@ pastas artificiais.
 
 ```text
 backend/
-├── elo_terapeutico/
+├── config/
 │   ├── settings/
 │   ├── urls.py
 │   ├── asgi.py
@@ -117,7 +117,7 @@ fórmulas.
 
 `apps.users.services.credentials` gera o token e a URL de recuperação sem expor a
 existência da conta. O envio externo é delegado a
-`apps.core.integrations.notifications`.
+`apps.infrastructure.messaging.email`.
 
 ## Selectors implementados
 
@@ -157,7 +157,7 @@ formatos utilizados pelo frontend foram preservados.
 
 ## Decisões deliberadamente adiadas
 
-- Renomear `elo_terapeutico` para `config`: ganho apenas estético e alto impacto.
+- Renomear `config` para `config`: ganho apenas estético e alto impacto.
 - Reorganizar integralmente `agenda/model_parts`, `serializer_parts` e `view_parts`:
   deve ocorrer em PR isolada após os fluxos críticos permanecerem verdes.
 - Remover wrappers históricos: somente após confirmar que nenhuma migration ou

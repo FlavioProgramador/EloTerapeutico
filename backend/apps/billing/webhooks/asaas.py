@@ -12,12 +12,12 @@ from django.utils import timezone
 
 from apps.billing.models import BillingOrder, Payment, PlanPrice, Subscription, WebhookEvent
 from apps.billing.security import redact_sensitive_data
-from apps.billing.services.gateways.asaas import AsaasGateway
 from apps.billing.services.orders import upsert_gateway_payment
 from apps.billing.services.subscriptions import (
     activate_subscription_from_payment,
     mark_subscription_past_due,
 )
+from infrastructure.payments.asaas.client import AsaasGateway
 
 logger = logging.getLogger(__name__)
 

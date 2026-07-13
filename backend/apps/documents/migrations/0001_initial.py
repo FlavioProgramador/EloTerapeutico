@@ -7,7 +7,7 @@ from django.conf import settings
 from django.db import migrations, models
 from django.db.models import Q
 
-import core.fields
+import apps.core.fields
 import apps.documents.models
 
 
@@ -62,9 +62,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("specialty", models.CharField(blank=True, db_index=True, max_length=120)),
-                ("content", core.fields.EncryptedTextField()),
-                ("header_content", core.fields.EncryptedTextField(blank=True, default="")),
-                ("footer_content", core.fields.EncryptedTextField(blank=True, default="")),
+                ("content", apps.core.fields.EncryptedTextField()),
+                ("header_content", apps.core.fields.EncryptedTextField(blank=True, default="")),
+                ("footer_content", apps.core.fields.EncryptedTextField(blank=True, default="")),
                 ("include_professional_identification", models.BooleanField(default=True)),
                 ("include_clinic_identification", models.BooleanField(default=True)),
                 ("requires_signature", models.BooleanField(default=True)),
@@ -156,14 +156,14 @@ class Migration(migrations.Migration):
                 ("document_number", models.CharField(max_length=32)),
                 ("template_name_snapshot", models.CharField(max_length=160)),
                 ("template_version_snapshot", models.PositiveIntegerField(default=1)),
-                ("template_content_snapshot", core.fields.EncryptedTextField()),
-                ("template_header_snapshot", core.fields.EncryptedTextField(blank=True, default="")),
-                ("template_footer_snapshot", core.fields.EncryptedTextField(blank=True, default="")),
+                ("template_content_snapshot", apps.core.fields.EncryptedTextField()),
+                ("template_header_snapshot", apps.core.fields.EncryptedTextField(blank=True, default="")),
+                ("template_footer_snapshot", apps.core.fields.EncryptedTextField(blank=True, default="")),
                 ("include_professional_identification_snapshot", models.BooleanField(default=True)),
                 ("include_clinic_identification_snapshot", models.BooleanField(default=True)),
                 ("requires_signature_snapshot", models.BooleanField(default=True)),
-                ("rendered_content", core.fields.EncryptedTextField()),
-                ("context_snapshot", core.fields.EncryptedTextField(default="{}")),
+                ("rendered_content", apps.core.fields.EncryptedTextField()),
+                ("context_snapshot", apps.core.fields.EncryptedTextField(default="{}")),
                 (
                     "status",
                     models.CharField(

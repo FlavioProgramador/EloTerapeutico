@@ -6,7 +6,7 @@ from django.core.cache import cache
 from django.utils import timezone
 from rest_framework.exceptions import Throttled, ValidationError
 
-from core.audit import log_access
+from apps.audit.services.access_logging import log_access
 
 
 def _audit(request, action: str, obj, event: str) -> None:

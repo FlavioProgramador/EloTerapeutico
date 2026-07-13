@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils import timezone
 from unfold.admin import ModelAdmin
 
-from core.audit import AuditLog, log_access
+from apps.audit.services.access_logging import AuditLog, log_access
 
 from .models import User, WorkingHours
 

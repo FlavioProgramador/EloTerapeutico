@@ -5,7 +5,7 @@ from io import StringIO
 from django.http import HttpResponse
 from rest_framework.decorators import action
 
-from core.audit import AuditLog, log_access
+from apps.audit.services.access_logging import AuditLog, log_access
 
 
 class PatientExportActions:

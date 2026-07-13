@@ -20,9 +20,9 @@ repos:
           (?x)^(
             backend/apps/billing/.*|
             backend/apps/patients/api/views/legacy_views\.py|
-            backend/elo_terapeutico/settings/base\.py|
-            backend/elo_terapeutico/settings/prod\.py|
-            backend/elo_terapeutico/urls\.py
+            backend/config/settings/base\.py|
+            backend/config/settings/prod\.py|
+            backend/config/urls\.py
           )$
       - id: ruff-format
         files: ^backend/
@@ -30,9 +30,9 @@ repos:
           (?x)^(
             backend/apps/billing/.*|
             backend/apps/patients/api/views/legacy_views\.py|
-            backend/elo_terapeutico/settings/base\.py|
-            backend/elo_terapeutico/settings/prod\.py|
-            backend/elo_terapeutico/urls\.py
+            backend/config/settings/base\.py|
+            backend/config/settings/prod\.py|
+            backend/config/urls\.py
           )$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -65,9 +65,9 @@ repos:
             backend/apps/patients/review_filter\.py|
             backend/apps/users/managers\.py|
             backend/quality/.*|
-            backend/core/fields\.py|
-            backend/core/audit\.py|
-            backend/elo_terapeutico/settings/test\.py|
+            backend/apps/core/fields\.py|
+            backend/apps/core/audit\.py|
+            backend/config/settings/test\.py|
             backend/conftest\.py|
             .*/tests/.*
           )$

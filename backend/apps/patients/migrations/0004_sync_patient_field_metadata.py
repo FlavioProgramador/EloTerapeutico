@@ -1,4 +1,4 @@
-import core.validators
+import apps.core.validators
 from django.db import migrations, models
 
 
@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 max_length=11,
                 unique=True,
-                validators=[core.validators.validate_cpf],
+                validators=[apps.core.validators.validate_cpf],
                 verbose_name="CPF",
             ),
         ),
@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 max_length=20,
-                validators=[core.validators.validate_phone],
+                validators=[apps.core.validators.validate_phone],
                 verbose_name="Telefone",
             ),
         ),

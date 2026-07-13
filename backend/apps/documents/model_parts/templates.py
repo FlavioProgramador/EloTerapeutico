@@ -9,7 +9,7 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
-from core.fields import EncryptedTextField
+from apps.core.fields import EncryptedTextField
 
 
 class DocumentTemplate(models.Model):

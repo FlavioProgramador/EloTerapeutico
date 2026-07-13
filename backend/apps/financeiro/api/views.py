@@ -6,7 +6,7 @@ Este módulo mantém apenas configuração comum do DRF.
 
 from rest_framework import viewsets
 
-from core.audit import AuditLogMixin
+from apps.audit.services.access_logging import AuditLogMixin
 
 from ..filters import FinancialTransactionFilter
 from ..permissions import FinancialPermission

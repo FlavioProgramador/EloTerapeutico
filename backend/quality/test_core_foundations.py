@@ -8,13 +8,13 @@ from django.utils import timezone
 from rest_framework.exceptions import MethodNotAllowed
 
 from apps.agenda.models import Appointment
+from apps.core.api.pagination import StandardResultsPagination
+from apps.core.exceptions import custom_exception_handler
 from apps.documents.models import DocumentTemplate, GeneratedDocument
 from apps.financeiro.models import FinancialTransaction
 from apps.financeiro.selectors.transactions import transactions_accessible_to
 from apps.patients.models import Patient
 from apps.records.models import Evolution
-from core.exceptions import custom_exception_handler
-from core.pagination import StandardResultsPagination
 
 
 def test_exception_handler_wraps_method_not_allowed():

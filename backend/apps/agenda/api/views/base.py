@@ -1,6 +1,6 @@
 from rest_framework.permissions import IsAuthenticated
 
-from core.pagination import StandardResultsPagination
+from apps.core.api.pagination import StandardResultsPagination
 
 
 class AgendaPermission(IsAuthenticated):

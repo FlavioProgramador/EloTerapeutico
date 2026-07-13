@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from apps.billing.models import BillingOrder, Payment, PlanPrice, Subscription
 from apps.billing.security import redact_sensitive_data
-from apps.billing.services.gateways.asaas import AsaasGateway
+from infrastructure.payments.asaas.client import AsaasGateway
 
 MONEY = Decimal("0.01")
 OPERATIONAL_SUBSCRIPTION_STATUSES = [

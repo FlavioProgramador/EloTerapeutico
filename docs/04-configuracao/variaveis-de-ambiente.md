@@ -17,7 +17,7 @@
 | Variável | Obrigatória | Ambiente | Exemplo seguro | Finalidade | Sensível |
 | --- | ---: | --- | --- | --- | ---: |
 | `DATABASE_URL` | Sim | Todos | `postgres://usuario:senha@db:5432/elo` | Conexão principal | Sim |
-| `POSTGRES_DB` | Docker | Dev | `elo_terapeutico` | Banco do container | Não |
+| `POSTGRES_DB` | Docker | Dev | `config` | Banco do container | Não |
 | `POSTGRES_USER` | Docker | Dev | `postgres` | Usuário do container | Não |
 | `POSTGRES_PASSWORD` | Docker | Dev | `configure-localmente` | Senha do container | Sim |
 | `POSTGRES_HOST` | Não | Dev | `localhost` | Host auxiliar | Não |

@@ -8,7 +8,7 @@ O backend expõe a API sob `/api/v1/`, além de OpenAPI, health check e administ
 
 `core`, `infrastructure`, `users`, `patients`, `records`, `agenda`, `financeiro`, `documents`, `reports`, `forms`, `billing` e `audit`.
 
-Implementação relacionada: `backend/elo_terapeutico/settings/base.py`.
+Implementação relacionada: `backend/config/settings/base.py`.
 
 ## Isolamento atual
 

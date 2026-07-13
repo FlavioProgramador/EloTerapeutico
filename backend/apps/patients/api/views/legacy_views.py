@@ -12,6 +12,7 @@ from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from apps.audit.services.access_logging import AuditLogMixin
 from apps.billing.services.features import enforce_patient_limit
 from apps.patients.api.filters import PatientFilter
 from apps.patients.api.serializers.legacy_serializers import (
@@ -20,7 +21,6 @@ from apps.patients.api.serializers.legacy_serializers import (
     PatientListSerializer,
 )
 from apps.patients.models import Patient
-from core.audit import AuditLogMixin
 
 
 class PatientPermission(IsAuthenticated):

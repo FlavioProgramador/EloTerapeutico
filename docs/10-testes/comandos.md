@@ -11,7 +11,7 @@ pytest --create-db
 ruff check .
 ruff format --check .
 mypy .
-bandit -r apps core infrastructure elo_terapeutico -c pyproject.toml
+bandit -r apps infrastructure config -c pyproject.toml
 pip-audit -r requirements/base.txt
 ```
 

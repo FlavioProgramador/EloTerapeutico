@@ -215,8 +215,8 @@ UNFOLD = {
             },
         ],
     },
-    "ENVIRONMENT": "core.admin_dashboard.environment_callback",
-    "DASHBOARD_CALLBACK": "core.admin_dashboard.dashboard_callback",
+    "ENVIRONMENT": "apps.core.admin_dashboard.environment_callback",
+    "DASHBOARD_CALLBACK": "apps.core.admin_dashboard.dashboard_callback",
 }
 THIRD_PARTY_APPS = [
     "rest_framework",
@@ -227,7 +227,7 @@ THIRD_PARTY_APPS = [
     "drf_spectacular",
 ]
 LOCAL_APPS = [
-    "core",
+    "apps.core.apps.CoreConfig",
     "infrastructure",
     "apps.users",
     "apps.patients",
@@ -259,7 +259,7 @@ CORS_ALLOW_HEADERS = [
     "idempotency-key",
 ]
 
-ROOT_URLCONF = "elo_terapeutico.urls"
+ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -275,8 +275,8 @@ TEMPLATES = [
         },
     }
 ]
-WSGI_APPLICATION = "elo_terapeutico.wsgi.application"
-ASGI_APPLICATION = "elo_terapeutico.asgi.application"
+WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
 DATABASES = {"default": env.db("DATABASE_URL")}
 CACHES = {
     "default": {
@@ -308,10 +308,10 @@ REST_FRAMEWORK = {
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ],
-    "DEFAULT_PAGINATION_CLASS": "core.pagination.StandardResultsPagination",
+    "DEFAULT_PAGINATION_CLASS": "apps.core.api.pagination.StandardResultsPagination",
     "PAGE_SIZE": 20,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "EXCEPTION_HANDLER": "core.exceptions.custom_exception_handler",
+    "EXCEPTION_HANDLER": "apps.core.exceptions.custom_exception_handler",
 }
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env.int("JWT_ACCESS_MINUTES", default=30)),

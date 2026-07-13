@@ -8,7 +8,7 @@ services:
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD
-      - POSTGRES_DB=${POSTGRES_DB:-elo_terapeutico}
+      - POSTGRES_DB=${POSTGRES_DB:-config}
     volumes:
       - db_data:/var/lib/postgresql/data
     ports:

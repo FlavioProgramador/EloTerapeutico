@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from core.audit import AuditLog, log_access
+from apps.audit.services.access_logging import AuditLog, log_access
 
 from ..services.imports import PatientImportError, import_patients_from_csv
 

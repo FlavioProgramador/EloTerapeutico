@@ -6,9 +6,9 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.audit.services.access_logging import AuditLog, log_access
 from apps.records.api.views.clinical_views import ClinicalPatientMixin
 from apps.records.services.evolution_security import can_view_confidential_evolution
-from core.audit import AuditLog, log_access
 
 from ..models import ClinicalDocument
 from ..services.evolutions import remove_evolution_attachment

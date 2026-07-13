@@ -1,5 +1,5 @@
 from django.db import migrations, models
-import core.validators
+import apps.core.validators
 
 
 class Migration(migrations.Migration):
@@ -38,7 +38,7 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 max_length=20,
-                validators=[core.validators.validate_phone],
+                validators=[apps.core.validators.validate_phone],
                 verbose_name="WhatsApp",
             ),
         ),
@@ -133,7 +133,7 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 max_length=20,
-                validators=[core.validators.validate_phone],
+                validators=[apps.core.validators.validate_phone],
                 verbose_name="Telefone de emergência",
             ),
         ),
@@ -143,7 +143,7 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 max_length=20,
-                validators=[core.validators.validate_phone],
+                validators=[apps.core.validators.validate_phone],
                 verbose_name="Telefone do responsável",
             ),
         ),

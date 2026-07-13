@@ -13,7 +13,7 @@ from apps.agenda.api.serializers import (
     ScheduleBlockSerializer,
 )
 from apps.agenda.models import Appointment, PackageSession, PatientPackage, Room, ScheduleBlock
-from core.audit import AuditLog, log_access
+from apps.audit.services.access_logging import AuditLog, log_access
 
 from .base import ScopedAgendaMixin
 

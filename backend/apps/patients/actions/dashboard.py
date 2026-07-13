@@ -9,10 +9,10 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.audit.services.access_logging import AuditLog, log_access
 from apps.patients.api.serializers.dashboard_serializers import PatientDashboardSerializer
 from apps.patients.api.serializers.form_serializers import PatientFormSerializer
 from apps.patients.api.serializers.legacy_serializers import PatientDetailSerializer
-from core.audit import AuditLog, log_access
 
 from ..models import Patient
 from .forms import PatientFormActions

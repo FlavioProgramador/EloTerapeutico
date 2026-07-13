@@ -8,9 +8,9 @@ from datetime import date
 
 from rest_framework import serializers
 
+from apps.core.validators import validate_cpf, validate_phone
 from apps.patients.models import Patient
 from apps.users.models import User
-from core.validators import validate_cpf, validate_phone
 
 
 class PatientListSerializer(serializers.ModelSerializer):

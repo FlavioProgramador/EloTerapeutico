@@ -2,7 +2,7 @@
 
 ## Stack e inicialização
 
-O backend usa Python e Django. `manage.py` seleciona `elo_terapeutico.settings.dev` por padrão. O WSGI é servido por Gunicorn na imagem de produção, enquanto o Docker Compose de desenvolvimento usa `runserver`.
+O backend usa Python e Django. `manage.py` seleciona `config.settings.development` por padrão. O WSGI é servido por Gunicorn na imagem de produção, enquanto o Docker Compose de desenvolvimento usa `runserver`.
 
 ## Camadas
 
@@ -14,7 +14,7 @@ O backend usa Python e Django. `manage.py` seleciona `elo_terapeutico.settings.d
 | Services/actions | Regras e operações de domínio | `services/`, `actions/` |
 | Selectors | Querysets e leitura otimizada | `selectors/` |
 | Permissions | Autorização HTTP/objeto | `api/permissions.py` |
-| Core | paginação, exceções, auditoria, campos e validadores | `backend/core/` |
+| Core | paginação, exceções, auditoria, campos e validadores | `backend/apps/core/` |
 | Infrastructure | integrações e infraestrutura compartilhada | `backend/infrastructure/` |
 
 ## Configuração DRF
@@ -41,7 +41,7 @@ Django Unfold organiza dashboard, SQL Explorer, pacientes, registros, agenda, fi
 
 ## Pontos de atenção
 
-- `core.audit.log_access` não interrompe a ação de negócio quando a gravação da auditoria falha; isso preserva disponibilidade, mas exige alerta operacional;
+- `apps.audit.services.access_logging.log_access` não interrompe a ação de negócio quando a gravação da auditoria falha; isso preserva disponibilidade, mas exige alerta operacional;
 - há imports de compatibilidade para modelos e URLs após refatorações;
 - vários módulos estão excluídos ou ignorados parcialmente pelo mypy;
 - a rota de billing também existe em `/api/billing/`, além do prefixo principal.

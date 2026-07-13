@@ -5,6 +5,7 @@ from __future__ import annotations
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 
+from apps.audit.services.access_logging import AuditLog, log_access
 from apps.records.api.serializers.clinical_serializers import ClinicalExportSerializer
 from apps.records.api.views.clinical_views import (
     ClinicalExportDownloadView,
@@ -15,7 +16,6 @@ from apps.records.api.views.clinical_views import (
 from apps.records.models import Evolution
 from apps.records.services.evolution_security import has_explicit_records_permission
 from apps.records.treatment_models import ClinicalExport
-from core.audit import AuditLog, log_access
 
 
 def _can_manage_foreign_export(user, export_obj: ClinicalExport) -> bool:

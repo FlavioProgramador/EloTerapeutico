@@ -17,7 +17,7 @@ api_v1_patterns = [
     path("public/communications/", include("apps.communications.urls_public")),
 ]
 
-from core.admin_sql import sql_explorer_view, sql_schema_view
+from apps.core.admin_sql import sql_explorer_view, sql_schema_view
 
 urlpatterns = [
     path("admin/sql-explorer/", sql_explorer_view, name="sql_explorer"),

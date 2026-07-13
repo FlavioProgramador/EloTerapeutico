@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.billing.models import BillingOrder, WebhookEvent
+from apps.billing.selectors.orders import get_order_with_payments
 from apps.billing.serializers import (
     BillingOrderSerializer,
     CheckoutCreateSerializer,
@@ -16,8 +16,8 @@ from apps.billing.serializers import (
     SubscriptionSerializer,
 )
 from apps.billing.services.checkout import CheckoutBusinessError, create_checkout_order
-from apps.billing.services.gateways.asaas import AsaasGateway
 from apps.billing.services.gateways.base import GatewayError
+from apps.billing.services.integration_health import get_billing_integration_health
 from apps.billing.views import _checkout_response_payload, _service_checkout_data
 
 logger = logging.getLogger(__name__)
@@ -132,11 +132,7 @@ class CheckoutCreateView(APIView):
                 details=exc.details,
             )
 
-        order = (
-            BillingOrder.objects.select_related("plan", "plan_price")
-            .prefetch_related("payments")
-            .get(pk=result.order.pk)
-        )
+        order = get_order_with_payments(order_id=result.order.pk)
         serialized_payments = PaymentSerializer(order.payments.all(), many=True).data
         payload = _checkout_response_payload(checkout_data)
         payload.update(
@@ -158,43 +154,12 @@ class BillingIntegrationHealthView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request):
-        try:
-            gateway_health = AsaasGateway(require_api_key=False).health_check()
-            connected = bool(gateway_health["connected"])
-            configured = bool(gateway_health["configured"])
-            environment = gateway_health["environment"]
-            detail = (
-                "Conexão com o Asaas validada."
-                if connected
-                else "A integração de pagamentos não está configurada."
-            )
-            error_code = None if connected else "ASAAS_CONFIGURATION_ERROR"
-        except GatewayError as exc:
-            connected = False
-            configured = bool(getattr(settings, "ASAAS_API_KEY", ""))
-            environment = (
-                "SANDBOX" if "sandbox" in str(settings.ASAAS_BASE_URL).lower() else "PRODUCTION"
-            )
-            detail = _gateway_message(exc)
-            error_code = exc.code
-
-        last_event = WebhookEvent.objects.order_by("-received_at").first()
-        payload = {
-            "gateway": "ASAAS",
-            "connected": connected,
-            "configured": configured,
-            "environment": environment,
-            "detail": detail,
-            "error_code": error_code,
-            "last_webhook_at": last_event.received_at if last_event else None,
-            "pending_events": WebhookEvent.objects.filter(
-                status__in=[WebhookEvent.Status.RECEIVED, WebhookEvent.Status.RETRY]
-            ).count(),
-            "failed_events": WebhookEvent.objects.filter(
-                status=WebhookEvent.Status.FAILED
-            ).count(),
-        }
+        payload = get_billing_integration_health()
         return Response(
             payload,
-            status=status.HTTP_200_OK if connected else status.HTTP_503_SERVICE_UNAVAILABLE,
+            status=(
+                status.HTTP_200_OK
+                if payload["connected"]
+                else status.HTTP_503_SERVICE_UNAVAILABLE
+            ),
         )

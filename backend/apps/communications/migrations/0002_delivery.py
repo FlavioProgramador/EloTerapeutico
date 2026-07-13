@@ -5,7 +5,7 @@ import django.db.models.deletion
 import django.utils.timezone
 from django.db import migrations, models
 
-import core.fields
+import apps.core.fields
 from apps.communications.migration_operations import CreateModelIfNotExists
 
 
@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
                 ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("recipient_type", models.CharField(choices=[("patient", "Paciente"), ("guardian", "Responsável legal"), ("professional", "Profissional"), ("user", "Usuário"), ("custom", "Personalizado")], max_length=20)),
                 ("name", models.CharField(max_length=255)),
-                ("destination", core.fields.EncryptedTextField()),
+                ("destination", apps.core.fields.EncryptedTextField()),
                 ("destination_masked", models.CharField(max_length=255)),
                 ("channel", models.CharField(choices=[("in_app", "Notificação interna"), ("email", "E-mail"), ("whatsapp_manual", "WhatsApp manual"), ("whatsapp", "WhatsApp Business"), ("sms", "SMS")], max_length=24)),
                 ("status", models.CharField(choices=[("pending", "Pendente"), ("ready", "Pronto"), ("blocked", "Bloqueado"), ("sent", "Enviado"), ("failed", "Falhou")], default="pending", max_length=20)),

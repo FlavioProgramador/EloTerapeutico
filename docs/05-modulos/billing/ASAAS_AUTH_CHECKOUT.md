@@ -351,7 +351,7 @@ Teste a conectividade:
 
 ```bash
 docker compose exec backend python manage.py shell -c "
-from apps.billing.services.gateways.asaas import AsaasGateway
+from infrastructure.payments.asaas.client import AsaasGateway
 print(AsaasGateway().health_check())
 "
 ```

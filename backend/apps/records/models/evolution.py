@@ -6,7 +6,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from core.fields import EncryptedTextField
+from apps.core.fields import EncryptedTextField
 
 
 class Evolution(models.Model):

@@ -25,6 +25,6 @@ format-check:
 	$(PYTHON) -m ruff format --check .
 
 typecheck:
-	$(PYTHON) -m mypy apps elo_terapeutico
+	$(PYTHON) -m mypy apps config
 
 validate: check migrations-check lint format-check test

@@ -5,7 +5,7 @@ import logging
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.test import APIRequestFactory
 
-from core.exceptions import custom_exception_handler
+from apps.core.exceptions import custom_exception_handler
 
 
 def test_validation_error_has_request_id_and_no_store_headers():
@@ -55,7 +55,7 @@ def test_unhandled_exception_does_not_log_or_return_sensitive_message(caplog):
     sensitive_value = "cpf=52998224725 token=private-token"
     request = APIRequestFactory().get("/api/v1/test/")
 
-    with caplog.at_level(logging.ERROR, logger="core.exceptions"):
+    with caplog.at_level(logging.ERROR, logger="apps.core.exceptions"):
         response = custom_exception_handler(
             RuntimeError(sensitive_value),
             {"request": request},

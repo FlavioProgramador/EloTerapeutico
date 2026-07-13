@@ -29,7 +29,7 @@ jobs:
         working-directory: backend
 
     env:
-      DJANGO_SETTINGS_MODULE: elo_terapeutico.settings.test
+      DJANGO_SETTINGS_MODULE: config.settings.test
       SECRET_KEY: ci-only-secret-key-not-used-outside-actions
       JWT_SECRET: ci-only-jwt-key-not-used-outside-actions
       DATABASE_URL: sqlite:///test.sqlite3
@@ -115,7 +115,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          bandit -r apps core infrastructure elo_terapeutico -c pyproject.toml -f screen 2>&1 | tee /tmp/bandit-output.txt
+          bandit -r apps infrastructure config -c pyproject.toml -f screen 2>&1 | tee /tmp/bandit-output.txt
 
       - name: Publicar relatório do Bandit
         if: always()

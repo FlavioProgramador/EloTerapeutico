@@ -11,7 +11,7 @@
 
 ## Aplicação
 
-- [ ] `DJANGO_SETTINGS_MODULE=elo_terapeutico.settings.prod`;
+- [ ] `DJANGO_SETTINGS_MODULE=config.settings.production`;
 - [ ] DEBUG falso;
 - [ ] hosts, CORS e CSRF explícitos;
 - [ ] TLS/HSTS validados sem loop de proxy;

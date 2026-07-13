@@ -7,7 +7,7 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from apps.billing.models import Plan, PlanPrice
-from apps.billing.services.gateways.asaas import AsaasGateway
+from infrastructure.payments.asaas.client import AsaasGateway
 
 
 @override_settings(
