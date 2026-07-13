@@ -1,11 +1,11 @@
-from importlib import import_module
-from types import SimpleNamespace
-from unittest.mock import Mock, patch
+import importlib
+import types
+from unittest import mock
 
 import pytest
 
 
-migration = import_module(
+migration = importlib.import_module(
     "apps.communications.migrations.0008_reconcile_runtime_schema"
 )
 
@@ -37,7 +37,7 @@ class Introspection:
         return self.tables
 
     def get_table_description(self, cursor, table_name):
-        return [SimpleNamespace(name=column) for column in self.columns]
+        return [types.SimpleNamespace(name=column) for column in self.columns]
 
     def get_constraints(self, cursor, table_name):
         return self.constraints
@@ -64,10 +64,10 @@ class SchemaEditor:
             ),
             row_count=row_count,
         )
-        self.create_model = Mock()
-        self.add_field = Mock()
-        self.add_constraint = Mock()
-        self.add_index = Mock()
+        self.create_model = mock.Mock()
+        self.add_field = mock.Mock()
+        self.add_constraint = mock.Mock()
+        self.add_index = mock.Mock()
 
     @staticmethod
     def quote_name(name):
@@ -75,7 +75,7 @@ class SchemaEditor:
 
 
 def field(name, *, null=False, has_default=False):
-    return SimpleNamespace(
+    return types.SimpleNamespace(
         column=name,
         null=null,
         has_default=lambda: has_default,
@@ -83,8 +83,8 @@ def field(name, *, null=False, has_default=False):
 
 
 def model(*fields, constraints=(), indexes=()):
-    return SimpleNamespace(
-        _meta=SimpleNamespace(
+    return types.SimpleNamespace(
+        _meta=types.SimpleNamespace(
             db_table="communications_example",
             local_fields=list(fields),
             constraints=list(constraints),
@@ -94,7 +94,7 @@ def model(*fields, constraints=(), indexes=()):
 
 
 def apps_for(example_model):
-    return SimpleNamespace(
+    return types.SimpleNamespace(
         get_model=lambda app_label, model_name: example_model,
     )
 
@@ -102,17 +102,17 @@ def apps_for(example_model):
 def test_reconciliation_creates_missing_table_and_reseeds_data():
     example_model = model(field("id"))
     schema_editor = SchemaEditor()
-    template_seed = Mock()
-    entitlement_seed = Mock()
+    template_seed = mock.Mock()
+    entitlement_seed = mock.Mock()
 
     with (
-        patch.object(migration, "MODEL_ORDER", ("Example",)),
-        patch.object(
+        mock.patch.object(migration, "MODEL_ORDER", ("Example",)),
+        mock.patch.object(
             migration,
             "import_module",
             side_effect=[
-                SimpleNamespace(seed_templates=template_seed),
-                SimpleNamespace(seed_entitlements=entitlement_seed),
+                types.SimpleNamespace(seed_templates=template_seed),
+                types.SimpleNamespace(seed_entitlements=entitlement_seed),
             ],
         ),
     ):
@@ -156,8 +156,8 @@ def test_reconciliation_rejects_required_column_on_populated_table():
 
 
 def test_reconciliation_restores_named_constraints_and_indexes():
-    constraint = SimpleNamespace(name="communications_example_unique")
-    index = SimpleNamespace(name="communications_example_idx")
+    constraint = types.SimpleNamespace(name="communications_example_unique")
+    index = types.SimpleNamespace(name="communications_example_idx")
     example_model = model(
         field("id"),
         constraints=[constraint],
