@@ -28,6 +28,8 @@ class _Introspection:
 
 
 class _Connection:
+    alias = "default"
+
     def __init__(self, introspection):
         self.introspection = introspection
 
@@ -45,8 +47,11 @@ class _SchemaEditor:
 def _model(*columns):
     return SimpleNamespace(
         _meta=SimpleNamespace(
+            app_label="communications",
+            model_name="example",
             db_table="communications_example",
             local_fields=[SimpleNamespace(column=column) for column in columns],
+            can_migrate=lambda connection_alias: True,
         )
     )
 
