@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import Decimal
+
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models.signals import post_save, pre_save
@@ -138,7 +140,8 @@ def enqueue_financial_communications(sender, instance, created, **kwargs):
     def dispatch_event():
         source_id = str(instance.pk)
         version = instance.updated_at.isoformat() if instance.updated_at else "1"
-        variables = {"payment_amount": f"R$ {instance.amount:.2f}", "payment_due_date": instance.due_date.strftime("%d/%m/%Y") if instance.due_date else "", "payment_status": instance.get_payment_status_display()}
+        amount = Decimal(str(instance.amount))
+        variables = {"payment_amount": f"R$ {amount:.2f}", "payment_due_date": instance.due_date.strftime("%d/%m/%Y") if instance.due_date else "", "payment_status": instance.get_payment_status_display()}
         if created:
             emit_domain_event(owner=instance.therapist, event_type="financial.payment_created", patient=instance.patient, financial_transaction=instance, source_object_type="financeiro.FinancialTransaction", source_object_id=source_id, variables=variables, event_version=version)
         if previous and previous["payment_status"] != instance.payment_status:
