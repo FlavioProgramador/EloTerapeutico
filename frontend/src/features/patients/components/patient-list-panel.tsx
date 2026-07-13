@@ -1,6 +1,7 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import type { PatientDashboardItem } from "../types";
 
@@ -96,14 +97,11 @@ export function PatientListPanel({
   if (!patients.length) {
     return (
       <div className="grid min-h-72 place-items-center rounded-xl border border-dashed border-border bg-card p-8 text-center">
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">
-            Nenhum paciente encontrado
-          </h2>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Ajuste a busca ou remova os filtros ativos.
-          </p>
-        </div>
+        <EmptyState
+          icon={<Search className="h-6 w-6 text-muted-foreground" />}
+          title="Nenhum paciente encontrado"
+          description="Ajuste a busca ou remova os filtros ativos."
+        />
       </div>
     );
   }
