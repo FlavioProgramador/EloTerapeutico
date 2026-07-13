@@ -419,7 +419,10 @@ class TreatmentGoalListCreateView(ClinicalPatientMixin, APIView):
 
     def post(self, request, patient_id):
         patient = self.get_patient(patient_id)
-        serializer = TreatmentGoalSerializer(data=request.data, context={"patient": patient})
+        serializer = TreatmentGoalSerializer(
+            data=request.data,
+            context={"request": request, "patient": patient},
+        )
         serializer.is_valid(raise_exception=True)
         goal = serializer.save(patient=patient, created_by=request.user)
         log_access(
@@ -448,7 +451,7 @@ class TreatmentGoalDetailView(ClinicalPatientMixin, APIView):
             goal,
             data=request.data,
             partial=True,
-            context={"patient": goal.patient},
+            context={"request": request, "patient": goal.patient},
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()

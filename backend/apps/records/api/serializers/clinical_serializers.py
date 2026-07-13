@@ -401,8 +401,22 @@ class TreatmentGoalSerializer(serializers.ModelSerializer):
 
     def validate_evolutions(self, evolutions):
         patient = self.context["patient"]
-        if any(item.patient_id != patient.id for item in evolutions):
-            raise serializers.ValidationError("Todas as evoluções devem pertencer ao paciente.")
+        user = self.context["request"].user
+
+        for item in evolutions:
+            if item.patient_id != patient.id:
+                raise serializers.ValidationError("Todas as evoluções devem pertencer ao paciente.")
+
+            # Validação de confidencialidade ao vincular
+            if item.is_confidential:
+                if (
+                    item.created_by_id != user.id
+                    and not user.has_perm("records.view_confidential_evolution")
+                ):
+                    raise serializers.ValidationError(
+                        f"Você não pode vincular a evolução #{item.id} pois ela é confidencial e pertence a outro autor."
+                    )
+
         return evolutions
 
 
