@@ -1,7 +1,7 @@
 from django.contrib import admin, messages
 from unfold.admin import ModelAdmin
 
-from .models import DocumentSequence, DocumentTemplate, GeneratedDocument
+from apps.documents.models import DocumentSequence, DocumentTemplate, GeneratedDocument
 
 
 @admin.register(DocumentTemplate)

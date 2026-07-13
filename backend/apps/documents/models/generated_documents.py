@@ -12,8 +12,39 @@ from django.utils import timezone
 
 from core.fields import EncryptedTextField
 
-from .paths import generated_document_path
-from .templates import DocumentTemplate
+from .document_templates import DocumentTemplate
+
+
+def generated_document_path(instance, filename: str) -> str:
+    """Gera um caminho não previsível sem dados pessoais no nome do arquivo."""
+
+    from pathlib import Path
+
+    suffix = Path(filename).suffix.lower() or ".pdf"
+    return f"generated_documents/{instance.owner_id}/{instance.public_id.hex}{suffix}"
+
+
+generated_document_path.__module__ = "apps.documents.models"
+
+
+class GeneratedDocumentQuerySet(models.QuerySet):
+    """Consultas reutilizáveis de documentos gerados."""
+
+    def for_owner(self, owner):
+        return self.filter(owner=owner)
+
+    def with_document_relations(self):
+        return self.select_related("patient", "professional", "template")
+
+    def with_lock(self):
+        return self.select_for_update()
+
+    def with_idempotency_key(self, owner, idempotency_key: str):
+        return self.for_owner(owner).filter(idempotency_key=idempotency_key)
+
+
+class GeneratedDocumentManager(models.Manager.from_queryset(GeneratedDocumentQuerySet)):
+    pass
 
 
 class GeneratedDocument(models.Model):
@@ -92,6 +123,8 @@ class GeneratedDocument(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = GeneratedDocumentManager()
+
     class Meta:
         ordering = ["-created_at"]
         indexes = [
@@ -122,3 +155,24 @@ class GeneratedDocument(models.Model):
         self.status = self.Status.ARCHIVED
         self.archived_at = timezone.now()
         self.save(update_fields=["status", "archived_at", "updated_at"])
+
+
+class DocumentSequence(models.Model):
+    """Sequência transacional por profissional e ano para numeração documental."""
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="document_sequences",
+    )
+    year = models.PositiveSmallIntegerField()
+    last_value = models.PositiveIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["owner", "year"],
+                name="unique_document_sequence_owner_year",
+            )
+        ]

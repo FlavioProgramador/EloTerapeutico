@@ -12,6 +12,40 @@ from django.utils import timezone
 from core.fields import EncryptedTextField
 
 
+class DocumentTemplateQuerySet(models.QuerySet):
+    """Consultas reutilizáveis de templates de documentos."""
+
+    def private_for(self, owner):
+        return self.filter(owner=owner, is_library_template=False)
+
+    def active_library(self):
+        return self.filter(
+            owner__isnull=True,
+            is_library_template=True,
+            status=DocumentTemplate.Status.ACTIVE,
+            archived_at__isnull=True,
+        )
+
+    def active_named_for(self, owner, name: str):
+        return self.private_for(owner).filter(name=name, archived_at__isnull=True)
+
+    def imported_from(self, owner, library_template):
+        return self.private_for(owner).filter(
+            source_library_template=library_template,
+            archived_at__isnull=True,
+        )
+
+    def for_template_api(self):
+        return self.select_related("created_by", "source_library_template")
+
+    def for_library_api(self):
+        return self.select_related("created_by")
+
+
+class DocumentTemplateManager(models.Manager.from_queryset(DocumentTemplateQuerySet)):
+    pass
+
+
 class DocumentTemplate(models.Model):
     """Modelo reutilizável de documento, privado ou pertencente à biblioteca global."""
 
@@ -86,6 +120,8 @@ class DocumentTemplate(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     archived_at = models.DateTimeField(null=True, blank=True)
+
+    objects = DocumentTemplateManager()
 
     class Meta:
         ordering = ["name"]
