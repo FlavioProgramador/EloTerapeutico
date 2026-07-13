@@ -7,7 +7,6 @@ from rest_framework import serializers
 
 from apps.documents.models import DocumentTemplate
 from apps.documents.services.document_templates import DocumentPlaceholderService
-from apps.patients.models import Patient
 
 
 class DocumentTemplateSerializer(serializers.ModelSerializer):
@@ -114,35 +113,3 @@ class DocumentTemplateListSerializer(DocumentTemplateSerializer):
 class TemplatePreviewRequestSerializer(serializers.Serializer):
     patient_id = serializers.IntegerField(required=False, min_value=1)
     local_emissao = serializers.CharField(required=False, allow_blank=True, max_length=160)
-
-    def build_context(self, template: DocumentTemplate) -> dict[str, str]:
-        request = self.context["request"]
-        patient_id = self.validated_data.get("patient_id")
-        if not patient_id:
-            return DocumentPlaceholderService.sample_context()
-        patient = Patient.objects.filter(
-            pk=patient_id,
-            therapist=request.user,
-            deleted_at__isnull=True,
-        ).first()
-        if not patient:
-            raise serializers.ValidationError({"patient_id": "Paciente não autorizado."})
-        return DocumentPlaceholderService.build_context(
-            patient=patient,
-            professional=request.user,
-            document_number="PRÉVIA",
-            local_emissao=self.validated_data.get("local_emissao", ""),
-        )
-
-    def render(self, template: DocumentTemplate) -> dict[str, str]:
-        context = self.build_context(template)
-        return {
-            "title": template.name,
-            "header_html": (
-                DocumentPlaceholderService.render(template.header_content, context) if template.header_content else ""
-            ),
-            "content_html": DocumentPlaceholderService.render(template.content, context),
-            "footer_html": (
-                DocumentPlaceholderService.render(template.footer_content, context) if template.footer_content else ""
-            ),
-        }

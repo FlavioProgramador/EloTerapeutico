@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-import json
-
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
-from apps.documents.models import DocumentTemplate, GeneratedDocument
+from apps.documents.models import GeneratedDocument
 from apps.documents.services.document_templates import DocumentDomainError, DocumentPlaceholderService
 from apps.documents.services.generated_documents import GeneratedDocumentService
-from apps.patients.models import Patient
 
 
 class GeneratedDocumentCreateSerializer(serializers.Serializer):
@@ -19,42 +16,24 @@ class GeneratedDocumentCreateSerializer(serializers.Serializer):
     title = serializers.CharField(required=False, allow_blank=True, max_length=200)
     local_emissao = serializers.CharField(required=False, allow_blank=True, max_length=160)
 
-    def validate(self, attrs):
-        request = self.context["request"]
-        template = (
-            DocumentTemplate.objects.private_for(request.user)
-            .filter(
-                public_id=attrs["template_public_id"],
-                archived_at__isnull=True,
-            )
-            .first()
-        )
-        if not template:
-            raise serializers.ValidationError({"template_public_id": "Template não autorizado."})
-        patient = Patient.objects.filter(
-            pk=attrs["patient_id"],
-            therapist=request.user,
-            deleted_at__isnull=True,
-        ).first()
-        if not patient:
-            raise serializers.ValidationError({"patient_id": "Paciente não autorizado."})
-        attrs["template"] = template
-        attrs["patient"] = patient
-        return attrs
-
     def create(self, validated_data):
         request = self.context["request"]
         try:
             result = GeneratedDocumentService.create(
                 actor=request.user,
-                patient=validated_data["patient"],
-                template=validated_data["template"],
+                template_public_id=validated_data["template_public_id"],
+                patient_id=validated_data["patient_id"],
                 title=validated_data.get("title", ""),
                 local_emissao=validated_data.get("local_emissao", ""),
                 idempotency_key=request.headers.get("Idempotency-Key"),
             )
         except DocumentDomainError as exc:
-            raise serializers.ValidationError(str(exc)) from exc
+            msg = str(exc)
+            if "template" in msg.lower():
+                raise serializers.ValidationError({"template_public_id": msg}) from exc
+            if "paciente" in msg.lower():
+                raise serializers.ValidationError({"patient_id": msg}) from exc
+            raise serializers.ValidationError(msg) from exc
         self.context["created"] = result.created
         return result.document
 
@@ -125,11 +104,6 @@ class GeneratedDocumentDraftUpdateSerializer(serializers.ModelSerializer):
         model = GeneratedDocument
         fields = ("title", "draft_content")
 
-    def validate(self, attrs):
-        if self.instance.status != GeneratedDocument.Status.DRAFT:
-            raise serializers.ValidationError("Somente documentos em rascunho podem ser editados.")
-        return attrs
-
     def validate_draft_content(self, value: str) -> str:
         try:
             return DocumentPlaceholderService.validate_content(value)
@@ -137,11 +111,12 @@ class GeneratedDocumentDraftUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(exc.messages[0]) from exc
 
     def update(self, instance, validated_data):
+        request = self.context["request"]
         instance = super().update(instance, validated_data)
-        context = json.loads(instance.context_snapshot or "{}")
-        instance.rendered_content = DocumentPlaceholderService.render(
-            instance.template_content_snapshot,
-            context,
-        )
-        instance.save(update_fields=["rendered_content", "updated_at"])
+        if "template_content_snapshot" in validated_data:
+            instance = GeneratedDocumentService.update_draft_content(
+                actor=request.user,
+                document=instance,
+                draft_content=instance.template_content_snapshot,
+            )
         return instance

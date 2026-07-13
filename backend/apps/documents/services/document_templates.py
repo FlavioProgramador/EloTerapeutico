@@ -340,3 +340,34 @@ class DocumentTemplateService:
             created_by=actor,
             updated_by=actor,
         )
+
+    @staticmethod
+    def preview(*, actor, template: DocumentTemplate, patient_id: int | None, local_emissao: str = "") -> dict:
+        from apps.patients.models import Patient
+
+        if not patient_id:
+            context = DocumentPlaceholderService.sample_context()
+        else:
+            patient = Patient.objects.filter(
+                pk=patient_id,
+                therapist=actor,
+                deleted_at__isnull=True,
+            ).first()
+            if not patient:
+                raise DocumentDomainError("Paciente não autorizado.")
+            context = DocumentPlaceholderService.build_context(
+                patient=patient,
+                professional=actor,
+                document_number="PRÉVIA",
+                local_emissao=local_emissao,
+            )
+        return {
+            "title": template.name,
+            "header_html": (
+                DocumentPlaceholderService.render(template.header_content, context) if template.header_content else ""
+            ),
+            "content_html": DocumentPlaceholderService.render(template.content, context),
+            "footer_html": (
+                DocumentPlaceholderService.render(template.footer_content, context) if template.footer_content else ""
+            ),
+        }

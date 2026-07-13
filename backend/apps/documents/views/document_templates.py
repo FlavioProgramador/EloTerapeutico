@@ -161,7 +161,13 @@ class DocumentTemplateViewSet(viewsets.ModelViewSet):
             obj=template,
             obj_repr=f"Prévia do template de documento #{template.pk}",
         )
-        return Response(serializer.render(template))
+        result = DocumentTemplateService.preview(
+            actor=request.user,
+            template=template,
+            patient_id=serializer.validated_data.get("patient_id"),
+            local_emissao=serializer.validated_data.get("local_emissao", ""),
+        )
+        return Response(result)
 
 
 class DocumentLibraryViewSet(viewsets.ReadOnlyModelViewSet):
@@ -210,7 +216,14 @@ class DocumentLibraryViewSet(viewsets.ReadOnlyModelViewSet):
             context={"request": request},
         )
         serializer.is_valid(raise_exception=True)
-        return Response(serializer.render(template))
+        return Response(
+            DocumentTemplateService.preview(
+                actor=request.user,
+                template=template,
+                patient_id=serializer.validated_data.get("patient_id"),
+                local_emissao=serializer.validated_data.get("local_emissao", ""),
+            )
+        )
 
 
 class PlaceholderListView(APIView):

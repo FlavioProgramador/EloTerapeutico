@@ -89,6 +89,19 @@ class GeneratedDocumentService:
         return "archived", document
 
     @staticmethod
+    def update_draft_content(*, actor, document: GeneratedDocument, draft_content: str) -> GeneratedDocument:
+        if document.owner_id != actor.id:
+            raise DocumentDomainError("Documento não autorizado.")
+        if document.status != GeneratedDocument.Status.DRAFT:
+            raise DocumentDomainError("Somente documentos em rascunho podem ser editados.")
+        DocumentPlaceholderService.validate_content(draft_content)
+        context = json.loads(document.context_snapshot or "{}")
+        document.template_content_snapshot = draft_content
+        document.rendered_content = DocumentPlaceholderService.render(draft_content, context)
+        document.save(update_fields=["template_content_snapshot", "rendered_content", "updated_at"])
+        return document
+
+    @staticmethod
     def _next_document_number(*, owner) -> str:
         year = timezone.localdate().year
         sequence, _ = DocumentSequence.objects.select_for_update().get_or_create(
@@ -105,14 +118,29 @@ class GeneratedDocumentService:
     def create(
         *,
         actor,
-        patient: Patient,
-        template: DocumentTemplate,
-        title: str,
+        template_public_id: str,
+        patient_id: int,
+        title: str = "",
         local_emissao: str = "",
         idempotency_key: str | None = None,
     ) -> GeneratedDocumentResult:
-        GeneratedDocumentService.ensure_patient_access(actor=actor, patient=patient)
+        template = (
+            DocumentTemplate.objects.private_for(actor)
+            .filter(public_id=template_public_id, archived_at__isnull=True)
+            .first()
+        )
+        if not template:
+            raise DocumentDomainError("Template não autorizado.")
         DocumentTemplateService.ensure_access(actor=actor, template=template)
+
+        patient = Patient.objects.filter(
+            pk=patient_id,
+            therapist=actor,
+            deleted_at__isnull=True,
+        ).first()
+        if not patient:
+            raise DocumentDomainError("Paciente não autorizado.")
+        GeneratedDocumentService.ensure_patient_access(actor=actor, patient=patient)
 
         normalized_key = (idempotency_key or "").strip() or None
         if normalized_key and len(normalized_key) > 128:
