@@ -23,12 +23,12 @@ from ..validators import validate_template_text
 
 @pytest.fixture
 def therapist(db):
-    return User.objects.create_user(email="communications.therapist@example.test", password="SenhaForte123!", full_name="Terapeuta Comunicações", role=User.Role.THERAPIST, phone="21999998888", onboarding_completed=True)
+    return User.objects.create_user(email="communications.therapist@example.test", password="SenhaForte123!", full_name="Terapeuta Comunicações", role=User.Role.THERAPIST, phone="21999998888", onboarding_completed_at=timezone.now())
 
 
 @pytest.fixture
 def other_therapist(db):
-    return User.objects.create_user(email="communications.other@example.test", password="SenhaForte123!", full_name="Outro Terapeuta", role=User.Role.THERAPIST, onboarding_completed=True)
+    return User.objects.create_user(email="communications.other@example.test", password="SenhaForte123!", full_name="Outro Terapeuta", role=User.Role.THERAPIST, onboarding_completed_at=timezone.now())
 
 
 @pytest.fixture
