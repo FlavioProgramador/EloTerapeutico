@@ -144,7 +144,7 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
         <AlertCircle className="h-8 w-8 text-destructive mb-2" />
         <h3 className="text-sm font-semibold text-foreground">Erro ao carregar exportações</h3>
         <p className="text-xs text-muted-foreground mt-1">Não foi possível recuperar o histórico de relatórios gerados.</p>
-        <Button size="sm" variant="outline" className="mt-4" onClick={() => refetch()}>
+        <Button size="md" variant="outline" className="mt-4" onClick={() => refetch()}>
           Tentar novamente
         </Button>
       </Card>
@@ -158,11 +158,11 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
         <div className="flex flex-col gap-4 md:flex-row md:items-end justify-between">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 flex-1 max-w-xl">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Tipo de Exportação</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Tipo de Exportação</label>
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-xs ring-offset-background"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background"
               >
                 <option value="Completo">Prontuário Completo (Evoluções + Fichas)</option>
                 <option value="Apenas Evoluções">Apenas Evoluções Clínicas</option>
@@ -171,11 +171,11 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Período</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Período</label>
               <select
                 value={selectedPeriod}
                 onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-xs ring-offset-background"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background"
               >
                 <option value="Todo o período">Todo o período clínico</option>
                 <option value="Últimos 30 dias">Últimos 30 dias</option>
@@ -186,7 +186,7 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
           </div>
 
           <Button
-            size="sm"
+            size="md"
             onClick={() => createMutation.mutate()}
             isLoading={createMutation.isPending}
             leftIcon={<Play className="h-4 w-4" />}

@@ -30,3 +30,15 @@ export const TRANSACTION_STATUS_LABELS: Record<string, string> = {
   cancelled: "Cancelado",
   refunded: "Estornado",
 };
+
+export const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  uninformed: "—",
+  pix: "PIX",
+  credit_card: "Cartão de Crédito",
+  debit_card: "Cartão de Débito",
+  cash: "Dinheiro",
+  bank_transfer: "Transferência",
+  boleto: "Boleto",
+  payment_link: "Link Pgto.",
+  other: "Outro",
+};

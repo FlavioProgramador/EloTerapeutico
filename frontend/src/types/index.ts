@@ -45,6 +45,9 @@ export type FinancialPaymentMethod =
   | "debit_card"
   | "cash"
   | "bank_transfer"
+  | "boleto"
+  | "uninformed"
+  | "payment_link"
   | "other";
 
 export interface Patient {
@@ -261,6 +264,7 @@ export interface FinancialTransaction {
   payment_method?: FinancialPaymentMethod;
   is_overdue?: boolean;
   notes?: string;
+  payment_link?: string;
   created_at: string;
   updated_at: string;
 }
@@ -277,6 +281,7 @@ export interface CreateTransactionPayload {
   payment_date?: string;
   payment_method?: FinancialPaymentMethod;
   notes?: string;
+  payment_link?: string;
 }
 
 // ─── Respostas paginadas ────────────────────────────────────────────────────────

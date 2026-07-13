@@ -68,7 +68,7 @@ export function RecordTabsNav({ activeTab, onChange }: RecordTabsNavProps) {
             type="button"
             onClick={() => onChange(id)}
             className={cn(
-              "relative flex min-w-max flex-1 items-center justify-center gap-2 px-3 py-3 text-[11px] font-semibold transition-all duration-200",
+              "relative flex min-w-max flex-1 items-center justify-center gap-2 px-3 py-3 text-sm font-semibold transition-all duration-200",
               active
                 ? "text-emerald-600 dark:text-emerald-400"
                 : "text-muted-foreground hover:text-foreground",
