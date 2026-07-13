@@ -1,11 +1,12 @@
 # Generated for the Elo Terapêutico communications domain.
+import uuid
+
 import django.db.models.deletion
 import django.utils.timezone
-import uuid
-from django.conf import settings
 from django.db import migrations, models
 
 import core.fields
+from apps.communications.migration_operations import CreateModelIfNotExists
 
 
 class Migration(migrations.Migration):
@@ -14,7 +15,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.CreateModel(
+        CreateModelIfNotExists(
             name="CommunicationRecipient",
             fields=[
                 ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
@@ -32,7 +33,7 @@ class Migration(migrations.Migration):
             ],
             options={"ordering": ["id"]},
         ),
-        migrations.CreateModel(
+        CreateModelIfNotExists(
             name="CommunicationAttempt",
             fields=[
                 ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
@@ -54,7 +55,7 @@ class Migration(migrations.Migration):
             ],
             options={"ordering": ["communication", "recipient", "attempt_number"]},
         ),
-        migrations.CreateModel(
+        CreateModelIfNotExists(
             name="CommunicationAutomationRun",
             fields=[
                 ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
