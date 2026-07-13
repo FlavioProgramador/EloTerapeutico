@@ -172,3 +172,33 @@ def test_reconciliation_restores_named_constraints_and_indexes():
 
     schema_editor.add_constraint.assert_called_once_with(example_model, constraint)
     schema_editor.add_index.assert_called_once_with(example_model, index)
+
+
+def test_reconciliation_refreshes_objects_after_sqlite_table_rebuild():
+    first_constraint = types.SimpleNamespace(name="communications_example_unique")
+    second_constraint = types.SimpleNamespace(name="communications_example_partial_unique")
+    index = types.SimpleNamespace(name="communications_example_idx")
+    example_model = model(
+        field("id"),
+        constraints=[first_constraint, second_constraint],
+        indexes=[index],
+    )
+    schema_editor = SchemaEditor(
+        tables=["communications_example"],
+        columns=["id"],
+        constraints={},
+    )
+
+    def simulate_sqlite_table_rebuild(model_instance, constraint):
+        schema_editor.connection.introspection.constraints = {
+            first_constraint.name: {},
+            second_constraint.name: {},
+            index.name: {},
+        }
+
+    schema_editor.add_constraint.side_effect = simulate_sqlite_table_rebuild
+
+    migration._add_missing_named_objects(schema_editor, example_model)
+
+    schema_editor.add_constraint.assert_called_once_with(example_model, first_constraint)
+    schema_editor.add_index.assert_not_called()
