@@ -369,8 +369,8 @@ body {
 }
 
 ::selection {
-  background: hsl(var(--primary) / 0.22);
-  color: hsl(var(--foreground));
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 
 :focus-visible {
