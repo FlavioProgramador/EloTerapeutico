@@ -1,7 +1,9 @@
 "use client";
 
 import { FinanceiroBillingModal } from "./components/financeiro-billing-modal";
+import { FinanceiroNewBillingModal } from "./components/financeiro-new-billing-modal";
 import { FinanceiroHeader } from "./components/financeiro-header";
+import { FinanceiroMarkPaidModal } from "./components/financeiro-mark-paid-modal";
 import { FinanceiroSubscriptionModal } from "./components/financeiro-subscription-modal";
 import { FinanceiroSubscriptionsPanel } from "./components/financeiro-subscriptions-panel";
 import { FinanceiroSummaryCards } from "./components/financeiro-summary-cards";
@@ -33,12 +35,28 @@ export function FinanceiroDashboard() {
       {page.tab === "subscriptions" ? (
         <FinanceiroSubscriptionsPanel subscriptions={page.subscriptions.data ?? []} isLoading={page.subscriptions.isLoading} hidden={page.hidden} onCreate={() => page.setModal("subscription")} onStatusChange={(id, status) => page.updateSubscription.mutate({ id, status })} actionPending={page.updateSubscription.isPending} />
       ) : (
-        <FinanceiroTransactionsPanel mode={page.tab} transactions={page.visibleTransactions} isLoading={page.transactions.isLoading} hidden={page.hidden} onCreate={() => page.setModal("transaction")} onGenerateCharges={page.tab === "income" ? () => page.setModal("billing") : undefined} onMarkPaid={(id) => page.markPaid.mutate({ id })} onCancel={(id) => page.cancel.mutate(id)} actionPending={page.markPaid.isPending || page.cancel.isPending} />
+        <FinanceiroTransactionsPanel mode={page.tab} transactions={page.visibleTransactions} isLoading={page.transactions.isLoading} hidden={page.hidden} onCreate={() => page.setModal("transaction")} onGenerateCharges={page.tab === "income" ? () => page.setModal("billing") : undefined} onNewCharge={page.tab === "income" ? () => page.setModal("new-billing") : undefined} onMarkPaid={(id) => {
+          const tx = page.visibleTransactions.find((t) => t.id === id);
+          if (tx) page.setMarkPaidTransaction(tx);
+        }} onCancel={(id) => page.cancel.mutate(id)} onDelete={(id) => page.remove.mutate(id)} onRefund={(id) => page.refund.mutate(id)} onEdit={(id) => {
+          import("sonner").then(({ toast }) => toast.info("Edição de transação será implementada em breve."));
+        }} actionPending={page.markPaid.isPending || page.cancel.isPending || page.remove.isPending || page.refund.isPending} />
       )}
 
       <FinanceiroTransactionModal open={page.modal === "transaction"} mode={page.tab === "expense" ? "expense" : "income"} patients={page.patients} onClose={() => page.setModal(null)} />
       <FinanceiroSubscriptionModal open={page.modal === "subscription"} patients={page.patients} onClose={() => page.setModal(null)} />
       <FinanceiroBillingModal open={page.modal === "billing"} appointments={page.unbilled.data ?? []} onClose={() => page.setModal(null)} />
+      <FinanceiroNewBillingModal open={page.modal === "new-billing"} patients={page.patients} unbilled={page.unbilled.data ?? []} onClose={() => page.setModal(null)} />
+      <FinanceiroMarkPaidModal 
+        transaction={page.markPaidTransaction} 
+        onClose={() => page.setMarkPaidTransaction(null)} 
+        onConfirm={(data) => {
+          page.markPaid.mutate(data, {
+            onSuccess: () => page.setMarkPaidTransaction(null)
+          });
+        }} 
+        isPending={page.markPaid.isPending} 
+      />
     </div>
   );
 }

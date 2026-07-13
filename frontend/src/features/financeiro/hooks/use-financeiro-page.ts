@@ -6,9 +6,10 @@ import { usePatients } from "@/features/patients/hooks/use-patients";
 import { currentMonthRange } from "../financeiro-formatters";
 import type { FinanceiroTab } from "../components/financeiro-header";
 import { useFinanceiroDashboard, useMonthlySubscriptions, useUpdateMonthlySubscriptionStatus } from "./use-financeiro-dashboard";
-import { useCancelTransaction, useMarkAsPaid, useTransactions, useUnbilledAppointments } from "./use-financeiro";
+import { useCancelTransaction, useMarkAsPaid, useTransactions, useUnbilledAppointments, useDeleteTransaction, useRefundTransaction } from "./use-financeiro";
 
-export type FinanceiroModal = "transaction" | "subscription" | "billing" | null;
+export type FinanceiroModal = "transaction" | "subscription" | "billing" | "new-billing" | null;
+import type { FinancialTransaction } from "@/types";
 
 function range(preset: string) {
   const now = new Date();
@@ -30,6 +31,7 @@ export function useFinanceiroPage() {
   const initial = currentMonthRange();
   const [tab, setTab] = useState<FinanceiroTab>("income");
   const [modal, setModal] = useState<FinanceiroModal>(null);
+  const [markPaidTransaction, setMarkPaidTransaction] = useState<FinancialTransaction | null>(null);
   const [hidden, setHidden] = useState(false);
   const [preset, setPreset] = useState("current");
   const [startDate, setStartDate] = useState(initial.startDate);
@@ -59,6 +61,8 @@ export function useFinanceiroPage() {
   const markPaid = useMarkAsPaid();
   const cancel = useCancelTransaction();
   const updateSubscription = useUpdateMonthlySubscriptionStatus();
+  const remove = useDeleteTransaction();
+  const refund = useRefundTransaction();
 
   const visibleTransactions = useMemo(() => (transactions.data ?? []).filter((item) => {
     if (tab === "subscriptions" || item.type !== tab) return false;
@@ -67,10 +71,10 @@ export function useFinanceiroPage() {
   }), [transactions.data, tab, startDate, endDate]);
 
   return {
-    tab, setTab, modal, setModal, hidden, toggleHidden, preset, changePreset,
+    tab, setTab, modal, setModal, markPaidTransaction, setMarkPaidTransaction, hidden, toggleHidden, preset, changePreset,
     startDate, setStartDate, endDate, setEndDate, statusFilter, setStatusFilter,
     subscriptionStatus, setSubscriptionStatus, summary, transactions, visibleTransactions,
-    subscriptions, unbilled, markPaid, cancel, updateSubscription,
+    subscriptions, unbilled, markPaid, cancel, updateSubscription, remove, refund,
     patients: patients.data?.results ?? [],
   };
 }
