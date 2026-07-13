@@ -27,7 +27,7 @@ class Communication(models.Model):
         APPOINTMENT_RESCHEDULED = "appointment_rescheduled", "Consulta reagendada"
         APPOINTMENT_CANCELED = "appointment_canceled", "Consulta cancelada"
         FORM_REQUEST = "form_request", "Solicitação de formulário"
-        FORM_REMINDER = "form_reminder", "Lembrerete de formulário"
+        FORM_REMINDER = "form_reminder", "Lembrete de formulário"
         DOCUMENT_AVAILABLE = "document_available", "Documento disponível"
         DOCUMENT_SIGNATURE = "document_signature", "Assinatura de documento"
         PAYMENT_DUE = "payment_due", "Pagamento próximo do vencimento"
@@ -57,54 +57,13 @@ class Communication(models.Model):
         HIGH = "high", "Alta"
 
     public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
-    owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="communications",
-        verbose_name="Proprietário",
-    )
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="created_communications",
-    )
-    patient = models.ForeignKey(
-        "patients.Patient",
-        null=True,
-        blank=True,
-        on_delete=models.PROTECT,
-        related_name="communications",
-    )
-    appointment = models.ForeignKey(
-        "agenda.Appointment",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="communications",
-    )
-    form_submission = models.ForeignKey(
-        "forms.FormSubmission",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="communications",
-    )
-    document = models.ForeignKey(
-        "documents.GeneratedDocument",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="communications",
-    )
-    financial_transaction = models.ForeignKey(
-        "financeiro.FinancialTransaction",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="communications",
-    )
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="communications", verbose_name="Proprietário")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="created_communications")
+    patient = models.ForeignKey("patients.Patient", null=True, blank=True, on_delete=models.PROTECT, related_name="communications")
+    appointment = models.ForeignKey("agenda.Appointment", null=True, blank=True, on_delete=models.SET_NULL, related_name="communications")
+    form_submission = models.ForeignKey("forms.FormSubmission", null=True, blank=True, on_delete=models.SET_NULL, related_name="communications")
+    document = models.ForeignKey("documents.GeneratedDocument", null=True, blank=True, on_delete=models.SET_NULL, related_name="communications")
+    financial_transaction = models.ForeignKey("financeiro.FinancialTransaction", null=True, blank=True, on_delete=models.SET_NULL, related_name="communications")
     direction = models.CharField(max_length=12, choices=Direction.choices, default=Direction.OUTBOUND)
     channel = models.CharField(max_length=24, choices=Channel.choices, db_index=True)
     category = models.CharField(max_length=40, choices=Category.choices, default=Category.OTHER, db_index=True)
@@ -114,13 +73,7 @@ class Communication(models.Model):
     body = EncryptedTextField(blank=True)
     body_html = EncryptedTextField(blank=True)
     structured_content = models.JSONField(default=dict, blank=True)
-    template = models.ForeignKey(
-        "CommunicationTemplate",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="communications",
-    )
+    template = models.ForeignKey("CommunicationTemplate", null=True, blank=True, on_delete=models.SET_NULL, related_name="communications")
     template_snapshot = models.JSONField(default=dict, blank=True)
     variables_snapshot = models.JSONField(default=dict, blank=True)
     scheduled_at = models.DateTimeField(null=True, blank=True, db_index=True)
@@ -168,10 +121,4 @@ class Communication(models.Model):
 
     @property
     def is_terminal(self) -> bool:
-        return self.status in {
-            self.Status.DELIVERED,
-            self.Status.READ,
-            self.Status.RESPONDED,
-            self.Status.CANCELED,
-            self.Status.EXPIRED,
-        }
+        return self.status in {self.Status.DELIVERED, self.Status.READ, self.Status.RESPONDED, self.Status.CANCELED, self.Status.EXPIRED}

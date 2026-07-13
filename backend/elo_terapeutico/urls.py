@@ -1,11 +1,7 @@
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
-from drf_spectacular.views import (
-    SpectacularAPIView,
-    SpectacularRedocView,
-    SpectacularSwaggerView,
-)
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 api_v1_patterns = [
     path("auth/", include("apps.users.urls")),
@@ -17,6 +13,8 @@ api_v1_patterns = [
     path("reports/", include("apps.reports.urls")),
     path("forms/", include("apps.forms.urls")),
     path("billing/", include("apps.billing.urls")),
+    path("communications/", include("apps.communications.urls")),
+    path("public/communications/", include("apps.communications.urls_public")),
 ]
 
 from core.admin_sql import sql_explorer_view, sql_schema_view
