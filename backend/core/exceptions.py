@@ -7,6 +7,7 @@ import re
 import secrets
 
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import OperationalError, ProgrammingError
 from django.http import Http404
 from rest_framework import status
 from rest_framework.response import Response
@@ -88,6 +89,30 @@ def custom_exception_handler(exc, context):
         )
         return _secure_error_response(response, request_id)
 
+    if isinstance(exc, (OperationalError, ProgrammingError)) and _is_communications_view(context):
+        logger.error(
+            "communications_database_not_ready",
+            extra={
+                "request_id": request_id,
+                "exception_type": exc.__class__.__name__,
+                "view": _view_name(context),
+            },
+        )
+        response = Response(
+            {
+                "error": {
+                    "code": "COMMUNICATIONS_DATABASE_NOT_READY",
+                    "message": (
+                        "O banco do módulo de Comunicações ainda não está disponível. "
+                        "Aplique as migrations do backend e reinicie os serviços."
+                    ),
+                    "details": None,
+                }
+            },
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+        return _secure_error_response(response, request_id)
+
     # Não use logger.exception aqui: a representação textual da exceção pode
     # conter SQL, tokens, CPF ou conteúdo clínico. O tipo e o request_id são
     # suficientes para correlação; detalhes devem ser coletados por uma solução
@@ -125,6 +150,12 @@ def _view_name(context) -> str:
     return view.__class__.__name__ if view is not None else "unknown"
 
 
+def _is_communications_view(context) -> bool:
+    view = context.get("view") if isinstance(context, dict) else None
+    module = view.__class__.__module__ if view is not None else ""
+    return module.startswith("apps.communications.")
+
+
 def _get_error_code(exc, status_code: int) -> str:
     code_map = {
         400: "BAD_REQUEST",
@@ -135,6 +166,7 @@ def _get_error_code(exc, status_code: int) -> str:
         409: "CONFLICT",
         429: "TOO_MANY_REQUESTS",
         500: "INTERNAL_ERROR",
+        503: "SERVICE_UNAVAILABLE",
     }
     if hasattr(exc, "default_code"):
         return exc.default_code.upper()
