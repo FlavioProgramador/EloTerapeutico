@@ -30,12 +30,15 @@ export function FinanceiroTransactionModal({ open, mode, patients, onClose }: Pr
       amount: "",
       status: "pending",
       due_date: today,
-      payment_method: "pix",
+      payment_method: "uninformed",
+      payment_date: "",
+      payment_link: "",
       description: "",
       notes: "",
     },
   });
   const status = useWatch({ control: form.control, name: "status" });
+  const formType = useWatch({ control: form.control, name: "type" });
 
   useEffect(() => {
     if (open) {
@@ -45,7 +48,9 @@ export function FinanceiroTransactionModal({ open, mode, patients, onClose }: Pr
         amount: "",
         status: "pending",
         due_date: today,
-        payment_method: "pix",
+        payment_method: "uninformed",
+        payment_date: "",
+        payment_link: "",
         description: "",
         patient: undefined,
         appointment: undefined,
@@ -81,16 +86,24 @@ export function FinanceiroTransactionModal({ open, mode, patients, onClose }: Pr
         </div>
 
         <label className="block space-y-1.5 text-sm font-semibold">
+          Tipo
+          <select className="h-11 w-full rounded-lg border border-input bg-card px-3" {...form.register("type")}>
+            <option value="income">Receita (A receber)</option>
+            <option value="expense">Despesa (A pagar)</option>
+          </select>
+        </label>
+
+        <label className="block space-y-1.5 text-sm font-semibold">
           Categoria
           <select className="h-11 w-full rounded-lg border border-input bg-card px-3" {...form.register("category")}>
-            {mode === "income" && <option value="session">Sessão terapêutica</option>}
-            {mode === "income" && <option value="subscription">Mensalidade</option>}
+            {formType === "income" && <option value="session">Sessão terapêutica</option>}
+            {formType === "income" && <option value="subscription">Mensalidade</option>}
             <option value="material">Material</option>
             <option value="other">Outros</option>
           </select>
         </label>
 
-        {mode === "income" && (
+        {formType === "income" && (
           <label className="block space-y-1.5 text-sm font-semibold">
             Paciente (opcional)
             <select className="h-11 w-full rounded-lg border border-input bg-card px-3" {...form.register("patient")}>
@@ -101,9 +114,11 @@ export function FinanceiroTransactionModal({ open, mode, patients, onClose }: Pr
         )}
 
         <label className="block space-y-1.5 text-sm font-semibold">
-          Meio de pagamento (opcional)
+          Meio de pagamento
           <select className="h-11 w-full rounded-lg border border-input bg-card px-3" {...form.register("payment_method")}>
+            <option value="uninformed">Não informado</option>
             <option value="pix">PIX</option>
+            <option value="boleto">Boleto</option>
             <option value="credit_card">Cartão de crédito</option>
             <option value="debit_card">Cartão de débito</option>
             <option value="cash">Dinheiro</option>
@@ -112,10 +127,25 @@ export function FinanceiroTransactionModal({ open, mode, patients, onClose }: Pr
           </select>
         </label>
 
+        <div>
+          <Input label="Link pagamento (Opcional)" placeholder="https://..." error={form.formState.errors.payment_link?.message} {...form.register("payment_link")} />
+          <small className="block text-xs text-muted-foreground mt-1">Se informado, será incluído na cobrança via WhatsApp em vez dos dados bancários.</small>
+        </div>
+
         <label className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
           <span><strong>Marcar como pago</strong><small className="block text-muted-foreground">Registra o lançamento como já quitado.</small></span>
-          <input type="checkbox" checked={status === "paid"} onChange={(event) => form.setValue("status", event.target.checked ? "paid" : "pending")} />
+          <input type="checkbox" checked={status === "paid"} onChange={(event) => {
+            form.setValue("status", event.target.checked ? "paid" : "pending");
+            if (event.target.checked) form.setValue("payment_date", today);
+          }} />
         </label>
+
+        {status === "paid" && (
+          <div>
+            <Input label="Data do pagamento (Opcional)" type="date" error={form.formState.errors.payment_date?.message} {...form.register("payment_date")} />
+            <small className="block text-xs text-muted-foreground mt-1">Deixe vazio para usar a data de hoje.</small>
+          </div>
+        )}
 
         <Textarea label="Descrição" placeholder="Descrição da transação" error={form.formState.errors.description?.message} {...form.register("description")} />
 

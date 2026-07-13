@@ -1,4 +1,4 @@
-import { CheckCircle2, MoreHorizontal, Plus, ReceiptText, XCircle } from "lucide-react";
+import { CheckCircle2, Plus, ReceiptText, XCircle } from "lucide-react";
 
 import { Badge, getTransactionStatusVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonTable } from "@/components/ui/skeleton";
 import type { FinancialTransaction } from "@/types";
 
-import { formatCurrency, formatDate, TRANSACTION_STATUS_LABELS } from "../financeiro-formatters";
+import { formatCurrency, formatDate, TRANSACTION_STATUS_LABELS, PAYMENT_METHOD_LABELS } from "../financeiro-formatters";
+import { FinanceiroActionsMenu } from "./financeiro-actions-menu";
 
 interface Props {
   mode: "income" | "expense";
@@ -17,7 +18,11 @@ interface Props {
   onCreate: () => void;
   onMarkPaid: (id: number) => void;
   onCancel: (id: number) => void;
+  onEdit?: (id: number) => void;
+  onDelete?: (id: number) => void;
+  onRefund?: (id: number) => void;
   onGenerateCharges?: () => void;
+  onNewCharge?: () => void;
   actionPending?: boolean;
 }
 
@@ -29,7 +34,11 @@ export function FinanceiroTransactionsPanel({
   onCreate,
   onMarkPaid,
   onCancel,
+  onEdit,
+  onDelete,
+  onRefund,
   onGenerateCharges,
+  onNewCharge,
   actionPending,
 }: Props) {
   const isIncome = mode === "income";
@@ -47,6 +56,11 @@ export function FinanceiroTransactionsPanel({
           {isIncome && onGenerateCharges && (
             <Button variant="outline" size="sm" onClick={onGenerateCharges} leftIcon={<ReceiptText className="h-4 w-4" />}>
               Gerar cobranças do mês
+            </Button>
+          )}
+          {isIncome && onNewCharge && (
+            <Button variant="outline" size="sm" onClick={onNewCharge} leftIcon={<Plus className="h-4 w-4" />}>
+              Nova cobrança
             </Button>
           )}
           <Button size="sm" onClick={onCreate} leftIcon={<Plus className="h-4 w-4" />}>
@@ -74,6 +88,7 @@ export function FinanceiroTransactionsPanel({
                 <th className="px-5 py-3">Valor</th>
                 <th className="px-5 py-3">Vencimento</th>
                 <th className="px-5 py-3">Data pgto.</th>
+                <th className="px-5 py-3">Meio Pgto.</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3 text-right">Ações</th>
               </tr>
@@ -86,6 +101,7 @@ export function FinanceiroTransactionsPanel({
                   <td className="px-5 py-4 font-semibold">{formatCurrency(transaction.amount, hidden)}</td>
                   <td className="px-5 py-4">{formatDate(transaction.due_date)}</td>
                   <td className="px-5 py-4">{formatDate(transaction.payment_date)}</td>
+                  <td className="px-5 py-4 text-xs font-medium text-muted-foreground">{transaction.payment_method ? PAYMENT_METHOD_LABELS[transaction.payment_method] : "—"}</td>
                   <td className="px-5 py-4">
                     <Badge variant={getTransactionStatusVariant(transaction.status)}>
                       {TRANSACTION_STATUS_LABELS[transaction.status] ?? transaction.status}
@@ -93,17 +109,14 @@ export function FinanceiroTransactionsPanel({
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex justify-end gap-1">
-                      {(transaction.status === "pending" || transaction.status === "overdue") && (
-                        <Button variant="ghost" size="icon" disabled={actionPending} onClick={() => onMarkPaid(transaction.id)} title="Marcar como pago">
-                          <CheckCircle2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {(transaction.status === "pending" || transaction.status === "overdue") && (
-                        <Button variant="ghost" size="icon" disabled={actionPending} onClick={() => onCancel(transaction.id)} title="Cancelar">
-                          <XCircle className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="icon" title="Mais ações"><MoreHorizontal className="h-4 w-4" /></Button>
+                      <FinanceiroActionsMenu 
+                        transaction={transaction}
+                        onEdit={onEdit}
+                        onMarkPaid={onMarkPaid}
+                        onCancel={onCancel}
+                        onDelete={onDelete}
+                        onRefund={onRefund}
+                      />
                     </div>
                   </td>
                 </tr>
