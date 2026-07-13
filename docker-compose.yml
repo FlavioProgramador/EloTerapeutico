@@ -112,7 +112,7 @@ services:
       - .env
     environment: *backend_environment
     depends_on:
-      db:
+      backend:
         condition: service_healthy
     restart: unless-stopped
     stop_grace_period: 20s
@@ -139,7 +139,7 @@ services:
       - .env
     environment: *backend_environment
     depends_on:
-      db:
+      backend:
         condition: service_healthy
     restart: unless-stopped
     stop_grace_period: 20s
