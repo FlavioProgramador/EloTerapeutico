@@ -45,6 +45,15 @@ def create_communication(
 ):
     if not idempotency_key:
         raise ValidationError("Idempotency key é obrigatória.")
+
+    normalized_idempotency_key = idempotency_key[:160]
+    existing = Communication.objects.filter(
+        owner=owner,
+        idempotency_key=normalized_idempotency_key,
+    ).first()
+    if existing is not None:
+        return existing
+
     if patient is not None and patient.therapist_id != owner.pk:
         raise ValidationError("Paciente inválido para este usuário.")
     if appointment is not None and appointment.therapist_id != owner.pk:
@@ -89,34 +98,38 @@ def create_communication(
 
     status = Communication.Status.DRAFT if draft else (Communication.Status.SCHEDULED if scheduled_at else Communication.Status.QUEUED)
     try:
-        communication = Communication.objects.create(
-            owner=owner,
-            created_by=created_by,
-            patient=patient,
-            appointment=appointment,
-            form_submission=form_submission,
-            document=document,
-            financial_transaction=financial_transaction,
-            channel=channel,
-            category=category,
-            status=status,
-            priority=priority,
-            subject=subject[:255],
-            body=body,
-            body_html=body_html,
-            template=template,
-            template_snapshot=template_snapshot,
-            variables_snapshot=safe_variables,
-            scheduled_at=scheduled_at,
-            queued_at=timezone.now() if status == Communication.Status.QUEUED else None,
-            idempotency_key=idempotency_key[:160],
-            source_event=source_event[:80],
-            source_object_type=source_object_type[:80],
-            source_object_id=source_object_id[:80],
-            metadata={key: value for key, value in (metadata or {}).items() if key in {"internal_url", "manual_opened_at", "manual_confirmed_at", "event_version"}},
-        )
+        with transaction.atomic():
+            communication = Communication.objects.create(
+                owner=owner,
+                created_by=created_by,
+                patient=patient,
+                appointment=appointment,
+                form_submission=form_submission,
+                document=document,
+                financial_transaction=financial_transaction,
+                channel=channel,
+                category=category,
+                status=status,
+                priority=priority,
+                subject=subject[:255],
+                body=body,
+                body_html=body_html,
+                template=template,
+                template_snapshot=template_snapshot,
+                variables_snapshot=safe_variables,
+                scheduled_at=scheduled_at,
+                queued_at=timezone.now() if status == Communication.Status.QUEUED else None,
+                idempotency_key=normalized_idempotency_key,
+                source_event=source_event[:80],
+                source_object_type=source_object_type[:80],
+                source_object_id=source_object_id[:80],
+                metadata={key: value for key, value in (metadata or {}).items() if key in {"internal_url", "manual_opened_at", "manual_confirmed_at", "event_version"}},
+            )
     except IntegrityError:
-        return Communication.objects.get(owner=owner, idempotency_key=idempotency_key)
+        return Communication.objects.get(
+            owner=owner,
+            idempotency_key=normalized_idempotency_key,
+        )
 
     recipient_data = _resolve_recipient(owner, patient, channel, recipient_type, controlled_destination=controlled_destination, category=category)
     CommunicationRecipient.objects.create(
