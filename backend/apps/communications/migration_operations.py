@@ -13,8 +13,10 @@ class CreateModelIfNotExists(migrations.CreateModel):
 
     def database_forwards(self, app_label, schema_editor, from_state, to_state):
         model = to_state.apps.get_model(app_label, self.name)
-        table_name = model._meta.db_table
+        if not self.allow_migrate_model(schema_editor.connection.alias, model):
+            return None
 
+        table_name = model._meta.db_table
         if table_name not in self._table_names(schema_editor):
             return super().database_forwards(
                 app_label,
@@ -28,6 +30,8 @@ class CreateModelIfNotExists(migrations.CreateModel):
 
     def database_backwards(self, app_label, schema_editor, from_state, to_state):
         model = from_state.apps.get_model(app_label, self.name)
+        if not self.allow_migrate_model(schema_editor.connection.alias, model):
+            return None
         if model._meta.db_table not in self._table_names(schema_editor):
             return None
         return super().database_backwards(
