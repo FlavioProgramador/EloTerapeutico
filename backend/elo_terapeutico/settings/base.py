@@ -121,6 +121,47 @@ UNFOLD = {
                 ],
             },
             {
+                "title": "Comunicações",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Comunicações",
+                        "icon": "forum",
+                        "link": "/admin/communications/communication/",
+                    },
+                    {
+                        "title": "Tentativas",
+                        "icon": "sync",
+                        "link": "/admin/communications/communicationattempt/",
+                    },
+                    {
+                        "title": "Templates",
+                        "icon": "text_snippet",
+                        "link": "/admin/communications/communicationtemplate/",
+                    },
+                    {
+                        "title": "Automações",
+                        "icon": "automation",
+                        "link": "/admin/communications/communicationautomation/",
+                    },
+                    {
+                        "title": "Preferências",
+                        "icon": "contact_mail",
+                        "link": "/admin/communications/communicationpreference/",
+                    },
+                    {
+                        "title": "Notificações",
+                        "icon": "notifications",
+                        "link": "/admin/communications/inappnotification/",
+                    },
+                    {
+                        "title": "Canais",
+                        "icon": "settings_input_antenna",
+                        "link": "/admin/communications/communicationchannelconfig/",
+                    },
+                ],
+            },
+            {
                 "title": "Billing",
                 "separator": True,
                 "items": [
@@ -197,6 +238,7 @@ LOCAL_APPS = [
     "apps.reports",
     "apps.forms",
     "apps.billing",
+    "apps.communications",
     "apps.audit",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -304,6 +346,10 @@ SPECTACULAR_SETTINGS = {
         {"name": "reports", "description": "Relatórios gerenciais"},
         {"name": "forms", "description": "Formulários personalizados"},
         {"name": "billing", "description": "Planos, assinaturas, pagamentos e webhooks"},
+        {
+            "name": "communications",
+            "description": "Comunicações, notificações, templates e automações",
+        },
     ],
 }
 LOCAL_FIELD_ENCRYPTION_KEY = "elo-terapeutico-local-development-key"
@@ -319,11 +365,42 @@ MEDIA_ROOT = BASE_DIR / "media"
 AZURE_STORAGE_CONNECTION_STRING = env("AZURE_STORAGE_CONNECTION_STRING", default="")
 AZURE_CONTAINER_NAME = env("AZURE_CONTAINER_NAME", default="elo-terapeutico")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@eloterapeutico.com.br")
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_BACKEND = env(
+    "EMAIL_BACKEND",
+    default="django.core.mail.backends.console.EmailBackend",
+)
+EMAIL_HOST = env("EMAIL_HOST", default="")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=15)
 FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:3000")
 DOCUMENT_CLINIC_NAME = env("DOCUMENT_CLINIC_NAME", default="Elo Terapêutico")
 DOCUMENT_CLINIC_ADDRESS = env("DOCUMENT_CLINIC_ADDRESS", default="")
 DOCUMENT_CLINIC_PHONE = env("DOCUMENT_CLINIC_PHONE", default="")
+
+COMMUNICATIONS_ENABLED = env.bool("COMMUNICATIONS_ENABLED", default=True)
+COMMUNICATIONS_BATCH_SIZE = env.int("COMMUNICATIONS_BATCH_SIZE", default=50)
+COMMUNICATIONS_MAX_ATTEMPTS = env.int("COMMUNICATIONS_MAX_ATTEMPTS", default=5)
+COMMUNICATIONS_PROCESSING_TIMEOUT_MINUTES = env.int(
+    "COMMUNICATIONS_PROCESSING_TIMEOUT_MINUTES",
+    default=15,
+)
+COMMUNICATIONS_DEFAULT_TIMEZONE = env(
+    "COMMUNICATIONS_DEFAULT_TIMEZONE",
+    default="America/Sao_Paulo",
+)
+COMMUNICATIONS_REPLY_TO = env("COMMUNICATIONS_REPLY_TO", default="")
+WHATSAPP_PROVIDER = env("WHATSAPP_PROVIDER", default="")
+WHATSAPP_API_BASE_URL = env("WHATSAPP_API_BASE_URL", default="")
+WHATSAPP_ACCESS_TOKEN = env("WHATSAPP_ACCESS_TOKEN", default="")
+WHATSAPP_PHONE_NUMBER_ID = env("WHATSAPP_PHONE_NUMBER_ID", default="")
+WHATSAPP_WEBHOOK_VERIFY_TOKEN = env("WHATSAPP_WEBHOOK_VERIFY_TOKEN", default="")
+WHATSAPP_APP_SECRET = env("WHATSAPP_APP_SECRET", default="")
+SMS_PROVIDER = env("SMS_PROVIDER", default="")
+SMS_API_KEY = env("SMS_API_KEY", default="")
+SMS_SENDER = env("SMS_SENDER", default="")
 
 ASAAS_API_KEY = os.environ.get("ASAAS_API_KEY", "")
 ASAAS_BASE_URL = env("ASAAS_BASE_URL", default="https://api-sandbox.asaas.com/v3")

@@ -30,7 +30,7 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    environment:
+    environment: &backend_environment
       ASAAS_API_KEY: ${ASAAS_API_KEY:-}
       ASAAS_BASE_URL: ${ASAAS_BASE_URL:-https://api-sandbox.asaas.com/v3}
       ASAAS_WEBHOOK_TOKEN: ${ASAAS_WEBHOOK_TOKEN:-}
@@ -40,6 +40,21 @@ services:
       FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      COMMUNICATIONS_ENABLED: ${COMMUNICATIONS_ENABLED:-True}
+      COMMUNICATIONS_BATCH_SIZE: ${COMMUNICATIONS_BATCH_SIZE:-50}
+      COMMUNICATIONS_MAX_ATTEMPTS: ${COMMUNICATIONS_MAX_ATTEMPTS:-5}
+      COMMUNICATIONS_PROCESSING_TIMEOUT_MINUTES: ${COMMUNICATIONS_PROCESSING_TIMEOUT_MINUTES:-15}
+      COMMUNICATIONS_DEFAULT_TIMEZONE: ${COMMUNICATIONS_DEFAULT_TIMEZONE:-America/Sao_Paulo}
+      COMMUNICATIONS_REPLY_TO: ${COMMUNICATIONS_REPLY_TO:-}
+      WHATSAPP_PROVIDER: ${WHATSAPP_PROVIDER:-}
+      WHATSAPP_API_BASE_URL: ${WHATSAPP_API_BASE_URL:-}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+      WHATSAPP_WEBHOOK_VERIFY_TOKEN: ${WHATSAPP_WEBHOOK_VERIFY_TOKEN:-}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+      SMS_PROVIDER: ${SMS_PROVIDER:-}
+      SMS_API_KEY: ${SMS_API_KEY:-}
+      SMS_SENDER: ${SMS_SENDER:-}
     depends_on:
       db:
         condition: service_healthy
@@ -79,20 +94,55 @@ services:
     command: python manage.py run_export_worker
     env_file:
       - .env
-    environment:
-      ASAAS_API_KEY: ${ASAAS_API_KEY:-}
-      ASAAS_BASE_URL: ${ASAAS_BASE_URL:-https://api-sandbox.asaas.com/v3}
-      ASAAS_WEBHOOK_TOKEN: ${ASAAS_WEBHOOK_TOKEN:-}
-      SECRET_KEY: ${SECRET_KEY}
-      JWT_SECRET: ${JWT_SECRET}
-      DATABASE_URL: ${DATABASE_URL}
-      FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+    environment: *backend_environment
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
     stop_grace_period: 15s
+    volumes:
+      - ./backend:/app
+
+  communications-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python manage.py process_communications --sleep 5
+    env_file:
+      - .env
+    environment: *backend_environment
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    stop_grace_period: 20s
+    volumes:
+      - ./backend:/app
+    healthcheck:
+      test: ["CMD-SHELL", "python manage.py check --deploy --fail-level ERROR"]
+      interval: 60s
+      timeout: 20s
+      retries: 3
+
+  communications-scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: >
+      sh -c "while true; do
+        python manage.py schedule_communication_automations;
+        python manage.py retry_failed_communications;
+        python manage.py cleanup_expired_communication_tokens;
+        sleep 300;
+      done"
+    env_file:
+      - .env
+    environment: *backend_environment
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    stop_grace_period: 20s
     volumes:
       - ./backend:/app
 

@@ -1,6 +1,6 @@
 # Elo Terapêutico
 
-Plataforma web de gestão para profissionais de saúde e terapeutas, com agenda, pacientes, prontuário eletrônico, financeiro, documentos, formulários, relatórios e cobrança de assinaturas.
+Plataforma web de gestão para profissionais de saúde e terapeutas, com agenda, pacientes, prontuário eletrônico, financeiro, documentos, formulários, comunicações, relatórios e cobrança de assinaturas.
 
 > **Situação atual:** projeto em desenvolvimento ativo. A base funcional é ampla, mas ainda existem requisitos operacionais e riscos que precisam ser tratados antes de uso com dados clínicos reais em produção.
 
@@ -35,6 +35,7 @@ O código atual implementa isolamento de diversos recursos pelo profissional aut
 | Financeiro | Implementado, com receitas, despesas, mensalidades, pagamentos e relatórios |
 | Documentos | Implementado, com modelos, biblioteca, geração e integridade por hash |
 | Formulários | Implementado, com construtor, templates, submissões e respostas |
+| Comunicações | Implementado com notificações internas, e-mail, WhatsApp manual, templates, automações, fila persistente e links públicos seguros |
 | Relatórios | Implementado para consultas, pacientes, financeiro, agendamento online e exportação |
 | Billing | Implementado com planos, assinaturas, pagamentos e integração Asaas |
 | Auditoria | Implementado para ações sensíveis, com registros imutáveis no modelo |
@@ -54,12 +55,14 @@ flowchart LR
     A --> G[Asaas]
     W[Worker de exportação] --> P
     W --> S
+    CW[Worker de comunicações] --> P
+    CS[Scheduler de comunicações] --> P
 ```
 
 - **Frontend:** Next.js App Router, React, TypeScript, Tailwind CSS e TanStack Query.
 - **Backend:** Django, Django REST Framework e Simple JWT.
 - **Banco:** PostgreSQL em Docker/produção; SQLite pode ser usado no desenvolvimento e nos testes.
-- **Processamento assíncrono:** fila persistida no banco para exportações clínicas, processada por management command.
+- **Processamento assíncrono:** filas persistidas no banco para exportações clínicas e comunicações, processadas por management commands.
 - **Arquivos:** filesystem no desenvolvimento; Azure Blob pode ser configurado em produção.
 
 Leia a [documentação de arquitetura](docs/02-arquitetura/README.md).
@@ -148,6 +151,14 @@ npm run dev
 
 Acesse `http://localhost:3000`. A API fica em `http://localhost:8000/api/v1/` e a documentação OpenAPI em `http://localhost:8000/api/docs/`.
 
+Para processar comunicações sem Docker, execute em terminais separados:
+
+```bash
+cd backend
+python manage.py process_communications --sleep 5
+python manage.py schedule_communication_automations
+```
+
 ## Docker
 
 Na raiz do repositório:
@@ -163,9 +174,11 @@ Serviços disponíveis:
 - frontend: porta `3000`;
 - backend: porta `8000`;
 - PostgreSQL: exposto apenas em `127.0.0.1:5432`;
-- worker de exportações clínicas.
+- worker de exportações clínicas;
+- `communications-worker` para a fila persistente de envios;
+- `communications-scheduler` para automações, retentativas e limpeza de tokens.
 
-Consulte o [guia Docker](docs/03-instalacao/instalacao-docker.md).
+Consulte o [guia Docker](docs/03-instalacao/instalacao-docker.md) e a [operação do módulo de Comunicações](docs/05-modulos/comunicacoes/README.md).
 
 ## Testes e qualidade
 
@@ -204,17 +217,20 @@ O projeto contém controles de segurança, mas não deve ser considerado automat
 - regras específicas para evoluções confidenciais;
 - validação de extensão, MIME e assinatura de uploads clínicos;
 - auditoria de ações sensíveis;
+- destinos de comunicação criptografados e mascarados;
+- tokens públicos de comunicação persistidos somente como hash, com expiração e uso único;
+- templates de mensagens limitados a variáveis administrativas permitidas;
 - validação de segredos e headers de segurança no settings de produção.
 
 Antes de armazenar dados reais, configure HTTPS, segredos independentes, PostgreSQL gerenciado, storage privado persistente, backup, monitoramento, e-mail e token de webhook. Também revise o risco de tokens JWT acessíveis ao JavaScript no frontend.
 
-Leia o [guia de segurança](docs/08-seguranca/README.md) e o [mapeamento técnico de LGPD](docs/09-lgpd/README.md).
+Leia o [guia de segurança](docs/08-seguranca/README.md), o [mapeamento técnico de LGPD](docs/09-lgpd/README.md) e a [documentação de Comunicações](docs/05-modulos/comunicacoes/README.md).
 
 ## Estrutura do projeto
 
 ```text
 EloTerapeutico/
-├── backend/                 # Django REST API, worker e backoffice
+├── backend/                 # Django REST API, workers e backoffice
 ├── frontend/                # Next.js App Router
 ├── docs/                    # Portal técnico e operacional
 ├── docker-compose.yml       # Ambiente local
@@ -234,6 +250,10 @@ O portal principal está em [`docs/README.md`](docs/README.md). Ele organiza doc
 - módulos e casos de uso;
 - decisões arquiteturais.
 
+Documentação específica do módulo de Comunicações:
+
+- [arquitetura, canais, fila, APIs, segurança e operação](docs/05-modulos/comunicacoes/README.md).
+
 ## Contribuição
 
 Não altere diretamente a `main`. Use uma branch específica, commits pequenos em português e Pull Request. Antes de enviar, execute os checks relevantes e verifique migrations.
@@ -246,6 +266,8 @@ Consulte [como contribuir](docs/14-contribuicao/README.md).
 - o frontend mantém JWTs em cookies acessíveis ao JavaScript;
 - storage privado e persistente depende de configuração operacional;
 - e-mail real depende de SMTP em produção;
+- WhatsApp Business e SMS dependem da seleção e configuração de provedores oficiais;
+- confirmações externas de entrega e leitura dependem de webhook autenticado do provedor;
 - Asaas depende de credenciais e webhook configurados;
 - a suíte frontend é menor que a cobertura backend;
 - backup, restauração e observabilidade dependem do ambiente de implantação;

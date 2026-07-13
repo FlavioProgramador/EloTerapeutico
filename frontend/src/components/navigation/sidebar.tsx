@@ -21,7 +21,7 @@ const items: Array<{ name: string; href: string; icon: React.ComponentType<{ cla
   { name: "Formulários", href: "/dashboard/formularios", icon: ClipboardList, roles: ["therapist", "admin"] },
   { name: "Financeiro", href: "/dashboard/financeiro", icon: DollarSign },
   { name: "Relatórios", href: "/dashboard?view=reports", icon: BarChart2 },
-  { name: "Comunicações", href: "#", icon: MessageSquare },
+  { name: "Comunicações", href: "/dashboard/comunicacoes", icon: MessageSquare },
   { name: "Assinatura", href: "/dashboard/assinatura", icon: CreditCard },
   { name: "Configurações", href: "/dashboard/configuracoes", icon: Settings },
 ];

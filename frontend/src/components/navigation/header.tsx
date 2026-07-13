@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import {
-  Bell,
   ChevronDown,
   LogOut,
   Moon,
@@ -14,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/auth";
+import { NotificationBell } from "@/features/communications/notification-bell";
 import { cn } from "@/lib/utils";
 
 interface HeaderProps {
@@ -71,15 +71,7 @@ export function Header({ className }: HeaderProps) {
             ))}
         </button>
 
-        <button
-          type="button"
-          className="relative grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition hover:bg-secondary hover:text-foreground"
-          title="Notificações"
-          aria-label="Notificações"
-        >
-          <Bell className="h-4 w-4" />
-          <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary ring-2 ring-background" />
-        </button>
+        <NotificationBell />
 
         <div className="mx-1 h-6 w-px bg-border" />
 
