@@ -26,6 +26,10 @@ class PatientDashboardViewSet(
         )
 
         # Otimização: Aplicar anotações pesadas apenas quando necessário.
+        # As métricas não precisam de nenhuma anotação.
+        if self.action == "dashboard_metrics":
+            return queryset.order_by("full_name")
+
         # A listagem e exportação usam apenas anotações essenciais.
         if self.action in ["list", "export_csv"]:
             return annotate_essential(queryset.order_by("full_name"))
