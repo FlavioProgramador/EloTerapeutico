@@ -15,7 +15,15 @@ from apps.forms.models import FormSubmission
 
 from .models import PublicCommunicationActionToken
 from .selectors import active_automations_for_event
-from .services import cancel_pending_for_source, emit_domain_event, ensure_default_automations, ensure_default_channels, issue_appointment_action_links, issue_document_access_link, issue_form_access_link
+from .services import (
+    cancel_pending_for_source,
+    emit_domain_event,
+    ensure_default_automations,
+    ensure_default_channels,
+    issue_appointment_action_links,
+    issue_document_access_link,
+    issue_form_access_link,
+)
 
 
 def _capture_previous(sender, instance, fields: tuple[str, ...], attribute: str) -> None:

@@ -2,7 +2,20 @@ from django.contrib import admin
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin
 
-from .models import Communication, CommunicationAttempt, CommunicationAutomation, CommunicationAutomationRun, CommunicationChannelConfig, CommunicationPlanEntitlement, CommunicationPreference, CommunicationRecipient, CommunicationTemplate, InAppNotification, InboundMessage, PublicCommunicationActionToken
+from .models import (
+    Communication,
+    CommunicationAttempt,
+    CommunicationAutomation,
+    CommunicationAutomationRun,
+    CommunicationChannelConfig,
+    CommunicationPlanEntitlement,
+    CommunicationPreference,
+    CommunicationRecipient,
+    CommunicationTemplate,
+    InAppNotification,
+    InboundMessage,
+    PublicCommunicationActionToken,
+)
 
 
 class ReadOnlyHistoryAdmin(ModelAdmin):

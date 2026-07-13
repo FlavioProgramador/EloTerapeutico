@@ -16,8 +16,19 @@ from apps.audit.models import AuditLog
 from ..models import Communication
 from ..permissions import CanAccessCommunications, CanSendCommunication
 from ..selectors import communications_for_user
-from ..serializers import CommunicationCreateSerializer, CommunicationDetailSerializer, CommunicationDraftUpdateSerializer, CommunicationListSerializer
-from ..services import cancel_communication, create_communication, mark_manual_opened, mark_manually_sent, retry_communication
+from ..serializers import (
+    CommunicationCreateSerializer,
+    CommunicationDetailSerializer,
+    CommunicationDraftUpdateSerializer,
+    CommunicationListSerializer,
+)
+from ..services import (
+    cancel_communication,
+    create_communication,
+    mark_manual_opened,
+    mark_manually_sent,
+    retry_communication,
+)
 from .common import _audit, _rate_limit
 
 

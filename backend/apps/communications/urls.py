@@ -1,7 +1,17 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import CommunicationAutomationViewSet, CommunicationChannelViewSet, CommunicationDashboardView, CommunicationPreferenceListView, CommunicationTemplateViewSet, CommunicationViewSet, CommunicationWebhookView, InAppNotificationViewSet, PatientCommunicationPreferenceView
+from .views import (
+    CommunicationAutomationViewSet,
+    CommunicationChannelViewSet,
+    CommunicationDashboardView,
+    CommunicationPreferenceListView,
+    CommunicationTemplateViewSet,
+    CommunicationViewSet,
+    CommunicationWebhookView,
+    InAppNotificationViewSet,
+    PatientCommunicationPreferenceView,
+)
 
 router = DefaultRouter()
 router.register("templates", CommunicationTemplateViewSet, basename="communication-template")

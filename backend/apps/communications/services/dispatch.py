@@ -11,7 +11,14 @@ from django.utils import timezone
 
 from ..constants import RETRY_DELAYS_SECONDS
 from ..models import Communication, CommunicationAttempt, CommunicationRecipient, InAppNotification
-from ..providers import InvalidRecipient, PermanentProviderError, ProviderError, ProviderNotConfigured, RetryableProviderError, get_provider
+from ..providers import (
+    InvalidRecipient,
+    PermanentProviderError,
+    ProviderError,
+    ProviderNotConfigured,
+    RetryableProviderError,
+    get_provider,
+)
 
 logger = logging.getLogger(__name__)
 

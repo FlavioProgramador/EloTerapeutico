@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, time as clock_time, timedelta, timezone as datetime_timezone
+from datetime import UTC, datetime, timedelta
+from datetime import time as clock_time
+from datetime import timezone as datetime_timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.conf import settings
@@ -83,7 +85,7 @@ def _respect_delivery_window(value, automation: CommunicationAutomation, prefere
             local = datetime.combine(local.date() + timedelta(days=1), start_time or clock_time(8, 0), tzinfo=tz)
             continue
         break
-    return local.astimezone(datetime_timezone.utc)
+    return local.astimezone(UTC)
 
 
 def _automation_context(patient=None, appointment=None, extra=None) -> dict[str, object]:

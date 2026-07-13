@@ -9,7 +9,17 @@ from rest_framework import serializers
 from apps.agenda.models import Appointment
 from apps.patients.models import Patient
 
-from .models import Communication, CommunicationAttempt, CommunicationAutomation, CommunicationAutomationRun, CommunicationChannelConfig, CommunicationPreference, CommunicationRecipient, CommunicationTemplate, InAppNotification
+from .models import (
+    Communication,
+    CommunicationAttempt,
+    CommunicationAutomation,
+    CommunicationAutomationRun,
+    CommunicationChannelConfig,
+    CommunicationPreference,
+    CommunicationRecipient,
+    CommunicationTemplate,
+    InAppNotification,
+)
 from .services import create_communication
 from .validators import plain_text_to_safe_html, validate_template_text
 
