@@ -76,20 +76,26 @@ def _add_missing_columns(schema_editor, model):
 
 
 def _add_missing_named_objects(schema_editor, model):
-    existing_names = _named_database_objects(
-        schema_editor,
-        model._meta.db_table,
-    )
+    table_name = model._meta.db_table
 
+    # No SQLite, add_constraint() pode reconstruir a tabela inteira. Durante essa
+    # reconstrução, o Django também recria outras constraints e índices definidos
+    # no estado do modelo. Por isso, a introspecção precisa ser atualizada antes de
+    # cada operação; uma lista capturada uma única vez fica obsoleta e provoca
+    # erros como "index ... already exists".
     for constraint in model._meta.constraints:
-        if constraint.name and constraint.name not in existing_names:
+        if not constraint.name:
+            continue
+        existing_names = _named_database_objects(schema_editor, table_name)
+        if constraint.name not in existing_names:
             schema_editor.add_constraint(model, constraint)
-            existing_names.add(constraint.name)
 
     for index in model._meta.indexes:
-        if index.name and index.name not in existing_names:
+        if not index.name:
+            continue
+        existing_names = _named_database_objects(schema_editor, table_name)
+        if index.name not in existing_names:
             schema_editor.add_index(model, index)
-            existing_names.add(index.name)
 
 
 def reconcile_communications_schema(apps, schema_editor):
