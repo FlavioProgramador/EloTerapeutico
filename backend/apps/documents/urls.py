@@ -1,12 +1,12 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from apps.documents.api.views.documents_views import (
+from apps.documents.views.document_templates import (
     DocumentLibraryViewSet,
     DocumentTemplateViewSet,
-    GeneratedDocumentViewSet,
     PlaceholderListView,
 )
+from apps.documents.views.generated_documents import GeneratedDocumentViewSet
 
 router = DefaultRouter()
 router.register("templates", DocumentTemplateViewSet, basename="document-template")
