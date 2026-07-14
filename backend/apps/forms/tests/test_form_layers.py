@@ -32,7 +32,7 @@ class FormsLayerTests(APITestCase):
         )
         self.field = FormField.objects.create(
             form=self.form,
-            type=FieldType.TEXT,
+            type=FieldType.SHORT_TEXT,
             label="Como você está?",
             order=1,
         )
