@@ -1,9 +1,8 @@
 """Selectors de formulários terapêuticos."""
 
-from django.db.models import Q, Count, QuerySet
+from django.db.models import Count, Q, QuerySet
 
 from apps.forms.models import TherapeuticForm
-
 
 ALLOWED_ORDERING = {"name", "-name", "created_at", "-created_at", "updated_at", "-updated_at"}
 
