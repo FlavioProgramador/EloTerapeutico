@@ -1,12 +1,9 @@
-from datetime import datetime, timedelta
-
-from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
-from apps.agenda.models import Appointment, Room, ScheduleBlock
-from apps.patients.models import Patient
-from apps.users.models import WorkingHours
+from apps.agenda.models import Appointment, ScheduleBlock
+from apps.agenda.selectors import available_slots
+from apps.agenda.services import create_schedule_block
 
 
 class ScheduleBlockSerializer(serializers.ModelSerializer):
@@ -80,35 +77,18 @@ class ScheduleBlockSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {
                     "confirm_conflicts": (
-                        "Existem consultas no intervalo. Confirme para criar o " "bloqueio sem cancelá-las."
+                        "Existem consultas no intervalo. Confirme para criar o bloqueio sem cancelá-las."
                     )
                 }
             )
         attrs.pop("confirm_conflicts", None)
         return attrs
 
-    @transaction.atomic
     def create(self, validated_data):
-        recurrence_count = validated_data.pop("recurrence_count", 4)
-        validated_data["created_by"] = self.context["request"].user
-        item = super().create(validated_data)
-        delta = {
-            "weekly": timedelta(weeks=1),
-            "biweekly": timedelta(weeks=2),
-        }.get(item.recurrence_rule)
-        if delta:
-            for index in range(1, recurrence_count):
-                ScheduleBlock.objects.create(
-                    therapist=item.therapist,
-                    start_time=item.start_time + delta * index,
-                    end_time=item.end_time + delta * index,
-                    reason=item.reason,
-                    notes=item.notes,
-                    recurrence_rule=item.recurrence_rule,
-                    parent_block=item,
-                    created_by=item.created_by,
-                )
-        return item
+        return create_schedule_block(
+            actor=self.context["request"].user,
+            validated_data=validated_data,
+        )
 
 
 class CheckAvailabilitySerializer(serializers.Serializer):
@@ -124,43 +104,10 @@ class CheckAvailabilitySerializer(serializers.Serializer):
         return value
 
     def get_available_slots(self, therapist, validated_data):
-        target_date = validated_data["date"]
-        duration = validated_data["duration"]
-        working = WorkingHours.objects.filter(
+        return available_slots(
             therapist=therapist,
-            weekday=target_date.weekday(),
-            is_active=True,
-        ).first()
-        if not working:
-            return []
-        tz = timezone.get_current_timezone()
-        current = timezone.make_aware(datetime.combine(target_date, working.start_time), tz)
-        day_end = timezone.make_aware(datetime.combine(target_date, working.end_time), tz)
-        patient = Patient.objects.filter(pk=validated_data.get("patient_id")).first()
-        room = Room.objects.filter(pk=validated_data.get("room_id"), is_active=True).first()
-        slots = []
-        while current + timedelta(minutes=duration) <= day_end:
-            end = current + timedelta(minutes=duration)
-            conflicts = Appointment.conflict_details(
-                therapist=therapist,
-                patient=patient,
-                start_time=current,
-                end_time=end,
-                room=room,
-            )
-            if (
-                not conflicts["therapist"]
-                and not conflicts["room"]
-                and not conflicts["block"]
-                and (not patient or not conflicts["patient"])
-            ):
-                slots.append(
-                    {
-                        "start": current.strftime("%H:%M"),
-                        "end": end.strftime("%H:%M"),
-                        "start_datetime": current.isoformat(),
-                        "end_datetime": end.isoformat(),
-                    }
-                )
-            current = end
-        return slots
+            target_date=validated_data["date"],
+            duration=validated_data["duration"],
+            patient_id=validated_data.get("patient_id"),
+            room_id=validated_data.get("room_id"),
+        )

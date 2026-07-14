@@ -9,4 +9,17 @@ class CompletedAppointmentDeletionError(AgendaDomainError):
     """Consulta realizada não pode ser cancelada por exclusão administrativa."""
 
 
-__all__ = ["AgendaDomainError", "CompletedAppointmentDeletionError"]
+class InvalidRecurrenceScopeError(AgendaDomainError):
+    """Escopo de alteração de recorrência inválido."""
+
+
+class RecurrenceConflictError(AgendaDomainError):
+    """Alteração de recorrência causaria conflito de horário."""
+
+
+__all__ = [
+    "AgendaDomainError",
+    "CompletedAppointmentDeletionError",
+    "InvalidRecurrenceScopeError",
+    "RecurrenceConflictError",
+]
