@@ -50,6 +50,7 @@ def test_smtp_secret_is_encrypted_masked_and_preserved(authenticated_client, the
             },
             "secrets": {"username": "smtp-user", "password": "smtp-password"},
             "save_as_draft": True,
+            "confirm_provider_change": True,
         },
         format="json",
     )
