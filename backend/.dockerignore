@@ -14,3 +14,10 @@ db.sqlite3
 Thumbs.db
 staticfiles/
 media/
+
+.ruff_cache/
+.mypy_cache/
+test-media/
+.test-media/
+core/
+elo_terapeutico/

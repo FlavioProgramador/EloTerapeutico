@@ -51,3 +51,14 @@ backend/.test-media/
 .gemini/
 .codex/
 frontend-dev-3001.log
+
+# Resíduos locais do backend
+.ruff_cache/
+.mypy_cache/
+backend/test-media/
+backend/media/
+backend/staticfiles/
+backend/venv/
+backend/.venv/
+backend/core/
+backend/elo_terapeutico/

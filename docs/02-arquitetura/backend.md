@@ -15,7 +15,7 @@ O backend usa Python e Django. `manage.py` seleciona `config.settings.developmen
 | Selectors | Querysets e leitura otimizada | `selectors/` |
 | Permissions | Autorização HTTP/objeto | `api/permissions.py` |
 | Core | paginação, exceções, auditoria, campos e validadores | `backend/apps/core/` |
-| Infrastructure | integrações e infraestrutura compartilhada | `backend/infrastructure/` |
+| Infrastructure | integrações e infraestrutura compartilhada | `backend/apps/core/infrastructure/` |
 
 ## Configuração DRF
 

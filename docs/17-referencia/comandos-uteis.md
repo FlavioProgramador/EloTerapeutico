@@ -20,7 +20,7 @@ pytest --create-db
 ruff check .
 mypy .
 bandit -r apps infrastructure config -c pyproject.toml
-pip-audit -r requirements/base.txt
+pip-audit -r requirements.txt
 npm run lint
 npm run typecheck
 npm test

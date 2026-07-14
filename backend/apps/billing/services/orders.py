@@ -8,9 +8,9 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from apps.billing.infrastructure.payments.asaas.client import AsaasGateway
 from apps.billing.models import BillingOrder, Payment, PlanPrice, Subscription
 from apps.billing.security import redact_sensitive_data
-from infrastructure.payments.asaas.client import AsaasGateway
 
 MONEY = Decimal("0.01")
 OPERATIONAL_SUBSCRIPTION_STATUSES = [

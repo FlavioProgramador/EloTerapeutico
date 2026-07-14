@@ -6,8 +6,8 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
+from apps.billing.infrastructure.payments.asaas.client import AsaasGateway
 from apps.billing.models import Plan, PlanPrice
-from infrastructure.payments.asaas.client import AsaasGateway
 
 
 @override_settings(

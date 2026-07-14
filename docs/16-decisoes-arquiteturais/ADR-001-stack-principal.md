@@ -32,6 +32,6 @@ Não há registro histórico suficiente. Motivação inferida a partir da implem
 CORS, tokens no navegador, divergência de tipos e operação separada.
 
 ## Referências no código
-`backend/requirements/base.txt`, `frontend/package.json`, `docker-compose.yml`.
+`backend/requirements.txt`, `frontend/package.json`, `docker-compose.yml`.
 
 [Voltar](README.md)

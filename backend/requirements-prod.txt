@@ -1,5 +1,8 @@
+# Dependências de produção.
+# Base compartilhada + extensões específicas do ambiente produtivo.
+
 # ===============================================================================
-# requirements/base.txt – Dependências compartilhadas entre todos os ambientes
+# requirements.txt – Dependências compartilhadas entre todos os ambientes
 # ===============================================================================
 
 # Core
@@ -40,3 +43,15 @@ azure-storage-blob>=12.19,<12.20
 
 # Rate limiting
 django-ratelimit>=4.1,<4.2
+
+# Logging estruturado
+structlog>=24.1,<24.2
+
+# Health checks
+django-health-check>=3.18,<3.19
+
+# Whitenoise para arquivos estáticos
+whitenoise>=6.6,<6.7
+
+# Storage privado e persistente para documentos clínicos
+django-storages[azure]>=1.14,<1.15

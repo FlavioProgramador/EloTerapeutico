@@ -21,7 +21,7 @@ repos:
             backend/apps/billing/.*|
             backend/apps/patients/api/views/legacy_views\.py|
             backend/config/settings/base\.py|
-            backend/config/settings/prod\.py|
+            backend/config/settings/production\.py|
             backend/config/urls\.py
           )$
       - id: ruff-format
@@ -31,7 +31,7 @@ repos:
             backend/apps/billing/.*|
             backend/apps/patients/api/views/legacy_views\.py|
             backend/config/settings/base\.py|
-            backend/config/settings/prod\.py|
+            backend/config/settings/production\.py|
             backend/config/urls\.py
           )$
 
@@ -64,9 +64,9 @@ repos:
             backend/apps/agenda/model_parts/appointments\.py|
             backend/apps/patients/review_filter\.py|
             backend/apps/users/managers\.py|
-            backend/quality/.*|
+            backend/apps/core/quality/.*|
             backend/apps/core/fields\.py|
-            backend/apps/core/audit\.py|
+            backend/apps/audit/services/access_logging\.py|
             backend/config/settings/test\.py|
             backend/conftest\.py|
             .*/tests/.*

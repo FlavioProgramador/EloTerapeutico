@@ -228,7 +228,6 @@ THIRD_PARTY_APPS = [
 ]
 LOCAL_APPS = [
     "apps.core.apps.CoreConfig",
-    "infrastructure",
     "apps.users",
     "apps.patients",
     "apps.records",
@@ -263,7 +262,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [BASE_DIR / "apps" / "core" / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [

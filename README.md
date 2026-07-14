@@ -111,7 +111,7 @@ Linux/macOS:
 ```bash
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -r requirements/dev.txt
+python -m pip install -r requirements.txt
 cp .env.example .env
 python manage.py migrate
 python manage.py createsuperuser
@@ -123,7 +123,7 @@ Windows PowerShell:
 ```powershell
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install -r requirements/dev.txt
+python -m pip install -r requirements.txt
 Copy-Item .env.example .env
 python manage.py migrate
 python manage.py createsuperuser

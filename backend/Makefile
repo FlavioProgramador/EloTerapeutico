@@ -1,6 +1,12 @@
 PYTHON ?= python
 
-.PHONY: check migrations-check test coverage lint format format-check typecheck validate
+.PHONY: install install-prod check migrations-check test coverage lint format format-check typecheck validate clean
+
+install:
+	$(PYTHON) -m pip install -r requirements.txt
+
+install-prod:
+	$(PYTHON) -m pip install -r requirements-prod.txt
 
 check:
 	$(PYTHON) manage.py check
@@ -27,4 +33,7 @@ format-check:
 typecheck:
 	$(PYTHON) -m mypy apps config
 
-validate: check migrations-check lint format-check test
+validate: check migrations-check lint format-check typecheck test
+
+clean:
+	$(PYTHON) config/scripts/clean_backend.py

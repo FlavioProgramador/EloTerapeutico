@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 from django.core.exceptions import PermissionDenied
 from django.test import SimpleTestCase, override_settings
 
-from infrastructure.payments.asaas.client import AsaasGateway
+from apps.billing.infrastructure.payments.asaas.client import AsaasGateway
 
 
 @override_settings(ASAAS_WEBHOOK_TOKEN="official-webhook-token")
