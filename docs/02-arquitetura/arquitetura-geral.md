@@ -62,8 +62,8 @@ flowchart TB
 
 Implementação relacionada:
 
-- `backend/elo_terapeutico/settings/`
-- `backend/elo_terapeutico/urls.py`
+- `backend/config/settings/`
+- `backend/config/urls.py`
 - `frontend/src/app/`
 - `docker-compose.yml`
 

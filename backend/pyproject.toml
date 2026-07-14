@@ -11,12 +11,12 @@ ignore = ["E203", "DJ001", "DJ008", "DJ012", "F401", "B904", "E501", "C901", "E7
 max-complexity = 15
 
 [tool.ruff.lint.isort]
-known-first-party = ["core", "infrastructure", "apps", "elo_terapeutico"]
+known-first-party = ["core", "infrastructure", "apps", "config"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/*" = ["S101", "E501"]
 "core/*.py" = ["F401"]
-"elo_terapeutico/settings/*.py" = ["F405", "F403"]
+"config/settings/*.py" = ["F405", "F403"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -24,7 +24,7 @@ indent-style = "space"
 line-ending = "lf"
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "elo_terapeutico.settings.test"
+DJANGO_SETTINGS_MODULE = "config.settings.test"
 python_files = ["test_*.py", "*_test.py", "tests.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -36,7 +36,7 @@ markers = [
 
 [tool.coverage.run]
 branch = true
-source = ["core", "infrastructure", "apps", "elo_terapeutico"]
+source = ["core", "infrastructure", "apps", "config"]
 omit = ["*/migrations/*", "*/tests/*", "manage.py"]
 
 [tool.coverage.report]
@@ -57,7 +57,7 @@ ignore_missing_imports = true
 module = [
     "apps.documents.serializers",
     "apps.agenda.serializer_parts.appointment_write",
-    "core.pagination",
+    "apps.core.api.pagination",
     "apps.records.clinical_views",
     "apps.records.api.evolution_views",
     "apps.records.api.evolution_attachment_list_views",
@@ -106,7 +106,7 @@ module = [
 ignore_errors = true
 
 [tool.django-stubs]
-django_settings_module = "elo_terapeutico.settings.test"
+django_settings_module = "config.settings.test"
 
 [tool.bandit]
 exclude_dirs = ["tests", "venv", ".venv", "migrations"]

@@ -1,7 +1,7 @@
 import pytest
 from django.core.exceptions import ImproperlyConfigured
 
-from core.security_config import require_distinct_secrets, require_strong_secret
+from apps.core.security_config import require_distinct_secrets, require_strong_secret
 
 
 def _fake_secret(label: str) -> str:

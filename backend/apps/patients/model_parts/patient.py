@@ -3,7 +3,7 @@
 from django.conf import settings
 from django.db import models
 
-from core.validators import validate_cpf, validate_phone
+from apps.core.validators import validate_cpf, validate_phone
 
 from .choices import (
     PatientAttendanceType,

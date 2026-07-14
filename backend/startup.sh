@@ -3,13 +3,13 @@
 set -e
 
 echo "==> Aplicando migrações..."
-python manage.py migrate --noinput --settings=elo_terapeutico.settings.prod
+python manage.py migrate --noinput --settings=config.settings.production
 
 echo "==> Coletando arquivos estáticos..."
-python manage.py collectstatic --noinput --settings=elo_terapeutico.settings.prod
+python manage.py collectstatic --noinput --settings=config.settings.production
 
 echo "==> Iniciando servidor Gunicorn..."
-exec gunicorn elo_terapeutico.wsgi:application \
+exec gunicorn config.wsgi:application \
   --bind 0.0.0.0:8000 \
   --workers 2 \
   --threads 2 \

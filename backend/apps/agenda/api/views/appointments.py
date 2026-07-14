@@ -20,7 +20,7 @@ from apps.agenda.api.serializers import (
 )
 from apps.agenda.models import Appointment, PackageSession, TelemedicineRoom
 from apps.agenda.services.core_services import release_package_session, sync_package_session_status
-from core.audit import AuditLog, AuditLogMixin, log_access
+from apps.audit.services.access_logging import AuditLog, AuditLogMixin, log_access
 
 from .base import ScopedAgendaMixin
 

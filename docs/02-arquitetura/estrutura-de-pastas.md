@@ -3,6 +3,7 @@
 ```text
 backend/
 ├── apps/
+│   ├── core/
 │   ├── users/
 │   ├── patients/
 │   ├── records/
@@ -12,35 +13,33 @@ backend/
 │   ├── reports/
 │   ├── forms/
 │   ├── billing/
+│   ├── communications/
 │   └── audit/
-├── core/
-├── infrastructure/
-├── elo_terapeutico/
+├── config/
 │   ├── settings/
-│   └── urls.py
-├── requirements/
+│   │   ├── base.py
+│   │   ├── development.py
+│   │   ├── production.py
+│   │   └── test.py
+│   ├── urls.py
+│   ├── asgi.py
+│   └── wsgi.py
+├── infrastructure/
+│   ├── payments/asaas/
+│   └── messaging/
 ├── quality/
+├── requirements/
 └── manage.py
-
-frontend/
-├── src/
-│   ├── app/
-│   ├── components/
-│   ├── contexts/
-│   ├── features/
-│   ├── lib/
-│   └── types/
-├── package.json
-└── Dockerfile
 ```
 
 ## Regras de organização
 
-- `models.py` pode atuar como fachada para `model_parts/`;
-- APIs podem ser divididas em serializers, views, actions e permissions;
-- regras reutilizáveis pertencem a services/actions, não a componentes de interface;
-- selectors concentram queries e isolamento de dados;
-- componentes frontend específicos ficam dentro da feature correspondente;
-- configurações de ambiente não devem conter segredos versionados.
+- `apps/core` contém somente recursos transversais ao backend Django.
+- regras de negócio pertencem aos `services` do domínio responsável;
+- consultas complexas e reutilizáveis pertencem a `selectors`;
+- views e serializers devem permanecer na camada `api`;
+- integrações HTTP externas pertencem a `infrastructure`;
+- o pacote `config` é o único responsável por settings, URLs, ASGI e WSGI;
+- migrations e labels Django são preservados durante reorganizações de arquivos.
 
 [Voltar](README.md)

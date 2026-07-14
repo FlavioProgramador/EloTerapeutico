@@ -5,7 +5,7 @@ import uuid
 from django.conf import settings
 from django.db import migrations, models
 
-import core.fields
+import apps.core.fields
 
 
 class Migration(migrations.Migration):

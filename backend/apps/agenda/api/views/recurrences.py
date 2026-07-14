@@ -14,7 +14,7 @@ from apps.agenda.api.serializers import (
     AppointmentUpdateSerializer,
 )
 from apps.agenda.models import Appointment, AppointmentRecurrence, Room
-from core.audit import AuditLog, log_access
+from apps.audit.services.access_logging import AuditLog, log_access
 
 from .base import ScopedAgendaMixin
 

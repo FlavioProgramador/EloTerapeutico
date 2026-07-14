@@ -1,6 +1,6 @@
 # Ambientes
 
-## Desenvolvimento — `elo_terapeutico.settings.dev`
+## Desenvolvimento — `config.settings.development`
 
 - DEBUG ativo;
 - CORS aberto;
@@ -11,7 +11,7 @@
 
 Não exponha esse settings à internet.
 
-## Teste — `elo_terapeutico.settings.test`
+## Teste — `config.settings.test`
 
 - SQLite dedicado;
 - hasher MD5 para velocidade;
@@ -22,7 +22,7 @@ Não exponha esse settings à internet.
 
 Nunca use esse settings para dados reais.
 
-## Produção — `elo_terapeutico.settings.prod`
+## Produção — `config.settings.production`
 
 - DEBUG desativado;
 - hosts e CORS explícitos;
@@ -40,13 +40,13 @@ Nunca use esse settings para dados reais.
 ## Seleção
 
 ```bash
-export DJANGO_SETTINGS_MODULE=elo_terapeutico.settings.prod
+export DJANGO_SETTINGS_MODULE=config.settings.production
 ```
 
 No Windows PowerShell:
 
 ```powershell
-$env:DJANGO_SETTINGS_MODULE = "elo_terapeutico.settings.prod"
+$env:DJANGO_SETTINGS_MODULE = "config.settings.production"
 ```
 
 [Voltar](README.md)

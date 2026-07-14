@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 
 from apps.agenda.api.serializers import AppointmentReminderSerializer, TelemedicineRoomSerializer
 from apps.agenda.models import AppointmentReminder, TelemedicineRoom
-from core.audit import AuditLog, log_access
+from apps.audit.services.access_logging import AuditLog, log_access
 
 from .base import ScopedAgendaMixin
 

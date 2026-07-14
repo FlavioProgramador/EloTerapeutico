@@ -1,5 +1,5 @@
 import apps.patients.models
-import core.validators
+import apps.core.validators
 from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="patient",
             name="cpf",
-            field=models.CharField(blank=True, max_length=11, null=True, unique=True, validators=[core.validators.validate_cpf], verbose_name="CPF"),
+            field=models.CharField(blank=True, max_length=11, null=True, unique=True, validators=[apps.core.validators.validate_cpf], verbose_name="CPF"),
         ),
         migrations.AlterField(
             model_name="patient",
@@ -29,8 +29,8 @@ class Migration(migrations.Migration):
         migrations.AddField(model_name="patient", name="reminders_enabled", field=models.BooleanField(default=True, verbose_name="Lembretes ativos")),
         migrations.AddField(model_name="patient", name="reminder_recipient", field=models.CharField(choices=[("patient", "Paciente"), ("financial_responsible", "Responsável financeiro"), ("both", "Paciente e responsável"), ("none", "Não enviar")], default="patient", max_length=32, verbose_name="Destinatário dos lembretes")),
         migrations.AddField(model_name="patient", name="financial_responsible_name", field=models.CharField(blank=True, max_length=255, verbose_name="Responsável financeiro")),
-        migrations.AddField(model_name="patient", name="financial_responsible_cpf", field=models.CharField(blank=True, max_length=11, validators=[core.validators.validate_cpf], verbose_name="CPF do responsável financeiro")),
-        migrations.AddField(model_name="patient", name="financial_responsible_phone", field=models.CharField(blank=True, max_length=20, validators=[core.validators.validate_phone], verbose_name="Telefone do responsável financeiro")),
+        migrations.AddField(model_name="patient", name="financial_responsible_cpf", field=models.CharField(blank=True, max_length=11, validators=[apps.core.validators.validate_cpf], verbose_name="CPF do responsável financeiro")),
+        migrations.AddField(model_name="patient", name="financial_responsible_phone", field=models.CharField(blank=True, max_length=20, validators=[apps.core.validators.validate_phone], verbose_name="Telefone do responsável financeiro")),
         migrations.AddField(model_name="patient", name="financial_responsible_email", field=models.EmailField(blank=True, max_length=254, verbose_name="E-mail do responsável financeiro")),
         migrations.AddField(model_name="patient", name="financial_responsible_marital_status", field=models.CharField(blank=True, choices=[("single", "Solteiro(a)"), ("married", "Casado(a)"), ("divorced", "Divorciado(a)"), ("widowed", "Viúvo(a)"), ("other", "Outro")], max_length=16, verbose_name="Estado civil do responsável financeiro")),
         migrations.AddField(model_name="patient", name="financial_responsible_naturality", field=models.CharField(blank=True, max_length=120, verbose_name="Naturalidade do responsável financeiro")),

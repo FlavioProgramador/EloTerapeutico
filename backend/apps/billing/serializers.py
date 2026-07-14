@@ -8,7 +8,7 @@ from rest_framework import serializers
 
 from apps.billing.models import BillingOrder, Payment, Plan, PlanPrice, Subscription
 from apps.billing.services.orders import preview_order
-from core.validators import validate_cpf as validate_cpf_value
+from apps.core.validators import validate_cpf as validate_cpf_value
 
 MONEY = Decimal("0.01")
 

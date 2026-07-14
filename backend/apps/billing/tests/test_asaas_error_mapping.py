@@ -9,13 +9,13 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.billing.models import BillingOrder, Plan, PlanPrice, Subscription
-from apps.billing.services.gateways.asaas import AsaasGateway
 from apps.billing.services.gateways.base import (
     GatewayAuthenticationError,
     GatewayConfigurationError,
     GatewayUnavailableError,
     GatewayValidationError,
 )
+from infrastructure.payments.asaas.client import AsaasGateway
 
 
 class AsaasErrorMappingTests(TestCase):
@@ -80,7 +80,7 @@ class AsaasErrorMappingTests(TestCase):
 
         self.assertIn("phone", context.exception.details)
 
-    @patch("apps.billing.services.gateways.asaas.httpx.Client")
+    @patch("infrastructure.payments.asaas.client.httpx.Client")
     def test_gateway_401_is_mapped_to_authentication_error(self, client_class):
         request = httpx.Request("GET", "https://api-sandbox.asaas.com/v3/customers")
         response = httpx.Response(
@@ -95,7 +95,7 @@ class AsaasErrorMappingTests(TestCase):
         with self.assertRaises(GatewayAuthenticationError):
             AsaasGateway().health_check()
 
-    @patch("apps.billing.services.gateways.asaas.httpx.Client")
+    @patch("infrastructure.payments.asaas.client.httpx.Client")
     def test_timeout_is_mapped_to_service_unavailable(self, client_class):
         client = MagicMock()
         client.request.side_effect = httpx.ConnectTimeout("timeout")

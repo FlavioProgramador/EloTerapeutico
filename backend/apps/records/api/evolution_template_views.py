@@ -9,8 +9,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.audit.services.access_logging import AuditLog, log_access
 from apps.records.models.templates import ClinicalEvolutionTemplate
-from core.audit import AuditLog, log_access
 
 from .evolution_serializers import ClinicalEvolutionTemplateSerializer
 

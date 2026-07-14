@@ -5,7 +5,7 @@ import uuid
 from django.conf import settings
 from django.db import migrations, models
 
-import core.fields
+import apps.core.fields
 
 
 class Migration(migrations.Migration):
@@ -84,8 +84,8 @@ class Migration(migrations.Migration):
                 ("status", models.CharField(choices=[("draft", "Rascunho"), ("scheduled", "Agendada"), ("queued", "Na fila"), ("processing", "Processando"), ("sent", "Enviada"), ("delivered", "Entregue"), ("read", "Lida"), ("responded", "Respondida"), ("failed", "Falhou"), ("canceled", "Cancelada"), ("expired", "Expirada")], db_index=True, default="draft", max_length=20)),
                 ("priority", models.CharField(choices=[("low", "Baixa"), ("normal", "Normal"), ("high", "Alta")], default="normal", max_length=12)),
                 ("subject", models.CharField(blank=True, max_length=255)),
-                ("body", core.fields.EncryptedTextField(blank=True)),
-                ("body_html", core.fields.EncryptedTextField(blank=True)),
+                ("body", apps.core.fields.EncryptedTextField(blank=True)),
+                ("body_html", apps.core.fields.EncryptedTextField(blank=True)),
                 ("structured_content", models.JSONField(blank=True, default=dict)),
                 ("template_snapshot", models.JSONField(blank=True, default=dict)),
                 ("variables_snapshot", models.JSONField(blank=True, default=dict)),

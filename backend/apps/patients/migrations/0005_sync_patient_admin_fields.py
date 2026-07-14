@@ -1,4 +1,4 @@
-import core.validators
+import apps.core.validators
 from django.db import migrations, models
 
 
@@ -37,7 +37,7 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 max_length=11,
-                validators=[core.validators.validate_cpf],
+                validators=[apps.core.validators.validate_cpf],
                 verbose_name="CPF do responsável",
             ),
         ),

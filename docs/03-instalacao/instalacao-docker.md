@@ -16,8 +16,8 @@ JWT_SECRET=configure-outro-segredo-local
 FIELD_ENCRYPTION_KEY=configure-uma-chave-local
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=configure-uma-senha-local
-POSTGRES_DB=elo_terapeutico
-DATABASE_URL=postgres://postgres:configure-uma-senha-local@db:5432/elo_terapeutico
+POSTGRES_DB=config
+DATABASE_URL=postgres://postgres:configure-uma-senha-local@db:5432/config
 ```
 
 Os exemplos são placeholders. Não os use em produção.

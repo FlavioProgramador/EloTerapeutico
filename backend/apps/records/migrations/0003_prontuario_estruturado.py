@@ -1,6 +1,6 @@
 # Generated manually for the structured clinical record refactor.
 
-import core.fields
+import apps.core.fields
 import django.db.models.deletion
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -29,57 +29,57 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "reason_for_care",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
                 (
                     "physical_health_history",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
                 (
                     "mental_health_history",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
                 (
                     "previous_treatments",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
                 (
                     "habits_and_routine",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
-                ("sleep", core.fields.EncryptedTextField(blank=True, default="")),
-                ("nutrition", core.fields.EncryptedTextField(blank=True, default="")),
+                ("sleep", apps.core.fields.EncryptedTextField(blank=True, default="")),
+                ("nutrition", apps.core.fields.EncryptedTextField(blank=True, default="")),
                 (
                     "family_social_relations",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
                 (
                     "academic_history",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
                 (
                     "professional_history",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
                 (
                     "support_network",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
                 (
                     "relevant_events",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
                 (
                     "initial_assessment",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
                 (
                     "clinical_hypotheses",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
                 (
                     "custom_fields",
-                    core.fields.EncryptedTextField(blank=True, default="{}"),
+                    apps.core.fields.EncryptedTextField(blank=True, default="{}"),
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
@@ -114,7 +114,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("version", models.PositiveIntegerField()),
-                ("snapshot", core.fields.EncryptedTextField()),
+                ("snapshot", apps.core.fields.EncryptedTextField()),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 (
                     "anamnesis",
@@ -183,31 +183,31 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "emotional_state",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
                 (
                     "chief_complaint",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
                 (
                     "patient_report",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
                 (
                     "therapist_observations",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
                 (
                     "interventions",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
                 (
                     "perceived_evolution",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
-                ("homework", core.fields.EncryptedTextField(blank=True, default="")),
-                ("referrals", core.fields.EncryptedTextField(blank=True, default="")),
-                ("next_steps", core.fields.EncryptedTextField(blank=True, default="")),
+                ("homework", apps.core.fields.EncryptedTextField(blank=True, default="")),
+                ("referrals", apps.core.fields.EncryptedTextField(blank=True, default="")),
+                ("next_steps", apps.core.fields.EncryptedTextField(blank=True, default="")),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 (
@@ -241,7 +241,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("version", models.PositiveIntegerField()),
-                ("snapshot", core.fields.EncryptedTextField()),
+                ("snapshot", apps.core.fields.EncryptedTextField()),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 (
                     "created_by",
@@ -275,7 +275,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("title", models.CharField(max_length=180)),
-                ("description", core.fields.EncryptedTextField(blank=True, default="")),
+                ("description", apps.core.fields.EncryptedTextField(blank=True, default="")),
                 ("category", models.CharField(blank=True, max_length=80)),
                 (
                     "priority",
@@ -312,14 +312,14 @@ class Migration(migrations.Migration):
                         validators=[MinValueValidator(0), MaxValueValidator(100)],
                     ),
                 ),
-                ("strategies", core.fields.EncryptedTextField(blank=True, default="")),
+                ("strategies", apps.core.fields.EncryptedTextField(blank=True, default="")),
                 (
                     "evaluation_criteria",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
                 (
                     "observations",
-                    core.fields.EncryptedTextField(blank=True, default=""),
+                    apps.core.fields.EncryptedTextField(blank=True, default=""),
                 ),
                 ("sort_order", models.PositiveIntegerField(default=0)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
@@ -389,7 +389,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("original_name", models.CharField(max_length=255)),
-                ("description", core.fields.EncryptedTextField(blank=True, default="")),
+                ("description", apps.core.fields.EncryptedTextField(blank=True, default="")),
                 ("content_type", models.CharField(max_length=120)),
                 ("size_bytes", models.PositiveBigIntegerField()),
                 ("checksum", models.CharField(db_index=True, max_length=64)),

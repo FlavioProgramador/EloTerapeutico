@@ -6,9 +6,9 @@ import pytest
 from django.test import RequestFactory, override_settings
 
 from apps.audit.models import AuditLog
+from apps.audit.services.access_logging import log_access
 from apps.patients.models import Patient
 from apps.users.models import User
-from core.audit import log_access
 
 
 @pytest.mark.django_db

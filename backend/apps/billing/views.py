@@ -1,16 +1,16 @@
 import logging
-from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db.models import Sum
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.billing.models import BillingOrder, Payment, Plan, PlanPrice, WebhookEvent
+from apps.billing.selectors.catalog import get_active_plan_prices, get_active_plans
+from apps.billing.selectors.orders import get_order_with_payments, get_orders_for_user
+from apps.billing.selectors.payments import get_payment_summary, get_payments_for_user
 from apps.billing.serializers import (
     BillingOrderSerializer,
     ChangePlanSerializer,
@@ -22,9 +22,13 @@ from apps.billing.serializers import (
     PlanSerializer,
     SubscriptionSerializer,
 )
-from apps.billing.services.gateways.asaas import AsaasGateway
 from apps.billing.services.gateways.base import GatewayError
-from apps.billing.services.orders import create_billing_order, upsert_gateway_payment
+from apps.billing.services.integration_health import get_billing_integration_health
+from apps.billing.services.orders import create_billing_order
+from apps.billing.services.payment_sync import (
+    PaymentRefreshUnavailable,
+    refresh_gateway_payment,
+)
 from apps.billing.services.subscriptions import (
     cancel_subscription,
     change_plan,
@@ -99,7 +103,7 @@ class PlanListView(generics.ListAPIView):
     permission_classes = [AllowAny]
 
     def get_queryset(self):
-        return Plan.objects.filter(is_active=True).prefetch_related("prices").order_by("name")
+        return get_active_plans()
 
 
 class PlanPriceListView(generics.ListAPIView):
@@ -107,14 +111,11 @@ class PlanPriceListView(generics.ListAPIView):
     permission_classes = [AllowAny]
 
     def get_queryset(self):
-        queryset = PlanPrice.objects.select_related("plan").filter(is_active=True, plan__is_active=True)
-        if plan_slug := self.request.query_params.get("plan"):
-            queryset = queryset.filter(plan__slug=plan_slug)
-        if interval := self.request.query_params.get("billing_interval"):
-            queryset = queryset.filter(billing_interval=interval)
-        if billing_model := self.request.query_params.get("billing_model"):
-            queryset = queryset.filter(billing_model=billing_model)
-        return queryset.order_by("plan__name", "billing_interval", "total_amount")
+        return get_active_plan_prices(
+            plan_slug=self.request.query_params.get("plan"),
+            billing_interval=self.request.query_params.get("billing_interval"),
+            billing_model=self.request.query_params.get("billing_model"),
+        )
 
 
 class CurrentSubscriptionView(APIView):
@@ -155,11 +156,7 @@ class CheckoutCreateView(APIView):
         except GatewayError:
             return _gateway_error_response("checkout_create")
 
-        order = (
-            BillingOrder.objects.select_related("plan", "plan_price")
-            .prefetch_related("payments")
-            .get(pk=order.pk)
-        )
+        order = get_order_with_payments(order_id=order.pk)
         payload = _checkout_response_payload(checkout_data)
         payload["order"] = BillingOrderSerializer(order).data
         payload["subscription"] = SubscriptionSerializer(subscription).data
@@ -242,12 +239,7 @@ class BillingOrderListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return (
-            BillingOrder.objects.filter(user_id=self.request.user.pk)
-            .select_related("plan", "plan_price")
-            .prefetch_related("payments")
-            .order_by("-created_at")
-        )
+        return get_orders_for_user(user=self.request.user)
 
 
 class BillingOrderDetailView(generics.RetrieveAPIView):
@@ -256,11 +248,7 @@ class BillingOrderDetailView(generics.RetrieveAPIView):
     lookup_field = "public_id"
 
     def get_queryset(self):
-        return (
-            BillingOrder.objects.filter(user_id=self.request.user.pk)
-            .select_related("plan", "plan_price")
-            .prefetch_related("payments")
-        )
+        return get_orders_for_user(user=self.request.user)
 
 
 class PaymentListView(generics.ListAPIView):
@@ -268,14 +256,12 @@ class PaymentListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Payment.objects.filter(user_id=self.request.user.pk).select_related("billing_order")
-        if payment_status := self.request.query_params.get("status"):
-            queryset = queryset.filter(status=payment_status)
-        if order_public_id := self.request.query_params.get("order"):
-            queryset = queryset.filter(billing_order__public_id=order_public_id)
-        ordering = self.request.query_params.get("ordering", "due_date")
-        allowed = {"due_date", "-due_date", "created_at", "-created_at", "status", "-status"}
-        return queryset.order_by(ordering if ordering in allowed else "due_date", "installment_number")
+        return get_payments_for_user(
+            user=self.request.user,
+            payment_status=self.request.query_params.get("status"),
+            order_public_id=self.request.query_params.get("order"),
+            ordering=self.request.query_params.get("ordering", "due_date"),
+        )
 
 
 class PaymentDetailView(generics.RetrieveAPIView):
@@ -283,30 +269,19 @@ class PaymentDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Payment.objects.filter(user_id=self.request.user.pk).select_related("billing_order")
+        return get_payments_for_user(user=self.request.user)
 
 
 class PaymentRefreshView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
-        payment = (
-            Payment.objects.select_related("billing_order", "subscription")
-            .filter(pk=pk, user_id=request.user.pk)
-            .first()
-        )
-        if not payment or not payment.billing_order or not payment.gateway_payment_id:
+        try:
+            payment = refresh_gateway_payment(user=request.user, payment_id=pk)
+        except PaymentRefreshUnavailable:
             return Response(
                 {"detail": "Fatura não encontrada ou indisponível para sincronização."},
                 status=status.HTTP_404_NOT_FOUND,
-            )
-        try:
-            payload = AsaasGateway().get_payment(payment.gateway_payment_id)
-            payment = upsert_gateway_payment(
-                order=payment.billing_order,
-                payload=payload,
-                subscription=payment.subscription,
-                installment_count=payment.installment_count,
             )
         except GatewayError:
             return _gateway_error_response("payment_refresh")
@@ -317,23 +292,11 @@ class PaymentSummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        queryset = Payment.objects.filter(user_id=request.user.pk)
-        if order_public_id := request.query_params.get("order"):
-            queryset = queryset.filter(billing_order__public_id=order_public_id)
-        paid = queryset.filter(status__in=[Payment.Status.CONFIRMED, Payment.Status.RECEIVED])
-        pending = queryset.filter(status__in=[Payment.Status.PENDING, Payment.Status.OVERDUE])
-        total = queryset.aggregate(value=Sum("amount"))["value"] or Decimal("0.00")
-        paid_total = paid.aggregate(value=Sum("amount"))["value"] or Decimal("0.00")
-        next_payment = pending.order_by("due_date").first()
         return Response(
-            {
-                "total_amount": str(total),
-                "paid_amount": str(paid_total),
-                "paid_installments": paid.count(),
-                "total_installments": queryset.count(),
-                "next_due_date": next_payment.due_date if next_payment else None,
-                "overdue_installments": queryset.filter(status=Payment.Status.OVERDUE).count(),
-            }
+            get_payment_summary(
+                user=request.user,
+                order_public_id=request.query_params.get("order"),
+            )
         )
 
 
@@ -341,27 +304,14 @@ class BillingIntegrationHealthView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request):
-        try:
-            AsaasGateway().health_check()
-            connected = True
-            detail = "Conexão com o Asaas validada."
-        except GatewayError:
-            connected = False
-            detail = "Não foi possível validar a conexão com o Asaas."
-        last_event = WebhookEvent.objects.order_by("-received_at").first()
+        payload = get_billing_integration_health()
         return Response(
-            {
-                "gateway": "ASAAS",
-                "connected": connected,
-                "environment": "SANDBOX" if "sandbox" in settings.ASAAS_BASE_URL.lower() else "PRODUCTION",
-                "detail": detail,
-                "last_webhook_at": last_event.received_at if last_event else None,
-                "pending_events": WebhookEvent.objects.filter(
-                    status__in=[WebhookEvent.Status.RECEIVED, WebhookEvent.Status.RETRY]
-                ).count(),
-                "failed_events": WebhookEvent.objects.filter(status=WebhookEvent.Status.FAILED).count(),
-            },
-            status=status.HTTP_200_OK if connected else status.HTTP_503_SERVICE_UNAVAILABLE,
+            payload,
+            status=(
+                status.HTTP_200_OK
+                if payload["connected"]
+                else status.HTTP_503_SERVICE_UNAVAILABLE
+            ),
         )
 
 
