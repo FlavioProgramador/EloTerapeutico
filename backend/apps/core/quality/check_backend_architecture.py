@@ -45,9 +45,19 @@ def validate_backend_root_directories(errors: list[str]) -> None:
         )
 
 
+def validate_removed_layer_paths(errors: list[str]) -> None:
+    apps_root = BACKEND / "apps"
+    for path in apps_root.rglob("*"):
+        if path.is_dir() and path.name == "model_parts":
+            errors.append(f"Diretório legado model_parts ainda existe: {path.relative_to(ROOT)}")
+        if path.is_file() and path.name == "core_services.py":
+            errors.append(f"Service monolítico legado ainda existe: {path.relative_to(ROOT)}")
+
+
 def main() -> None:
     errors: list[str] = []
     validate_backend_root_directories(errors)
+    validate_removed_layer_paths(errors)
     forbidden_directories = [ROOT / "core", BACKEND / "core", BACKEND / "elo_terapeutico"]
     for directory in forbidden_directories:
         if directory.exists():
@@ -58,6 +68,13 @@ def main() -> None:
         BACKEND / "config" / "settings" / "base.py",
         BACKEND / "apps" / "billing" / "infrastructure" / "payments" / "asaas" / "client.py",
         BACKEND / "apps" / "communications" / "infrastructure" / "messaging" / "email.py",
+        BACKEND / "apps" / "documents" / "models" / "__init__.py",
+        BACKEND / "apps" / "documents" / "services" / "generated_documents.py",
+        BACKEND / "apps" / "documents" / "selectors" / "document_templates.py",
+        BACKEND / "apps" / "reports" / "services" / "financial_reports.py",
+        BACKEND / "apps" / "reports" / "selectors" / "appointments.py",
+        BACKEND / "apps" / "agenda" / "services" / "appointments.py",
+        BACKEND / "apps" / "agenda" / "selectors" / "appointments.py",
     ]
     for path in required:
         if not path.exists():
@@ -68,6 +85,8 @@ def main() -> None:
         r"(?m)^\s*import core(?:\.|\s|$)": "import legado import core",
         r"elo_terapeutico\.": "referência ao pacote de configuração antigo",
         r"apps\.billing\.services\.gateways\.asaas": "client Asaas no domínio billing",
+        r"\.model_parts(?:\.|\s+import)": "import para pacote model_parts removido",
+        r"\.services\.core_services(?:\s+import|\.)": "import para service monolítico removido",
     }
     for path in iter_source_files():
         try:

@@ -1,24 +1,21 @@
 # mypy: ignore-errors
-from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
-from django.db import transaction
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from rest_framework import serializers
 
-from apps.agenda.models import (
-    Appointment,
-    AppointmentRecurrence,
-    PatientPackage,
-    Room,
-    TelemedicineRoom,
-)
-from apps.agenda.services.core_services import create_appointment_resources, generate_recurrence_appointments
+from apps.agenda.models import Appointment, AppointmentRecurrence, PatientPackage, Room
+from apps.agenda.services import create_appointment, update_appointment
 from apps.patients.models import Patient
 from apps.users.models import WorkingHours
 
 User = get_user_model()
+
+
+def _validation_detail(exc: DjangoValidationError):
+    return getattr(exc, "message_dict", None) or getattr(exc, "messages", [str(exc)])
 
 
 class AppointmentValidationMixin:
@@ -192,82 +189,14 @@ class AppointmentCreateSerializer(AppointmentValidationMixin, serializers.ModelS
             raise serializers.ValidationError({"package": "O pacote está sem saldo, expirado ou inativo."})
         return attrs
 
-    @transaction.atomic
     def create(self, validated_data):
-        participants = validated_data.pop("participants", [])
-        remind = validated_data.pop("send_whatsapp_reminder", False)
-        frequency = validated_data.pop("recurrence_frequency", None)
-        interval = validated_data.pop("recurrence_interval", 1)
-        weekdays = validated_data.pop("recurrence_weekdays", [])
-        ends_on = validated_data.pop("recurrence_ends_on", None)
-        max_occurrences = validated_data.pop("recurrence_max_occurrences", None)
-        conflict_strategy = validated_data.pop("recurrence_conflict_strategy", "error")
-        package = validated_data.get("package")
-        request = self.context["request"]
-        validated_data["created_by"] = request.user
-        validated_data["updated_by"] = request.user
-
-        therapist = User.objects.select_for_update().get(pk=validated_data["therapist"].pk)
-        validated_data["therapist"] = therapist
-        if package:
-            package = PatientPackage.objects.select_for_update().get(pk=package.pk)
-            if not package.can_consume():
-                raise serializers.ValidationError({"package": "O pacote está sem saldo, expirado ou inativo."})
-            validated_data["package"] = package
-
-        self._check_conflicts(
-            therapist=therapist,
-            patient=validated_data["patient"],
-            participants=participants,
-            start=validated_data["start_time"],
-            end=validated_data["end_time"],
-            room=validated_data.get("room"),
-        )
-
-        recurrence = None
-        if validated_data.get("is_recurring"):
-            local_start = timezone.localtime(validated_data["start_time"])
-            recurrence = AppointmentRecurrence.objects.create(
-                patient=validated_data["patient"],
-                therapist=validated_data["therapist"],
-                frequency=frequency,
-                interval=interval,
-                weekdays=weekdays,
-                starts_on=local_start.date(),
-                ends_on=ends_on,
-                max_occurrences=max_occurrences or 12,
-                start_time=local_start.time().replace(tzinfo=None),
-                duration_minutes=int((validated_data["end_time"] - validated_data["start_time"]).total_seconds() // 60),
-                timezone_name=str(timezone.get_current_timezone()),
-                modality=validated_data.get("modality", Appointment.Modality.IN_PERSON),
-                appointment_type=validated_data.get(
-                    "appointment_type",
-                    Appointment.AppointmentType.PSYCHOTHERAPY,
-                ),
-                room=validated_data.get("room"),
-                session_value=validated_data["session_value"],
-                notes=validated_data.get("notes", ""),
-                created_by=request.user,
+        try:
+            return create_appointment(
+                actor=self.context["request"].user,
+                validated_data=validated_data,
             )
-            validated_data["recurrence"] = recurrence
-            validated_data["origin"] = Appointment.Origin.RECURRENCE
-
-        appointment = Appointment.objects.create(**validated_data)
-        appointment.participants.set(participants)
-        create_appointment_resources(
-            appointment,
-            send_whatsapp_reminder=remind,
-            package=package,
-        )
-        if recurrence:
-            generate_recurrence_appointments(
-                recurrence,
-                first_appointment=appointment,
-                conflict_strategy=conflict_strategy,
-                send_whatsapp_reminder=remind,
-                package=package,
-            )
-        return appointment
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(_validation_detail(exc)) from exc
 
 
 class AppointmentUpdateSerializer(AppointmentValidationMixin, serializers.ModelSerializer):
@@ -299,41 +228,15 @@ class AppointmentUpdateSerializer(AppointmentValidationMixin, serializers.ModelS
     def validate(self, attrs):
         return self._validate_business_rules(attrs)
 
-    @transaction.atomic
     def update(self, instance, validated_data):
-        instance = Appointment.objects.select_for_update().get(pk=instance.pk)
-        participants = validated_data.pop("participants", None)
-        effective_participants = participants if participants is not None else list(instance.participants.all())
-        therapist = validated_data.get("therapist", instance.therapist)
-        therapist = User.objects.select_for_update().get(pk=therapist.pk)
-        validated_data["therapist"] = therapist
-
-        self._check_conflicts(
-            therapist=therapist,
-            patient=validated_data.get("patient", instance.patient),
-            participants=effective_participants,
-            start=validated_data.get("start_time", instance.start_time),
-            end=validated_data.get("end_time", instance.end_time),
-            room=validated_data.get("room", instance.room),
-            exclude_id=instance.pk,
-        )
-
-        instance.updated_by = self.context["request"].user
-        instance = super().update(instance, validated_data)
-        if participants is not None:
-            instance.participants.set(participants)
-        if instance.modality in {
-            Appointment.Modality.ONLINE,
-            Appointment.Modality.HYBRID,
-        }:
-            TelemedicineRoom.objects.get_or_create(
+        try:
+            return update_appointment(
+                actor=self.context["request"].user,
                 appointment=instance,
-                defaults={
-                    "expires_at": instance.end_time + timedelta(hours=2),
-                    "status": TelemedicineRoom.Status.AVAILABLE,
-                },
+                validated_data=validated_data,
             )
-        return instance
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(_validation_detail(exc)) from exc
 
 
 class AppointmentStatusUpdateSerializer(serializers.ModelSerializer):
@@ -350,6 +253,6 @@ class AppointmentStatusUpdateSerializer(serializers.ModelSerializer):
             Appointment.Status.MISSED,
         }:
             raise serializers.ValidationError(
-                {"status": ("Uma sessão finalizada não pode voltar para um estado anterior.")}
+                {"status": "Uma sessão finalizada não pode voltar para um estado anterior."}
             )
         return attrs

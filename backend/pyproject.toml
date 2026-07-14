@@ -79,7 +79,7 @@ module = [
     "apps.records.api.serializers.*",
     "apps.patients.admin",
     "apps.patients.admin_parts.*",
-    "apps.patients.model_parts.*",
+    "apps.patients.models.*",
     "apps.patients.api.serializers.*",
     "apps.patients.api.views.*",
     "apps.agenda.services.*",

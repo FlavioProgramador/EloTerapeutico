@@ -67,7 +67,7 @@ def test_appointment_creation_rolls_back_when_derived_resource_fails(
     serializer.is_valid(raise_exception=True)
 
     with patch(
-        "apps.agenda.api.serializers.appointment_write.create_appointment_resources",
+        "apps.agenda.services.appointments.create_appointment_resources",
         side_effect=RuntimeError("falha simulada"),
     ):
         with pytest.raises(RuntimeError):
@@ -101,9 +101,8 @@ def test_status_and_financial_entry_roll_back_together(
     view = AppointmentViewSet()
     view.request = atomic_request
 
-    with patch.object(
-        view,
-        "_create_financial_transaction",
+    with patch(
+        "apps.agenda.services.appointments.create_financial_transaction",
         side_effect=RuntimeError("falha financeira simulada"),
     ):
         with pytest.raises(RuntimeError):

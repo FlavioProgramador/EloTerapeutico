@@ -1,73 +1,45 @@
 """Endpoints de templates de evoluções clínicas."""
 
-from django.db import IntegrityError, transaction
-from django.db.models import F, Q
+from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.audit.services.access_logging import AuditLog, log_access
-from apps.records.models.templates import ClinicalEvolutionTemplate
+from apps.records.exceptions import InvalidClinicalTemplateAction
+from apps.records.permissions import CanAccessClinicalTemplates, can_access_clinical_template
+from apps.records.selectors import clinical_templates_for_user
+from apps.records.services import (
+    apply_clinical_template_action,
+    archive_clinical_template,
+    create_clinical_template,
+    duplicate_clinical_template,
+    update_clinical_template,
+)
 
 from .evolution_serializers import ClinicalEvolutionTemplateSerializer
 
 
 class ClinicalEvolutionTemplateListCreateView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def _ensure_clinical_user(self, request):
-        if request.user.is_secretary:
-            self.permission_denied(
-                request,
-                message="Secretárias não acessam templates clínicos.",
-            )
+    permission_classes = [CanAccessClinicalTemplates]
 
     def get(self, request):
-        self._ensure_clinical_user(request)
-        queryset = ClinicalEvolutionTemplate.objects.filter(
-            Q(owner=request.user) | Q(owner__isnull=True)
-        ).select_related("owner")
-        if request.query_params.get("include_inactive") != "true":
-            queryset = queryset.filter(is_active=True, archived_at__isnull=True)
-        status_filter = request.query_params.get("status")
-        if status_filter == "active":
-            queryset = queryset.filter(is_active=True, archived_at__isnull=True)
-        elif status_filter == "inactive":
-            queryset = queryset.filter(is_active=False, archived_at__isnull=True)
-        elif status_filter == "archived":
-            queryset = queryset.filter(archived_at__isnull=False)
-        search = request.query_params.get("search", "").strip()
-        if search:
-            queryset = queryset.filter(
-                Q(name__icontains=search)
-                | Q(description__icontains=search)
-                | Q(category__icontains=search)
-                | Q(specialty__icontains=search)
-            )
-        category = request.query_params.get("category", "").strip()
-        specialty = request.query_params.get("specialty", "").strip()
-        if category:
-            queryset = queryset.filter(category=category)
-        if specialty:
-            queryset = queryset.filter(specialty=specialty)
-        serializer = ClinicalEvolutionTemplateSerializer(queryset, many=True)
-        return Response(serializer.data)
+        queryset = clinical_templates_for_user(user=request.user, params=request.query_params)
+        return Response(ClinicalEvolutionTemplateSerializer(queryset, many=True).data)
 
     def post(self, request):
-        self._ensure_clinical_user(request)
         serializer = ClinicalEvolutionTemplateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         wants_system = bool(request.data.get("is_system"))
         if wants_system and not request.user.has_perm("records.manage_system_clinical_templates"):
-            self.permission_denied(
-                request,
-                message="Você não pode criar templates globais.",
-            )
+            self.permission_denied(request, message="Você não pode criar templates globais.")
         try:
-            template = serializer.save(owner=None if wants_system else request.user)
+            template = create_clinical_template(
+                actor=request.user,
+                validated_data=dict(serializer.validated_data),
+                is_system=wants_system,
+            )
         except IntegrityError:
             return Response(
                 {"name": ["Já existe um template com este nome neste escopo."]},
@@ -86,42 +58,39 @@ class ClinicalEvolutionTemplateListCreateView(APIView):
 
 
 class ClinicalEvolutionTemplateDetailView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanAccessClinicalTemplates]
 
     def get_object(self, request, pk, *, write=False):
         template = get_object_or_404(
-            ClinicalEvolutionTemplate.objects.select_related("owner"),
+            clinical_templates_for_user(
+                user=request.user,
+                params={"include_inactive": "true"},
+            ),
             pk=pk,
         )
-        if request.user.is_secretary:
+        if not can_access_clinical_template(
+            user=request.user,
+            template=template,
+            write=write,
+        ):
             self.permission_denied(
                 request,
-                message="Acesso clínico não permitido.",
+                message="Template global protegido." if template.owner_id is None else "Template não autorizado.",
             )
-        if template.owner_id not in (None, request.user.id):
-            self.permission_denied(request, message="Template não autorizado.")
-        if (
-            write
-            and template.owner_id is None
-            and not request.user.has_perm("records.manage_system_clinical_templates")
-        ):
-            self.permission_denied(request, message="Template global protegido.")
         return template
 
     def get(self, request, pk):
-        template = self.get_object(request, pk)
-        return Response(ClinicalEvolutionTemplateSerializer(template).data)
+        return Response(ClinicalEvolutionTemplateSerializer(self.get_object(request, pk)).data)
 
     def patch(self, request, pk):
         template = self.get_object(request, pk, write=True)
-        serializer = ClinicalEvolutionTemplateSerializer(
-            template,
-            data=request.data,
-            partial=True,
-        )
+        serializer = ClinicalEvolutionTemplateSerializer(template, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         try:
-            template = serializer.save()
+            template = update_clinical_template(
+                template=template,
+                validated_data=dict(serializer.validated_data),
+            )
         except IntegrityError:
             return Response(
                 {"name": ["Já existe um template com este nome neste escopo."]},
@@ -136,10 +105,7 @@ class ClinicalEvolutionTemplateDetailView(APIView):
         return Response(ClinicalEvolutionTemplateSerializer(template).data)
 
     def delete(self, request, pk):
-        template = self.get_object(request, pk, write=True)
-        template.is_active = False
-        template.archived_at = timezone.now()
-        template.save(update_fields=["is_active", "archived_at", "updated_at"])
+        template = archive_clinical_template(template=self.get_object(request, pk, write=True))
         log_access(
             request,
             AuditLog.Action.UPDATE,
@@ -148,30 +114,11 @@ class ClinicalEvolutionTemplateDetailView(APIView):
         )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @transaction.atomic
     def post(self, request, pk):
         action = request.data.get("action")
         template = self.get_object(request, pk, write=action != "duplicate")
         if action == "duplicate":
-            base_name = f"Cópia de {template.name}"
-            name = base_name
-            suffix = 2
-            while ClinicalEvolutionTemplate.objects.filter(
-                owner=request.user,
-                name=name,
-            ).exists():
-                name = f"{base_name} ({suffix})"
-                suffix += 1
-            copy = ClinicalEvolutionTemplate.objects.create(
-                owner=request.user,
-                name=name,
-                description=template.description,
-                category=template.category,
-                specialty=template.specialty,
-                content=template.content,
-                is_active=True,
-                sort_order=template.sort_order,
-            )
+            copy = duplicate_clinical_template(actor=request.user, template=template)
             log_access(
                 request,
                 AuditLog.Action.CREATE,
@@ -182,25 +129,10 @@ class ClinicalEvolutionTemplateDetailView(APIView):
                 ClinicalEvolutionTemplateSerializer(copy).data,
                 status=status.HTTP_201_CREATED,
             )
-        if action == "activate":
-            template.is_active = True
-            template.archived_at = None
-        elif action == "deactivate":
-            template.is_active = False
-            template.archived_at = None
-        elif action == "archive":
-            template.is_active = False
-            template.archived_at = timezone.now()
-        elif action == "mark_used":
-            ClinicalEvolutionTemplate.objects.filter(pk=template.pk).update(usage_count=F("usage_count") + 1)
-            template.refresh_from_db()
-        else:
-            return Response(
-                {"detail": "Ação inválida."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if action != "mark_used":
-            template.save(update_fields=["is_active", "archived_at", "updated_at"])
+        try:
+            template = apply_clinical_template_action(template=template, action=action)
+        except InvalidClinicalTemplateAction as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         log_access(
             request,
             AuditLog.Action.UPDATE,
