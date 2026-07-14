@@ -90,7 +90,7 @@ jobs:
 
       - name: Publicar relatório do Ruff
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-security-ruff
           path: /tmp/ruff-output.txt
@@ -105,7 +105,7 @@ jobs:
 
       - name: Publicar relatório do pytest
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-security-pytest
           path: /tmp/pytest-output.txt
@@ -122,7 +122,7 @@ jobs:
 
       - name: Publicar relatório do Bandit
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-security-bandit
           path: /tmp/bandit-output.txt
@@ -139,7 +139,7 @@ jobs:
 
       - name: Publicar relatório do pip-audit
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-security-pip-audit
           path: /tmp/pip-audit-output.txt
