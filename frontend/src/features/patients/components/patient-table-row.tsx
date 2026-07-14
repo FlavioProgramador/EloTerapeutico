@@ -98,14 +98,14 @@ export function PatientDesktopRow(props: RowProps) {
     <tr className="hover:bg-secondary/35">
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
-          <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-full border text-xs font-bold", getPatientAvatarStyle(patient.display_name))}>
+          <span aria-hidden="true" className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-full border text-xs font-bold", getPatientAvatarStyle(patient.display_name))}>
             {patientInitials(patient.display_name)}
           </span>
           <div className="min-w-0">
             <button
               type="button"
               onClick={() => router.push(`/dashboard/patients/${patient.id}`)}
-              className="block max-w-52 truncate text-left text-sm font-semibold text-foreground hover:text-primary"
+              className="block max-w-52 truncate text-left text-sm font-semibold text-foreground transition hover:text-primary focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             >
               {patient.display_name}
             </button>
@@ -159,14 +159,14 @@ export function PatientMobileCard(props: RowProps) {
     <article className="p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-full border text-xs font-bold", getPatientAvatarStyle(patient.display_name))}>
+          <span aria-hidden="true" className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-full border text-xs font-bold", getPatientAvatarStyle(patient.display_name))}>
             {patientInitials(patient.display_name)}
           </span>
           <div className="min-w-0">
             <button
               type="button"
               onClick={() => router.push(`/dashboard/patients/${patient.id}`)}
-              className="block max-w-48 truncate text-left text-sm font-semibold text-foreground"
+              className="block max-w-48 truncate text-left text-sm font-semibold text-foreground transition hover:text-primary focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             >
               {patient.display_name}
             </button>
