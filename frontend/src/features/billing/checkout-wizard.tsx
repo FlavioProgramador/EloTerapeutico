@@ -64,6 +64,29 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR").format(new Date(`${value}T00:00:00`));
 }
 
+function formatCpfCnpj(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 14);
+  if (digits.length <= 11) {
+    return digits
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  }
+  return digits
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2");
+}
+
+function formatPhone(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
 function extractError(error: unknown) {
   if (typeof error === "object" && error !== null && "response" in error) {
     const response = (error as {
@@ -307,8 +330,8 @@ export function CheckoutWizard() {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <Field label="Nome para cobrança" value={name} onChange={setName} placeholder="Seu nome completo" />
-                  <Field label="CPF ou CNPJ" value={cpfCnpj} onChange={setCpfCnpj} placeholder="000.000.000-00" />
-                  <Field label="Telefone" value={phone} onChange={setPhone} placeholder="(21) 99999-9999" />
+                  <Field label="CPF ou CNPJ" value={cpfCnpj} onChange={(v) => setCpfCnpj(formatCpfCnpj(v))} placeholder="000.000.000-00" />
+                  <Field label="Telefone" value={phone} onChange={(v) => setPhone(formatPhone(v))} placeholder="(21) 99999-9999" />
                   <label className="block space-y-2">
                     <span className="text-sm font-semibold">Primeiro vencimento</span>
                     <input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary" />
