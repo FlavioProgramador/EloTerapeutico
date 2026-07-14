@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.reports.api.views.reports_views import (
+from apps.reports.views import (
     AppointmentsReportView,
     FinancialReportView,
     OnlineSchedulingReportView,
