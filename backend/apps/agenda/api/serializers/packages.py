@@ -1,14 +1,17 @@
-from datetime import timedelta
 from decimal import Decimal
 
-from django.db import transaction
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from rest_framework import serializers
 
 from apps.agenda.models import Appointment, AppointmentRecurrence, PatientPackage, Room
-from apps.agenda.services.core_services import create_appointment_resources, generate_recurrence_appointments
+from apps.agenda.services import create_patient_package
 
 from .summary import PackageSessionSerializer
+
+
+def _validation_detail(exc: DjangoValidationError):
+    return getattr(exc, "message_dict", None) or getattr(exc, "messages", [str(exc)])
 
 
 class PatientPackageSerializer(serializers.ModelSerializer):
@@ -115,82 +118,11 @@ class PatientPackageSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"first_appointment_at": "Informe a primeira data do pacote."})
         return attrs
 
-    @transaction.atomic
     def create(self, validated_data):
-        auto_schedule = validated_data.pop("auto_schedule", False)
-        first_at = validated_data.pop("first_appointment_at", None)
-        frequency = validated_data.pop("frequency", AppointmentRecurrence.Frequency.WEEKLY)
-        weekdays = validated_data.pop("weekdays", [])
-        duration = validated_data.pop("duration_minutes", 50)
-        modality = validated_data.pop("modality", Appointment.Modality.IN_PERSON)
-        appointment_type = validated_data.pop("appointment_type", Appointment.AppointmentType.PSYCHOTHERAPY)
-        room = validated_data.pop("room", None)
-        remind = validated_data.pop("send_whatsapp_reminder", False)
-        request = self.context["request"]
-        validated_data["created_by"] = request.user
-        package = super().create(validated_data)
-
-        if package.generate_charge:
-            from apps.financeiro.models import FinancialTransaction
-
-            FinancialTransaction.objects.create(
-                therapist=package.therapist,
-                patient=package.patient,
-                transaction_type=FinancialTransaction.TransactionType.INCOME,
-                category=FinancialTransaction.Category.SUBSCRIPTION,
-                amount=package.total_value,
-                payment_status=FinancialTransaction.PaymentStatus.PENDING,
-                due_date=package.valid_from,
-                description=f"Pacote {package.name}",
+        try:
+            return create_patient_package(
+                actor=self.context["request"].user,
+                validated_data=validated_data,
             )
-
-        if auto_schedule and first_at:
-            rule = AppointmentRecurrence.objects.create(
-                patient=package.patient,
-                therapist=package.therapist,
-                frequency=frequency,
-                weekdays=weekdays,
-                starts_on=first_at.date(),
-                max_occurrences=package.sessions_contracted,
-                start_time=timezone.localtime(first_at).time().replace(tzinfo=None),
-                duration_minutes=duration,
-                modality=modality,
-                appointment_type=appointment_type,
-                room=room,
-                session_value=package.unit_value,
-                created_by=request.user,
-            )
-            conflicts = Appointment.conflict_details(
-                therapist=package.therapist,
-                patient=package.patient,
-                start_time=first_at,
-                end_time=first_at + timedelta(minutes=duration),
-                room=room,
-            )
-            if any(conflicts.values()):
-                raise serializers.ValidationError({"first_appointment_at": "A primeira sessão possui conflito."})
-            first = Appointment.objects.create(
-                patient=package.patient,
-                therapist=package.therapist,
-                start_time=first_at,
-                end_time=first_at + timedelta(minutes=duration),
-                modality=modality,
-                appointment_type=appointment_type,
-                room=room,
-                session_value=package.unit_value,
-                is_recurring=True,
-                recurrence=rule,
-                package=package,
-                origin=Appointment.Origin.PACKAGE,
-                created_by=request.user,
-                updated_by=request.user,
-            )
-            create_appointment_resources(first, send_whatsapp_reminder=remind, package=package)
-            generate_recurrence_appointments(
-                rule,
-                first_appointment=first,
-                conflict_strategy="error",
-                send_whatsapp_reminder=remind,
-                package=package,
-            )
-        return package
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(_validation_detail(exc)) from exc

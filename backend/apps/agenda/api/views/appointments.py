@@ -1,12 +1,13 @@
 import csv
 from io import StringIO
 
-from django.db import transaction
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
 
 from apps.agenda.api.filters import AppointmentFilter
@@ -18,11 +19,17 @@ from apps.agenda.api.serializers import (
     AppointmentUpdateSerializer,
     CheckAvailabilitySerializer,
 )
-from apps.agenda.models import Appointment, PackageSession, TelemedicineRoom
-from apps.agenda.services.core_services import release_package_session, sync_package_session_status
+from apps.agenda.exceptions import CompletedAppointmentDeletionError
+from apps.agenda.models import Appointment
+from apps.agenda.selectors import appointment_queryset
+from apps.agenda.services import cancel_appointment_for_deletion, update_appointment_status
 from apps.audit.services.access_logging import AuditLog, AuditLogMixin, log_access
 
 from .base import ScopedAgendaMixin
+
+
+def _validation_detail(exc: DjangoValidationError):
+    return getattr(exc, "message_dict", None) or getattr(exc, "messages", [str(exc)])
 
 
 class AppointmentViewSet(AuditLogMixin, ScopedAgendaMixin, viewsets.ModelViewSet):
@@ -31,22 +38,8 @@ class AppointmentViewSet(AuditLogMixin, ScopedAgendaMixin, viewsets.ModelViewSet
     ordering = ["start_time"]
 
     def get_queryset(self):
-        queryset = Appointment.objects.select_related(
-            "patient",
-            "therapist",
-            "room",
-            "recurrence",
-            "package",
-            "telemedicine_room",
-            "evolution",
-            "evolution__clinical_data",
-        )
-        # Otimização: Evita prefetches pesados em listagens e exportações
-        # que não utilizam participantes ou lembretes.
-        if self.action not in ["list", "today", "export"]:
-            queryset = queryset.prefetch_related("participants", "reminders")
-
-        return self.scope_queryset(queryset)
+        include_details = self.action not in ["list", "today", "export"]
+        return self.scope_queryset(appointment_queryset(include_details=include_details))
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -63,31 +56,23 @@ class AppointmentViewSet(AuditLogMixin, ScopedAgendaMixin, viewsets.ModelViewSet
         super().perform_create(serializer)
 
     def perform_update(self, serializer):
-        # O serializer já protege a atualização com lock e transação.
-        # Não chamar super() depois de save(), pois isso persistia a mesma alteração duas vezes.
         serializer.save(updated_by=self.request.user)
 
     def destroy(self, request, *args, **kwargs):
-        scoped_appointment = self.get_object()
-        with transaction.atomic():
-            appointment = Appointment.objects.select_for_update().get(pk=scoped_appointment.pk)
-            if appointment.status == Appointment.Status.COMPLETED:
-                return Response(
-                    {"detail": "Consultas realizadas não podem ser excluídas."},
-                    status=status.HTTP_409_CONFLICT,
-                )
-            appointment.status = Appointment.Status.CANCELLED
-            appointment.cancellation_reason = "Cancelada por exclusão administrativa."
-            appointment.updated_by = request.user
-            appointment.save(update_fields=["status", "cancellation_reason", "updated_by", "updated_at"])
-            release_package_session(appointment)
-            self._cancel_financial_transaction(appointment)
-            log_access(
-                request,
-                AuditLog.Action.DELETE,
-                appointment,
-                "Consulta cancelada por exclusão",
+        appointment = self.get_object()
+        try:
+            appointment = cancel_appointment_for_deletion(
+                actor=request.user,
+                appointment=appointment,
             )
+        except CompletedAppointmentDeletionError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
+        log_access(
+            request,
+            AuditLog.Action.DELETE,
+            appointment,
+            "Consulta cancelada por exclusão",
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["patch"], url_path="status")
@@ -129,56 +114,38 @@ class AppointmentViewSet(AuditLogMixin, ScopedAgendaMixin, viewsets.ModelViewSet
         return self._save_status(serializer, new_status)
 
     def _save_status(self, serializer, new_status):
-        with transaction.atomic():
-            appointment = Appointment.objects.select_for_update().get(pk=serializer.instance.pk)
-            locked_serializer = AppointmentStatusUpdateSerializer(
-                appointment,
-                data=dict(serializer.validated_data),
-                partial=True,
-                context={"request": self.request},
+        try:
+            appointment = update_appointment_status(
+                actor=self.request.user,
+                appointment=serializer.instance,
+                validated_data=dict(serializer.validated_data),
             )
-            locked_serializer.is_valid(raise_exception=True)
-            appointment = locked_serializer.save(updated_by=self.request.user)
-            sync_package_session_status(appointment)
-            if new_status == Appointment.Status.CONFIRMED:
-                self._create_financial_transaction(appointment)
-            elif new_status == Appointment.Status.CANCELLED:
-                release_package_session(appointment)
-                self._cancel_financial_transaction(appointment)
-                try:
-                    appointment.telemedicine_room.revoke()
-                except TelemedicineRoom.DoesNotExist:
-                    pass
-            log_access(
-                self.request,
-                AuditLog.Action.UPDATE,
-                appointment,
-                f"Status da consulta alterado para {new_status}",
-            )
+        except DjangoValidationError as exc:
+            raise DRFValidationError(_validation_detail(exc)) from exc
+        log_access(
+            self.request,
+            AuditLog.Action.UPDATE,
+            appointment,
+            f"Status da consulta alterado para {new_status}",
+        )
         return Response(AppointmentDetailSerializer(appointment, context={"request": self.request}).data)
 
     @action(detail=True, methods=["post"])
     def reschedule(self, request, pk=None):
-        scoped_appointment = self.get_object()
-        with transaction.atomic():
-            appointment = Appointment.objects.select_for_update().get(pk=scoped_appointment.pk)
-            serializer = AppointmentUpdateSerializer(
-                appointment,
-                data=request.data,
-                partial=True,
-                context={"request": request},
-            )
-            serializer.is_valid(raise_exception=True)
-            appointment = serializer.save(
-                status=Appointment.Status.SCHEDULED,
-                origin=Appointment.Origin.RESCHEDULE,
-                updated_by=request.user,
-            )
-            if hasattr(appointment, "package_session"):
-                appointment.package_session.scheduled_for = appointment.start_time
-                appointment.package_session.status = PackageSession.Status.RESCHEDULED
-                appointment.package_session.save(update_fields=["scheduled_for", "status", "updated_at"])
-            log_access(request, AuditLog.Action.UPDATE, appointment, "Consulta remarcada")
+        appointment = self.get_object()
+        serializer = AppointmentUpdateSerializer(
+            appointment,
+            data=request.data,
+            partial=True,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        appointment = serializer.save(
+            status=Appointment.Status.SCHEDULED,
+            origin=Appointment.Origin.RESCHEDULE,
+            updated_by=request.user,
+        )
+        log_access(request, AuditLog.Action.UPDATE, appointment, "Consulta remarcada")
         return Response(AppointmentDetailSerializer(appointment, context={"request": request}).data)
 
     @action(detail=False, methods=["get"])
@@ -238,35 +205,3 @@ class AppointmentViewSet(AuditLogMixin, ScopedAgendaMixin, viewsets.ModelViewSet
         response["Content-Disposition"] = 'attachment; filename="agenda.csv"'
         log_access(request, AuditLog.Action.EXPORT, obj_repr="Agenda exportada")
         return response
-
-    @staticmethod
-    def _create_financial_transaction(appointment):
-        from apps.financeiro.models import FinancialTransaction
-
-        FinancialTransaction.objects.get_or_create(
-            appointment=appointment,
-            source=FinancialTransaction.Source.APPOINTMENT,
-            defaults={
-                "therapist": appointment.therapist,
-                "patient": appointment.patient,
-                "transaction_type": FinancialTransaction.TransactionType.INCOME,
-                "category": FinancialTransaction.Category.SESSION,
-                "amount": appointment.session_value,
-                "payment_method": FinancialTransaction.PaymentMethod.OTHER,
-                "payment_status": FinancialTransaction.PaymentStatus.PENDING,
-                "due_date": appointment.start_time.date(),
-                "description": f"Consulta de {appointment.patient.display_name}",
-            },
-        )
-
-    @staticmethod
-    def _cancel_financial_transaction(appointment):
-        from apps.financeiro.models import FinancialTransaction
-
-        transaction_item = FinancialTransaction.objects.filter(
-            appointment=appointment,
-            source=FinancialTransaction.Source.APPOINTMENT,
-            payment_status=FinancialTransaction.PaymentStatus.PENDING,
-        ).first()
-        if transaction_item:
-            transaction_item.cancel()
