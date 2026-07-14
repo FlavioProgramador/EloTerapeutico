@@ -61,7 +61,7 @@ repos:
             backend/apps/records/management/commands/run_export_worker\.py|
             backend/apps/records/evolution_flow_models\.py|
             backend/apps/records/utils\.py|
-            backend/apps/agenda/model_parts/appointments\.py|
+            backend/apps/agenda/models/appointments\.py|
             backend/apps/patients/review_filter\.py|
             backend/apps/users/managers\.py|
             backend/apps/core/quality/.*|
