@@ -7,6 +7,29 @@ class PaymentRefreshUnavailable(Exception):
 
 
 def refresh_gateway_payment(*, user, payment_id: int, gateway=None):
+    """Sincroniza uma cobrança do usuário com o gateway configurado.
+
+    A cobrança é carregada por um selector que aplica o escopo do usuário.
+    Após validar os vínculos locais e o identificador externo, o serviço busca
+    o estado atual no gateway e delega a persistência ao fluxo de upsert.
+
+    Args:
+        user: Usuário autenticado que delimita o escopo da consulta.
+        payment_id: Identificador interno da cobrança a ser atualizada.
+        gateway: Cliente opcional do gateway, usado para injeção em testes ou
+            para substituir a implementação configurada.
+
+    Returns:
+        Cobrança local criada ou atualizada a partir do payload do gateway.
+
+    Raises:
+        PaymentRefreshUnavailable: Quando a cobrança não pertence ao usuário,
+            não existe ou não possui ordem e identificador externo válidos.
+
+    Side Effects:
+        Realiza uma chamada ao gateway de pagamentos e persiste o estado
+        retornado por meio de ``upsert_gateway_payment``.
+    """
     payment = get_payment_for_refresh(user=user, payment_id=payment_id)
     if not payment or not payment.billing_order or not payment.gateway_payment_id:
         raise PaymentRefreshUnavailable
