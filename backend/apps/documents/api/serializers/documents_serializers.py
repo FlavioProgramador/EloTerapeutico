@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from apps.documents.models import DocumentTemplate, GeneratedDocument
-from apps.documents.services.core_services import DocumentDomainError, create_generated_document
+from apps.documents.services.core_services import create_generated_document
 from apps.documents.services.placeholders import (
     build_document_context,
     render_safe_markdown,
@@ -186,17 +186,14 @@ class GeneratedDocumentCreateSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         request = self.context["request"]
-        try:
-            result = create_generated_document(
-                actor=request.user,
-                patient=validated_data["patient"],
-                template=validated_data["template"],
-                title=validated_data.get("title", ""),
-                local_emissao=validated_data.get("local_emissao", ""),
-                idempotency_key=request.headers.get("Idempotency-Key"),
-            )
-        except DocumentDomainError as exc:
-            raise serializers.ValidationError(str(exc)) from exc
+        result = create_generated_document(
+            actor=request.user,
+            patient=validated_data["patient"],
+            template=validated_data["template"],
+            title=validated_data.get("title", ""),
+            local_emissao=validated_data.get("local_emissao", ""),
+            idempotency_key=request.headers.get("Idempotency-Key"),
+        )
         self.context["created"] = result.created
         return result.document
 

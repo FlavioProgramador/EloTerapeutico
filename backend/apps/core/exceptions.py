@@ -1,188 +1,72 @@
-"""Handler global e padronizado de exceções da API REST."""
+"""Exceções de aplicação e domínio seguras para exposição pela API."""
 
 from __future__ import annotations
 
-import logging
-import re
-import secrets
-
-from django.core.exceptions import PermissionDenied, ValidationError
-from django.db import OperationalError, ProgrammingError
-from django.http import Http404
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import exception_handler
-
-logger = logging.getLogger(__name__)
-
-_REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,64}$")
+from typing import Any
 
 
-def _get_request_id(context) -> str:
-    request = context.get("request") if isinstance(context, dict) else None
-    supplied = ""
-    if request is not None:
-        supplied = str(request.headers.get("X-Request-ID", ""))
-    if supplied and _REQUEST_ID_PATTERN.fullmatch(supplied):
-        return supplied
-    return secrets.token_hex(16)
+class ApplicationError(Exception):
+    """Base para exceções controladas que podem ser expostas pela API."""
+
+    status_code = 400
+    default_detail = "Ocorreu um erro na aplicação."
+    default_code = "application_error"
+
+    def __init__(
+        self,
+        detail: str | None = None,
+        code: str | None = None,
+        *,
+        field: str | None = None,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        self.detail = str(detail or self.default_detail)
+        self.code = str(code or self.default_code)
+        self.field = field
+        if details is not None:
+            self.details = details
+        elif field:
+            self.details = {field: [self.detail]}
+        else:
+            self.details = None
+        super().__init__(self.detail)
 
 
-def _secure_error_response(response: Response, request_id: str) -> Response:
-    response["X-Request-ID"] = request_id
-    response["Cache-Control"] = "private, no-store, max-age=0"
-    response["Pragma"] = "no-cache"
-    response["X-Content-Type-Options"] = "nosniff"
-    return response
+class AuthorizationError(ApplicationError):
+    """A identidade é válida, mas não possui acesso ao recurso (403)."""
+
+    status_code = 403
+    default_detail = "Você não tem permissão para realizar esta ação."
+    default_code = "forbidden"
 
 
-def custom_exception_handler(exc, context):
-    request_id = _get_request_id(context)
-    response = exception_handler(exc, context)
+class ObjectNotFoundError(ApplicationError):
+    """O recurso solicitado não existe ou não está visível ao ator (404)."""
 
-    if response is not None:
-        response.data = {
-            "error": {
-                "code": _get_error_code(exc, response.status_code),
-                "message": _get_error_message(exc, response),
-                "details": response.data if isinstance(response.data, dict) else None,
-            }
-        }
-        return _secure_error_response(response, request_id)
-
-    if isinstance(exc, ValidationError):
-        response = Response(
-            {
-                "error": {
-                    "code": "VALIDATION_ERROR",
-                    "message": _validation_error_message(exc),
-                    "details": None,
-                }
-            },
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-        return _secure_error_response(response, request_id)
-
-    if isinstance(exc, PermissionDenied):
-        response = Response(
-            {
-                "error": {
-                    "code": "PERMISSION_DENIED",
-                    "message": "Você não tem permissão para realizar esta ação.",
-                    "details": None,
-                }
-            },
-            status=status.HTTP_403_FORBIDDEN,
-        )
-        return _secure_error_response(response, request_id)
-
-    if isinstance(exc, Http404):
-        response = Response(
-            {
-                "error": {
-                    "code": "NOT_FOUND",
-                    "message": "O recurso solicitado não foi encontrado.",
-                    "details": None,
-                }
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )
-        return _secure_error_response(response, request_id)
-
-    if isinstance(exc, (OperationalError, ProgrammingError)) and _is_communications_view(context):
-        logger.error(
-            "communications_database_not_ready",
-            extra={
-                "request_id": request_id,
-                "exception_type": exc.__class__.__name__,
-                "view": _view_name(context),
-            },
-        )
-        response = Response(
-            {
-                "error": {
-                    "code": "COMMUNICATIONS_DATABASE_NOT_READY",
-                    "message": (
-                        "O banco do módulo de Comunicações ainda não está disponível. "
-                        "Aplique as migrations do backend e reinicie os serviços."
-                    ),
-                    "details": None,
-                }
-            },
-            status=status.HTTP_503_SERVICE_UNAVAILABLE,
-        )
-        return _secure_error_response(response, request_id)
-
-    # Não use logger.exception aqui: a representação textual da exceção pode
-    # conter SQL, tokens, CPF ou conteúdo clínico. O tipo e o request_id são
-    # suficientes para correlação; detalhes devem ser coletados por uma solução
-    # de observabilidade com redaction explícita.
-    logger.error(
-        "api_unhandled_exception",
-        extra={
-            "request_id": request_id,
-            "exception_type": exc.__class__.__name__,
-            "view": _view_name(context),
-        },
-    )
-    response = Response(
-        {
-            "error": {
-                "code": "INTERNAL_ERROR",
-                "message": "Ocorreu um erro interno. Por favor, tente novamente.",
-                "details": None,
-            }
-        },
-        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    )
-    return _secure_error_response(response, request_id)
+    status_code = 404
+    default_detail = "O recurso solicitado não foi encontrado."
+    default_code = "not_found"
 
 
-def _validation_error_message(exc: ValidationError) -> str:
-    messages = getattr(exc, "messages", None)
-    if messages:
-        return str(messages[0])
-    return "Os dados enviados são inválidos."
+class DomainIntegrityError(ApplicationError):
+    """O estado atual do domínio conflita com a operação solicitada (409)."""
+
+    status_code = 409
+    default_detail = "Erro de integridade ou conflito de dados."
+    default_code = "domain_integrity_error"
 
 
-def _view_name(context) -> str:
-    view = context.get("view") if isinstance(context, dict) else None
-    return view.__class__.__name__ if view is not None else "unknown"
+class BusinessRuleViolation(ApplicationError):
+    """Os dados são válidos, mas uma regra de negócio impede a operação (422)."""
+
+    status_code = 422
+    default_detail = "Violação de regra de negócio."
+    default_code = "business_rule_violation"
 
 
-def _is_communications_view(context) -> bool:
-    view = context.get("view") if isinstance(context, dict) else None
-    module = view.__class__.__module__ if view is not None else ""
-    return module.startswith("apps.communications.")
+class ApplicationOperationError(ApplicationError):
+    """Uma operação controlada falhou sem expor detalhes internos (500)."""
 
-
-def _get_error_code(exc, status_code: int) -> str:
-    code_map = {
-        400: "BAD_REQUEST",
-        401: "UNAUTHORIZED",
-        403: "FORBIDDEN",
-        404: "NOT_FOUND",
-        405: "METHOD_NOT_ALLOWED",
-        409: "CONFLICT",
-        429: "TOO_MANY_REQUESTS",
-        500: "INTERNAL_ERROR",
-        503: "SERVICE_UNAVAILABLE",
-    }
-    if hasattr(exc, "default_code"):
-        return exc.default_code.upper()
-    return code_map.get(status_code, "ERROR")
-
-
-def _get_error_message(exc, response) -> str:
-    if hasattr(exc, "detail"):
-        detail = exc.detail
-        if isinstance(detail, str):
-            return detail
-        if isinstance(detail, list) and detail:
-            return str(detail[0])
-        if isinstance(detail, dict):
-            for key, value in detail.items():
-                if isinstance(value, list):
-                    return f"{key}: {value[0]}"
-                return f"{key}: {value}"
-    return "Ocorreu um erro. Por favor, tente novamente."
+    status_code = 500
+    default_detail = "Não foi possível concluir a operação."
+    default_code = "operation_failed"
