@@ -15,7 +15,6 @@ from apps.documents.serializers.document_templates import (
     TemplatePreviewRequestSerializer,
 )
 from apps.documents.services.document_templates import (
-    DocumentDomainError,
     DocumentPlaceholderService,
     DocumentTemplateService,
 )
@@ -66,10 +65,7 @@ class DocumentTemplateViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         template = self.get_object()
-        try:
-            action, affected_template = DocumentTemplateService.resolve_removal(actor=request.user, template=template)
-        except DocumentDomainError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        action, affected_template = DocumentTemplateService.resolve_removal(actor=request.user, template=template)
         if action == "archived":
             log_access(
                 request,
@@ -90,10 +86,7 @@ class DocumentTemplateViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def duplicate(self, request, public_id=None):
         template = self.get_object()
-        try:
-            copy = DocumentTemplateService.duplicate(actor=request.user, template=template)
-        except DocumentDomainError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        copy = DocumentTemplateService.duplicate(actor=request.user, template=template)
         log_access(
             request,
             AuditLog.Action.CREATE,
@@ -105,10 +98,7 @@ class DocumentTemplateViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def archive(self, request, public_id=None):
         template = self.get_object()
-        try:
-            template = DocumentTemplateService.archive(actor=request.user, template=template)
-        except DocumentDomainError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        template = DocumentTemplateService.archive(actor=request.user, template=template)
         log_access(
             request,
             AuditLog.Action.UPDATE,
@@ -120,10 +110,7 @@ class DocumentTemplateViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def activate(self, request, public_id=None):
         template = self.get_object()
-        try:
-            template = DocumentTemplateService.activate(actor=request.user, template=template)
-        except DocumentDomainError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        template = DocumentTemplateService.activate(actor=request.user, template=template)
         log_access(
             request,
             AuditLog.Action.UPDATE,
@@ -135,10 +122,7 @@ class DocumentTemplateViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def deactivate(self, request, public_id=None):
         template = self.get_object()
-        try:
-            template = DocumentTemplateService.deactivate(actor=request.user, template=template)
-        except DocumentDomainError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        template = DocumentTemplateService.deactivate(actor=request.user, template=template)
         log_access(
             request,
             AuditLog.Action.UPDATE,
@@ -189,13 +173,10 @@ class DocumentLibraryViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=["post"], url_path="import")
     def import_template(self, request, public_id=None):
         library_template = self.get_object()
-        try:
-            template, created = DocumentTemplateService.import_from_library(
-                actor=request.user,
-                library_template=library_template,
-            )
-        except DocumentDomainError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        template, created = DocumentTemplateService.import_from_library(
+            actor=request.user,
+            library_template=library_template,
+        )
         if created:
             log_access(
                 request,

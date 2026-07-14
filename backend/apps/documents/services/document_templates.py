@@ -14,14 +14,14 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.documents.models import DocumentTemplate
+from core.exceptions import DomainError
 
 
-class DocumentDomainError(Exception):
+class DocumentDomainError(DomainError):
     """Erro de domínio seguro para exposição pela API."""
 
-    # TODO: mover para core.exceptions quando o app core tiver um
-    # módulo de exceções compartilhadas. Hoje só documents e agenda
-    # definem DocumentDomainError localmente.
+    # TODO: remover esta subclasse quando todos os raises passarem a usar
+    # DomainError diretamente. Hoje agenda também tem a sua própria.
 
 
 @dataclass(frozen=True)
@@ -354,7 +354,7 @@ class DocumentTemplateService:
                 deleted_at__isnull=True,
             ).first()
             if not patient:
-                raise DocumentDomainError("Paciente não autorizado.")
+                raise DocumentDomainError("Paciente não autorizado.", field="patient_id")
             context = DocumentPlaceholderService.build_context(
                 patient=patient,
                 professional=actor,

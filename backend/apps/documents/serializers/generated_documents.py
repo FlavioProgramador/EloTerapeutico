@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from apps.documents.models import GeneratedDocument
-from apps.documents.services.document_templates import DocumentDomainError, DocumentPlaceholderService
+from apps.documents.services.document_templates import DocumentPlaceholderService
 from apps.documents.services.generated_documents import GeneratedDocumentService
 
 
@@ -18,22 +18,14 @@ class GeneratedDocumentCreateSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         request = self.context["request"]
-        try:
-            result = GeneratedDocumentService.create(
-                actor=request.user,
-                template_public_id=validated_data["template_public_id"],
-                patient_id=validated_data["patient_id"],
-                title=validated_data.get("title", ""),
-                local_emissao=validated_data.get("local_emissao", ""),
-                idempotency_key=request.headers.get("Idempotency-Key"),
-            )
-        except DocumentDomainError as exc:
-            msg = str(exc)
-            if "template" in msg.lower():
-                raise serializers.ValidationError({"template_public_id": msg}) from exc
-            if "paciente" in msg.lower():
-                raise serializers.ValidationError({"patient_id": msg}) from exc
-            raise serializers.ValidationError(msg) from exc
+        result = GeneratedDocumentService.create(
+            actor=request.user,
+            template_public_id=validated_data["template_public_id"],
+            patient_id=validated_data["patient_id"],
+            title=validated_data.get("title", ""),
+            local_emissao=validated_data.get("local_emissao", ""),
+            idempotency_key=request.headers.get("Idempotency-Key"),
+        )
         self.context["created"] = result.created
         return result.document
 

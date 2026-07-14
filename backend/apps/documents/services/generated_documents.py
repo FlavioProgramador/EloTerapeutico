@@ -130,7 +130,7 @@ class GeneratedDocumentService:
             .first()
         )
         if not template:
-            raise DocumentDomainError("Template não autorizado.")
+            raise DocumentDomainError("Template não autorizado.", field="template_public_id")
         DocumentTemplateService.ensure_access(actor=actor, template=template)
 
         patient = Patient.objects.filter(
@@ -139,12 +139,14 @@ class GeneratedDocumentService:
             deleted_at__isnull=True,
         ).first()
         if not patient:
-            raise DocumentDomainError("Paciente não autorizado.")
+            raise DocumentDomainError("Paciente não autorizado.", field="patient_id")
         GeneratedDocumentService.ensure_patient_access(actor=actor, patient=patient)
 
         normalized_key = (idempotency_key or "").strip() or None
         if normalized_key and len(normalized_key) > 128:
-            raise DocumentDomainError("A chave de idempotência deve possuir no máximo 128 caracteres.")
+            raise DocumentDomainError(
+                "A chave de idempotência deve possuir no máximo 128 caracteres.", field="idempotency_key"
+            )
         if normalized_key:
             existing = GeneratedDocument.objects.with_idempotency_key(actor, normalized_key).first()
             if existing:

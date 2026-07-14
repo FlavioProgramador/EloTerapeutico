@@ -15,7 +15,6 @@ from apps.documents.serializers.generated_documents import (
     GeneratedDocumentDraftUpdateSerializer,
     GeneratedDocumentListSerializer,
 )
-from apps.documents.services.document_templates import DocumentDomainError
 from apps.documents.services.generated_documents import GeneratedDocumentService
 from apps.documents.views import IsClinicalDocumentUser
 from core.audit import AuditLog, log_access
@@ -77,10 +76,7 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         document = self.get_object()
-        try:
-            action, affected_document = GeneratedDocumentService.resolve_removal(actor=request.user, document=document)
-        except DocumentDomainError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        action, affected_document = GeneratedDocumentService.resolve_removal(actor=request.user, document=document)
         if action == "deleted":
             log_access(
                 request,
@@ -101,10 +97,7 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def generate(self, request, public_id=None):
         document = self.get_object()
-        try:
-            document = GeneratedDocumentService.generate_pdf(document=document, actor=request.user)
-        except DocumentDomainError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        document = GeneratedDocumentService.generate_pdf(document=document, actor=request.user)
         log_access(
             request,
             AuditLog.Action.EXPORT,
@@ -141,10 +134,7 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def archive(self, request, public_id=None):
         document = self.get_object()
-        try:
-            document = GeneratedDocumentService.archive(actor=request.user, document=document)
-        except DocumentDomainError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        document = GeneratedDocumentService.archive(actor=request.user, document=document)
         log_access(
             request,
             AuditLog.Action.UPDATE,
@@ -156,10 +146,7 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def cancel(self, request, public_id=None):
         document = self.get_object()
-        try:
-            document = GeneratedDocumentService.cancel(actor=request.user, document=document)
-        except DocumentDomainError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        document = GeneratedDocumentService.cancel(actor=request.user, document=document)
         log_access(
             request,
             AuditLog.Action.UPDATE,

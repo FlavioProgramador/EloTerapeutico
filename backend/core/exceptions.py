@@ -18,6 +18,19 @@ logger = logging.getLogger(__name__)
 _REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,64}$")
 
 
+class DomainError(Exception):
+    """Exceção de domínio com mensagem segura para exposição na API.
+
+    Subclasses devem ser capturadas pelo ``custom_exception_handler``
+    e nunca devem conter dados sensíveis ou stack traces.
+    """
+
+    def __init__(self, message: str, *, field: str | None = None) -> None:
+        self.message = message
+        self.field = field
+        super().__init__(message)
+
+
 def _get_request_id(context) -> str:
     request = context.get("request") if isinstance(context, dict) else None
     supplied = ""
@@ -38,6 +51,11 @@ def _secure_error_response(response: Response, request_id: str) -> Response:
 
 def custom_exception_handler(exc, context):
     request_id = _get_request_id(context)
+
+    if isinstance(exc, DomainError):
+        response = _build_domain_error_response(exc)
+        return _secure_error_response(response, request_id)
+
     response = exception_handler(exc, context)
 
     if response is not None:
@@ -186,3 +204,19 @@ def _get_error_message(exc, response) -> str:
                     return f"{key}: {value[0]}"
                 return f"{key}: {value}"
     return "Ocorreu um erro. Por favor, tente novamente."
+
+
+def _build_domain_error_response(exc: DomainError) -> Response:
+    details = None
+    if exc.field:
+        details = {exc.field: [exc.message]}
+    return Response(
+        {
+            "error": {
+                "code": "DOMAIN_ERROR",
+                "message": exc.message,
+                "details": details,
+            }
+        },
+        status=status.HTTP_400_BAD_REQUEST,
+    )
