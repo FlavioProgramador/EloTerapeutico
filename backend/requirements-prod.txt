@@ -45,7 +45,7 @@ azure-storage-blob>=12.19,<12.20
 django-ratelimit>=4.1,<4.2
 
 # Logging estruturado
-structlog>=24.1,<24.2
+structlog>=26.1.0,<26.2
 
 # Health checks
 django-health-check>=3.18,<3.19
