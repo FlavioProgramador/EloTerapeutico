@@ -23,7 +23,6 @@ from apps.documents.api.serializers.documents_serializers import (
 )
 from apps.documents.models import DocumentTemplate, GeneratedDocument
 from apps.documents.services.core_services import (
-    DocumentDomainError,
     duplicate_template,
     generate_pdf,
     import_library_template,
@@ -139,10 +138,7 @@ class DocumentTemplateViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def duplicate(self, request, public_id=None):
         template = self.get_object()
-        try:
-            copy = duplicate_template(actor=request.user, template=template)
-        except DocumentDomainError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        copy = duplicate_template(actor=request.user, template=template)
         log_access(
             request,
             AuditLog.Action.CREATE,
@@ -233,13 +229,10 @@ class DocumentLibraryViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=["post"], url_path="import")
     def import_template(self, request, public_id=None):
         library_template = self.get_object()
-        try:
-            template, created = import_library_template(
-                actor=request.user,
-                library_template=library_template,
-            )
-        except DocumentDomainError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        template, created = import_library_template(
+            actor=request.user,
+            library_template=library_template,
+        )
         if created:
             log_access(
                 request,
@@ -344,10 +337,7 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def generate(self, request, public_id=None):
         document = self.get_object()
-        try:
-            document = generate_pdf(document=document, actor=request.user)
-        except DocumentDomainError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        document = generate_pdf(document=document, actor=request.user)
         log_access(
             request,
             AuditLog.Action.EXPORT,

@@ -35,6 +35,13 @@ except (ImportError, OSError):
                 return dummy_pdf
 
 
+from apps.core.exceptions import (
+    ApplicationError,
+    ApplicationOperationError,
+    AuthorizationError,
+    BusinessRuleViolation,
+    DomainIntegrityError,
+)
 from apps.documents.models import DocumentSequence, DocumentTemplate, GeneratedDocument
 from apps.documents.services.placeholders import (
     build_document_context,
@@ -42,10 +49,6 @@ from apps.documents.services.placeholders import (
     validate_template_content,
 )
 from apps.patients.models import Patient
-
-
-class DocumentDomainError(Exception):
-    """Erro de domínio seguro para exposição pela API."""
 
 
 @dataclass(frozen=True)
@@ -56,18 +59,37 @@ class GeneratedDocumentResult:
 
 def ensure_patient_access(*, actor, patient: Patient) -> None:
     if actor.is_secretary:
-        raise DocumentDomainError("Secretárias não possuem acesso a documentos clínicos.")
+        raise AuthorizationError(
+            "Secretárias não possuem acesso a documentos clínicos.",
+            code="document_access_denied",
+        )
     if patient.therapist_id != actor.id:
-        raise DocumentDomainError("Paciente não autorizado para este profissional.")
+        raise AuthorizationError(
+            "Paciente não autorizado para este profissional.",
+            code="document_patient_access_denied",
+            field="patient",
+        )
 
 
 def ensure_template_access(*, actor, template: DocumentTemplate) -> None:
     if template.status != DocumentTemplate.Status.ACTIVE:
-        raise DocumentDomainError("O template selecionado não está ativo.")
+        raise DomainIntegrityError(
+            "O template selecionado não está ativo.",
+            code="document_template_inactive",
+            field="template",
+        )
     if template.is_library_template:
-        raise DocumentDomainError("Importe o template da biblioteca antes de utilizá-lo.")
+        raise BusinessRuleViolation(
+            "Importe o template da biblioteca antes de utilizá-lo.",
+            code="document_template_import_required",
+            field="template",
+        )
     if template.owner_id != actor.id:
-        raise DocumentDomainError("Template não autorizado.")
+        raise AuthorizationError(
+            "Template não autorizado.",
+            code="document_template_access_denied",
+            field="template",
+        )
 
 
 def _next_document_number(*, owner) -> str:
@@ -85,7 +107,11 @@ def _next_document_number(*, owner) -> str:
 @transaction.atomic
 def import_library_template(*, actor, library_template: DocumentTemplate) -> tuple[DocumentTemplate, bool]:
     if not library_template.is_library_template or library_template.owner_id is not None:
-        raise DocumentDomainError("Template de biblioteca inválido.")
+        raise BusinessRuleViolation(
+            "Template de biblioteca inválido.",
+            code="invalid_library_template",
+            field="template",
+        )
     existing = DocumentTemplate.objects.filter(
         owner=actor,
         source_library_template=library_template,
@@ -176,7 +202,11 @@ def create_generated_document(
 
     normalized_key = (idempotency_key or "").strip() or None
     if normalized_key and len(normalized_key) > 128:
-        raise DocumentDomainError("A chave de idempotência deve possuir no máximo 128 caracteres.")
+        raise ApplicationError(
+            "A chave de idempotência deve possuir no máximo 128 caracteres.",
+            code="invalid_idempotency_key",
+            field="idempotency_key",
+        )
     if normalized_key:
         existing = GeneratedDocument.objects.filter(
             owner=actor,
@@ -279,16 +309,25 @@ def generate_pdf(*, document: GeneratedDocument, actor) -> GeneratedDocument:
     with transaction.atomic():
         locked = GeneratedDocument.objects.select_for_update().get(pk=document.pk)
         if locked.owner_id != actor.id:
-            raise DocumentDomainError("Documento não autorizado.")
+            raise AuthorizationError(
+                "Documento não autorizado.",
+                code="document_access_denied",
+            )
         if locked.status == GeneratedDocument.Status.COMPLETED and locked.pdf_file:
             return locked
         if locked.status in (
             GeneratedDocument.Status.CANCELLED,
             GeneratedDocument.Status.ARCHIVED,
         ):
-            raise DocumentDomainError("Este documento não pode ser gerado no status atual.")
+            raise DomainIntegrityError(
+                "Este documento não pode ser gerado no status atual.",
+                code="document_invalid_status",
+            )
         if locked.status == GeneratedDocument.Status.PROCESSING:
-            raise DocumentDomainError("Este documento já está sendo processado.")
+            raise DomainIntegrityError(
+                "Este documento já está sendo processado.",
+                code="document_already_processing",
+            )
         locked.status = GeneratedDocument.Status.PROCESSING
         locked.failure_reason = ""
         locked.save(update_fields=["status", "failure_reason", "updated_at"])
@@ -302,12 +341,18 @@ def generate_pdf(*, document: GeneratedDocument, actor) -> GeneratedDocument:
             failure_reason="Não foi possível gerar o PDF. Tente novamente.",
             updated_at=timezone.now(),
         )
-        raise DocumentDomainError("Falha ao gerar o PDF do documento.") from exc
+        raise ApplicationOperationError(
+            "Falha ao gerar o PDF do documento.",
+            code="document_generation_failed",
+        ) from exc
 
     with transaction.atomic():
         locked = GeneratedDocument.objects.select_for_update().get(pk=document.pk)
         if locked.status != GeneratedDocument.Status.PROCESSING:
-            raise DocumentDomainError("O estado do documento mudou durante a geração.")
+            raise DomainIntegrityError(
+                "O estado do documento mudou durante a geração.",
+                code="document_state_changed",
+            )
         pdf_hash = GeneratedDocument.calculate_hash(pdf_bytes)
         generated_at = timezone.now()
         signature_hash = GeneratedDocument.calculate_hash(

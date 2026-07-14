@@ -6,7 +6,6 @@ import calendar
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
@@ -18,6 +17,7 @@ from apps.agenda.models import (
     PatientPackage,
     TelemedicineRoom,
 )
+from apps.core.exceptions import AuthorizationError, DomainIntegrityError
 
 
 def add_months(value: date, months: int) -> date:
@@ -74,7 +74,11 @@ def create_appointment_resources(
     """Cria recursos derivados sem realizar envio externo na requisição."""
     if package:
         if package.patient_id != appointment.patient_id or package.therapist_id != appointment.therapist_id:
-            raise ValidationError("O pacote não pertence ao paciente e profissional informados.")
+            raise AuthorizationError(
+                "O pacote não pertence ao paciente e profissional informados.",
+                code="agenda_package_access_denied",
+                field="package",
+            )
         package.consume()
         PackageSession.objects.create(
             package=package,
@@ -169,7 +173,11 @@ def generate_recurrence_appointments(
                 if conflict_strategy == "skip":
                     continue
                 labels = ", ".join(key for key, value in conflicts.items() if value)
-                raise ValidationError(f"A recorrência possui conflito em {target_date:%d/%m/%Y}: {labels}.")
+                raise DomainIntegrityError(
+                    f"A recorrência possui conflito em {target_date:%d/%m/%Y}: {labels}.",
+                    code="agenda_recurrence_conflict",
+                    field="start_time",
+                )
 
             appointment = Appointment.objects.create(
                 patient=rule.patient,

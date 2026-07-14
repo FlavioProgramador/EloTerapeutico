@@ -55,6 +55,8 @@ def main() -> None:
 
     required = [
         BACKEND / "apps" / "core" / "apps.py",
+        BACKEND / "apps" / "core" / "exceptions.py",
+        BACKEND / "apps" / "core" / "exception_handler.py",
         BACKEND / "config" / "settings" / "base.py",
         BACKEND / "apps" / "billing" / "infrastructure" / "payments" / "asaas" / "client.py",
         BACKEND / "apps" / "communications" / "infrastructure" / "messaging" / "email.py",
@@ -68,6 +70,7 @@ def main() -> None:
         r"(?m)^\s*import core(?:\.|\s|$)": "import legado import core",
         r"elo_terapeutico\.": "referência ao pacote de configuração antigo",
         r"apps\.billing\.services\.gateways\.asaas": "client Asaas no domínio billing",
+        r"apps\.core\.exceptions\.custom_exception_handler": "handler HTTP dentro do módulo de classes",
     }
     for path in iter_source_files():
         try:
