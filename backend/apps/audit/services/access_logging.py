@@ -20,6 +20,18 @@ MAX_USER_AGENT_LENGTH = 512
 
 
 def _clean_text(value: object, *, max_length: int) -> str:
+    """Normaliza texto de auditoria e limita seu tamanho.
+
+    Remove caracteres de controle e espaços redundantes para reduzir risco de
+    quebra de linha, log injection e armazenamento excessivo.
+
+    Args:
+        value: Valor que será convertido em texto.
+        max_length: Quantidade máxima de caracteres preservados.
+
+    Returns:
+        Texto normalizado e truncado.
+    """
     text = _CONTROL_CHARS.sub(" ", str(value or ""))
     text = " ".join(text.split())
     return text[:max_length]
@@ -31,6 +43,13 @@ def _safe_object_repr(obj=None, explicit: str = "") -> str:
     Métodos ``__str__`` frequentemente incluem nomes, e-mails ou trechos de
     prontuário. Quando o chamador não fornece uma descrição explícita, o log
     registra somente o rótulo técnico do modelo e sua chave primária.
+
+    Args:
+        obj: Instância opcional associada ao evento.
+        explicit: Descrição segura fornecida pelo chamador.
+
+    Returns:
+        Representação sanitizada com no máximo 200 caracteres.
     """
 
     if explicit:
@@ -44,6 +63,14 @@ def _safe_object_repr(obj=None, explicit: str = "") -> str:
 
 
 def _valid_ip(value: object) -> str | None:
+    """Valida e normaliza um endereço IPv4 ou IPv6.
+
+    Args:
+        value: Valor obtido dos metadados da requisição.
+
+    Returns:
+        Endereço IP normalizado ou ``None`` quando ausente ou inválido.
+    """
     candidate = str(value or "").strip()
     if not candidate:
         return None
@@ -54,7 +81,18 @@ def _valid_ip(value: object) -> str | None:
 
 
 def _get_client_ip(request) -> str | None:
-    """Obtém IP sem confiar em cabeçalhos de proxy por padrão."""
+    """Obtém IP sem confiar em cabeçalhos de proxy por padrão.
+
+    Headers encaminhados somente são considerados quando
+    ``TRUST_PROXY_CLIENT_IP_HEADERS`` está habilitado para uma infraestrutura
+    de proxy conhecida e controlada.
+
+    Args:
+        request: Requisição Django contendo os metadados de rede.
+
+    Returns:
+        IP validado do cliente ou ``None``.
+    """
 
     if getattr(settings, "TRUST_PROXY_CLIENT_IP_HEADERS", False):
         azure_client_ip = _valid_ip(request.META.get("HTTP_X_AZURE_CLIENTIP"))
@@ -71,6 +109,25 @@ def _get_client_ip(request) -> str | None:
 
 
 def log_access(request, action: str, obj=None, obj_repr: str = "") -> None:
+    """Registra uma ação sensível sem interromper a operação principal.
+
+    O serviço persiste usuário, ação, IP validado, user agent sanitizado e uma
+    representação mínima do objeto. Qualquer falha de auditoria é registrada
+    de forma sanitizada e não é propagada ao fluxo HTTP.
+
+    Args:
+        request: Requisição Django associada ao evento.
+        action: Ação definida por ``AuditLog.Action``.
+        obj: Objeto opcional relacionado ao acesso.
+        obj_repr: Descrição explícita e segura do objeto.
+
+    Returns:
+        ``None``.
+
+    Side Effects:
+        Cria um ``AuditLog``. Em falha, escreve apenas o tipo da exceção no
+        logger da aplicação.
+    """
     try:
         content_type = None
         object_id = None
@@ -98,15 +155,24 @@ def log_access(request, action: str, obj=None, obj_repr: str = "") -> None:
 
 
 class AuditLogMixin:
+    """Adiciona auditoria automática às operações sensíveis de ViewSets.
+
+    O mixin registra leitura, criação, atualização e exclusão após ou antes do
+    hook correspondente do DRF, sem alterar a resposta do endpoint. A auditoria
+    pode ser desativada por classe com ``audit_sensitive = False``.
+    """
+
     audit_sensitive = True
 
     def retrieve(self, request, *args, **kwargs):
+        """Registra visualização após recuperar o objeto com sucesso."""
         response = super().retrieve(request, *args, **kwargs)
         if self.audit_sensitive:
             log_access(request, AuditLog.Action.VIEW, obj=self.get_object())
         return response
 
     def perform_create(self, serializer):
+        """Registra a criação depois que o serializer persiste a instância."""
         super().perform_create(serializer)
         if self.audit_sensitive:
             log_access(
@@ -116,6 +182,7 @@ class AuditLogMixin:
             )
 
     def perform_update(self, serializer):
+        """Registra a atualização depois que o serializer persiste a instância."""
         super().perform_update(serializer)
         if self.audit_sensitive:
             log_access(
@@ -125,6 +192,7 @@ class AuditLogMixin:
             )
 
     def perform_destroy(self, instance):
+        """Registra a exclusão antes de delegar a remoção ao ViewSet."""
         if self.audit_sensitive:
             log_access(
                 request=self.request,
