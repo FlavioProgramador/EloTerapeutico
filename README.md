@@ -65,7 +65,7 @@ flowchart LR
 - **Processamento assíncrono:** filas persistidas no banco para exportações clínicas e comunicações, processadas por management commands.
 - **Arquivos:** filesystem no desenvolvimento; Azure Blob pode ser configurado em produção.
 
-Leia a [documentação de arquitetura](docs/02-arquitetura/README.md).
+Leia a [visão geral de arquitetura](docs/02-arquitetura/README.md), o [mapa dos apps](docs/architecture/backend-architecture-map.md) e as [convenções de camadas do backend](docs/backend-architecture.md).
 
 ## Tecnologias
 
@@ -249,6 +249,12 @@ O portal principal está em [`docs/README.md`](docs/README.md). Ele organiza doc
 - suporte e troubleshooting;
 - módulos e casos de uso;
 - decisões arquiteturais.
+
+Referências diretas para desenvolvimento do backend:
+
+- [convenções de camadas, dependências, multi-tenant e transações](docs/backend-architecture.md);
+- [mapa atual dos apps e responsabilidades](docs/architecture/backend-architecture-map.md);
+- [testes e verificações de qualidade](docs/10-testes/README.md).
 
 Documentação específica do módulo de Comunicações:
 
