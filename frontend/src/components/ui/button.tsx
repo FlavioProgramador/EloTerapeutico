@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?:
+    | "default"
     | "primary"
     | "secondary"
     | "outline"
@@ -34,6 +35,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) => {
     const variants = {
+      default:
+        "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-active",
       primary:
         "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-active",
       secondary:
