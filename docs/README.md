@@ -1,6 +1,6 @@
 # Documentação do Elo Terapêutico
 
-Este diretório é o portal técnico oficial do projeto. A documentação foi revisada a partir do código no commit-base `176cba63ed3edf1cee232363e5a89c4b7fda28ac`, em 10 de julho de 2026.
+Este diretório é o portal técnico oficial do projeto. A documentação foi revisada a partir do código no commit-base `34ccbd204e331fb84ff2c216510f3741fb6dbebf`, em 14 de julho de 2026.
 
 ## Legenda de situação
 
@@ -14,6 +14,7 @@ Este diretório é o portal técnico oficial do projeto. A documentação foi re
 
 | Seção | Público principal | Conteúdo |
 | --- | --- | --- |
+| [Backend](backend/README.md) | Backend, QA, segurança e DevOps | Arquitetura, apps, API, autenticação, dados clínicos, billing, workers e configuração |
 | [01 — Visão geral](01-visao-geral/README.md) | Produto, suporte e novos colaboradores | Produto, escopo, situação e limitações |
 | [02 — Arquitetura](02-arquitetura/README.md) | Engenharia e arquitetura | Backend, frontend, banco, integrações e diagramas |
 | [03 — Instalação](03-instalacao/README.md) | Desenvolvimento e suporte | Execução local, Docker e verificação |
@@ -36,6 +37,7 @@ Este diretório é o portal técnico oficial do projeto. A documentação foi re
 
 | Área | Situação | Observação |
 | --- | --- | --- |
+| Backend | ✅ | Portal consolidado com arquitetura, apps, API, segurança, operação e relatório |
 | Visão geral | ✅ | Alinhada ao código-base analisado |
 | Arquitetura | ✅ | Inclui diagramas Mermaid e limites comprovados |
 | Instalação e configuração | ✅ | Comandos derivados dos arquivos reais |
@@ -66,10 +68,11 @@ A ordem de precedência é:
 3. esta documentação;
 4. documentos históricos, quando ainda existirem.
 
-Em caso de divergência, abra uma issue e corrija o documento no mesmo Pull Request da mudança funcional.
+Em caso de divergência, corrija o documento no mesmo Pull Request da mudança funcional.
 
 ## Revisão
 
-- **Data:** 10/07/2026
-- **Commit analisado:** `176cba63ed3edf1cee232363e5a89c4b7fda28ac`
-- **Relatório:** [RELATORIO_DA_REFATORACAO.md](RELATORIO_DA_REFATORACAO.md)
+- **Data:** 14/07/2026
+- **Commit analisado:** `34ccbd204e331fb84ff2c216510f3741fb6dbebf`
+- **Relatório do backend:** [backend/documentation-report.md](backend/documentation-report.md)
+- **Relatório anterior:** [RELATORIO_DA_REFATORACAO.md](RELATORIO_DA_REFATORACAO.md)

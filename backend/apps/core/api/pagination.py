@@ -6,12 +6,28 @@ from rest_framework.response import Response
 
 
 class StandardResultsPagination(PageNumberPagination):
+    """Padroniza paginação por número de página em todos os endpoints.
+
+    A resposta agrupa os metadados em ``pagination`` e mantém os itens em
+    ``results``. O cliente pode alterar ``page_size`` até o limite de 100
+    registros por requisição.
+    """
+
     page_size = 20
     page_size_query_param = "page_size"
     max_page_size = 100
     page_query_param = "page"
 
     def get_paginated_response(self, data):
+        """Monta a resposta paginada usada pelo frontend.
+
+        Args:
+            data: Coleção já serializada correspondente à página atual.
+
+        Returns:
+            Resposta HTTP contendo contagem, páginas, links de navegação e
+            resultados serializados.
+        """
         return Response(
             {
                 "pagination": {
@@ -26,6 +42,14 @@ class StandardResultsPagination(PageNumberPagination):
         )
 
     def get_paginated_response_schema(self, schema):
+        """Descreve no OpenAPI o envelope de paginação customizado.
+
+        Args:
+            schema: Schema OpenAPI dos itens presentes em ``results``.
+
+        Returns:
+            Objeto OpenAPI com metadados de paginação e lista de resultados.
+        """
         return {
             "type": "object",
             "properties": {
