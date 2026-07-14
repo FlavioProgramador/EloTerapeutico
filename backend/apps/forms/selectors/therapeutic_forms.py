@@ -1,6 +1,6 @@
 """Selectors de formulários terapêuticos."""
 
-from django.db.models import Count, Q, QuerySet
+from django.db.models import Q, Count, QuerySet
 
 from apps.forms.models import TherapeuticForm
 
