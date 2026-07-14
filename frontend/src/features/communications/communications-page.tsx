@@ -1,19 +1,32 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, CalendarClock, CheckCircle2, Clock3, Eye, FileText, Loader2, MessageSquare, Plus, Search, Send, Settings2, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, Clock3, Eye, FileText, FlaskConical, Loader2, MessageSquare, Plus, Power, Search, Send, Settings2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
-import { communicationChannelLabel as channelLabel, communicationStatusLabel as statusLabel } from "./communications.utils";
-import { useCommunicationAutomations, useCommunicationChannels, useCommunicationDashboard, useCommunications, useCommunicationTemplates, useToggleCommunicationAutomation } from "./use-communications";
+import { ChannelConfigurationModal } from "./channel-configuration-modal";
+import { communicationChannelLabel as channelLabel, communicationConnectionStatusLabel, communicationStatusLabel as statusLabel } from "./communications.utils";
+import { useCommunicationAutomations, useCommunicationChannels, useCommunicationDashboard, useCommunications, useCommunicationTemplates, useTestCommunicationChannelConnection, useToggleCommunicationAutomation, useToggleCommunicationChannel } from "./use-communications";
 import { CommunicationDrawer } from "./communication-drawer";
 import { channelIcon, formatDate, Metric, statusTone } from "./communications-ui";
 import { NewCommunicationModal } from "./new-communication-modal";
+import type { ChannelConnectionStatus, CommunicationChannelConfig } from "./types";
 
 type Tab = "overview" | "history" | "templates" | "automations" | "channels";
+
+function channelStatusTone(status: ChannelConnectionStatus) {
+  if (status === "configured") return "border-success/20 bg-success/10 text-success";
+  if (status === "error" || status === "unavailable") return "border-danger/20 bg-danger/10 text-danger";
+  if (status === "validating") return "border-primary/20 bg-primary/10 text-primary";
+  return "border-warning/20 bg-warning/10 text-warning";
+}
+
+function readableProvider(config: CommunicationChannelConfig) {
+  return config.available_providers.find((provider) => provider.id === config.provider)?.label || config.provider || "Selecione um provedor";
+}
 
 export function CommunicationsPage() {
   const [tab, setTab] = useState<Tab>("overview");
@@ -23,14 +36,35 @@ export function CommunicationsPage() {
   const [channel, setChannel] = useState("");
   const [newOpen, setNewOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedChannel, setSelectedChannel] = useState<CommunicationChannelConfig | null>(null);
   const dashboard = useCommunicationDashboard(period);
   const communications = useCommunications({ search, status, channel, page_size: 50 });
   const templates = useCommunicationTemplates();
   const automations = useCommunicationAutomations();
   const channels = useCommunicationChannels();
   const toggleAutomation = useToggleCommunicationAutomation();
+  const testChannel = useTestCommunicationChannelConnection();
+  const toggleChannel = useToggleCommunicationChannel();
   const maxChannel = useMemo(() => Math.max(1, ...(dashboard.data?.by_channel.map((item) => item.total) ?? [1])), [dashboard.data]);
   const tabs: Array<[Tab, string]> = [["overview", "Visão geral"], ["history", "Histórico"], ["templates", "Templates"], ["automations", "Automações"], ["channels", "Canais"]];
+
+  async function quickTest(config: CommunicationChannelConfig) {
+    try {
+      await testChannel.mutateAsync(config.channel);
+      toast.success(`${channelLabel[config.channel]} validado com sucesso.`);
+    } catch {
+      toast.error("Não foi possível validar o canal. Abra Configurar para revisar os campos.");
+    }
+  }
+
+  async function quickToggle(config: CommunicationChannelConfig) {
+    try {
+      await toggleChannel.mutateAsync({ channel: config.channel, active: !config.is_active });
+      toast.success(config.is_active ? "Canal desativado." : "Canal ativado.");
+    } catch {
+      toast.error("Teste a configuração com sucesso antes de ativar o canal.");
+    }
+  }
 
   return <main className="min-h-full bg-background p-4 sm:p-6 lg:p-8"><div className="mx-auto max-w-7xl">
     <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex items-center gap-2 text-xs font-semibold text-primary"><MessageSquare className="h-4 w-4" />Central operacional</div><h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">Comunicações</h1><p className="mt-1 text-sm text-muted-foreground">Centralize mensagens, lembretes e notificações dos seus pacientes.</p></div><Button onClick={() => setNewOpen(true)}><Plus className="mr-2 h-4 w-4" />Nova comunicação</Button></header>
@@ -48,6 +82,11 @@ export function CommunicationsPage() {
 
     {tab === "automations" && <section className="mt-6 grid gap-3">{automations.isLoading && <p className="text-sm text-muted-foreground">Carregando automações...</p>}{automations.data?.map((automation) => <div key={automation.id} className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 md:flex-row md:items-center md:justify-between"><div><div className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-primary" /><h2 className="text-sm font-bold">{automation.name}</h2></div><p className="mt-2 text-xs text-muted-foreground">{automation.event_type} · {automation.template_name} · {automation.delay_value} {automation.delay_unit}</p><p className="mt-1 text-[10px] text-muted-foreground">Falhas registradas: {automation.failures}</p></div><button type="button" disabled={toggleAutomation.isPending} onClick={async () => { try { await toggleAutomation.mutateAsync({ id: automation.id, active: !automation.is_active }); toast.success(automation.is_active ? "Automação desativada." : "Automação ativada."); } catch { toast.error("Revise o canal e o template antes de ativar."); } }} className={cn("rounded-full border px-4 py-2 text-xs font-bold", automation.is_active ? "border-success/20 bg-success/10 text-success" : "border-border bg-secondary text-muted-foreground")}>{automation.is_active ? "Ativa" : "Desativada"}</button></div>)}</section>}
 
-    {tab === "channels" && <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{channels.data?.map((item) => { const Icon = channelIcon(item.channel); return <Card key={item.channel}><CardContent className="p-5"><div className="flex items-start justify-between"><span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><Icon className="h-5 w-5" /></span><span className={cn("rounded-full border px-2 py-1 text-[10px] font-bold", item.connection_status === "configured" ? "border-success/20 bg-success/10 text-success" : "border-warning/20 bg-warning/10 text-warning")}>{item.connection_status === "configured" ? "Configurado" : "Não configurado"}</span></div><h2 className="mt-4 text-sm font-bold">{channelLabel[item.channel]}</h2><p className="mt-2 text-xs text-muted-foreground">Provedor: {item.provider || "A definir"}</p><p className="mt-1 text-xs text-muted-foreground">{item.is_active ? "Canal ativo" : "Canal desativado"}</p><Button variant="outline" className="mt-4 w-full" disabled={item.connection_status !== "configured"}><Settings2 className="mr-2 h-4 w-4" />Configurar</Button></CardContent></Card>; })}</section>}
-  </div>{newOpen && <NewCommunicationModal onClose={() => setNewOpen(false)} />}{selectedId && <CommunicationDrawer id={selectedId} onClose={() => setSelectedId(null)} />}</main>;
+    {tab === "channels" && <section className="mt-6">
+      {channels.isLoading && <div className="flex min-h-64 items-center justify-center text-sm text-muted-foreground"><Loader2 className="mr-2 h-5 w-5 animate-spin" />Carregando canais...</div>}
+      {channels.isError && <div className="rounded-xl border border-danger/20 bg-danger/5 p-5 text-sm text-danger">Não foi possível carregar os canais.</div>}
+      {channels.data?.length === 0 && <div className="grid min-h-64 place-items-center"><EmptyState icon={<Settings2 className="h-6 w-6" />} title="Nenhum canal disponível" description="Atualize a página ou verifique as permissões do módulo." /></div>}
+      {!!channels.data?.length && <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{channels.data.map((item) => { const Icon = channelIcon(item.channel); return <Card key={item.channel} className="overflow-hidden"><CardContent className="p-0"><div className="p-5"><div className="flex items-start justify-between gap-3"><span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><Icon className="h-5 w-5" /></span><span className={cn("rounded-full border px-2.5 py-1 text-[10px] font-bold", channelStatusTone(item.connection_status))}>{communicationConnectionStatusLabel[item.connection_status]}</span></div><h2 className="mt-4 text-sm font-bold">{channelLabel[item.channel]}</h2><p className="mt-2 text-xs text-muted-foreground">Provedor: <span className="font-semibold text-foreground">{readableProvider(item)}</span></p><div className="mt-4 grid gap-2 rounded-xl border border-border bg-secondary/30 p-3 text-[11px]"><div className="flex justify-between gap-3"><span className="text-muted-foreground">Operação</span><b className={item.is_active ? "text-success" : "text-muted-foreground"}>{item.is_active ? "Ativo" : "Inativo"}</b></div><div className="flex justify-between gap-3"><span className="text-muted-foreground">Última verificação</span><b>{item.last_tested_at ? formatDate(item.last_tested_at) : "Não realizada"}</b></div>{item.last_error && <div className="border-t border-border pt-2 text-danger"><AlertTriangle className="mr-1 inline h-3.5 w-3.5" />{item.last_error.message}</div>}</div></div><div className="grid grid-cols-2 gap-2 border-t border-border bg-secondary/20 p-4"><Button variant="outline" onClick={() => setSelectedChannel(item)}><Settings2 className="mr-2 h-4 w-4" />Configurar</Button><Button variant="outline" onClick={() => quickTest(item)} disabled={testChannel.isPending || item.connection_status === "not_configured" || item.connection_status === "incomplete"}><FlaskConical className="mr-2 h-4 w-4" />Testar</Button><Button className="col-span-2" variant={item.is_active ? "outline" : "default"} onClick={() => quickToggle(item)} disabled={toggleChannel.isPending || (!item.is_active && item.connection_status !== "configured")}><Power className="mr-2 h-4 w-4" />{item.is_active ? "Desativar canal" : "Ativar canal"}</Button></div></CardContent></Card>; })}</div>}
+    </section>}
+  </div>{newOpen && <NewCommunicationModal onClose={() => setNewOpen(false)} />}{selectedId && <CommunicationDrawer id={selectedId} onClose={() => setSelectedId(null)} />}{selectedChannel && <ChannelConfigurationModal channel={selectedChannel} onClose={() => setSelectedChannel(null)} />}</main>;
 }

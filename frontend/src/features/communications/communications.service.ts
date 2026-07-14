@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { Communication, CommunicationAutomation, CommunicationChannelConfig, CommunicationDashboard, CommunicationDetail, CommunicationTemplate, CreateCommunicationPayload, InAppNotification, Paginated, PatientOption } from "./types";
+import type { ChannelTestResponse, Communication, CommunicationAutomation, CommunicationChannelConfig, CommunicationDashboard, CommunicationDetail, CommunicationTemplate, CreateCommunicationPayload, InAppNotification, Paginated, PatientOption, UpdateChannelConfigurationPayload } from "./types";
 
 function params(input?: Record<string, string | number | undefined | null>) { return Object.fromEntries(Object.entries(input ?? {}).filter(([, value]) => value !== undefined && value !== null && value !== "")); }
 
@@ -13,6 +13,11 @@ export const communicationsService = {
   async automations() { const { data } = await api.get<Paginated<CommunicationAutomation> | CommunicationAutomation[]>("communications/automations/"); return Array.isArray(data) ? data : data.results; },
   async toggleAutomation(id: number, active: boolean) { const { data } = await api.post<CommunicationAutomation>(`communications/automations/${id}/${active ? "activate" : "deactivate"}/`); return data; },
   async channels() { const { data } = await api.get<Paginated<CommunicationChannelConfig> | CommunicationChannelConfig[]>("communications/channels/"); return Array.isArray(data) ? data : data.results; },
+  async updateChannel(channel: string, payload: UpdateChannelConfigurationPayload) { const { data } = await api.patch<CommunicationChannelConfig>(`communications/channels/${channel}/`, payload); return data; },
+  async testChannelConnection(channel: string) { const { data } = await api.post<CommunicationChannelConfig>(`communications/channels/${channel}/test-connection/`, {}); return data; },
+  async sendChannelTest(channel: string, destination?: string) { const { data } = await api.post<ChannelTestResponse>(`communications/channels/${channel}/test/`, { destination: destination || undefined }); return data; },
+  async toggleChannel(channel: string, active: boolean) { const { data } = await api.post<CommunicationChannelConfig>(`communications/channels/${channel}/${active ? "activate" : "deactivate"}/`, {}); return data; },
+  async removeChannel(channel: string) { const { data } = await api.post<CommunicationChannelConfig>(`communications/channels/${channel}/remove/`, { confirm: true }); return data; },
   async patients() { const { data } = await api.get<Paginated<PatientOption> | PatientOption[]>("patients/", { params: { page_size: 100, status: "active" } }); return Array.isArray(data) ? data : data.results; },
   async notifications() { const { data } = await api.get<Paginated<InAppNotification> | InAppNotification[]>("communications/notifications/", { params: { page_size: 10 } }); return Array.isArray(data) ? data : data.results; },
   async unreadCount() { const { data } = await api.get<{ count: number }>("communications/notifications/unread-count/"); return data.count; },
