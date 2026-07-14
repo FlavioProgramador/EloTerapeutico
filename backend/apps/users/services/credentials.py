@@ -15,6 +15,23 @@ logger = logging.getLogger(__name__)
 
 
 def request_password_reset(*, email: str) -> None:
+    """Solicita redefinição de senha sem permitir enumeração de contas.
+
+    Quando existe um usuário ativo com o e-mail informado, o serviço gera o
+    token nativo do Django, monta a URL do frontend e delega o envio ao adapter
+    de e-mail. Contas inexistentes ou inativas encerram o fluxo silenciosamente
+    para que a resposta pública seja indistinguível.
+
+    Args:
+        email: Endereço informado pelo solicitante.
+
+    Returns:
+        ``None``. O resultado não indica se a conta existe.
+
+    Side Effects:
+        Pode enviar um e-mail de redefinição de senha para uma conta ativa.
+        Falhas do provider são registradas apenas com o tipo da exceção.
+    """
     try:
         user = User.objects.get(email=email, is_active=True)
     except User.DoesNotExist:
