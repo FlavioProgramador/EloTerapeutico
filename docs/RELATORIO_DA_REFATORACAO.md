@@ -138,7 +138,7 @@ Havia conteúdo útil, mas também duplicação, nomenclatura divergente, caminh
 ## Inconsistências encontradas
 
 1. O README anterior afirmava arquitetura SaaS multi-tenant pronta, mas não existe entidade explícita de clínica/tenant.
-2. O comando anterior usava `requirements/local.txt`, arquivo inexistente; o projeto usa `requirements/dev.txt`.
+2. O comando anterior usava `requirements/local.txt`, arquivo inexistente; o projeto usa `requirements.txt`.
 3. Versões e estrutura documentadas não correspondiam ao código atual: Next.js 16, React 19, Node 24, Django 5 e app `users`.
 4. Financeiro clínico e billing SaaS estavam fragmentados ou podiam ser confundidos.
 5. Redis podia ser interpretado como fila; exportações clínicas usam fila persistida no banco.
@@ -216,7 +216,7 @@ pytest --create-db
 ruff check .
 mypy .
 bandit -r apps infrastructure config -c pyproject.toml
-pip-audit -r requirements/base.txt
+pip-audit -r requirements.txt
 ```
 
 ### Frontend

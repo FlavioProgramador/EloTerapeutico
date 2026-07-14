@@ -11,11 +11,11 @@ ignore = ["E203", "DJ001", "DJ008", "DJ012", "F401", "B904", "E501", "C901", "E7
 max-complexity = 15
 
 [tool.ruff.lint.isort]
-known-first-party = ["core", "infrastructure", "apps", "config"]
+known-first-party = ["apps", "config"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/*" = ["S101", "E501"]
-"core/*.py" = ["F401"]
+"apps/core/*.py" = ["F401"]
 "config/settings/*.py" = ["F405", "F403"]
 
 [tool.ruff.format]
@@ -36,7 +36,7 @@ markers = [
 
 [tool.coverage.run]
 branch = true
-source = ["core", "infrastructure", "apps", "config"]
+source = ["apps", "config"]
 omit = ["*/migrations/*", "*/tests/*", "manage.py"]
 
 [tool.coverage.report]
@@ -46,11 +46,11 @@ skip_covered = false
 [tool.mypy]
 python_version = "3.11"
 plugins = ["mypy_django_plugin.main"]
-exclude = ["migrations", "^core/", "tests", ".*_test\\.py$", "test_.*\\.py$", "dashboard_queries.py", "run_export_worker.py", "audit.py", "evolution_flow_models.py", "appointments.py", "review_filter.py", "fields.py", "managers.py", "test.py", "utils.py"]
+exclude = ["migrations", "^apps/core/", "tests", ".*_test\\.py$", "test_.*\\.py$", "dashboard_queries.py", "run_export_worker.py", "audit.py", "evolution_flow_models.py", "appointments.py", "review_filter.py", "fields.py", "managers.py", "test.py", "utils.py"]
 warn_unused_ignores = true
 warn_redundant_casts = true
 check_untyped_defs = true
-mypy_path = "backend"
+mypy_path = "."
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
@@ -90,7 +90,7 @@ module = [
     "apps.documents.api.serializers.*",
     "apps.forms.api.serializers.*",
     "apps.forms.api.views.*",
-    "quality.*",
+    "apps.core.quality.*",
     "apps.documents.services",
     "apps.agenda.services",
     "apps.forms.migrations.*",

@@ -50,8 +50,8 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: |
-            backend/requirements/base.txt
-            backend/requirements/dev.txt
+            backend/requirements.txt
+            backend/requirements-prod.txt
 
       - name: Instalar bibliotecas do sistema
         run: |
@@ -63,8 +63,11 @@ jobs:
       - name: Instalar dependências
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements/dev.txt
+          python -m pip install -r requirements.txt
           python -m pip install "bandit>=1.7,<2.0" "pip-audit>=2.7,<3.0"
+
+      - name: Validar arquitetura
+        run: python apps/core/quality/check_backend_architecture.py
 
       - name: Django check
         run: python manage.py check
@@ -115,7 +118,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          bandit -r apps infrastructure config -c pyproject.toml -f screen 2>&1 | tee /tmp/bandit-output.txt
+          bandit -r apps config -c pyproject.toml -f screen 2>&1 | tee /tmp/bandit-output.txt
 
       - name: Publicar relatório do Bandit
         if: always()
@@ -132,7 +135,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          pip-audit -r requirements/base.txt 2>&1 | tee /tmp/pip-audit-output.txt
+          pip-audit -r requirements-prod.txt 2>&1 | tee /tmp/pip-audit-output.txt
 
       - name: Publicar relatório do pip-audit
         if: always()

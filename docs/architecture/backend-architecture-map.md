@@ -117,7 +117,7 @@ fórmulas.
 
 `apps.users.services.credentials` gera o token e a URL de recuperação sem expor a
 existência da conta. O envio externo é delegado a
-`apps.infrastructure.messaging.email`.
+`apps.apps.communications.infrastructure.messaging.email`.
 
 ## Selectors implementados
 

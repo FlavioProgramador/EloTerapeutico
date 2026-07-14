@@ -33,7 +33,7 @@ jobs:
           cache: pip
           cache-dependency-path: |
             backend/requirements.txt
-            backend/requirements/*.txt
+            backend/requirements-prod.txt
 
       - name: Install audit tool
         run: python -m pip install --quiet --upgrade pip pip-audit
@@ -44,7 +44,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          pip-audit --progress-spinner off --ignore-vuln CVE-2026-49452 --format json --output pip-audit.json -r requirements.txt
+          pip-audit --progress-spinner off --ignore-vuln CVE-2026-49452 --format json --output pip-audit.json -r requirements-prod.txt
           audit_status=$?
           if [ ! -f pip-audit.json ]; then
             printf '[]\n' > pip-audit.json

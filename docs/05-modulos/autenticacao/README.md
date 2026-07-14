@@ -69,7 +69,7 @@ Controles implementados: anti-enumeração, dummy hashing, bloqueio, rotação, 
 - `apps/users/tests/test_auth.py`;
 - `test_password_reset.py`;
 - `test_logout_security.py`;
-- regressões em `backend/quality/`.
+- regressões em `backend/apps/core/quality/`.
 
 ## Limitações
 

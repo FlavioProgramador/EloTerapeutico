@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-BACKEND_ROOT = Path(__file__).resolve().parents[1]
+BACKEND_ROOT = Path(__file__).resolve().parents[4]
 
 
 @pytest.mark.parametrize(
@@ -14,7 +14,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
         "apps.core.fields",
         "apps.core.api.pagination",
         "apps.core.validators",
-        "infrastructure.messaging.email",
+        "apps.communications.infrastructure.messaging.email",
         "apps.users.api.serializers",
         "apps.users.api.views",
         "apps.users.services.password_reset",

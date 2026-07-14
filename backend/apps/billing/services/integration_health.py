@@ -2,9 +2,9 @@ from typing import Any
 
 from django.conf import settings
 
+from apps.billing.infrastructure.payments.asaas.client import AsaasGateway
 from apps.billing.selectors.integrations import get_webhook_delivery_stats
 from apps.billing.services.gateways.base import GatewayError
-from infrastructure.payments.asaas.client import AsaasGateway
 
 
 def _public_gateway_message(exc: GatewayError) -> str:

@@ -4,7 +4,7 @@
 
 ```bash
 cd backend
-python -m pip install -r requirements/dev.txt
+python -m pip install -r requirements.txt
 python manage.py check
 python manage.py makemigrations --check --dry-run
 pytest --create-db
@@ -12,7 +12,7 @@ ruff check .
 ruff format --check .
 mypy .
 bandit -r apps infrastructure config -c pyproject.toml
-pip-audit -r requirements/base.txt
+pip-audit -r requirements.txt
 ```
 
 ## Frontend

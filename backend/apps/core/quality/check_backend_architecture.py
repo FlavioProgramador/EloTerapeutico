@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[4]
 BACKEND = ROOT / "backend"
 TEXT_SUFFIXES = {".py", ".toml", ".ini", ".yml", ".yaml", ".sh"}
 TEXT_FILENAMES = {"Dockerfile", "Makefile", "Procfile"}
@@ -18,8 +18,36 @@ def iter_source_files():
             yield path
 
 
+ALLOWED_BACKEND_ROOT_DIRECTORIES = {"apps", "config"}
+IGNORED_LOCAL_DIRECTORIES = {
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".mypy_cache",
+    "media",
+    "staticfiles",
+    "test-media",
+    ".test-media",
+    "venv",
+    ".venv",
+}
+
+
+def validate_backend_root_directories(errors: list[str]) -> None:
+    for child in BACKEND.iterdir():
+        if not child.is_dir():
+            continue
+        if child.name in ALLOWED_BACKEND_ROOT_DIRECTORIES or child.name in IGNORED_LOCAL_DIRECTORIES:
+            continue
+        errors.append(
+            "Diretório versionado inesperado na raiz do backend: "
+            f"{child.relative_to(ROOT)}. Mova-o para apps/ ou config/."
+        )
+
+
 def main() -> None:
     errors: list[str] = []
+    validate_backend_root_directories(errors)
     forbidden_directories = [ROOT / "core", BACKEND / "core", BACKEND / "elo_terapeutico"]
     for directory in forbidden_directories:
         if directory.exists():
@@ -28,8 +56,8 @@ def main() -> None:
     required = [
         BACKEND / "apps" / "core" / "apps.py",
         BACKEND / "config" / "settings" / "base.py",
-        BACKEND / "infrastructure" / "payments" / "asaas" / "client.py",
-        BACKEND / "infrastructure" / "messaging" / "email.py",
+        BACKEND / "apps" / "billing" / "infrastructure" / "payments" / "asaas" / "client.py",
+        BACKEND / "apps" / "communications" / "infrastructure" / "messaging" / "email.py",
     ]
     for path in required:
         if not path.exists():

@@ -43,10 +43,10 @@ backend/
 
 - core canônico em `backend/apps/core`, com o label Django `core` preservado;
 - configuração centralizada em `backend/config`;
-- integração Asaas em `backend/infrastructure/payments/asaas/client.py`;
+- integração Asaas em `backend/apps/billing/infrastructure/payments/asaas/client.py`;
 - logging de acesso sensível no domínio de auditoria;
-- mensageria de e-mail consolidada em `backend/infrastructure/messaging`;
-- validação arquitetural executável em `backend/quality/check_backend_architecture.py`.
+- mensageria de e-mail consolidada em `backend/apps/communications/infrastructure/messaging`;
+- validação arquitetural executável em `backend/apps/core/quality/check_backend_architecture.py`.
 
 ## 3. Tratamento do core externo
 

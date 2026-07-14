@@ -6,7 +6,7 @@
 
 **Diagnóstico:** confirme ambiente virtual, `DJANGO_SETTINGS_MODULE`, `.env`, banco e dependências nativas.
 
-**Solução:** instale `requirements/dev.txt`, use settings dev localmente, configure placeholders locais e rode `python manage.py check`.
+**Solução:** instale `requirements.txt`, use settings dev localmente, configure placeholders locais e rode `python manage.py check`.
 
 **Prevenção:** CI, `.env.example` atualizado e Docker.
 
