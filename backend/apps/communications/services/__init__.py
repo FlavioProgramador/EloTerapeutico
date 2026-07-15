@@ -6,6 +6,14 @@ from .billing import (
     enforce_template_creation,
     get_plan_communication_entitlement,
 )
+from .channels import (
+    configure_channel,
+    get_channel_catalog,
+    get_configured_secret_state,
+    get_missing_configuration_fields,
+    remove_channel_configuration,
+    validate_channel_configuration,
+)
 from .creation import (
     cancel_communication,
     create_communication,

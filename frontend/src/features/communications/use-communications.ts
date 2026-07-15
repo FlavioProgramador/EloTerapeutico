@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { communicationsService } from "./communications.service";
-import type { CreateCommunicationPayload } from "./types";
+import type { CreateCommunicationPayload, UpdateChannelConfigurationPayload } from "./types";
 
 export function useCommunicationDashboard(period: string) { return useQuery({ queryKey: ["communications-dashboard", period], queryFn: () => communicationsService.dashboard(period) }); }
 export function useCommunications(filters?: Record<string, string | number | undefined>) { return useQuery({ queryKey: ["communications", filters], queryFn: () => communicationsService.list(filters) }); }
@@ -12,6 +12,17 @@ export function useCommunicationPatients() { return useQuery({ queryKey: ["commu
 export function useCreateCommunication() { const queryClient = useQueryClient(); return useMutation({ mutationFn: (payload: CreateCommunicationPayload) => communicationsService.create(payload), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["communications"] }); queryClient.invalidateQueries({ queryKey: ["communications-dashboard"] }); } }); }
 export function useCommunicationAction() { const queryClient = useQueryClient(); return useMutation({ mutationFn: ({ id, action }: { id: string; action: "cancel" | "retry" | "send" | "mark-manually-sent" | "open-manual" }) => communicationsService.action(id, action), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["communications"] }); queryClient.invalidateQueries({ queryKey: ["communication"] }); queryClient.invalidateQueries({ queryKey: ["communications-dashboard"] }); } }); }
 export function useToggleCommunicationAutomation() { const queryClient = useQueryClient(); return useMutation({ mutationFn: ({ id, active }: { id: number; active: boolean }) => communicationsService.toggleAutomation(id, active), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["communication-automations"] }) }); }
+
+function useChannelMutation<TInput, TOutput>(mutationFn: (input: TInput) => Promise<TOutput>) {
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn, onSuccess: () => queryClient.invalidateQueries({ queryKey: ["communication-channels"] }) });
+}
+export function useUpdateCommunicationChannel() { return useChannelMutation(({ channel, payload }: { channel: string; payload: UpdateChannelConfigurationPayload }) => communicationsService.updateChannel(channel, payload)); }
+export function useTestCommunicationChannelConnection() { return useChannelMutation((channel: string) => communicationsService.testChannelConnection(channel)); }
+export function useSendCommunicationChannelTest() { return useChannelMutation(({ channel, destination }: { channel: string; destination?: string }) => communicationsService.sendChannelTest(channel, destination)); }
+export function useToggleCommunicationChannel() { return useChannelMutation(({ channel, active }: { channel: string; active: boolean }) => communicationsService.toggleChannel(channel, active)); }
+export function useRemoveCommunicationChannel() { return useChannelMutation((channel: string) => communicationsService.removeChannel(channel)); }
+
 export function useNotifications(enabled = true) { return useQuery({ queryKey: ["communication-notifications"], queryFn: communicationsService.notifications, refetchInterval: enabled ? 60_000 : false, enabled }); }
 export function useUnreadNotificationsCount() { return useQuery({ queryKey: ["communication-notifications-unread"], queryFn: communicationsService.unreadCount, refetchInterval: 60_000 }); }
 export function useMarkNotificationRead() { const queryClient = useQueryClient(); return useMutation({ mutationFn: communicationsService.markNotificationRead, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["communication-notifications"] }); queryClient.invalidateQueries({ queryKey: ["communication-notifications-unread"] }); } }); }

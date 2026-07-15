@@ -10,7 +10,13 @@ from django.db.models import Q
 from django.utils import timezone
 
 from ..constants import RETRY_DELAYS_SECONDS
-from ..models import Communication, CommunicationAttempt, CommunicationRecipient, InAppNotification
+from ..models import (
+    Communication,
+    CommunicationAttempt,
+    CommunicationChannelConfig,
+    CommunicationRecipient,
+    InAppNotification,
+)
 from ..providers import (
     InvalidRecipient,
     PermanentProviderError,
@@ -70,7 +76,11 @@ def dispatch_communication(communication_id: int) -> Communication:
         communication.save(update_fields=["status", "updated_at"])
         return communication
 
-    provider = get_provider(communication.channel)
+    channel_config = CommunicationChannelConfig.objects.filter(
+        owner=communication.owner,
+        channel=communication.channel,
+    ).first()
+    provider = get_provider(communication.channel, config=channel_config)
     recipients = list(communication.recipients.all())
     if not recipients:
         communication.status = Communication.Status.FAILED
@@ -117,7 +127,17 @@ def dispatch_communication(communication_id: int) -> Communication:
         else:
             attempt.status = CommunicationAttempt.Status.SUCCESS
             attempt.external_id = result.provider_message_id[:160]
-            attempt.metadata = {key: value for key, value in result.metadata.items() if key in {"manual_url", "requires_confirmation"}}
+            attempt.metadata = {
+                key: value
+                for key, value in result.metadata.items()
+                if key in {
+                    "manual_url",
+                    "requires_confirmation",
+                    "provider_status",
+                    "price",
+                    "price_unit",
+                }
+            }
             recipient.status = CommunicationRecipient.Status.READY if communication.channel == Communication.Channel.WHATSAPP_MANUAL else CommunicationRecipient.Status.SENT
             final_status = result.status
             communication.provider_name = provider.name
@@ -154,7 +174,15 @@ def dispatch_communication(communication_id: int) -> Communication:
     elif any_retry:
         communication.queued_at = now
     communication.save()
-    logger.info("communication_dispatch_completed", extra={"communication_id": communication.pk, "channel": communication.channel, "status": final_status})
+    logger.info(
+        "communication_dispatch_completed",
+        extra={
+            "communication_id": communication.pk,
+            "channel": communication.channel,
+            "provider": provider.name,
+            "status": final_status,
+        },
+    )
     return communication
 
 
@@ -174,5 +202,11 @@ def process_due_communications(*, batch_size: int | None = None) -> dict[str, in
                 processing_started_at=None,
                 next_retry_at=timezone.now() + timedelta(minutes=1),
             )
-            logger.error("communication_dispatch_unexpected_error", extra={"communication_id": communication_id, "exception_type": exc.__class__.__name__})
+            logger.error(
+                "communication_dispatch_unexpected_error",
+                extra={
+                    "communication_id": communication_id,
+                    "exception_type": exc.__class__.__name__,
+                },
+            )
     return {"claimed": len(ids), "processed": processed, "failed": failed}

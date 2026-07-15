@@ -6,6 +6,12 @@ A documentação operacional e arquitetural deste app está em:
 docs/05-modulos/comunicacoes/README.md
 ```
 
+O fluxo de configuração, validação, teste e ativação dos canais está documentado em:
+
+```text
+docs/05-modulos/comunicacoes/configuracao-de-canais.md
+```
+
 Para erros de runtime, banco sem migrations ou respostas `COMMUNICATIONS_DATABASE_NOT_READY`, consulte:
 
 ```text
