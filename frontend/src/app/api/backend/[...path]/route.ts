@@ -5,10 +5,14 @@ import {
   backendResponseToNext,
   createBackendHeaders,
   csrfRejectedResponse,
+  extractTokenPair,
   fetchBackend,
   gatewayUnavailableResponse,
   getAccessCookie,
   hasValidCsrf,
+  parseBackendJson,
+  setAuthCookies,
+  withoutTokenFields,
 } from "@/lib/server/auth-bff";
 
 export const runtime = "nodejs";
@@ -19,6 +23,30 @@ type RouteContext = {
 };
 
 type StreamingRequestInit = RequestInit & { duplex?: "half" };
+
+async function registrationResponse(
+  backendResponse: Response,
+): Promise<NextResponse> {
+  const payload = await parseBackendJson(backendResponse);
+  if (!payload) return gatewayUnavailableResponse();
+
+  if (!backendResponse.ok) {
+    return NextResponse.json(payload, {
+      status: backendResponse.status,
+      headers: { "cache-control": "no-store" },
+    });
+  }
+
+  const tokens = extractTokenPair(payload);
+  if (!tokens) return gatewayUnavailableResponse();
+
+  const response = NextResponse.json(withoutTokenFields(payload), {
+    status: backendResponse.status,
+    headers: { "cache-control": "no-store" },
+  });
+  setAuthCookies(response, tokens);
+  return response;
+}
 
 async function proxyRequest(
   request: NextRequest,
@@ -57,6 +85,9 @@ async function proxyRequest(
       init,
       request.nextUrl.search,
     );
+    if (normalizedPath.toLowerCase() === "auth/register") {
+      return registrationResponse(backendResponse);
+    }
     return backendResponseToNext(backendResponse);
   } catch {
     return gatewayUnavailableResponse();
