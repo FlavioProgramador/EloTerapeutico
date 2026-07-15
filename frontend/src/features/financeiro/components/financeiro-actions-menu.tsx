@@ -142,7 +142,7 @@ export function FinanceiroActionsMenu({
     <div
       ref={menuRef}
       role="menu"
-      aria-label={`Ações para transação`}
+      aria-label={`Ações da transação: ${transaction.description || "Sem descrição"}`}
       onKeyDown={onMenuKeyDown}
       className="fixed z-[100] w-[232px] rounded-xl border border-border bg-popover p-1.5 text-popover-foreground shadow-xl"
       style={{ left: position.left, top: position.top }}
@@ -221,7 +221,9 @@ export function FinanceiroActionsMenu({
       <button
         ref={triggerRef}
         type="button"
-        aria-label={`Abrir ações da transação`}
+        aria-label={`Abrir ações para ${transaction.description || "transação"}${
+          transaction.patient_name ? ` de ${transaction.patient_name}` : ""
+        }`}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
