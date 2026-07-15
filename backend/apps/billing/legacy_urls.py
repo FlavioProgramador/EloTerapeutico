@@ -38,8 +38,8 @@ def _deprecated_callback(callback):
     # Assim o drf-spectacular não publica uma segunda árvore de endpoints.
     wrapped.__name__ = f"legacy_{getattr(callback, '__name__', 'billing_view')}"
     wrapped.__module__ = callback.__module__
-    wrapped.csrf_exempt = getattr(callback, "csrf_exempt", False)
-    wrapped.login_required = getattr(callback, "login_required", False)
+    setattr(wrapped, "csrf_exempt", getattr(callback, "csrf_exempt", False))
+    setattr(wrapped, "login_required", getattr(callback, "login_required", False))
     return wrapped
 
 
