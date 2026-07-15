@@ -1,4 +1,4 @@
-"""Serializers de autenticação, perfil e horários de atendimento."""
+"""Serializers de autenticação, perfil, sessões e horários de atendimento."""
 
 import secrets
 
@@ -8,13 +8,16 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
-from rest_framework_simplejwt.exceptions import InvalidToken
-from rest_framework_simplejwt.serializers import TokenRefreshSerializer
-from rest_framework_simplejwt.settings import api_settings
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.utils import get_md5_hash_password
 
-from ..models import User, WorkingHours
+from ..models import AuthSession, User, WorkingHours
+from ..services.sessions import (
+    issue_token_pair,
+    revoke_all_user_sessions,
+    rotate_refresh_token,
+)
 
 _INVALID_CREDENTIALS_MESSAGE = "E-mail ou senha incorretos."
 _INVALID_TOKEN_MESSAGE = "Token inválido ou expirado."  # nosec B105 -- mensagem pública, não credencial
@@ -106,10 +109,12 @@ class LoginSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         user = validated_data["user"]
-        refresh = RefreshToken.for_user(user)
+        tokens = issue_token_pair(
+            user=user,
+            request=self.context.get("request"),
+        )
         return {
-            "access": str(refresh.access_token),
-            "refresh": str(refresh),
+            **tokens,
             "user": UserProfileSerializer(user).data,
         }
 
@@ -141,6 +146,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         user = self.context["request"].user
         user.set_password(self.validated_data["new_password"])
         user.save(update_fields=["password"])
+        revoke_all_user_sessions(user=user, reason="password_changed")
         return user
 
 
@@ -178,6 +184,26 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             "default_session_duration",
             "default_session_value",
         ]
+
+
+class AuthSessionSerializer(serializers.ModelSerializer):
+    is_current = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AuthSession
+        fields = [
+            "public_id",
+            "user_agent",
+            "created_at",
+            "last_seen_at",
+            "expires_at",
+            "is_current",
+        ]
+        read_only_fields = fields
+
+    def get_is_current(self, obj: AuthSession) -> bool:
+        current_session_id = self.context.get("current_session_id")
+        return bool(current_session_id and str(obj.public_id) == str(current_session_id))
 
 
 class WorkingHoursSerializer(serializers.ModelSerializer):
@@ -253,19 +279,27 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         user = self.validated_data["user"]
         user.set_password(self.validated_data["new_password"])
         user.save(update_fields=["password"])
+        revoke_all_user_sessions(user=user, reason="password_reset")
         return user
 
 
-class SafeTokenRefreshSerializer(TokenRefreshSerializer):
+class SafeTokenRefreshSerializer(serializers.Serializer):
+    refresh = serializers.CharField(write_only=True)
+    access = serializers.CharField(read_only=True)
+
     def validate(self, attrs):
-        refresh = RefreshToken(attrs["refresh"])
+        try:
+            refresh = RefreshToken(attrs["refresh"])
+        except TokenError as exc:
+            raise InvalidToken(_INVALID_TOKEN_MESSAGE) from exc
+
         token_hash = refresh.get("hash_password")
         user_id = refresh.get("user_id")
 
         try:
             user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            raise InvalidToken(_INVALID_TOKEN_MESSAGE)
+        except User.DoesNotExist as exc:
+            raise InvalidToken(_INVALID_TOKEN_MESSAGE) from exc
 
         current_hash = get_md5_hash_password(user.password)
         if (
@@ -275,22 +309,18 @@ class SafeTokenRefreshSerializer(TokenRefreshSerializer):
         ):
             raise InvalidToken(_INVALID_TOKEN_MESSAGE)
 
-        data = {"access": str(refresh.access_token)}
-        if api_settings.ROTATE_REFRESH_TOKENS:
-            if api_settings.BLACKLIST_AFTER_ROTATION:
-                try:
-                    refresh.blacklist()
-                except AttributeError:
-                    pass
-
-            new_refresh = RefreshToken.for_user(user)
-            data["access"] = str(new_refresh.access_token)
-            data["refresh"] = str(new_refresh)
-
-        return data
+        try:
+            return rotate_refresh_token(
+                refresh=refresh,
+                user=user,
+                request=self.context.get("request"),
+            )
+        except TokenError as exc:
+            raise InvalidToken(_INVALID_TOKEN_MESSAGE) from exc
 
 
 __all__ = [
+    "AuthSessionSerializer",
     "ChangePasswordSerializer",
     "LoginSerializer",
     "PasswordResetConfirmSerializer",
