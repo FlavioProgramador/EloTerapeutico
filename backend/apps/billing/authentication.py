@@ -48,7 +48,7 @@ class SubscriptionJWTAuthentication(JWTAuthentication):
     def _validate_auth_session(self, *, user, token) -> None:
         session_id = token.get(SESSION_CLAIM)
         if not session_id:
-            if getattr(settings, "AUTH_REQUIRE_SESSION_CLAIM", False):
+            if getattr(settings, "AUTH_REQUIRE_SESSION_CLAIM", True):
                 raise AuthenticationFailed("Sessão inválida ou expirada.")
             return
 
