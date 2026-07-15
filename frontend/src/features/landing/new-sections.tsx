@@ -8,7 +8,7 @@ export function NewHero() {
       {/* Background Image & Blending */}
       <div className="absolute inset-0 z-0 bg-[#1A2E26]">
         <img 
-          src="/hero_elderly_couple_1080p.jpg" 
+          src="/landing_hero.jpg" 
           alt="Terapia Acolhedora" 
           className="w-full h-full object-cover object-[75%_center]"
         />
@@ -84,7 +84,7 @@ export function NewAboutSection() {
           <div className="relative">
             <div className="rounded-3xl overflow-hidden shadow-2xl">
               <img 
-                src="/about_therapy_1783869877606.png" 
+                src="/landing_about_therapy.png" 
                 alt="Sessão de terapia" 
                 className="w-full h-auto object-cover aspect-[4/3]"
               />
@@ -111,7 +111,7 @@ export function NewVideoStatsSection() {
 
         <div className="relative rounded-3xl overflow-hidden shadow-2xl mb-12">
           <img 
-            src="/video_thumb_1783869886880.png" 
+            src="/landing_video_thumbnail.png" 
             alt="Demonstração do sistema" 
             className="w-full aspect-video object-cover"
           />
@@ -216,7 +216,7 @@ export function NewTailoredCareSection() {
           {/* Center Column (Image spans 2 columns) */}
           <div className="lg:col-span-2 rounded-2xl overflow-hidden h-[600px] lg:h-auto">
             <img 
-              src="/tailored_care_1783869895974.png" 
+              src="/landing_tailored_care.png" 
               alt="Ambiente Terapêutico" 
               className="w-full h-full object-cover"
             />

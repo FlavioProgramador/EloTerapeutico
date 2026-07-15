@@ -58,10 +58,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#F9F9F9] font-sans overflow-hidden">
+    <div className="h-screen flex bg-[#F9F9F9] font-sans overflow-hidden">
       
       {/* Left Column - Form */}
-      <div className="w-full lg:w-[45%] xl:w-[40%] p-8 sm:p-12 md:p-24 flex flex-col justify-center relative z-10">
+      <div className="w-full lg:w-[45%] xl:w-[40%] p-8 sm:p-12 md:p-24 flex flex-col justify-center relative z-10 overflow-y-auto">
         
         {/* Back Button */}
         <Link
@@ -149,7 +149,7 @@ export default function LoginPage() {
 
           <div className="pt-8 text-sm text-gray-400 font-medium flex items-center gap-2">
             Ainda não possui acesso? 
-            <Link href="/planos" className="text-[#A855F7] hover:underline" style={{ color: "#F97316" }}>
+            <Link href="/register" className="text-[#A855F7] hover:underline" style={{ color: "#F97316" }}>
               Cadastre-se
             </Link>
           </div>
@@ -161,7 +161,7 @@ export default function LoginPage() {
         {/* The massive curved container (now using the image's native white background curves) */}
         <div className="absolute inset-0 overflow-hidden">
           <img 
-            src="/login_illustration_final.jpg" 
+            src="/login_illustration.svg" 
             alt="Ambiente Terapêutico" 
             className="w-full h-full object-cover object-[left_center] scale-[1.05] origin-left"
           />

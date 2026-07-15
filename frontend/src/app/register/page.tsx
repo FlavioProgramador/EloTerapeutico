@@ -175,7 +175,11 @@ export default function RegisterPage() {
             ? "Agora conclua o pagamento para liberar as ferramentas."
             : "Escolha um plano para continuar.",
       });
-      router.replace(response.data.next || "/planos");
+      if (response.data.next && response.data.next.includes("checkout")) {
+        window.location.href = response.data.next;
+      } else {
+        window.location.href = "/planos";
+      }
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const responseData = error.response?.data;
@@ -212,7 +216,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="min-h-screen flex bg-[#F9F9F9] font-sans text-[#1A2E26] overflow-hidden">
+    <main className="h-screen flex bg-[#F9F9F9] font-sans text-[#1A2E26] overflow-hidden">
       {/* Left Column - Form */}
       <div className="w-full lg:w-[45%] xl:w-[40%] flex flex-col justify-center px-6 sm:px-10 lg:px-16 z-10 bg-[#F9F9F9] overflow-y-auto py-12">
 
@@ -301,7 +305,7 @@ export default function RegisterPage() {
         {/* Background Illustration */}
         <div className="absolute inset-0">
           <img 
-            src="/register_illustration.jpg" 
+            src="/register_illustration.svg" 
             alt="Ambiente Terapêutico" 
             className="w-full h-full object-cover object-[left_center] scale-[1.05] origin-left"
           />
