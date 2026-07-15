@@ -8,8 +8,6 @@ prefixo antigo por engano.
 
 from __future__ import annotations
 
-from functools import wraps
-
 from django.conf import settings
 from django.urls.resolvers import URLPattern
 
@@ -32,11 +30,16 @@ def _add_deprecation_headers(response):
 
 
 def _deprecated_callback(callback):
-    @wraps(callback)
     def wrapped(request, *args, **kwargs):
         response = callback(request, *args, **kwargs)
         return _add_deprecation_headers(response)
 
+    # Preserva o comportamento HTTP necessário sem copiar ``cls``/``actions``.
+    # Assim o drf-spectacular não publica uma segunda árvore de endpoints.
+    wrapped.__name__ = f"legacy_{getattr(callback, '__name__', 'billing_view')}"
+    wrapped.__module__ = callback.__module__
+    wrapped.csrf_exempt = getattr(callback, "csrf_exempt", False)
+    wrapped.login_required = getattr(callback, "login_required", False)
     return wrapped
 
 
