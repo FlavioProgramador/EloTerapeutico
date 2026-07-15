@@ -6,6 +6,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.core.validators import validate_phone
@@ -232,8 +233,9 @@ class ClinicInvitation(models.Model):
         ordering = ["-created_at"]
         constraints = [
             models.UniqueConstraint(
-                fields=["clinic", "email", "status"],
-                name="users_clinic_invite_email_status_unique",
+                fields=["clinic", "email"],
+                condition=Q(status="pending"),
+                name="users_clinic_pending_invite_unique",
             ),
         ]
         indexes = [
