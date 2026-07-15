@@ -11,6 +11,7 @@ from uuid import UUID
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
+from django.db.models import Exists, OuterRef
 from django.http import Http404
 from django.utils import timezone
 
@@ -175,7 +176,7 @@ def require_clinic_manager(*, actor: User, clinic: Clinic) -> ClinicMembership:
     return membership
 
 
-def _invitation_token_hash(raw_token: str) -> str:
+def invitation_token_hash(raw_token: str) -> str:
     return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
 
 
@@ -214,7 +215,7 @@ def create_clinic_invitation(
         clinic=clinic,
         email=normalized_email,
         role=role,
-        token_hash=_invitation_token_hash(raw_token),
+        token_hash=invitation_token_hash(raw_token),
         expires_at=timezone.now() + timedelta(days=max(expires_in_days, 1)),
         invited_by=actor,
     )
@@ -223,7 +224,7 @@ def create_clinic_invitation(
 
 @transaction.atomic
 def accept_clinic_invitation(*, user: User, raw_token: str) -> ClinicMembership:
-    token_hash = _invitation_token_hash(raw_token)
+    token_hash = invitation_token_hash(raw_token)
     invitation = (
         ClinicInvitation.objects.select_for_update()
         .select_related("clinic")
@@ -241,26 +242,31 @@ def accept_clinic_invitation(*, user: User, raw_token: str) -> ClinicMembership:
     if invitation.email.casefold() != user.email.casefold():
         raise Http404("Convite não encontrado.")
 
-    membership, _ = ClinicMembership.objects.select_for_update().get_or_create(
-        clinic=invitation.clinic,
-        user=user,
-        defaults={
-            "role": invitation.role,
-            "status": ClinicMembership.Status.ACTIVE,
-            "joined_at": timezone.now(),
-            "invited_by": invitation.invited_by,
-        },
+    membership = (
+        ClinicMembership.objects.select_for_update()
+        .filter(clinic=invitation.clinic, user=user)
+        .first()
     )
-    if membership.role == ClinicMembership.Role.OWNER and invitation.role != ClinicMembership.Role.OWNER:
-        raise ValidationError("O vínculo existente não pode ser reduzido por convite.")
-    if membership.status != ClinicMembership.Status.ACTIVE:
-        membership.role = invitation.role
-        membership.status = ClinicMembership.Status.ACTIVE
-        membership.joined_at = membership.joined_at or timezone.now()
-        membership.invited_by = invitation.invited_by
-        membership.save(
-            update_fields=["role", "status", "joined_at", "invited_by", "updated_at"]
+    if membership is None:
+        membership = ClinicMembership.objects.create(
+            clinic=invitation.clinic,
+            user=user,
+            role=invitation.role,
+            status=ClinicMembership.Status.ACTIVE,
+            joined_at=timezone.now(),
+            invited_by=invitation.invited_by,
         )
+    else:
+        if membership.role == ClinicMembership.Role.OWNER and invitation.role != ClinicMembership.Role.OWNER:
+            raise ValidationError("O vínculo existente não pode ser reduzido por convite.")
+        if membership.status != ClinicMembership.Status.ACTIVE:
+            membership.role = invitation.role
+            membership.status = ClinicMembership.Status.ACTIVE
+            membership.joined_at = membership.joined_at or timezone.now()
+            membership.invited_by = invitation.invited_by
+            membership.save(
+                update_fields=["role", "status", "joined_at", "invited_by", "updated_at"]
+            )
 
     invitation.status = ClinicInvitation.Status.ACCEPTED
     invitation.accepted_by = user
@@ -283,22 +289,23 @@ def _default_clinic_name(user: Any) -> str:
 def ensure_default_clinic_for_user(*, user: User) -> tuple[ClinicMembership | None, bool, bool]:
     """Cria clínica padrão apenas para perfis legados elegíveis e de forma idempotente."""
 
-    existing = preferred_membership_for_user(user=user)
+    locked_user = User.objects.select_for_update().get(pk=user.pk)
+    existing = preferred_membership_for_user(user=locked_user)
     if existing is not None:
         return existing, False, False
-    if user.role not in {User.Role.THERAPIST, User.Role.ADMIN}:
+    if locked_user.role not in {User.Role.THERAPIST, User.Role.ADMIN}:
         return None, False, False
 
     clinic = Clinic.objects.create(
-        name=_default_clinic_name(user),
-        email=user.email,
-        phone=user.phone,
-        address=user.professional_address or {},
+        name=_default_clinic_name(locked_user),
+        email=locked_user.email,
+        phone=locked_user.phone,
+        address=locked_user.professional_address or {},
         timezone="America/Sao_Paulo",
     )
     membership = ClinicMembership.objects.create(
         clinic=clinic,
-        user=user,
+        user=locked_user,
         role=ClinicMembership.Role.OWNER,
         status=ClinicMembership.Status.ACTIVE,
         joined_at=timezone.now(),
@@ -306,8 +313,9 @@ def ensure_default_clinic_for_user(*, user: User) -> tuple[ClinicMembership | No
     return membership, True, True
 
 
-@transaction.atomic
 def backfill_default_clinics(*, user_ids: list[int] | None = None) -> ClinicBackfillResult:
+    """Executa backfill em transações curtas por usuário, sem lock global."""
+
     queryset = User.objects.filter(is_active=True).order_by("pk")
     if user_ids is not None:
         queryset = queryset.filter(pk__in=user_ids)
@@ -336,6 +344,12 @@ def backfill_default_clinics(*, user_ids: list[int] | None = None) -> ClinicBack
 
 
 def validate_clinic_foundation() -> ClinicValidationResult:
+    active_membership = ClinicMembership.objects.filter(
+        user_id=OuterRef("user_id"),
+        clinic_id=OuterRef("active_clinic_id"),
+        status=ClinicMembership.Status.ACTIVE,
+        clinic__status=Clinic.Status.ACTIVE,
+    )
     eligible_ids = tuple(
         User.objects.filter(
             is_active=True,
@@ -350,20 +364,12 @@ def validate_clinic_foundation() -> ClinicValidationResult:
     )
     invalid_session_ids = tuple(
         AuthSession.objects.filter(active_clinic__isnull=False)
-        .exclude(
-            active_clinic__memberships__user_id=models_outer_user_id_placeholder(),
-        )
+        .annotate(has_active_membership=Exists(active_membership))
+        .filter(has_active_membership=False)
+        .order_by("pk")
         .values_list("pk", flat=True)
     )
     return ClinicValidationResult(
         eligible_users_without_membership=eligible_ids,
         sessions_with_invalid_clinic=invalid_session_ids,
     )
-
-
-def models_outer_user_id_placeholder():
-    """Separado para permitir uso de F sem esconder a intenção da validação."""
-
-    from django.db.models import F
-
-    return F("user_id")
