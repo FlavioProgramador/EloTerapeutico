@@ -127,6 +127,8 @@ def test_logout_all_revokes_every_active_session(api_client):
     user = _create_user("all")
     first = issue_token_pair(user=user)
     second = issue_token_pair(user=user)
+    first_jti = str(RefreshToken(first["refresh"])["jti"])
+    second_jti = str(RefreshToken(second["refresh"])["jti"])
     api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {first['access']}")
 
     response = api_client.post(reverse("auth-logout-all"), {}, format="json")
@@ -134,8 +136,8 @@ def test_logout_all_revokes_every_active_session(api_client):
     assert response.status_code == 200
     assert response.data["revoked_sessions"] == 2
     assert not AuthSession.objects.filter(user=user, revoked_at__isnull=True).exists()
-    assert BlacklistedToken.objects.filter(token__jti=RefreshToken(first["refresh"])["jti"]).exists()
-    assert BlacklistedToken.objects.filter(token__jti=RefreshToken(second["refresh"])["jti"]).exists()
+    assert BlacklistedToken.objects.filter(token__jti=first_jti).exists()
+    assert BlacklistedToken.objects.filter(token__jti=second_jti).exists()
 
 
 def test_password_change_revokes_all_sessions(api_client):
