@@ -11,7 +11,7 @@ export function NewCommunicationModal({ onClose }: { onClose: () => void }) {
   const patients = useCommunicationPatients(); const templates = useCommunicationTemplates(); const create = useCreateCommunication();
   const [payload, setPayload] = useState<CreateCommunicationPayload>({ patient_id: null, channel: "email", category: "patient_message", template_id: null, subject: "", body: "", priority: "normal", recipient_type: "patient", draft: false });
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
-  const channelTemplates = (templates.data ?? []).filter((item) => item.channel === payload.channel);
+  const channelTemplates = (templates.data ?? []).filter((item) => item.channel === payload.channel && item.category === payload.category);
   const selectedTemplate = channelTemplates.find((item) => item.id === payload.template_id);
   function update<K extends keyof CreateCommunicationPayload>(key: K, value: CreateCommunicationPayload[K]) { setPayload((current) => ({ ...current, [key]: value })); }
   async function submit(draft: boolean) { try { await create.mutateAsync({ ...payload, draft, scheduled_at: scheduleEnabled ? payload.scheduled_at : null }); toast.success(draft ? "Rascunho salvo." : scheduleEnabled ? "Comunicação agendada." : "Comunicação adicionada à fila."); onClose(); } catch { toast.error("Não foi possível criar a comunicação. Revise contato, consentimento, canal e limite do plano."); } }
