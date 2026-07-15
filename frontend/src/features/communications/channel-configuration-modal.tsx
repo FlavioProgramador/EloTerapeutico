@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, ExternalLink, FlaskConical, Loader2, Power, Save, Send, ShieldCheck, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -47,7 +47,7 @@ export function ChannelConfigurationModal({ channel, onClose }: { channel: Commu
   const sendTest = useSendCommunicationChannelTest();
   const toggleChannel = useToggleCommunicationChannel();
   const removeChannel = useRemoveCommunicationChannel();
-  const provider = useMemo(() => availableProviders.find((item) => item.id === providerId), [availableProviders, providerId]);
+  const provider = availableProviders.find((item) => item.id === providerId);
   const pending = updateChannel.isPending || testConnection.isPending || sendTest.isPending || toggleChannel.isPending || removeChannel.isPending;
 
   const technicalFields = (provider?.fields ?? []).filter((field) => !field.secret && !senderFields.has(field.name) && !preferenceFields.has(field.name));
