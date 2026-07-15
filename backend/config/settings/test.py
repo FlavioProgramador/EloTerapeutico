@@ -4,6 +4,7 @@
 from django.utils.crypto import get_random_string
 
 from .base import *  # noqa: F403,F401
+from .celery import *  # noqa: F403,F401
 
 DEBUG = False
 
@@ -35,6 +36,13 @@ STORAGES = {
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = []
+
+# Celery executa em memória e de forma síncrona nos testes.
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_BROKER_URL = "memory://"
+CELERY_RESULT_BACKEND = "cache+memory://"
+HEALTH_CHECK_STORAGE = False
 
 # Valores sintéticos aleatórios impedem dependência de credenciais ou rede reais.
 ASAAS_API_KEY = f"test-{get_random_string(32)}"
