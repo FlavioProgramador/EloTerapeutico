@@ -7,6 +7,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from apps.billing.services.entitlements import get_entitlement
 from apps.users.models import AuthSession
+from apps.users.services.clinics import resolve_active_membership
 from apps.users.services.sessions import SESSION_CLAIM
 
 
@@ -21,7 +22,7 @@ class SubscriptionRequired(APIException):
 
 
 class SubscriptionJWTAuthentication(JWTAuthentication):
-    """Autentica JWT, valida a sessão revogável e aplica entitlement."""
+    """Autentica JWT, resolve tenant da sessão e aplica entitlement."""
 
     PUBLIC_AUTH_PATHS = {
         "/api/v1/auth/register/",
@@ -38,6 +39,7 @@ class SubscriptionJWTAuthentication(JWTAuthentication):
     }
     PUBLIC_AUTH_PREFIXES = (
         "/api/v1/auth/sessions/",
+        "/api/v1/auth/clinics/",
     )
     ACCESS_MANAGEMENT_PREFIXES = (
         "/api/v1/billing/",
@@ -45,21 +47,36 @@ class SubscriptionJWTAuthentication(JWTAuthentication):
         "/api/docs/",
     )
 
-    def _validate_auth_session(self, *, user, token) -> None:
+    def _validate_auth_session(self, *, user, token) -> AuthSession | None:
         session_id = token.get(SESSION_CLAIM)
         if not session_id:
             if getattr(settings, "AUTH_REQUIRE_SESSION_CLAIM", True):
                 raise AuthenticationFailed("Sessão inválida ou expirada.")
-            return
+            return None
 
-        session_exists = AuthSession.objects.filter(
-            public_id=session_id,
-            user=user,
-            revoked_at__isnull=True,
-            expires_at__gt=timezone.now(),
-        ).exists()
-        if not session_exists:
+        session = (
+            AuthSession.objects.select_related("active_clinic")
+            .filter(
+                public_id=session_id,
+                user=user,
+                revoked_at__isnull=True,
+                expires_at__gt=timezone.now(),
+            )
+            .first()
+        )
+        if session is None:
             raise AuthenticationFailed("Sessão inválida ou expirada.")
+        return session
+
+    def _attach_tenant_context(self, *, request, user, session: AuthSession | None) -> None:
+        membership = resolve_active_membership(
+            user=user,
+            session=session,
+            persist_fallback=session is not None,
+        )
+        request.auth_session = session
+        request.clinic_membership = membership
+        request.clinic = membership.clinic if membership else None
 
     def authenticate(self, request):
         authenticated = super().authenticate(request)
@@ -67,7 +84,8 @@ class SubscriptionJWTAuthentication(JWTAuthentication):
             return None
 
         user, token = authenticated
-        self._validate_auth_session(user=user, token=token)
+        session = self._validate_auth_session(user=user, token=token)
+        self._attach_tenant_context(request=request, user=user, session=session)
 
         if not getattr(settings, "BILLING_REQUIRE_SUBSCRIPTION", True):
             return user, token
