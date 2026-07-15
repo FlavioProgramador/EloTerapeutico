@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 from django.conf import settings
-from rest_framework.exceptions import APIException
+from django.utils import timezone
+from rest_framework.exceptions import APIException, AuthenticationFailed
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from apps.billing.services.entitlements import get_entitlement
+from apps.users.models import AuthSession
+from apps.users.services.sessions import SESSION_CLAIM
 
 
 class SubscriptionRequired(APIException):
@@ -18,14 +21,16 @@ class SubscriptionRequired(APIException):
 
 
 class SubscriptionJWTAuthentication(JWTAuthentication):
-    """Autentica o JWT e bloqueia módulos privados sem assinatura ou trial."""
+    """Autentica JWT, valida a sessão revogável e aplica entitlement."""
 
     PUBLIC_AUTH_PATHS = {
         "/api/v1/auth/register/",
         "/api/v1/auth/login/",
         "/api/v1/auth/logout/",
+        "/api/v1/auth/logout-all/",
         "/api/v1/auth/me/",
         "/api/v1/auth/onboarding/",
+        "/api/v1/auth/sessions/",
         "/api/v1/auth/token/refresh/",
         "/api/v1/auth/password/change/",
         "/api/v1/auth/password/reset/",
@@ -37,12 +42,30 @@ class SubscriptionJWTAuthentication(JWTAuthentication):
         "/api/docs/",
     )
 
+    def _validate_auth_session(self, *, user, token) -> None:
+        session_id = token.get(SESSION_CLAIM)
+        if not session_id:
+            if getattr(settings, "AUTH_REQUIRE_SESSION_CLAIM", False):
+                raise AuthenticationFailed("Sessão inválida ou expirada.")
+            return
+
+        session_exists = AuthSession.objects.filter(
+            public_id=session_id,
+            user=user,
+            revoked_at__isnull=True,
+            expires_at__gt=timezone.now(),
+        ).exists()
+        if not session_exists:
+            raise AuthenticationFailed("Sessão inválida ou expirada.")
+
     def authenticate(self, request):
         authenticated = super().authenticate(request)
         if authenticated is None:
             return None
 
         user, token = authenticated
+        self._validate_auth_session(user=user, token=token)
+
         if not getattr(settings, "BILLING_REQUIRE_SUBSCRIPTION", True):
             return user, token
 
