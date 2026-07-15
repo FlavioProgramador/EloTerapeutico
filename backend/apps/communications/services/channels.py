@@ -10,7 +10,6 @@ from django.utils import timezone
 from ..models import Communication, CommunicationChannelConfig
 from ..providers import ProviderError, ProviderNotConfigured, get_provider
 
-
 # Valor de metadado usado pelo schema dinâmico do frontend. Não representa
 # credencial ou segredo hardcoded; evita falso positivo B105 do Bandit.
 _SENSITIVE_FIELD = True
