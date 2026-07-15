@@ -22,6 +22,18 @@
 
 Em produção, `DEBUG` deve ser falso e `ALLOWED_HOSTS`/CORS devem conter apenas domínios conhecidos.
 
+## SQL Explorer administrativo
+
+| Variável | Obrigatória | Padrão local | Finalidade |
+| --- | --- | --- | --- |
+| `ADMIN_SQL_EXPLORER_ENABLED` | Não | `False` | Registra a ferramenta somente em ambiente não produtivo autorizado |
+| `ADMIN_SQL_EXPLORER_DATABASE_ALIAS` | Não | `default` | Alias de banco usado pela inspeção; prefira usuário read-only |
+| `ADMIN_SQL_EXPLORER_MAX_ROWS` | Não | `100` | Limite de registros retornados, limitado internamente a 500 |
+| `ADMIN_SQL_EXPLORER_TIMEOUT_MS` | Não | `2000` | Timeout da instrução, limitado internamente a 10 segundos |
+| `ADMIN_SQL_EXPLORER_ALLOWED_TABLES` | Quando habilitado | vazio | Allowlist de tabelas separadas por vírgula |
+
+A ferramenta é desabilitada por padrão. Nos settings de produção, `ADMIN_SQL_EXPLORER_ENABLED=True` interrompe a inicialização da aplicação. Além da flag, o usuário precisa ser superusuário e possuir atribuição explícita da permissão `core.use_sql_explorer`. Consulte [SQL Explorer administrativo](../08-seguranca/sql-explorer.md).
+
 ## Banco de dados
 
 | Variável | Obrigatória | Padrão local | Finalidade |
@@ -166,6 +178,7 @@ Variáveis iniciadas com `NEXT_PUBLIC_` são expostas ao navegador e nunca devem
 ## Checklist de produção
 
 - [ ] `DEBUG=False`;
+- [ ] `ADMIN_SQL_EXPLORER_ENABLED=False`;
 - [ ] segredos longos, aleatórios e independentes;
 - [ ] PostgreSQL gerenciado e backup testado;
 - [ ] CORS e hosts restritos;

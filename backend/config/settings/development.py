@@ -1,9 +1,25 @@
 """Settings de desenvolvimento."""
 
+from apps.core.admin_sql_config import configure_unfold_navigation
+
 from .base import *  # noqa
 from .celery import *  # noqa
 
 DEBUG = True
+
+ADMIN_SQL_EXPLORER_ENABLED = env.bool("ADMIN_SQL_EXPLORER_ENABLED", default=False)  # noqa: F405
+ADMIN_SQL_EXPLORER_DATABASE_ALIAS = env(  # noqa: F405
+    "ADMIN_SQL_EXPLORER_DATABASE_ALIAS",
+    default="default",
+)
+ADMIN_SQL_EXPLORER_MAX_ROWS = env.int("ADMIN_SQL_EXPLORER_MAX_ROWS", default=100)  # noqa: F405
+ADMIN_SQL_EXPLORER_TIMEOUT_MS = env.int("ADMIN_SQL_EXPLORER_TIMEOUT_MS", default=2000)  # noqa: F405
+ADMIN_SQL_EXPLORER_ALLOWED_TABLES = env.list(  # noqa: F405
+    "ADMIN_SQL_EXPLORER_ALLOWED_TABLES",
+    default=[],
+)
+ADMIN_SQL_EXPLORER_PERMISSION = "core.use_sql_explorer"
+configure_unfold_navigation(UNFOLD, enabled=ADMIN_SQL_EXPLORER_ENABLED)  # noqa: F405
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])  # noqa: F405
 

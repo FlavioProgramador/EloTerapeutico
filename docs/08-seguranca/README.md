@@ -6,6 +6,7 @@ Esta seção descreve controles encontrados no código, requisitos operacionais 
 - [Modelo de ameaças](modelo-de-ameacas.md)
 - [Autenticação e autorização](autenticacao-autorizacao.md)
 - [Confidencialidade clínica e uploads](confidencialidade-clinica-uploads.md)
+- [SQL Explorer administrativo](sql-explorer.md)
 - [Webhooks e billing](webhooks-billing.md)
 - [Logs, auditoria e segredos](logs-auditoria-segredos.md)
 - [Headers, cookies e storage](headers-cookies-storage.md)

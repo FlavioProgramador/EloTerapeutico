@@ -2,145 +2,119 @@
 {% load i18n %}
 
 {% block content %}
-<!-- CodeMirror Styles -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/nord.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.css">
-<style>
-    .CodeMirror {
-        height: 220px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        font-size: 14px;
-        border-radius: 0 0 6px 6px;
-    }
-    .CodeMirror-sizer { margin-left: 45px !important; }
-    .CodeMirror-gutters {
-        border-right: 1px solid #2e3440 !important;
-        background-color: #2e3440 !important;
-        width: 40px !important;
-    }
-    .CodeMirror-linenumber {
-        color: #616e88 !important;
-        padding-right: 8px !important;
-        min-width: 30px !important;
-        text-align: right !important;
-    }
-    .CodeMirror-lines { padding-left: 4px !important; }
-    .cm-s-nord span.cm-keyword { color: #81a1c1 !important; font-weight: bold; }
-    .cm-s-nord span.cm-string  { color: #a3be8c !important; }
-    .cm-s-nord span.cm-number  { color: #b48ead !important; }
-    .cm-s-nord span.cm-variable{ color: #88c0d0 !important; }
-    /* Autocomplete hint box */
-    .CodeMirror-hints {
-        font-family: ui-monospace, monospace;
-        font-size: 12px;
-        background: #2e3440;
-        border: 1px solid #4c566a;
-        border-radius: 4px;
-        z-index: 9999;
-    }
-    .CodeMirror-hint { color: #d8dee9; padding: 3px 8px; }
-    .CodeMirror-hint-active { background: #4c566a !important; color: #eceff4 !important; }
-    /* Histórico */
-    .history-item {
-        cursor: pointer;
-        transition: background 0.15s;
-    }
-    .history-item:hover { background: rgba(129,161,193,0.12); }
-    /* Template query item */
-    .tpl-item {
-        cursor: pointer;
-        transition: background 0.15s;
-    }
-    .tpl-item:hover { background: rgba(129,161,193,0.12); }
-</style>
-
-<!-- CodeMirror Scripts -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/sql-hint.min.js"></script>
-
 <div id="content-main" class="space-y-6">
-    <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-            <h1 class="font-semibold text-2xl text-font-important-light dark:text-font-important-dark">
-                SQL Explorer (Visualizador SQL)
+            <h1 class="text-2xl font-semibold text-font-important-light dark:text-font-important-dark">
+                SQL Explorer controlado
             </h1>
-            <p class="mt-2 text-sm text-font-subtle-light dark:text-font-subtle-dark">
-                Execute consultas brutas de leitura no banco de dados do Elo Terapêutico.
+            <p class="mt-2 max-w-3xl text-sm text-font-subtle-light dark:text-font-subtle-dark">
+                Ferramenta excepcional para inspeção administrativa. Somente uma consulta SELECT simples,
+                limitada às tabelas autorizadas, pode ser executada por vez.
             </p>
         </div>
-        <div class="px-3 py-1 bg-yellow-50 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-900 rounded text-xs font-medium">
-            ⚠️ Modo: Somente Leitura (SELECT)
+        <div class="rounded-default border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs font-medium text-yellow-800 dark:border-yellow-900 dark:bg-yellow-950 dark:text-yellow-300">
+            Somente leitura · máximo {{ max_rows }} linhas · timeout {{ timeout_ms }} ms
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <!-- Editor e Resultados -->
-        <div class="lg:col-span-3 space-y-6">
+    <div class="rounded-default border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+        <strong>Uso restrito:</strong>
+        não inclua dados pessoais ou clínicos na justificativa. A consulta não é armazenada, mas seu hash,
+        o resultado da execução, o usuário e a justificativa são auditados.
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
+        <div class="space-y-6 lg:col-span-3">
             <form method="post" action="" class="space-y-4" id="sql-form">
                 {% csrf_token %}
-                <div class="border border-base-200 rounded-default overflow-hidden dark:border-base-800 shadow-sm bg-white dark:bg-base-900">
-                    <div class="bg-base-50 dark:bg-base-800 px-4 py-2 border-b border-base-200 dark:border-base-800 flex justify-between items-center">
-                        <span class="text-xs font-semibold text-font-subtle-light dark:text-font-subtle-dark uppercase tracking-wider">Editor SQL</span>
-                        <span class="text-xs text-font-subtle-light dark:text-font-subtle-dark">Ctrl+Enter executa &nbsp;·&nbsp; Ctrl+Space autocomplete</span>
+
+                <div>
+                    <label for="sql-reason" class="mb-2 block text-sm font-semibold text-font-important-light dark:text-font-important-dark">
+                        Justificativa operacional
+                    </label>
+                    <input
+                        id="sql-reason"
+                        name="reason"
+                        type="text"
+                        minlength="12"
+                        maxlength="160"
+                        required
+                        autocomplete="off"
+                        value="{{ reason|default:'' }}"
+                        placeholder="Ex.: verificar integridade após importação de teste"
+                        class="w-full rounded-default border border-base-300 bg-white px-3 py-2 text-sm text-font-important-light shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 dark:border-base-700 dark:bg-base-900 dark:text-font-important-dark"
+                    >
+                    <p class="mt-1 text-xs text-font-subtle-light dark:text-font-subtle-dark">
+                        Mínimo de 12 caracteres. Não informe nome, CPF, e-mail, prontuário ou outro dado sensível.
+                    </p>
+                </div>
+
+                <div class="overflow-hidden rounded-default border border-base-200 bg-white shadow-sm dark:border-base-800 dark:bg-base-900">
+                    <div class="border-b border-base-200 bg-base-50 px-4 py-2 dark:border-base-800 dark:bg-base-800">
+                        <label for="sql-editor" class="text-xs font-semibold uppercase tracking-wider text-font-subtle-light dark:text-font-subtle-dark">
+                            Consulta SELECT
+                        </label>
                     </div>
                     <textarea
                         name="sql"
-                        rows="8"
-                        placeholder="SELECT * FROM patients_patient LIMIT 5;"
-                        class="w-full p-4 font-mono text-sm bg-base-950 text-font-important-dark dark:bg-base-950 focus:outline-none focus:ring-0 resize-y"
+                        rows="10"
+                        required
+                        spellcheck="false"
+                        placeholder="SELECT id, app, name FROM django_migrations ORDER BY id DESC"
+                        class="w-full resize-y bg-base-950 p-4 font-mono text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                         id="sql-editor"
                     >{{ query|default:'' }}</textarea>
                 </div>
 
-                <div class="flex items-center gap-3 pt-3 pb-1">
-                    <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2.5 rounded-default text-sm font-semibold transition dark:bg-primary-500 dark:hover:bg-primary-600 shadow-sm">
-                        Executar Consulta
+                <div class="flex flex-wrap items-center gap-3">
+                    <button type="submit" class="rounded-default bg-primary-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600">
+                        Executar consulta controlada
                     </button>
-                    <a href="?" class="inline-flex items-center px-5 py-2.5 rounded-default text-sm font-medium border border-base-300 dark:border-base-700 bg-transparent hover:bg-base-100 dark:hover:bg-base-800 text-font-important-light dark:text-font-important-dark transition">
+                    <a href="?" class="inline-flex rounded-default border border-base-300 px-5 py-2.5 text-sm font-medium text-font-important-light transition hover:bg-base-100 dark:border-base-700 dark:text-font-important-dark dark:hover:bg-base-800">
                         Limpar
                     </a>
                 </div>
             </form>
 
             {% if error %}
-                <div class="p-4 bg-red-50 border border-red-200 rounded-default text-red-700 dark:bg-red-950 dark:border-red-900 dark:text-red-400 text-sm font-mono whitespace-pre-wrap">
-                    <strong>Erro na Execução:</strong><br>{{ error }}
+                <div role="alert" class="rounded-default border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
+                    <strong>Consulta não executada:</strong> {{ error }}
                 </div>
             {% endif %}
 
             {% if columns %}
-                <div class="border border-base-200 rounded-default overflow-hidden dark:border-base-800 shadow-sm bg-white dark:bg-base-900">
-                    <div class="bg-base-50 dark:bg-base-800 px-4 py-3 border-b border-base-200 dark:border-base-800 flex justify-between items-center">
-                        <h3 class="text-sm font-semibold text-font-important-light dark:text-font-important-dark">
-                            Resultados ({{ rows|length }} registros)
-                        </h3>
-                        <button type="button" onclick="exportTableToCSV('resultados_sql.csv')" class="bg-primary-600 hover:bg-primary-700 text-white px-3 py-1.5 rounded text-xs font-medium transition dark:bg-primary-500 dark:hover:bg-primary-600 flex items-center gap-1 shadow-sm">
-                            <span class="material-symbols-outlined text-xs">download</span> Exportar CSV
-                        </button>
+                <div class="overflow-hidden rounded-default border border-base-200 bg-white shadow-sm dark:border-base-800 dark:bg-base-900">
+                    <div class="flex items-center justify-between border-b border-base-200 bg-base-50 px-4 py-3 dark:border-base-800 dark:bg-base-800">
+                        <h2 class="text-sm font-semibold text-font-important-light dark:text-font-important-dark">
+                            Resultado ({{ rows|length }} registros)
+                        </h2>
+                        {% if truncated %}
+                            <span class="rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-medium text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300">
+                                Resultado truncado
+                            </span>
+                        {% endif %}
                     </div>
-                    <div class="overflow-x-auto max-h-[500px]">
-                        <table class="w-full text-left border-collapse text-xs font-mono">
+                    <div class="max-h-[500px] overflow-auto">
+                        <table class="w-full border-collapse text-left font-mono text-xs">
                             <thead>
-                                <tr class="bg-base-50 dark:bg-base-800 text-font-subtle-light dark:text-font-subtle-dark font-semibold border-b border-base-200 dark:border-base-800 uppercase tracking-wider">
-                                    <th class="px-2 py-3 border-r border-base-200 dark:border-base-800 w-8 text-center">#</th>
+                                <tr class="border-b border-base-200 bg-base-50 text-font-subtle-light dark:border-base-800 dark:bg-base-800 dark:text-font-subtle-dark">
+                                    <th scope="col" class="w-10 border-r border-base-200 px-2 py-3 text-center dark:border-base-800">#</th>
                                     {% for col in columns %}
-                                        <th class="p-3 border-r border-base-200 dark:border-base-800 min-w-[120px]">{{ col }}</th>
+                                        <th scope="col" class="min-w-[120px] border-r border-base-200 p-3 dark:border-base-800">{{ col }}</th>
                                     {% endfor %}
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-base-200 dark:divide-base-800 bg-white dark:bg-base-900">
+                            <tbody class="divide-y divide-base-200 dark:divide-base-800">
                                 {% for row in rows %}
-                                    <tr class="text-font-important-light dark:text-font-important-dark hover:bg-base-50 dark:hover:bg-base-800">
-                                        <td class="px-2 py-3 border-r border-base-200 dark:border-base-800 bg-base-50 dark:bg-base-950 text-center font-semibold text-font-subtle-light dark:text-font-subtle-dark w-8 select-none">
+                                    <tr class="text-font-important-light dark:text-font-important-dark">
+                                        <th scope="row" class="w-10 border-r border-base-200 bg-base-50 px-2 py-3 text-center dark:border-base-800 dark:bg-base-950">
                                             {{ forloop.counter }}
-                                        </td>
+                                        </th>
                                         {% for cell in row %}
-                                            <td class="p-3 border-r border-base-200 dark:border-base-800 max-w-[300px] truncate whitespace-nowrap" title="{{ cell|default:'NULL' }}">
+                                            <td class="max-w-[320px] truncate border-r border-base-200 p-3 dark:border-base-800">
                                                 {% if cell is None %}
-                                                    <span class="text-red-400 dark:text-red-500 italic">NULL</span>
+                                                    <span class="italic text-font-subtle-light dark:text-font-subtle-dark">NULL</span>
                                                 {% else %}
                                                     {{ cell }}
                                                 {% endif %}
@@ -150,7 +124,7 @@
                                 {% empty %}
                                     <tr>
                                         <td colspan="{{ columns|length|add:1 }}" class="p-4 text-center text-font-subtle-light dark:text-font-subtle-dark">
-                                            Nenhum registro encontrado para esta consulta.
+                                            Nenhum registro encontrado.
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -159,320 +133,38 @@
                     </div>
                 </div>
             {% endif %}
-
-            <!-- Histórico de Consultas -->
-            <div class="border border-base-200 rounded-default bg-white dark:bg-base-900 dark:border-base-800 shadow-sm overflow-hidden">
-                <div class="bg-base-50 dark:bg-base-800 px-4 py-2 border-b border-base-200 dark:border-base-800 flex justify-between items-center">
-                    <span class="text-xs font-semibold text-font-subtle-light dark:text-font-subtle-dark uppercase tracking-wider flex items-center gap-1">
-                        <span class="material-symbols-outlined text-sm">history</span> Histórico de Consultas
-                    </span>
-                    <button onclick="clearHistory()" class="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition">Limpar</button>
-                </div>
-                <ul id="history-list" class="divide-y divide-base-100 dark:divide-base-800 text-xs font-mono max-h-[220px] overflow-y-auto">
-                    <li class="p-3 text-font-subtle-light dark:text-font-subtle-dark italic" id="history-empty">
-                        Nenhuma consulta no histórico ainda.
-                    </li>
-                </ul>
-            </div>
         </div>
 
-        <!-- Sidebar -->
-        <div class="space-y-6">
-            <!-- Templates Rápidos -->
-            <div class="border border-base-200 rounded-default bg-white p-4 shadow-sm dark:border-base-800 dark:bg-base-900">
-                <h3 class="font-semibold text-sm text-font-important-light dark:text-font-important-dark mb-3 uppercase tracking-wider flex items-center gap-1">
-                    <span class="material-symbols-outlined text-base">bolt</span> Consultas Rápidas
-                </h3>
-                <ul class="space-y-2 text-xs" id="templates-list">
-                    <li class="tpl-item p-2 rounded" onclick="loadTemplate('pacientes_terapeuta')">
-                        <strong class="block text-primary-600 dark:text-primary-400">👥 Pacientes por Terapeuta</strong>
-                        <span class="text-font-subtle-light dark:text-font-subtle-dark">Lista pacientes com seus terapeutas</span>
-                    </li>
-                    <li class="tpl-item p-2 rounded" onclick="loadTemplate('resumo_financeiro')">
-                        <strong class="block text-primary-600 dark:text-primary-400">💰 Resumo Financeiro do Mês</strong>
-                        <span class="text-font-subtle-light dark:text-font-subtle-dark">Receitas e despesas do mês atual</span>
-                    </li>
-                    <li class="tpl-item p-2 rounded" onclick="loadTemplate('consultas_recentes')">
-                        <strong class="block text-primary-600 dark:text-primary-400">📅 Consultas Recentes</strong>
-                        <span class="text-font-subtle-light dark:text-font-subtle-dark">Últimas 20 sessões agendadas</span>
-                    </li>
-                    <li class="tpl-item p-2 rounded" onclick="loadTemplate('inadimplentes')">
-                        <strong class="block text-primary-600 dark:text-primary-400">⚠️ Transações Pendentes</strong>
-                        <span class="text-font-subtle-light dark:text-font-subtle-dark">Cobranças em aberto ou atrasadas</span>
-                    </li>
-                    <li class="tpl-item p-2 rounded" onclick="loadTemplate('usuarios')">
-                        <strong class="block text-primary-600 dark:text-primary-400">🔑 Terapeutas Cadastrados</strong>
-                        <span class="text-font-subtle-light dark:text-font-subtle-dark">Lista de usuários do sistema</span>
-                    </li>
-                </ul>
+        <aside class="space-y-4">
+            <div class="rounded-default border border-base-200 bg-white p-4 shadow-sm dark:border-base-800 dark:bg-base-900">
+                <h2 class="text-sm font-semibold text-font-important-light dark:text-font-important-dark">
+                    Tabelas autorizadas
+                </h2>
+                {% if allowed_tables %}
+                    <ul class="mt-3 space-y-2 text-xs font-mono text-font-subtle-light dark:text-font-subtle-dark">
+                        {% for table in allowed_tables %}
+                            <li class="rounded bg-base-50 px-2 py-1.5 dark:bg-base-800">{{ table }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="mt-3 text-xs text-font-subtle-light dark:text-font-subtle-dark">
+                        Nenhuma tabela foi autorizada. Apenas SELECTs sem FROM, como <code>SELECT 1</code>, podem ser executados.
+                    </p>
+                {% endif %}
             </div>
 
-            <!-- Tabelas -->
-            <div class="border border-base-200 rounded-default bg-white p-4 shadow-sm dark:border-base-800 dark:bg-base-900">
-                <h3 class="font-semibold text-sm text-font-important-light dark:text-font-important-dark mb-3 uppercase tracking-wider">
-                    Tabelas Principais
-                </h3>
-                <ul class="space-y-3 text-xs">
-                    <li>
-                        <strong class="block text-font-important-light dark:text-font-important-dark font-mono">patients_patient</strong>
-                        <span class="text-font-subtle-light dark:text-font-subtle-dark">Fichas e dados cadastrais de Pacientes</span>
-                    </li>
-                    <li>
-                        <strong class="block text-font-important-light dark:text-font-important-dark font-mono">financeiro_financialtransaction</strong>
-                        <span class="text-font-subtle-light dark:text-font-subtle-dark">Receitas, despesas e fluxos financeiros</span>
-                    </li>
-                    <li>
-                        <strong class="block text-font-important-light dark:text-font-important-dark font-mono">agenda_appointment</strong>
-                        <span class="text-font-subtle-light dark:text-font-subtle-dark">Consultas e sessões agendadas</span>
-                    </li>
-                    <li>
-                        <strong class="block text-font-important-light dark:text-font-important-dark font-mono">records_evolution</strong>
-                        <span class="text-font-subtle-light dark:text-font-subtle-dark">Evoluções de prontuários clínicos</span>
-                    </li>
-                    <li>
-                        <strong class="block text-font-important-light dark:text-font-important-dark font-mono">users_user</strong>
-                        <span class="text-font-subtle-light dark:text-font-subtle-dark">Usuários do sistema</span>
-                    </li>
-                    <li>
-                        <strong class="block text-font-important-light dark:text-font-important-dark font-mono">documents_generateddocument</strong>
-                        <span class="text-font-subtle-light dark:text-font-subtle-dark">Laudos, atestados e declarações</span>
-                    </li>
+            <div class="rounded-default border border-base-200 bg-white p-4 text-xs text-font-subtle-light shadow-sm dark:border-base-800 dark:bg-base-900 dark:text-font-subtle-dark">
+                <h2 class="text-sm font-semibold text-font-important-light dark:text-font-important-dark">Bloqueios aplicados</h2>
+                <ul class="mt-3 list-disc space-y-1 pl-5">
+                    <li>múltiplas instruções;</li>
+                    <li>CTEs e subconsultas;</li>
+                    <li>EXPLAIN ANALYZE;</li>
+                    <li>comandos de escrita/DDL;</li>
+                    <li>funções administrativas perigosas;</li>
+                    <li>tabelas fora da allowlist.</li>
                 </ul>
             </div>
-        </div>
+        </aside>
     </div>
 </div>
-
-<script>
-// ─── Templates de Consultas Rápidas ─────────────────────────────────────────
-var TEMPLATES = {
-    pacientes_terapeuta: `SELECT p.full_name AS paciente, u.full_name AS terapeuta, p.status, p.created_at\nFROM patients_patient p\nJOIN users_user u ON p.therapist_id = u.id\nORDER BY u.full_name, p.full_name;`,
-
-    resumo_financeiro: `SELECT\n  transaction_type,\n  payment_status,\n  COUNT(*) AS total_lancamentos,\n  SUM(amount) AS valor_total,\n  SUM(paid_amount) AS valor_pago\nFROM financeiro_financialtransaction\nWHERE EXTRACT(YEAR FROM due_date) = EXTRACT(YEAR FROM CURRENT_DATE)\n  AND EXTRACT(MONTH FROM due_date) = EXTRACT(MONTH FROM CURRENT_DATE)\nGROUP BY transaction_type, payment_status\nORDER BY transaction_type, payment_status;`,
-
-    consultas_recentes: `SELECT a.id, p.full_name AS paciente, u.full_name AS terapeuta,\n  a.start_time, a.end_time, a.status\nFROM agenda_appointment a\nJOIN patients_patient p ON a.patient_id = p.id\nJOIN users_user u ON a.therapist_id = u.id\nORDER BY a.start_time DESC\nLIMIT 20;`,
-
-    inadimplentes: `SELECT p.full_name AS paciente, f.amount, f.paid_amount,\n  (f.amount - f.paid_amount) AS saldo_devedor,\n  f.due_date, f.payment_status\nFROM financeiro_financialtransaction f\nJOIN patients_patient p ON f.patient_id = p.id\nWHERE f.payment_status IN ('pending', 'partial')\n  AND f.transaction_type = 'income'\nORDER BY f.due_date;`,
-
-    usuarios: `SELECT id, full_name, email, is_active, is_superuser, date_joined\nFROM users_user\nORDER BY date_joined DESC;`
-};
-
-function loadTemplate(key) {
-    if (TEMPLATES[key]) {
-        editor.setValue(TEMPLATES[key]);
-        editor.refresh();
-        editor.focus();
-    }
-}
-
-// ─── Autocomplete dinâmico com schema real do banco ─────────────────────────
-var SQL_KEYWORDS = [
-    'SELECT','FROM','WHERE','JOIN','LEFT JOIN','RIGHT JOIN','INNER JOIN','FULL OUTER JOIN',
-    'ON','AND','OR','NOT','GROUP BY','ORDER BY','HAVING','LIMIT','OFFSET','DISTINCT','AS',
-    'COUNT','SUM','AVG','MAX','MIN','COALESCE','NULLIF','CASE','WHEN','THEN','ELSE','END',
-    'IN','NOT IN','BETWEEN','LIKE','ILIKE','IS NULL','IS NOT NULL','WITH','EXPLAIN',
-    'EXTRACT','DATE_TRUNC','NOW','CURRENT_DATE','CURRENT_TIMESTAMP','YEAR','MONTH','DAY',
-    'CAST','INTERVAL','TRUE','FALSE','NULL'
-];
-
-// Schema carregado do backend { table: [col1, col2, ...] }
-var DB_SCHEMA = {};
-var ALL_TABLES = [];
-var ALL_COLUMNS = [];
-
-fetch('/admin/sql-schema/')
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        DB_SCHEMA = data.schema || {};
-        ALL_TABLES = Object.keys(DB_SCHEMA);
-        // Achata todas as colunas (sem duplicatas)
-        var colSet = new Set();
-        ALL_TABLES.forEach(function(t) {
-            DB_SCHEMA[t].forEach(function(c) { colSet.add(c); });
-        });
-        ALL_COLUMNS = Array.from(colSet);
-    })
-    .catch(function() { /* falha silenciosa */ });
-
-function buildHints(cm) {
-    var cursor = cm.getCursor();
-    var token = cm.getTokenAt(cursor);
-    var word = token.string.replace(/^\s*/, '');
-    var start = token.start;
-    var end = cursor.ch;
-    if (token.type === 'punctuation' || word === '' || word === '.') {
-        start = end;
-        word = '';
-    }
-
-    // Detecta contexto: após FROM ou JOIN sugere tabelas; após . sugere colunas da tabela
-    var lineText = cm.getLine(cursor.line);
-    var beforeCursor = lineText.substring(0, end).toUpperCase();
-
-    var candidates = [];
-
-    // Se estiver digitando tabela.coluna, sugere colunas daquela tabela
-    var dotMatch = lineText.substring(0, token.start).match(/(\w+)\.$/);
-    if (dotMatch) {
-        var tableName = dotMatch[1].toLowerCase();
-        // Tenta encontrar a tabela por nome exato ou sufixo
-        var matchedTable = ALL_TABLES.find(function(t) {
-            return t === tableName || t.endsWith('_' + tableName);
-        });
-        if (matchedTable) {
-            candidates = DB_SCHEMA[matchedTable] || [];
-        } else {
-            candidates = ALL_COLUMNS;
-        }
-    }
-    // Após FROM ou JOIN sugere tabelas
-    else if (/\b(FROM|JOIN)\s+\w*$/.test(beforeCursor)) {
-        candidates = ALL_TABLES.concat(SQL_KEYWORDS);
-    }
-    // Caso geral: tabelas + colunas + keywords
-    else {
-        candidates = SQL_KEYWORDS.concat(ALL_TABLES).concat(ALL_COLUMNS);
-    }
-
-    var list = candidates.filter(function(item) {
-        return item.toLowerCase().startsWith(word.toLowerCase()) && item !== word;
-    });
-
-    // Ordena: tabelas primeiro, depois colunas, depois keywords
-    list.sort(function(a, b) {
-        var aIsTable = ALL_TABLES.indexOf(a) >= 0;
-        var bIsTable = ALL_TABLES.indexOf(b) >= 0;
-        if (aIsTable && !bIsTable) return -1;
-        if (!aIsTable && bIsTable) return 1;
-        return a.localeCompare(b);
-    });
-
-    return {
-        list: list,
-        from: CodeMirror.Pos(cursor.line, start),
-        to: CodeMirror.Pos(cursor.line, end)
-    };
-}
-
-// ─── Inicialização do CodeMirror ─────────────────────────────────────────────
-var editor = CodeMirror.fromTextArea(document.getElementById('sql-editor'), {
-    mode: 'text/x-sql',
-    theme: 'nord',
-    lineNumbers: true,
-    indentWithTabs: true,
-    smartIndent: true,
-    matchBrackets: true,
-    autofocus: true,
-    extraKeys: {
-        'Ctrl-Space': function(cm) {
-            CodeMirror.showHint(cm, buildHints, { completeSingle: false });
-        },
-        'Ctrl-Enter': function(cm) {
-            cm.save();
-            document.getElementById('sql-form').submit();
-        }
-    }
-});
-
-// Autocomplete automático ao digitar (após 2+ chars)
-editor.on('inputRead', function(cm, change) {
-    if (change.text[0] && /[\w.]/.test(change.text[0])) {
-        var cursor = cm.getCursor();
-        var token = cm.getTokenAt(cursor);
-        var word = token.string.replace(/^\s*/, '');
-        if (word.length >= 2) {
-            CodeMirror.showHint(cm, buildHints, { completeSingle: false });
-        }
-    }
-});
-
-setTimeout(function() { editor.refresh(); }, 100);
-
-// ─── Histórico de Consultas (localStorage) ───────────────────────────────────
-var HISTORY_KEY = 'elo_sql_history';
-var MAX_HISTORY = 8;
-
-function getHistory() {
-    try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
-    catch(e) { return []; }
-}
-
-function saveToHistory(query) {
-    var history = getHistory();
-    // Remove duplicatas
-    history = history.filter(function(q) { return q.trim() !== query.trim(); });
-    history.unshift(query);
-    if (history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-}
-
-function renderHistory() {
-    var history = getHistory();
-    var list = document.getElementById('history-list');
-    var empty = document.getElementById('history-empty');
-    if (!history.length) {
-        if (empty) empty.style.display = '';
-        // Remove itens antigos exceto o empty
-        var items = list.querySelectorAll('.history-item');
-        items.forEach(function(el) { el.remove(); });
-        return;
-    }
-    if (empty) empty.style.display = 'none';
-    var items = list.querySelectorAll('.history-item');
-    items.forEach(function(el) { el.remove(); });
-    history.forEach(function(q, i) {
-        var li = document.createElement('li');
-        li.className = 'history-item p-3 flex items-start gap-2';
-        li.title = 'Clique para carregar no editor';
-        li.innerHTML =
-            '<span class="text-font-subtle-light dark:text-font-subtle-dark select-none w-4 shrink-0">' + (i+1) + '</span>' +
-            '<span class="text-font-important-light dark:text-font-important-dark truncate font-mono flex-1">' +
-                q.replace(/\n/g, ' ').substring(0, 90) + (q.length > 90 ? '…' : '') +
-            '</span>';
-        li.onclick = function() {
-            editor.setValue(q);
-            editor.refresh();
-            editor.focus();
-        };
-        list.appendChild(li);
-    });
-}
-
-function clearHistory() {
-    localStorage.removeItem(HISTORY_KEY);
-    renderHistory();
-}
-
-// Salva no histórico ao submeter
-document.getElementById('sql-form').addEventListener('submit', function() {
-    var q = editor.getValue().trim();
-    if (q) saveToHistory(q);
-});
-
-// Render ao carregar a página
-renderHistory();
-
-// ─── Exportar CSV ─────────────────────────────────────────────────────────────
-function exportTableToCSV(filename) {
-    var csv = [];
-    var rows = document.querySelectorAll("table tr");
-    for (var i = 0; i < rows.length; i++) {
-        var row = [], cols = rows[i].querySelectorAll("td, th");
-        for (var j = 1; j < cols.length; j++) {
-            var text = (cols[j].innerText || cols[j].textContent).trim();
-            if (text === "NULL") text = "";
-            row.push('"' + text.replace(/"/g, '""') + '"');
-        }
-        if (row.length > 0) csv.push(row.join(","));
-    }
-    var blob = new Blob(["\ufeff" + csv.join("\n")], {type: "text/csv;charset=utf-8;"});
-    var link = document.createElement("a");
-    link.download = filename;
-    link.href = window.URL.createObjectURL(blob);
-    link.style.display = "none";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-</script>
 {% endblock %}
