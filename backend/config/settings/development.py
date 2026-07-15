@@ -4,6 +4,7 @@ from .base import *  # noqa
 from .celery import *  # noqa
 
 DEBUG = True
+AUTH_REQUIRE_SESSION_CLAIM = False
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])  # noqa: F405
 
