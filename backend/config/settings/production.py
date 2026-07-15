@@ -1,10 +1,11 @@
-"""Settings de produção para Azure App Service."""
+"""Settings de produção para Azure App Service e containers."""
 
 from django.core.exceptions import ImproperlyConfigured
 
 from apps.core.security_config import require_distinct_secrets, require_strong_secret
 
 from .base import *  # noqa: F401,F403
+from .celery import *  # noqa: F401,F403
 
 DEBUG = False
 
@@ -75,13 +76,23 @@ DATABASES["default"].update(
     }
 )
 
-# Cache
+# Redis é obrigatório em produção para cache, rate limit e Celery.
+_redis_url = env("REDIS_URL")  # noqa: F405
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": env("REDIS_URL", default="redis://localhost:6379/1"),  # noqa: F405
+        "LOCATION": _redis_url,
+        "OPTIONS": {
+            "socket_connect_timeout": 5,
+            "socket_timeout": 5,
+        },
     }
 }
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=_redis_url)  # noqa: F405
+CELERY_RESULT_BACKEND = env(  # noqa: F405
+    "CELERY_RESULT_BACKEND",
+    default=env("REDIS_RESULT_URL", default=_redis_url),  # noqa: F405
+)
 
 # Arquivos estáticos e mídia privada
 INSTALLED_APPS = ["whitenoise.runserver_nostatic"] + INSTALLED_APPS  # noqa: F405
@@ -95,7 +106,7 @@ STORAGES = {
     },
 }
 
-_private_media_required = env.bool("PRIVATE_MEDIA_STORAGE_REQUIRED", default=False)  # noqa: F405
+_private_media_required = env.bool("PRIVATE_MEDIA_STORAGE_REQUIRED", default=True)  # noqa: F405
 if AZURE_STORAGE_CONNECTION_STRING:  # noqa: F405
     STORAGES["default"] = {
         "BACKEND": "storages.backends.azure_storage.AzureStorage",
@@ -112,6 +123,7 @@ elif _private_media_required:
         "PRIVATE_MEDIA_STORAGE_REQUIRED=True."
     )
 
+HEALTH_CHECK_STORAGE = env.bool("HEALTH_CHECK_STORAGE", default=False)  # noqa: F405
 RATELIMIT_ENABLE = True
 
 # Logging estruturado para Azure Monitor
