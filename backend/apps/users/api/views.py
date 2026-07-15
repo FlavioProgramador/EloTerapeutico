@@ -1,4 +1,4 @@
-"""Views de autenticação, perfil e horários de atendimento."""
+"""Views de autenticação, sessões, perfil e horários de atendimento."""
 
 import logging
 
@@ -20,8 +20,17 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from ..models import User, WorkingHours
+from ..models import AuthSession, User, WorkingHours
+from ..services.sessions import (
+    SESSION_CLAIM,
+    active_sessions_for_user,
+    issue_token_pair,
+    revoke_all_user_sessions,
+    revoke_refresh_token,
+    revoke_user_session,
+)
 from .serializers import (
+    AuthSessionSerializer,
     ChangePasswordSerializer,
     LoginSerializer,
     PasswordResetConfirmSerializer,
@@ -47,6 +56,16 @@ def _refresh_token_for_user(raw_token: str, user) -> RefreshToken:
     return token
 
 
+def _current_session_id(request):
+    token = getattr(request, "auth", None)
+    if token is None:
+        return None
+    try:
+        return token.get(SESSION_CLAIM)
+    except AttributeError:
+        return None
+
+
 @extend_schema(tags=["auth"])
 @method_decorator(ratelimit(key="ip", rate="10/m", block=True, method="POST"), name="post")
 class RegisterView(generics.CreateAPIView):
@@ -58,14 +77,11 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        refresh = RefreshToken.for_user(user)
+        tokens = issue_token_pair(user=user, request=request)
         return Response(
             {
                 "message": "Cadastro realizado com sucesso.",
-                "tokens": {
-                    "access": str(refresh.access_token),
-                    "refresh": str(refresh),
-                },
+                "tokens": tokens,
                 "user": UserProfileSerializer(user).data,
             },
             status=status.HTTP_201_CREATED,
@@ -76,6 +92,7 @@ class RegisterView(generics.CreateAPIView):
 @method_decorator(ratelimit(key="ip", rate="5/m", block=True, method="POST"), name="post")
 class LoginView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
     serializer_class = LoginSerializer
 
     def post(self, request):
@@ -104,7 +121,12 @@ class LogoutView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         try:
-            _refresh_token_for_user(refresh_token, request.user).blacklist()
+            refresh = _refresh_token_for_user(refresh_token, request.user)
+            revoke_refresh_token(
+                refresh=refresh,
+                user=request.user,
+                reason="logout",
+            )
         except TokenError:
             return Response(
                 {
@@ -117,6 +139,68 @@ class LogoutView(APIView):
             )
         return Response(
             {"message": "Logout realizado com sucesso."},
+            status=status.HTTP_200_OK,
+        )
+
+
+@extend_schema(tags=["auth"])
+class LogoutAllView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        revoked_count = revoke_all_user_sessions(
+            user=request.user,
+            reason="logout_all",
+        )
+        return Response(
+            {
+                "message": "Todas as sessões foram encerradas.",
+                "revoked_sessions": revoked_count,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+@extend_schema(tags=["auth"], responses=AuthSessionSerializer(many=True))
+class AuthSessionListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        sessions = active_sessions_for_user(user=request.user)
+        serializer = AuthSessionSerializer(
+            sessions,
+            many=True,
+            context={"current_session_id": _current_session_id(request)},
+        )
+        return Response(serializer.data)
+
+
+@extend_schema(tags=["auth"])
+class AuthSessionRevokeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, public_id):
+        try:
+            session = revoke_user_session(
+                user=request.user,
+                public_id=public_id,
+            )
+        except AuthSession.DoesNotExist:
+            return Response(
+                {
+                    "error": {
+                        "code": "NOT_FOUND",
+                        "message": "Sessão não encontrada.",
+                    }
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(
+            {
+                "message": "Sessão encerrada com sucesso.",
+                "session": str(session.public_id),
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -189,6 +273,7 @@ class HealthCheckView(APIView):
 @method_decorator(ratelimit(key="ip", rate="3/h", block=True, method="POST"), name="post")
 class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
     serializer_class = PasswordResetRequestSerializer
 
     def post(self, request):
@@ -233,7 +318,7 @@ class PasswordResetRequestView(APIView):
             pass
 
         return Response(
-            {"message": ("Se o e-mail estiver cadastrado, você receberá um " "link para redefinir sua senha.")},
+            {"message": "Se o e-mail estiver cadastrado, você receberá um link para redefinir sua senha."},
             status=status.HTTP_200_OK,
         )
 
@@ -241,6 +326,7 @@ class PasswordResetRequestView(APIView):
 @extend_schema(tags=["auth"])
 class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
     serializer_class = PasswordResetConfirmSerializer
 
     def post(self, request):
@@ -255,13 +341,17 @@ class PasswordResetConfirmView(APIView):
 
 @extend_schema(tags=["auth"])
 class SafeTokenRefreshView(TokenRefreshView):
+    authentication_classes = []
     serializer_class = SafeTokenRefreshSerializer
 
 
 __all__ = [
+    "AuthSessionListView",
+    "AuthSessionRevokeView",
     "ChangePasswordView",
     "HealthCheckView",
     "LoginView",
+    "LogoutAllView",
     "LogoutView",
     "MeView",
     "PasswordResetConfirmView",
