@@ -6,7 +6,6 @@ import uuid
 
 from django.conf import settings
 from django.db import models
-from django.db.models.functions import Lower
 from django.utils import timezone
 
 from apps.core.validators import validate_phone
@@ -69,12 +68,6 @@ class Clinic(models.Model):
         ordering = ["name", "id"]
         indexes = [
             models.Index(fields=["status", "name"], name="users_clinic_status_name_idx"),
-        ]
-        constraints = [
-            models.UniqueConstraint(
-                Lower("name"),
-                name="users_clinic_name_ci_unique",
-            ),
         ]
 
     def __str__(self) -> str:
