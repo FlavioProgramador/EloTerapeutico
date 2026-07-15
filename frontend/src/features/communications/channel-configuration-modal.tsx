@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, ExternalLink, FlaskConical, Loader2, Power, Save, Send, ShieldCheck, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -25,14 +26,16 @@ function humanError(error: unknown): string {
 }
 
 function initialMetadata(config: CommunicationChannelConfig, providerId: string) {
-  const provider = config.available_providers.find((item) => item.id === providerId);
+  const provider = (config.available_providers ?? []).find((item) => item.id === providerId);
   const defaults = Object.fromEntries((provider?.fields ?? []).filter((field) => !field.secret && field.default !== undefined).map((field) => [field.name, field.default as string | number | boolean]));
-  return { ...defaults, ...config.metadata };
+  return { ...defaults, ...(config.metadata ?? {}) };
 }
 
 export function ChannelConfigurationModal({ channel, onClose }: { channel: CommunicationChannelConfig; onClose: () => void }) {
+  const panelRef = useRef<HTMLDivElement>(null);
   const [currentChannel, setCurrentChannel] = useState(channel);
-  const initialProvider = currentChannel.provider || currentChannel.available_providers[0]?.id || "";
+  const availableProviders = currentChannel.available_providers ?? [];
+  const initialProvider = currentChannel.provider || availableProviders[0]?.id || "";
   const [step, setStep] = useState(0);
   const [providerId, setProviderId] = useState(initialProvider);
   const [metadata, setMetadata] = useState<Record<string, string | number | boolean>>(() => initialMetadata(currentChannel, initialProvider));
@@ -44,13 +47,40 @@ export function ChannelConfigurationModal({ channel, onClose }: { channel: Commu
   const sendTest = useSendCommunicationChannelTest();
   const toggleChannel = useToggleCommunicationChannel();
   const removeChannel = useRemoveCommunicationChannel();
-  const provider = useMemo(() => currentChannel.available_providers.find((item) => item.id === providerId), [currentChannel.available_providers, providerId]);
+  const provider = availableProviders.find((item) => item.id === providerId);
   const pending = updateChannel.isPending || testConnection.isPending || sendTest.isPending || toggleChannel.isPending || removeChannel.isPending;
 
   const technicalFields = (provider?.fields ?? []).filter((field) => !field.secret && !senderFields.has(field.name) && !preferenceFields.has(field.name));
   const credentialFields = (provider?.fields ?? []).filter((field) => field.secret);
   const senderConfigurationFields = (provider?.fields ?? []).filter((field) => !field.secret && senderFields.has(field.name));
   const preferenceConfigurationFields = (provider?.fields ?? []).filter((field) => !field.secret && preferenceFields.has(field.name));
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !pending) onClose();
+      if (event.key !== "Tab" || !panelRef.current) return;
+      const items = panelRef.current.querySelectorAll<HTMLElement>("button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex]:not([tabindex='-1'])");
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const focusTimer = window.setTimeout(() => panelRef.current?.querySelector<HTMLElement>("button:not(:disabled)")?.focus(), 0);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [onClose, pending]);
 
   function selectProvider(nextProvider: string) {
     setProviderId(nextProvider);
@@ -140,7 +170,7 @@ export function ChannelConfigurationModal({ channel, onClose }: { channel: Commu
   }
 
   function renderField(field: ChannelConfigurationField) {
-    const configuredSecret = field.secret && currentChannel.credential_state[field.name];
+    const configuredSecret = field.secret && Boolean(currentChannel.credential_state?.[field.name]);
     const currentValue = field.secret ? secrets[field.name] ?? "" : metadata[field.name] ?? field.default ?? "";
     const commonClass = "h-11 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-primary";
     return <label key={field.name} className="grid gap-2 text-xs font-semibold text-foreground">
@@ -150,20 +180,24 @@ export function ChannelConfigurationModal({ channel, onClose }: { channel: Commu
     </label>;
   }
 
-  return <div className="fixed inset-0 z-50 flex justify-end bg-background/75 backdrop-blur-sm"><div className="flex h-full w-full max-w-3xl flex-col border-l border-border bg-card shadow-2xl">
-    <header className="flex items-start justify-between border-b border-border px-5 py-4 sm:px-7"><div><p className="text-xs font-bold text-primary">Configuração de canal</p><h2 className="mt-1 text-xl font-bold text-foreground">{communicationChannelLabel[currentChannel.channel]}</h2><p className="mt-1 text-xs text-muted-foreground">Credenciais nunca são retornadas pela API; somente o estado de configuração é exibido.</p></div><button type="button" onClick={onClose} className="rounded-lg p-2 text-muted-foreground hover:bg-secondary" aria-label="Fechar"><X className="h-5 w-5" /></button></header>
+  if (typeof document === "undefined") return null;
 
-    <div className="overflow-x-auto border-b border-border px-5 py-4 sm:px-7"><ol className="flex min-w-[650px] items-center gap-2">{steps.map((label, index) => <li key={label} className="flex flex-1 items-center gap-2"><button type="button" onClick={() => setStep(index)} className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-full border text-xs font-bold", step === index ? "border-primary bg-primary text-primary-foreground" : index < step ? "border-success bg-success/10 text-success" : "border-border bg-background text-muted-foreground")}>{index < step ? <CheckCircle2 className="h-4 w-4" /> : index + 1}</button><span className={cn("text-[10px] font-semibold", step === index ? "text-foreground" : "text-muted-foreground")}>{label}</span>{index < steps.length - 1 && <span className="h-px flex-1 bg-border" />}</li>)}</ol></div>
+  return createPortal(<div className="fixed inset-0 z-[120] flex justify-end" role="presentation">
+    <button type="button" className="absolute inset-0 bg-black/65 backdrop-blur-[1px]" aria-label="Fechar configuração do canal" onClick={() => { if (!pending) onClose(); }} />
+    <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="channel-configuration-title" className="relative flex h-dvh w-full max-w-3xl flex-col border-l border-border bg-card shadow-2xl">
+    <header className="flex items-start justify-between border-b border-border px-5 py-4 sm:px-7"><div><p className="text-xs font-bold text-primary">Configuração de canal</p><h2 id="channel-configuration-title" className="mt-1 text-xl font-bold text-foreground">{communicationChannelLabel[currentChannel.channel]}</h2><p className="mt-1 text-xs text-muted-foreground">Credenciais nunca são retornadas pela API; somente o estado de configuração é exibido.</p></div><button type="button" onClick={onClose} disabled={pending} className="rounded-lg p-2 text-muted-foreground hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50" aria-label="Fechar"><X className="h-5 w-5" /></button></header>
 
-    <div className="flex-1 overflow-y-auto p-5 sm:p-7">
-      {step === 0 && <section><h3 className="text-sm font-bold">Selecione o provedor</h3><p className="mt-1 text-xs text-muted-foreground">O botão Configurar permanece disponível mesmo quando nenhum provedor foi escolhido.</p><div className="mt-5 grid gap-3">{currentChannel.available_providers.map((item) => <button key={item.id} type="button" onClick={() => selectProvider(item.id)} className={cn("rounded-xl border p-4 text-left transition", providerId === item.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40")}><div className="flex items-center justify-between gap-3"><span className="text-sm font-bold">{item.label}</span>{providerId === item.id && <CheckCircle2 className="h-5 w-5 text-primary" />}</div><p className="mt-2 text-xs text-muted-foreground">{item.description}</p></button>)}</div>{provider && <div className="mt-5 rounded-xl border border-primary/20 bg-primary/5 p-4 text-xs text-muted-foreground"><ShieldCheck className="mr-2 inline h-4 w-4 text-primary" />{provider.instructions}</div>}</section>}
+    <div className="overflow-x-auto border-b border-border px-5 py-4 sm:px-7"><ol className="flex min-w-[650px] items-center gap-2">{steps.map((label, index) => <li key={label} className="flex flex-1 items-center gap-2"><button type="button" onClick={() => setStep(index)} disabled={pending} className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-full border text-xs font-bold", step === index ? "border-primary bg-primary text-primary-foreground" : index < step ? "border-success bg-success/10 text-success" : "border-border bg-background text-muted-foreground")}>{index < step ? <CheckCircle2 className="h-4 w-4" /> : index + 1}</button><span className={cn("text-[10px] font-semibold", step === index ? "text-foreground" : "text-muted-foreground")}>{label}</span>{index < steps.length - 1 && <span className="h-px flex-1 bg-border" />}</li>)}</ol></div>
+
+    <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-7">
+      {step === 0 && <section><h3 className="text-sm font-bold">Selecione o provedor</h3><p className="mt-1 text-xs text-muted-foreground">Escolha como este canal será conectado ao Elo Terapêutico.</p><div className="mt-5 grid gap-3">{availableProviders.map((item) => <button key={item.id} type="button" onClick={() => selectProvider(item.id)} disabled={pending} className={cn("rounded-xl border p-4 text-left transition", providerId === item.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40")}><div className="flex items-center justify-between gap-3"><span className="text-sm font-bold">{item.label}</span>{providerId === item.id && <CheckCircle2 className="h-5 w-5 text-primary" />}</div><p className="mt-2 text-xs text-muted-foreground">{item.description}</p></button>)}{availableProviders.length === 0 && <div className="rounded-xl border border-warning/30 bg-warning/5 p-4 text-xs text-muted-foreground">O catálogo de provedores não foi carregado. Atualize a página e confirme que o backend está na versão mais recente.</div>}</div>{provider && <div className="mt-5 rounded-xl border border-primary/20 bg-primary/5 p-4 text-xs text-muted-foreground"><ShieldCheck className="mr-2 inline h-4 w-4 text-primary" />{provider.instructions}</div>}</section>}
       {step === 1 && <section><h3 className="text-sm font-bold">Credenciais e identificação técnica</h3><p className="mt-1 text-xs text-muted-foreground">Segredos vazios preservam o valor armazenado anteriormente.</p><div className="mt-5 grid gap-4 sm:grid-cols-2">{technicalFields.map(renderField)}{credentialFields.map(renderField)}{technicalFields.length + credentialFields.length === 0 && <p className="text-xs text-muted-foreground sm:col-span-2">Este provedor não exige credenciais externas.</p>}</div></section>}
       {step === 2 && <section><h3 className="text-sm font-bold">Remetente</h3><p className="mt-1 text-xs text-muted-foreground">Defina apenas identificadores administrativos e neutros.</p><div className="mt-5 grid gap-4 sm:grid-cols-2">{senderConfigurationFields.map(renderField)}{senderConfigurationFields.length === 0 && <p className="text-xs text-muted-foreground sm:col-span-2">O remetente é definido automaticamente para este canal.</p>}</div></section>}
       {step === 3 && <section><h3 className="text-sm font-bold">Preferências do canal</h3><p className="mt-1 text-xs text-muted-foreground">As preferências do paciente e o opt-out continuam sendo validados antes de cada envio.</p><div className="mt-5 grid gap-4 sm:grid-cols-2">{preferenceConfigurationFields.map(renderField)}{preferenceConfigurationFields.length === 0 && <p className="text-xs text-muted-foreground sm:col-span-2">Não há preferências adicionais para este provedor.</p>}</div></section>}
-      {step === 4 && <section><h3 className="text-sm font-bold">Teste da integração</h3><p className="mt-1 text-xs text-muted-foreground">Primeiro valide a conexão. Depois envie uma mensagem controlada para seu próprio contato ou um destino informado.</p><div className="mt-5 rounded-xl border border-border bg-secondary/30 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold">Estado atual</p><p className="mt-1 text-xs text-muted-foreground">{communicationConnectionStatusLabel[currentChannel.connection_status]}</p></div><Button variant="outline" onClick={handleTestConnection} disabled={pending}>{testConnection.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FlaskConical className="mr-2 h-4 w-4" />}Testar conexão</Button></div></div><label className="mt-5 grid gap-2 text-xs font-semibold">Destino da mensagem de teste <input className="h-11 rounded-xl border border-input bg-background px-3 text-sm font-normal" value={testDestination} onChange={(event) => setTestDestination(event.target.value)} placeholder="Vazio usa seu e-mail ou telefone cadastrado" /></label><Button className="mt-4" onClick={handleSendTest} disabled={pending}>{sendTest.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}Enviar mensagem de teste</Button>{manualTestUrl && <a href={manualTestUrl} target="_blank" rel="noreferrer" className="mt-4 flex items-center gap-2 rounded-xl border border-success/20 bg-success/10 p-4 text-xs font-bold text-success"><ExternalLink className="h-4 w-4" />Abrir WhatsApp para concluir o teste manual</a>}{currentChannel.last_error && <div className="mt-5 rounded-xl border border-danger/20 bg-danger/5 p-4 text-xs text-danger"><AlertTriangle className="mr-2 inline h-4 w-4" />{currentChannel.last_error.message}</div>}</section>}
-      {step === 5 && <section><h3 className="text-sm font-bold">Ativação</h3><p className="mt-1 text-xs text-muted-foreground">Somente configurações validadas podem ser ativadas.</p><div className="mt-5 grid gap-3 rounded-xl border border-border bg-secondary/30 p-5 text-xs"><div className="flex justify-between gap-4"><span className="text-muted-foreground">Provedor</span><b>{provider?.label || "Não selecionado"}</b></div><div className="flex justify-between gap-4"><span className="text-muted-foreground">Configuração</span><b>{communicationConnectionStatusLabel[currentChannel.connection_status]}</b></div><div className="flex justify-between gap-4"><span className="text-muted-foreground">Operação</span><b>{currentChannel.is_active ? "Ativo" : "Inativo"}</b></div><div className="flex justify-between gap-4"><span className="text-muted-foreground">Última validação</span><b>{currentChannel.last_validated_at ? new Date(currentChannel.last_validated_at).toLocaleString("pt-BR") : "Ainda não validado"}</b></div></div><Button className="mt-5" onClick={handleToggle} disabled={pending || (!currentChannel.is_active && currentChannel.connection_status !== "configured")}><Power className="mr-2 h-4 w-4" />{currentChannel.is_active ? "Desativar canal" : "Ativar canal"}</Button></section>}
+      {step === 4 && <section><h3 className="text-sm font-bold">Teste da integração</h3><p className="mt-1 text-xs text-muted-foreground">Primeiro valide a conexão. Depois envie uma mensagem controlada para seu próprio contato ou um destino informado.</p><div className="mt-5 rounded-xl border border-border bg-secondary/30 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold">Estado atual</p><p className="mt-1 text-xs text-muted-foreground">{communicationConnectionStatusLabel[currentChannel.connection_status]}</p></div><Button type="button" variant="outline" onClick={handleTestConnection} disabled={pending}>{testConnection.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FlaskConical className="mr-2 h-4 w-4" />}Testar conexão</Button></div></div><label className="mt-5 grid gap-2 text-xs font-semibold">Destino da mensagem de teste <input className="h-11 rounded-xl border border-input bg-background px-3 text-sm font-normal" value={testDestination} disabled={pending} onChange={(event) => setTestDestination(event.target.value)} placeholder="Vazio usa seu e-mail ou telefone cadastrado" /></label><Button type="button" className="mt-4" onClick={handleSendTest} disabled={pending}>{sendTest.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}Enviar mensagem de teste</Button>{manualTestUrl && <a href={manualTestUrl} target="_blank" rel="noreferrer" className="mt-4 flex items-center gap-2 rounded-xl border border-success/20 bg-success/10 p-4 text-xs font-bold text-success"><ExternalLink className="h-4 w-4" />Abrir WhatsApp para concluir o teste manual</a>}{currentChannel.last_error && <div className="mt-5 rounded-xl border border-danger/20 bg-danger/5 p-4 text-xs text-danger"><AlertTriangle className="mr-2 inline h-4 w-4" />{currentChannel.last_error.message}</div>}</section>}
+      {step === 5 && <section><h3 className="text-sm font-bold">Ativação</h3><p className="mt-1 text-xs text-muted-foreground">Somente configurações validadas podem ser ativadas.</p><div className="mt-5 grid gap-3 rounded-xl border border-border bg-secondary/30 p-5 text-xs"><div className="flex justify-between gap-4"><span className="text-muted-foreground">Provedor</span><b>{provider?.label || "Não selecionado"}</b></div><div className="flex justify-between gap-4"><span className="text-muted-foreground">Configuração</span><b>{communicationConnectionStatusLabel[currentChannel.connection_status]}</b></div><div className="flex justify-between gap-4"><span className="text-muted-foreground">Operação</span><b>{currentChannel.is_active ? "Ativo" : "Inativo"}</b></div><div className="flex justify-between gap-4"><span className="text-muted-foreground">Última validação</span><b>{currentChannel.last_validated_at ? new Date(currentChannel.last_validated_at).toLocaleString("pt-BR") : "Ainda não validado"}</b></div></div><Button type="button" className="mt-5" onClick={handleToggle} disabled={pending || (!currentChannel.is_active && currentChannel.connection_status !== "configured")}><Power className="mr-2 h-4 w-4" />{currentChannel.is_active ? "Desativar canal" : "Ativar canal"}</Button></section>}
     </div>
 
-    <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4 sm:px-7"><div>{!["in_app", "whatsapp_manual"].includes(currentChannel.channel) && <Button variant="outline" className="border-danger/30 text-danger hover:bg-danger/5" onClick={handleRemove} disabled={pending}><Trash2 className="mr-2 h-4 w-4" />Remover configuração</Button>}</div><div className="flex flex-wrap justify-end gap-2"><Button variant="outline" onClick={() => save(true)} disabled={pending}><Save className="mr-2 h-4 w-4" />Salvar rascunho</Button>{step > 0 && <Button variant="outline" onClick={() => setStep((current) => current - 1)} disabled={pending}><ChevronLeft className="mr-2 h-4 w-4" />Voltar</Button>}{step < steps.length - 1 ? <Button onClick={() => setStep((current) => current + 1)} disabled={pending}>Continuar<ChevronRight className="ml-2 h-4 w-4" /></Button> : <Button onClick={() => save(false)} disabled={pending}>{updateChannel.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Salvar</Button>}</div></footer>
-  </div></div>;
+    <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4 sm:px-7"><div>{!["in_app", "whatsapp_manual"].includes(currentChannel.channel) && <Button type="button" variant="outline" className="border-danger/30 text-danger hover:bg-danger/5" onClick={handleRemove} disabled={pending}><Trash2 className="mr-2 h-4 w-4" />Remover configuração</Button>}</div><div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="outline" onClick={() => save(true)} disabled={pending}><Save className="mr-2 h-4 w-4" />Salvar rascunho</Button>{step > 0 && <Button type="button" variant="outline" onClick={() => setStep((current) => current - 1)} disabled={pending}><ChevronLeft className="mr-2 h-4 w-4" />Voltar</Button>}{step < steps.length - 1 ? <Button type="button" onClick={() => setStep((current) => current + 1)} disabled={pending}>Continuar<ChevronRight className="ml-2 h-4 w-4" /></Button> : <Button type="button" onClick={() => save(false)} disabled={pending}>{updateChannel.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Salvar</Button>}</div></footer>
+  </div></div>, document.body);
 }
