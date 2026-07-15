@@ -1,20 +1,15 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import axios from "axios";
 import { useRouter } from "next/navigation";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 import {
   resolvePostLoginDestination,
   safeInternalPath,
   type AccessSubscriptionStatus,
 } from "@/lib/auth-flow";
-import {
-  clearAuthSession,
-  getAccessToken,
-  getRefreshToken,
-  persistAuthRole,
-  persistAuthTokens,
-} from "@/lib/auth-session";
+import { clearClientAuthState, getCsrfToken } from "@/lib/auth-session";
 import { api } from "@/lib/api";
 import { LoginCredentials } from "@/types";
 
@@ -44,12 +39,18 @@ interface EntitlementSnapshot {
   subscription: SubscriptionSnapshot | null;
 }
 
+interface BrowserSessionSnapshot {
+  authenticated: boolean;
+  csrf_token: string;
+}
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => Promise<void>;
+  logoutAll: () => Promise<void>;
   updateUser: (updatedUser: Partial<User>) => void;
 }
 
@@ -84,6 +85,27 @@ async function resolveRedirectAfterLogin(): Promise<string> {
   }
 }
 
+async function readBrowserSession(): Promise<BrowserSessionSnapshot> {
+  const response = await axios.get<BrowserSessionSnapshot>("/api/auth/session/", {
+    withCredentials: true,
+    headers: { Accept: "application/json" },
+  });
+  return response.data;
+}
+
+async function postAuthAction(path: string): Promise<void> {
+  const csrfToken = getCsrfToken();
+  if (!csrfToken) return;
+  await axios.post(
+    path,
+    {},
+    {
+      withCredentials: true,
+      headers: { "X-CSRF-Token": csrfToken },
+    },
+  );
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -94,21 +116,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchUserProfile = async (): Promise<User> => {
     const response = await api.get<User>("auth/me/");
     setUser(response.data);
-    persistAuthRole(response.data.role);
     return response.data;
   };
 
   useEffect(() => {
     let mounted = true;
     const initAuth = async () => {
-      if (!getAccessToken() && !getRefreshToken()) {
-        if (mounted) setIsLoading(false);
-        return;
-      }
       try {
+        const session = await readBrowserSession();
+        if (!session.authenticated) return;
         await fetchUserProfile();
       } catch {
-        clearAuthSession();
         if (mounted) setUser(null);
       } finally {
         if (mounted) setIsLoading(false);
@@ -122,28 +140,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (credentials: LoginCredentials) => {
     setIsLoading(true);
-    clearAuthSession();
     setUser(null);
     try {
-      const response = await api.post<{ access?: string; refresh?: string }>(
-        "auth/login/",
-        credentials,
-      );
-      const { access, refresh } = response.data;
-      if (
-        typeof access !== "string" ||
-        !access ||
-        typeof refresh !== "string" ||
-        !refresh
-      ) {
-        throw new Error("Resposta de autenticação inválida.");
-      }
-
-      persistAuthTokens(access, refresh);
+      await axios.post("/api/auth/login/", credentials, {
+        withCredentials: true,
+        headers: { "Content-Type": "application/json" },
+      });
       await fetchUserProfile();
       router.replace(await resolveRedirectAfterLogin());
     } catch (error) {
-      clearAuthSession();
+      clearClientAuthState();
       setUser(null);
       throw error;
     } finally {
@@ -153,15 +159,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     setIsLoading(true);
-    const refresh = getRefreshToken();
     try {
-      if (refresh) {
-        await api.post("auth/logout/", { refresh });
-      }
-    } catch (error) {
-      console.error("Erro no logout no servidor:", error);
+      await postAuthAction("/api/auth/logout/");
     } finally {
-      clearAuthSession();
+      clearClientAuthState();
+      setUser(null);
+      setIsLoading(false);
+      router.replace("/login");
+    }
+  };
+
+  const logoutAll = async () => {
+    setIsLoading(true);
+    try {
+      await postAuthAction("/api/auth/logout-all/");
+    } finally {
+      clearClientAuthState();
       setUser(null);
       setIsLoading(false);
       router.replace("/login");
@@ -180,6 +193,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         login,
         logout,
+        logoutAll,
         updateUser,
       }}
     >
