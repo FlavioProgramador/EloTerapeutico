@@ -38,6 +38,15 @@ def test_legacy_route_keeps_payload_and_emits_deprecation_headers(api_client):
     assert legacy["Warning"] == '299 - "Deprecated API: use /api/v1/billing/"'
 
 
+def test_openapi_publishes_only_canonical_billing_prefix(api_client):
+    response = api_client.get(reverse("schema"), {"format": "json"})
+
+    assert response.status_code == 200
+    paths = response.data["paths"]
+    assert "/api/v1/billing/plans/" in paths
+    assert "/api/billing/plans/" not in paths
+
+
 @override_settings(BILLING_LEGACY_ROUTE_SUNSET="Mon, 01 Mar 2027 00:00:00 GMT")
 def test_legacy_route_allows_controlled_sunset_configuration(api_client):
     response = api_client.get(reverse("legacy-billing-plans"))
