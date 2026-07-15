@@ -10,6 +10,8 @@ import {
   gatewayUnavailableResponse,
   getAccessCookie,
   hasValidCsrf,
+  isTrustedRequestOrigin,
+  originRejectedResponse,
   parseBackendJson,
   setAuthCookies,
   withoutTokenFields,
@@ -23,6 +25,12 @@ type RouteContext = {
 };
 
 type StreamingRequestInit = RequestInit & { duplex?: "half" };
+
+const PUBLIC_ORIGIN_ONLY_PATHS = new Set([
+  "auth/register",
+  "auth/password/reset",
+  "auth/password/reset/confirm",
+]);
 
 async function registrationResponse(
   backendResponse: Response,
@@ -52,10 +60,9 @@ async function proxyRequest(
   request: NextRequest,
   context: RouteContext,
 ): Promise<NextResponse> {
-  if (!hasValidCsrf(request)) return csrfRejectedResponse();
-
   const { path } = await context.params;
   const normalizedPath = path.map((part) => encodeURIComponent(part)).join("/");
+  const normalizedLowerPath = normalizedPath.toLowerCase();
   if (!normalizedPath || isBlockedAuthProxyPath(normalizedPath)) {
     return NextResponse.json(
       {
@@ -66,6 +73,12 @@ async function proxyRequest(
       },
       { status: 404 },
     );
+  }
+
+  if (PUBLIC_ORIGIN_ONLY_PATHS.has(normalizedLowerPath)) {
+    if (!isTrustedRequestOrigin(request)) return originRejectedResponse();
+  } else if (!hasValidCsrf(request)) {
+    return csrfRejectedResponse();
   }
 
   const headers = createBackendHeaders(request, getAccessCookie(request));
@@ -85,7 +98,7 @@ async function proxyRequest(
       init,
       request.nextUrl.search,
     );
-    if (normalizedPath.toLowerCase() === "auth/register") {
+    if (normalizedLowerPath === "auth/register") {
       return registrationResponse(backendResponse);
     }
     return backendResponseToNext(backendResponse);
