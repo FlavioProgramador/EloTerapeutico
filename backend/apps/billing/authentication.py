@@ -36,6 +36,9 @@ class SubscriptionJWTAuthentication(JWTAuthentication):
         "/api/v1/auth/password/reset/",
         "/api/v1/auth/password/reset/confirm/",
     }
+    PUBLIC_AUTH_PREFIXES = (
+        "/api/v1/auth/sessions/",
+    )
     ACCESS_MANAGEMENT_PREFIXES = (
         "/api/v1/billing/",
         "/api/schema/",
@@ -70,7 +73,11 @@ class SubscriptionJWTAuthentication(JWTAuthentication):
             return user, token
 
         path = request.path
-        if path in self.PUBLIC_AUTH_PATHS or path.startswith(self.ACCESS_MANAGEMENT_PREFIXES):
+        if (
+            path in self.PUBLIC_AUTH_PATHS
+            or path.startswith(self.PUBLIC_AUTH_PREFIXES)
+            or path.startswith(self.ACCESS_MANAGEMENT_PREFIXES)
+        ):
             return user, token
 
         entitlement = get_entitlement(user)
