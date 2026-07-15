@@ -98,7 +98,13 @@ export function PatientDesktopRow(props: RowProps) {
     <tr className="hover:bg-secondary/35">
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
-          <span aria-hidden="true" className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-full border text-xs font-bold", getPatientAvatarStyle(patient.display_name))}>
+          <span
+            aria-hidden="true"
+            className={cn(
+              "grid h-10 w-10 shrink-0 place-items-center rounded-full border text-xs font-bold",
+              getPatientAvatarStyle(patient.display_name),
+            )}
+          >
             {patientInitials(patient.display_name)}
           </span>
           <div className="min-w-0">
@@ -126,7 +132,9 @@ export function PatientDesktopRow(props: RowProps) {
         </p>
       </td>
       <td className="px-3 py-3 text-sm text-foreground">
-        {typeof patient.age === "number" ? `${patient.age} anos` : "Não informada"}
+        {typeof patient.age === "number"
+          ? `${patient.age} anos`
+          : "Não informada"}
       </td>
       <td className="max-w-48 px-3 py-3 text-sm text-foreground">
         <span className="block truncate">{patientPayerLabel(patient)}</span>
@@ -159,7 +167,13 @@ export function PatientMobileCard(props: RowProps) {
     <article className="p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <span aria-hidden="true" className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-full border text-xs font-bold", getPatientAvatarStyle(patient.display_name))}>
+          <span
+            aria-hidden="true"
+            className={cn(
+              "grid h-10 w-10 shrink-0 place-items-center rounded-full border text-xs font-bold",
+              getPatientAvatarStyle(patient.display_name),
+            )}
+          >
             {patientInitials(patient.display_name)}
           </span>
           <div className="min-w-0">
@@ -184,7 +198,9 @@ export function PatientMobileCard(props: RowProps) {
             Idade
           </p>
           <p className="mt-1 text-foreground">
-            {typeof patient.age === "number" ? `${patient.age} anos` : "Não informada"}
+            {typeof patient.age === "number"
+              ? `${patient.age} anos`
+              : "Não informada"}
           </p>
         </div>
         <div>

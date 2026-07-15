@@ -1,16 +1,145 @@
-export type CommunicationChannel = "in_app" | "email" | "whatsapp_manual" | "whatsapp" | "sms";
-export type CommunicationStatus = "draft" | "scheduled" | "queued" | "processing" | "sent" | "delivered" | "read" | "responded" | "failed" | "canceled" | "expired";
-export type ChannelConnectionStatus = "not_configured" | "incomplete" | "validating" | "configured" | "error" | "disabled" | "unavailable";
-export type ChannelOperationalStatus = "active" | "inactive" | "validating" | "error" | "unavailable";
+export type CommunicationChannel =
+  | "in_app"
+  | "email"
+  | "whatsapp_manual"
+  | "whatsapp"
+  | "sms";
+export type CommunicationStatus =
+  | "draft"
+  | "scheduled"
+  | "queued"
+  | "processing"
+  | "sent"
+  | "delivered"
+  | "read"
+  | "responded"
+  | "failed"
+  | "canceled"
+  | "expired";
+export type ChannelConnectionStatus =
+  | "not_configured"
+  | "incomplete"
+  | "validating"
+  | "configured"
+  | "error"
+  | "disabled"
+  | "unavailable";
+export type ChannelOperationalStatus =
+  | "active"
+  | "inactive"
+  | "validating"
+  | "error"
+  | "unavailable";
 
-export interface Paginated<T> { count: number; next: string | null; previous: string | null; results: T[]; }
-export interface Communication { public_id: string; patient: number | null; patient_name: string; category: string; channel: CommunicationChannel; subject: string; status: CommunicationStatus; priority: "low" | "normal" | "high"; scheduled_at: string | null; sent_at: string | null; created_at: string; created_by_name: string; recipient: string; source_event: string; }
-export interface CommunicationDetail extends Communication { appointment: number | null; body: string; body_html: string; template: number | null; template_name: string; queued_at: string | null; processing_started_at: string | null; delivered_at: string | null; failed_at: string | null; canceled_at: string | null; provider_name: string; metadata: Record<string, unknown>; recipients: Array<{ id: number; recipient_type: string; name: string; destination_masked: string; channel: string; status: string; blocked_reason: string }>; attempts: Array<{ id: number; attempt_number: number; provider: string; status: string; error_message: string; started_at: string | null; finished_at: string | null; next_retry_at: string | null }>; }
-export interface CommunicationDashboard { period: { start: string; end: string }; metrics: { total: number; scheduled: number; delivered: number; failed: number; appointment_confirmations: number; success_rate: number; }; by_channel: Array<{ channel: CommunicationChannel; total: number }>; by_status: Array<{ status: CommunicationStatus; total: number }>; daily: Array<{ day: string; total: number }>; }
-export interface CommunicationTemplate { id: number; name: string; slug: string; description: string; category: string; channel: CommunicationChannel; subject_template: string; body_template: string; allowed_variables: string[]; is_system_template: boolean; is_active: boolean; is_archived: boolean; can_edit: boolean; }
-export interface CommunicationAutomation { id: number; name: string; description: string; event_type: string; channel: CommunicationChannel; template: number; template_name: string; is_active: boolean; delay_value: number; delay_unit: string; send_before_event: boolean; failures: number; last_run_at: string | null; }
+export interface Paginated<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+export interface Communication {
+  public_id: string;
+  patient: number | null;
+  patient_name: string;
+  category: string;
+  channel: CommunicationChannel;
+  subject: string;
+  status: CommunicationStatus;
+  priority: "low" | "normal" | "high";
+  scheduled_at: string | null;
+  sent_at: string | null;
+  created_at: string;
+  created_by_name: string;
+  recipient: string;
+  source_event: string;
+}
+export interface CommunicationDetail extends Communication {
+  appointment: number | null;
+  body: string;
+  body_html: string;
+  template: number | null;
+  template_name: string;
+  queued_at: string | null;
+  processing_started_at: string | null;
+  delivered_at: string | null;
+  failed_at: string | null;
+  canceled_at: string | null;
+  provider_name: string;
+  metadata: Record<string, unknown>;
+  recipients: Array<{
+    id: number;
+    recipient_type: string;
+    name: string;
+    destination_masked: string;
+    channel: string;
+    status: string;
+    blocked_reason: string;
+  }>;
+  attempts: Array<{
+    id: number;
+    attempt_number: number;
+    provider: string;
+    status: string;
+    error_message: string;
+    started_at: string | null;
+    finished_at: string | null;
+    next_retry_at: string | null;
+  }>;
+}
+export interface CommunicationDashboard {
+  period: { start: string; end: string };
+  metrics: {
+    total: number;
+    scheduled: number;
+    delivered: number;
+    failed: number;
+    appointment_confirmations: number;
+    success_rate: number;
+  };
+  by_channel: Array<{ channel: CommunicationChannel; total: number }>;
+  by_status: Array<{ status: CommunicationStatus; total: number }>;
+  daily: Array<{ day: string; total: number }>;
+}
+export interface CommunicationTemplate {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  category: string;
+  channel: CommunicationChannel;
+  subject_template: string;
+  body_template: string;
+  allowed_variables: string[];
+  is_system_template: boolean;
+  is_active: boolean;
+  is_archived: boolean;
+  can_edit: boolean;
+}
+export interface CommunicationAutomation {
+  id: number;
+  name: string;
+  description: string;
+  event_type: string;
+  channel: CommunicationChannel;
+  template: number;
+  template_name: string;
+  is_active: boolean;
+  delay_value: number;
+  delay_unit: string;
+  send_before_event: boolean;
+  failures: number;
+  last_run_at: string | null;
+}
 
-export type ChannelFieldKind = "text" | "email" | "password" | "number" | "boolean" | "textarea" | "tel" | "url";
+export type ChannelFieldKind =
+  | "text"
+  | "email"
+  | "password"
+  | "number"
+  | "boolean"
+  | "textarea"
+  | "tel"
+  | "url";
 export interface ChannelConfigurationField {
   name: string;
   label: string;
@@ -62,10 +191,43 @@ export interface ChannelTestResponse {
     success: boolean;
     status: CommunicationStatus;
     external_id: string;
-    metadata: { manual_url?: string; requires_confirmation?: boolean; provider_status?: string; price?: string | null; price_unit?: string | null };
+    metadata: {
+      manual_url?: string;
+      requires_confirmation?: boolean;
+      provider_status?: string;
+      price?: string | null;
+      price_unit?: string | null;
+    };
   };
 }
 
-export interface InAppNotification { id: number; title: string; message: string; notification_type: string; priority: "low" | "normal" | "high"; internal_url: string; is_read: boolean; read_at: string | null; created_at: string; }
-export interface PatientOption { id: number; full_name: string; email?: string; whatsapp?: string; phone?: string; }
-export interface CreateCommunicationPayload { patient_id?: number | null; channel: CommunicationChannel; category: string; template_id?: number | null; subject?: string; body?: string; scheduled_at?: string | null; priority?: "low" | "normal" | "high"; recipient_type?: "patient" | "guardian"; draft?: boolean; }
+export interface InAppNotification {
+  id: number;
+  title: string;
+  message: string;
+  notification_type: string;
+  priority: "low" | "normal" | "high";
+  internal_url: string;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+}
+export interface PatientOption {
+  id: number;
+  full_name: string;
+  email?: string;
+  whatsapp?: string;
+  phone?: string;
+}
+export interface CreateCommunicationPayload {
+  patient_id?: number | null;
+  channel: CommunicationChannel;
+  category: string;
+  template_id?: number | null;
+  subject?: string;
+  body?: string;
+  scheduled_at?: string | null;
+  priority?: "low" | "normal" | "high";
+  recipient_type?: "patient" | "guardian";
+  draft?: boolean;
+}

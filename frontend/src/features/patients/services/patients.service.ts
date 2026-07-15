@@ -18,7 +18,9 @@ export interface PatientFilters {
 type PatientFormResponse = PatientFormRecord & { created_at: string };
 
 export const patientsService = {
-  list: async (filters?: PatientFilters): Promise<PaginatedResponse<Patient>> => {
+  list: async (
+    filters?: PatientFilters,
+  ): Promise<PaginatedResponse<Patient>> => {
     const params = new URLSearchParams();
     if (filters?.search) params.set("search", filters.search);
     if (filters?.status) params.set("status", filters.status);
@@ -46,7 +48,10 @@ export const patientsService = {
     id: number,
     data: PatientFormRequest | FormData,
   ): Promise<PatientFormResponse> => {
-    const response = await api.patch<PatientFormResponse>(`patients/${id}/`, data);
+    const response = await api.patch<PatientFormResponse>(
+      `patients/${id}/`,
+      data,
+    );
     return response.data;
   },
 

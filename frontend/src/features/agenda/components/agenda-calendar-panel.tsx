@@ -73,7 +73,10 @@ export function AgendaCalendarPanel({
     start_time_lte: bounds.end.toISOString(),
     page_size: 100,
   });
-  const { data: patientsPage } = usePatients({ status: "active", page_size: 100 });
+  const { data: patientsPage } = usePatients({
+    status: "active",
+    page_size: 100,
+  });
   const { data: rooms = [] } = useRooms();
   const appointments = page?.results || [];
   const blocks = blockPage?.results || [];
@@ -116,7 +119,9 @@ export function AgendaCalendarPanel({
         ),
       );
     } else {
-      onDateChange(addDays(selectedDate, direction * (view === "week" ? 7 : 1)));
+      onDateChange(
+        addDays(selectedDate, direction * (view === "week" ? 7 : 1)),
+      );
     }
   }
 
@@ -148,7 +153,9 @@ export function AgendaCalendarPanel({
       item.room_name || "Sem sala",
     ]);
     const csv = [header, ...rows]
-      .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
+      .map((row) =>
+        row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","),
+      )
       .join("\n");
     const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -164,16 +171,32 @@ export function AgendaCalendarPanel({
     <section className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="flex flex-col gap-3 border-b border-border p-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex items-center gap-2">
-          <Button size="icon" variant="ghost" onClick={() => navigate(-1)} aria-label="Período anterior">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => navigate(-1)}
+            aria-label="Período anterior"
+          >
             <ChevronLeft className="size-4" />
           </Button>
-          <Button size="sm" variant="outline" onClick={() => onDateChange(new Date())}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onDateChange(new Date())}
+          >
             Hoje
           </Button>
-          <Button size="icon" variant="ghost" onClick={() => navigate(1)} aria-label="Próximo período">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => navigate(1)}
+            aria-label="Próximo período"
+          >
             <ChevronRight className="size-4" />
           </Button>
-          <h2 className="ml-2 text-sm font-semibold capitalize">{periodLabel}</h2>
+          <h2 className="ml-2 text-sm font-semibold capitalize">
+            {periodLabel}
+          </h2>
         </div>
         <div className="inline-flex w-fit rounded-lg bg-secondary p-1">
           {(["day", "week", "month"] as const).map((item) => (
@@ -207,10 +230,16 @@ export function AgendaCalendarPanel({
         <FilterSelect value={room} onChange={setRoom} label="Sala">
           <option value="">Sala: todas</option>
           {rooms.map((item) => (
-            <option key={item.id} value={item.id}>{item.name}</option>
+            <option key={item.id} value={item.id}>
+              {item.name}
+            </option>
           ))}
         </FilterSelect>
-        <FilterSelect value={modality} onChange={setModality} label="Modalidade">
+        <FilterSelect
+          value={modality}
+          onChange={setModality}
+          label="Modalidade"
+        >
           <option value="">Modalidade: todas</option>
           <option value="in_person">Presencial</option>
           <option value="online">Online</option>
@@ -225,10 +254,24 @@ export function AgendaCalendarPanel({
           <option value="cancelled">Cancelado</option>
         </FilterSelect>
         <div className="ml-auto flex items-center gap-3 text-[11px] text-muted-foreground">
-          <span><i className="mr-1 inline-block size-2 rounded-full bg-emerald-500" />Confirmado</span>
-          <span><i className="mr-1 inline-block size-2 rounded-full bg-amber-500" />Pendente</span>
-          <span><i className="mr-1 inline-block size-2 rounded-full bg-sky-500" />Realizado</span>
-          <Button size="sm" variant="outline" leftIcon={<Download className="size-3.5" />} onClick={exportCsv}>
+          <span>
+            <i className="mr-1 inline-block size-2 rounded-full bg-emerald-500" />
+            Confirmado
+          </span>
+          <span>
+            <i className="mr-1 inline-block size-2 rounded-full bg-amber-500" />
+            Pendente
+          </span>
+          <span>
+            <i className="mr-1 inline-block size-2 rounded-full bg-sky-500" />
+            Realizado
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            leftIcon={<Download className="size-3.5" />}
+            onClick={exportCsv}
+          >
             Exportar
           </Button>
         </div>
@@ -269,7 +312,10 @@ export function AgendaCalendarPanel({
         )}
       </div>
 
-      <AppointmentDetailModal appointment={detail} onClose={() => setDetail(undefined)} />
+      <AppointmentDetailModal
+        appointment={detail}
+        onClose={() => setDetail(undefined)}
+      />
     </section>
   );
 }
@@ -407,7 +453,9 @@ function AppointmentDetailModal({
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-border p-3">
-      <dt className="text-[11px] font-semibold uppercase text-muted-foreground">{label}</dt>
+      <dt className="text-[11px] font-semibold uppercase text-muted-foreground">
+        {label}
+      </dt>
       <dd className="mt-1 font-medium">{value}</dd>
     </div>
   );

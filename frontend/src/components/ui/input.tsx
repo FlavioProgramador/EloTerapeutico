@@ -2,8 +2,7 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-export interface InputProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   leftIcon?: React.ReactNode;
@@ -27,10 +26,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const generatedId = React.useId();
     const inputId = id ?? generatedId;
     const errorId = `${inputId}-error`;
-    const ariaDescribedBy = [
-      props["aria-describedby"],
-      error ? errorId : null,
-    ]
+    const ariaDescribedBy = [props["aria-describedby"], error ? errorId : null]
       .filter(Boolean)
       .join(" ");
 
@@ -91,8 +87,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
 Input.displayName = "Input";
 
-export interface TextareaProps
-  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
 }
@@ -102,10 +97,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     const generatedId = React.useId();
     const inputId = id ?? generatedId;
     const errorId = `${inputId}-error`;
-    const ariaDescribedBy = [
-      props["aria-describedby"],
-      error ? errorId : null,
-    ]
+    const ariaDescribedBy = [props["aria-describedby"], error ? errorId : null]
       .filter(Boolean)
       .join(" ");
 
@@ -129,8 +121,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             "placeholder:text-text-muted/60",
             "focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary-soft",
             "disabled:cursor-not-allowed disabled:bg-background-subtle disabled:text-text-muted disabled:opacity-60",
-            error &&
-              "border-danger focus:border-danger focus:ring-danger-soft",
+            error && "border-danger focus:border-danger focus:ring-danger-soft",
             className,
           )}
           {...props}

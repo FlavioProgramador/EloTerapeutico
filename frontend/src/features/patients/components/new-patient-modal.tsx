@@ -10,7 +10,13 @@ interface Props {
   onSaved?: (patientId: number) => void;
 }
 
-export function NewPatientModal({ open, patientId, onClose, onCreated, onSaved }: Props) {
+export function NewPatientModal({
+  open,
+  patientId,
+  onClose,
+  onCreated,
+  onSaved,
+}: Props) {
   return (
     <PatientFormDrawer
       open={open}

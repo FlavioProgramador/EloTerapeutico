@@ -33,26 +33,39 @@ export function SiteHeader() {
   }, []);
 
   return (
-    <header className={cn(
-      "fixed top-0 left-0 right-0 w-full z-50 transition-all duration-300",
-      scrolled ? "pt-2" : "pt-6"
-    )}>
-      <a href="#conteudo" className="sr-only focus:not-sr-only">Pular para o conteúdo</a>
+    <header
+      className={cn(
+        "fixed top-0 left-0 right-0 w-full z-50 transition-all duration-300",
+        scrolled ? "pt-2" : "pt-6",
+      )}
+    >
+      <a href="#conteudo" className="sr-only focus:not-sr-only">
+        Pular para o conteúdo
+      </a>
 
       <div className="container mx-auto px-4 sm:px-6">
-        <div className={cn(
-          "flex items-center justify-between px-3 py-2.5 rounded-full transition-all duration-300 backdrop-blur-md",
-          scrolled ? "bg-black/60 shadow-lg" : "bg-black/30 shadow-md"
-        )}>
+        <div
+          className={cn(
+            "flex items-center justify-between px-3 py-2.5 rounded-full transition-all duration-300 backdrop-blur-md",
+            scrolled ? "bg-black/60 shadow-lg" : "bg-black/30 shadow-md",
+          )}
+        >
           {/* Brand */}
           <div className="flex-shrink-0 pl-3 [&_span]:!text-[#F97316] [&_.grid]:!bg-transparent [&_.grid]:!border-transparent [&_.grid]:!text-[#F97316] [&_svg]:!w-7 [&_svg]:!h-7">
             <Brand compact />
           </div>
 
           {/* Desktop Nav */}
-          <nav aria-label="Navegação principal" className="hidden lg:flex items-center gap-8 text-sm font-medium text-white/90">
+          <nav
+            aria-label="Navegação principal"
+            className="hidden lg:flex items-center gap-8 text-sm font-medium text-white/90"
+          >
             {links.map(([label, href]) => (
-              <a key={href} href={href} className="hover:text-white transition-colors">
+              <a
+                key={href}
+                href={href}
+                className="hover:text-white transition-colors"
+              >
                 {label}
               </a>
             ))}
@@ -60,7 +73,10 @@ export function SiteHeader() {
 
           {/* Actions */}
           <div className="hidden lg:flex items-center gap-4 pr-1">
-            <Link href="/login" className="text-sm font-medium text-white hover:text-white/80 transition-colors">
+            <Link
+              href="/login"
+              className="text-sm font-medium text-white hover:text-white/80 transition-colors"
+            >
               Entrar
             </Link>
             <Link
@@ -83,13 +99,20 @@ export function SiteHeader() {
             aria-label={isOpen ? "Fechar menu" : "Abrir menu"}
             onClick={() => setIsOpen((current) => !current)}
           >
-            {isOpen ? <X aria-hidden="true" className="w-6 h-6" /> : <Menu aria-hidden="true" className="w-6 h-6" />}
+            {isOpen ? (
+              <X aria-hidden="true" className="w-6 h-6" />
+            ) : (
+              <Menu aria-hidden="true" className="w-6 h-6" />
+            )}
           </button>
         </div>
 
         {/* Mobile Menu */}
         {isOpen && (
-          <div id="menu-mobile" className="absolute top-[110%] left-4 right-4 bg-[#1A2E26] border border-white/10 rounded-3xl shadow-xl overflow-hidden flex flex-col p-4 z-50">
+          <div
+            id="menu-mobile"
+            className="absolute top-[110%] left-4 right-4 bg-[#1A2E26] border border-white/10 rounded-3xl shadow-xl overflow-hidden flex flex-col p-4 z-50"
+          >
             <nav aria-label="Navegação móvel" className="flex flex-col gap-2">
               {links.map(([label, href]) => (
                 <a

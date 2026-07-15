@@ -20,7 +20,8 @@ export const AGENDA_QUERY_KEYS = {
 };
 
 function getErrorMessage(error: unknown, fallback: string) {
-  if (!error || typeof error !== "object" || !("response" in error)) return fallback;
+  if (!error || typeof error !== "object" || !("response" in error))
+    return fallback;
   const data = (error as { response?: { data?: unknown } }).response?.data;
   if (!data || typeof data !== "object") return fallback;
   const record = data as Record<string, unknown>;
@@ -36,12 +37,20 @@ function useInvalidateAgenda() {
   const queryClient = useQueryClient();
   return () =>
     Promise.all([
-      queryClient.invalidateQueries({ queryKey: AGENDA_QUERY_KEYS.appointments }),
+      queryClient.invalidateQueries({
+        queryKey: AGENDA_QUERY_KEYS.appointments,
+      }),
       queryClient.invalidateQueries({ queryKey: AGENDA_QUERY_KEYS.blocks }),
-      queryClient.invalidateQueries({ queryKey: AGENDA_QUERY_KEYS.recurrences }),
+      queryClient.invalidateQueries({
+        queryKey: AGENDA_QUERY_KEYS.recurrences,
+      }),
       queryClient.invalidateQueries({ queryKey: AGENDA_QUERY_KEYS.packages }),
-      queryClient.invalidateQueries({ queryKey: AGENDA_QUERY_KEYS.telemedicine }),
-      queryClient.invalidateQueries({ queryKey: AGENDA_QUERY_KEYS.availability }),
+      queryClient.invalidateQueries({
+        queryKey: AGENDA_QUERY_KEYS.telemedicine,
+      }),
+      queryClient.invalidateQueries({
+        queryKey: AGENDA_QUERY_KEYS.availability,
+      }),
     ]);
 }
 
@@ -183,7 +192,10 @@ export function useUpdateAppointment(id: number) {
     },
     onError: (error) =>
       toast.error("Não foi possível atualizar.", {
-        description: getErrorMessage(error, "Verifique os conflitos de horário."),
+        description: getErrorMessage(
+          error,
+          "Verifique os conflitos de horário.",
+        ),
       }),
   });
 }
@@ -326,7 +338,13 @@ export function useRecurrenceAction() {
 export function useTelemedicineAction() {
   const invalidate = useInvalidateAgenda();
   return useMutation({
-    mutationFn: ({ id, action }: { id: number; action: "regenerate" | "open" }) =>
+    mutationFn: ({
+      id,
+      action,
+    }: {
+      id: number;
+      action: "regenerate" | "open";
+    }) =>
       action === "regenerate"
         ? agendaService.telemedicine.regenerate(id)
         : agendaService.telemedicine.open(id),

@@ -14,9 +14,12 @@ import { StatusBadge } from "./agenda-ui";
 const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 function eventTone(status: string) {
-  if (status === "confirmed") return "border-primary/30 bg-primary/10 text-primary";
-  if (status === "completed") return "border-success/30 bg-success/10 text-success";
-  if (status === "missed" || status === "cancelled") return "border-destructive/30 bg-destructive/10 text-destructive";
+  if (status === "confirmed")
+    return "border-primary/30 bg-primary/10 text-primary";
+  if (status === "completed")
+    return "border-success/30 bg-success/10 text-success";
+  if (status === "missed" || status === "cancelled")
+    return "border-destructive/30 bg-destructive/10 text-destructive";
   return "border-warning/30 bg-warning/10 text-warning";
 }
 
@@ -38,13 +41,19 @@ export function MonthView({
     <div className="min-w-[880px]">
       <div className="grid grid-cols-7 border-b border-border bg-secondary/20 text-center text-xs font-semibold text-muted-foreground">
         {weekdays.map((weekday) => (
-          <div key={weekday} className="px-2 py-3">{weekday}</div>
+          <div key={weekday} className="px-2 py-3">
+            {weekday}
+          </div>
         ))}
       </div>
       <div className="grid grid-cols-7">
         {days.map((date) => {
-          const items = appointments.filter((item) => isSameDay(item.start_time, date));
-          const dayBlocks = blocks.filter((item) => isSameDay(item.start_time, date));
+          const items = appointments.filter((item) =>
+            isSameDay(item.start_time, date),
+          );
+          const dayBlocks = blocks.filter((item) =>
+            isSameDay(item.start_time, date),
+          );
           const currentMonth = date.getMonth() === currentDate.getMonth();
           return (
             <button
@@ -59,7 +68,8 @@ export function MonthView({
               <span
                 className={cn(
                   "mb-2 grid size-7 place-items-center rounded-full text-xs font-semibold",
-                  isSameDay(date, new Date()) && "bg-primary text-primary-foreground",
+                  isSameDay(date, new Date()) &&
+                    "bg-primary text-primary-foreground",
                 )}
               >
                 {date.getDate()}
@@ -130,7 +140,9 @@ export function WeekView({
   return (
     <div className="min-w-[980px]">
       <div className="grid grid-cols-[72px_repeat(7,minmax(130px,1fr))] border-b border-border bg-secondary/20">
-        <div className="p-3 text-xs font-semibold text-muted-foreground">Horário</div>
+        <div className="p-3 text-xs font-semibold text-muted-foreground">
+          Horário
+        </div>
         {days.map((date) => (
           <div
             key={date.toISOString()}
@@ -139,7 +151,9 @@ export function WeekView({
               isSameDay(date, new Date()) && "bg-primary/10",
             )}
           >
-            <span className="block text-xs text-muted-foreground">{weekdays[date.getDay()]}</span>
+            <span className="block text-xs text-muted-foreground">
+              {weekdays[date.getDay()]}
+            </span>
             <strong className="text-sm">{date.getDate()}</strong>
           </div>
         ))}
@@ -149,7 +163,9 @@ export function WeekView({
           key={hour}
           className="grid min-h-20 grid-cols-[72px_repeat(7,minmax(130px,1fr))] border-b border-border"
         >
-          <div className="p-3 text-xs text-muted-foreground">{String(hour).padStart(2, "0")}:00</div>
+          <div className="p-3 text-xs text-muted-foreground">
+            {String(hour).padStart(2, "0")}:00
+          </div>
           {days.map((date) => {
             const items = appointments.filter((item) => {
               const value = new Date(item.start_time);
@@ -158,13 +174,19 @@ export function WeekView({
             const blocked = blocks.some((item) => {
               const startValue = new Date(item.start_time);
               const endValue = new Date(item.end_time);
-              return isSameDay(startValue, date) && startValue.getHours() <= hour && endValue.getHours() > hour;
+              return (
+                isSameDay(startValue, date) &&
+                startValue.getHours() <= hour &&
+                endValue.getHours() > hour
+              );
             });
             return (
               <button
                 type="button"
                 key={`${date.toISOString()}-${hour}`}
-                onClick={() => onNewAppointment(date, `${String(hour).padStart(2, "0")}:00`)}
+                onClick={() =>
+                  onNewAppointment(date, `${String(hour).padStart(2, "0")}:00`)
+                }
                 className={cn(
                   "group relative border-l border-border p-1 text-left hover:bg-primary/5",
                   blocked && "bg-secondary/40",
@@ -224,11 +246,15 @@ export function DayView({
   const hours = Array.from({ length: 15 }, (_, index) => index + 7);
   const dayItems = appointments
     .filter((item) => isSameDay(item.start_time, currentDate))
-    .sort((left, right) => +new Date(left.start_time) - +new Date(right.start_time));
+    .sort(
+      (left, right) => +new Date(left.start_time) - +new Date(right.start_time),
+    );
   return (
     <div className="min-w-[680px]">
       <div className="grid grid-cols-[110px_1fr] border-b border-border bg-secondary/20">
-        <div className="p-4 text-xs font-semibold text-muted-foreground">Horário</div>
+        <div className="p-4 text-xs font-semibold text-muted-foreground">
+          Horário
+        </div>
         <div className="border-l border-border p-4 text-center">
           <span className="block text-xs capitalize text-muted-foreground">
             {currentDate.toLocaleDateString("pt-BR", { weekday: "long" })}
@@ -237,25 +263,39 @@ export function DayView({
         </div>
       </div>
       {hours.map((hour) => {
-        const items = dayItems.filter((item) => new Date(item.start_time).getHours() === hour);
+        const items = dayItems.filter(
+          (item) => new Date(item.start_time).getHours() === hour,
+        );
         const blocked = blocks.some((item) => {
           const start = new Date(item.start_time);
           const end = new Date(item.end_time);
-          return isSameDay(start, currentDate) && start.getHours() <= hour && end.getHours() > hour;
+          return (
+            isSameDay(start, currentDate) &&
+            start.getHours() <= hour &&
+            end.getHours() > hour
+          );
         });
         return (
           <button
             type="button"
             key={hour}
             onClick={() =>
-              onNewAppointment(currentDate, `${String(hour).padStart(2, "0")}:00`)
+              onNewAppointment(
+                currentDate,
+                `${String(hour).padStart(2, "0")}:00`,
+              )
             }
             className="grid min-h-16 w-full grid-cols-[110px_1fr] border-b border-border text-left hover:bg-primary/5"
           >
             <span className="p-4 text-xs text-muted-foreground">
               {String(hour).padStart(2, "0")}:00
             </span>
-            <span className={cn("border-l border-border p-2", blocked && "bg-secondary/40")}>
+            <span
+              className={cn(
+                "border-l border-border p-2",
+                blocked && "bg-secondary/40",
+              )}
+            >
               {blocked && (
                 <span className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
                   <LockKeyhole className="size-3.5" /> Horário bloqueado
@@ -276,7 +316,9 @@ export function DayView({
                   )}
                 >
                   <span>
-                    <strong className="block text-sm">{item.patient_name}</strong>
+                    <strong className="block text-sm">
+                      {item.patient_name}
+                    </strong>
                     <span className="mt-1 flex items-center gap-1 text-xs">
                       <Clock3 className="size-3" />
                       {new Date(item.start_time).toLocaleTimeString("pt-BR", {

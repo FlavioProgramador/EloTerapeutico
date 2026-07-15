@@ -146,7 +146,8 @@ export function EvolutionAttachmentDropzone({
         </div>
       )}
       <p className="text-[11px] text-muted-foreground">
-        {visibleExisting.length + pending.length} de {MAX_FILES} arquivos selecionados.
+        {visibleExisting.length + pending.length} de {MAX_FILES} arquivos
+        selecionados.
       </p>
     </div>
   );

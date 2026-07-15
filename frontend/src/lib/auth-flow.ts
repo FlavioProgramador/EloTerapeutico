@@ -87,7 +87,10 @@ export function extractApiErrorMessage(
   payload: ApiErrorEnvelope | null | undefined,
   fallback: string,
 ): string {
-  if (typeof payload?.error?.message === "string" && payload.error.message.trim()) {
+  if (
+    typeof payload?.error?.message === "string" &&
+    payload.error.message.trim()
+  ) {
     return payload.error.message;
   }
   if (typeof payload?.detail === "string" && payload.detail.trim()) {
@@ -113,10 +116,12 @@ export function createSingleFlight<T>(): (
   };
 }
 
-export function prepareRetryRequest<T extends {
-  headers: Record<string, unknown>;
-  data?: unknown;
-}>(request: T, accessToken: string): T {
+export function prepareRetryRequest<
+  T extends {
+    headers: Record<string, unknown>;
+    data?: unknown;
+  },
+>(request: T, accessToken: string): T {
   request.headers.Authorization = `Bearer ${accessToken}`;
   return request;
 }

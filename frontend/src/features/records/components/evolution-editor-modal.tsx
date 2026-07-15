@@ -68,15 +68,28 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const templateButtonRef = useRef<HTMLButtonElement>(null);
-  const modalEvolution = props.evolution as EvolutionWithModalData | null | undefined;
+  const modalEvolution = props.evolution as
+    | EvolutionWithModalData
+    | null
+    | undefined;
   const editing = Boolean(modalEvolution?.id);
-  const [form, setForm] = useState<FormState>(() => initialForm(modalEvolution));
-  const [pendingFiles, setPendingFiles] = useState<PendingEvolutionAttachment[]>([]);
-  const [existingAttachments, setExistingAttachments] = useState<EvolutionAttachment[]>([]);
-  const [removedAttachmentIds, setRemovedAttachmentIds] = useState<number[]>([]);
+  const [form, setForm] = useState<FormState>(() =>
+    initialForm(modalEvolution),
+  );
+  const [pendingFiles, setPendingFiles] = useState<
+    PendingEvolutionAttachment[]
+  >([]);
+  const [existingAttachments, setExistingAttachments] = useState<
+    EvolutionAttachment[]
+  >([]);
+  const [removedAttachmentIds, setRemovedAttachmentIds] = useState<number[]>(
+    [],
+  );
   const [dirty, setDirty] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [persistedEvolutionId, setPersistedEvolutionId] = useState<number | null>(null);
+  const [persistedEvolutionId, setPersistedEvolutionId] = useState<
+    number | null
+  >(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [templateMenuOpen, setTemplateMenuOpen] = useState(false);
   const [pendingTemplate, setPendingTemplate] =
@@ -99,10 +112,16 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
     if (!form.appointment) return null;
     const currentData = modalEvolution?.appointment_data;
     if (currentData?.id === Number(form.appointment)) return currentData;
-    return appointmentQuery.data?.find(
-      (item) => item.id === Number(form.appointment),
-    ) ?? null;
-  }, [appointmentQuery.data, form.appointment, modalEvolution?.appointment_data]);
+    return (
+      appointmentQuery.data?.find(
+        (item) => item.id === Number(form.appointment),
+      ) ?? null
+    );
+  }, [
+    appointmentQuery.data,
+    form.appointment,
+    modalEvolution?.appointment_data,
+  ]);
 
   const appointmentOptions = useMemo(() => {
     const options = appointmentQuery.data ? [...appointmentQuery.data] : [];
@@ -215,7 +234,9 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
       setForm((current) => ({ ...current, dateOverrideConfirmed: false }));
       return;
     }
-    const selected = appointmentOptions.find((item) => item.id === Number(value));
+    const selected = appointmentOptions.find(
+      (item) => item.id === Number(value),
+    );
     if (!selected) return;
     const suggestedDate = toDateInput(new Date(selected.start_time));
     const shouldReplaceDate =
@@ -256,13 +277,15 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
   const validate = () => {
     const next: Record<string, string> = {};
     if (!form.sessionDate) next.sessionDate = "Informe a data do atendimento.";
-    if (!form.content.trim()) next.content = "Informe a evolução ou as anotações.";
+    if (!form.content.trim())
+      next.content = "Informe a evolução ou as anotações.";
     if (dateDiffersFromAppointment && !form.dateOverrideConfirmed) {
       next.sessionDate =
         "Confirme a alteração manual da data vinculada à consulta.";
     }
     const invalidFile = pendingFiles.find((item) => item.error);
-    if (invalidFile) next.attachments = "Remova ou corrija os arquivos inválidos.";
+    if (invalidFile)
+      next.attachments = "Remova ou corrija os arquivos inválidos.";
     setErrors(next);
     if (Object.keys(next).length) {
       requestAnimationFrame(() => {
@@ -331,7 +354,10 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
                 ? {
                     ...candidate,
                     progress: 0,
-                    error: getApiMessage(error, "Falha ao enviar este arquivo."),
+                    error: getApiMessage(
+                      error,
+                      "Falha ao enviar este arquivo.",
+                    ),
                   }
                 : candidate,
             ),
@@ -469,8 +495,8 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
               </p>
               {appointmentQuery.isError && (
                 <p role="alert" className="text-[11px] text-destructive">
-                  Não foi possível carregar as consultas. O registro ainda pode ser
-                  criado sem vínculo.
+                  Não foi possível carregar as consultas. O registro ainda pode
+                  ser criado sem vínculo.
                 </p>
               )}
             </section>
@@ -499,7 +525,9 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
                 required
                 aria-invalid={Boolean(errors.sessionDate)}
                 aria-describedby={
-                  errors.sessionDate ? "evolution-session-date-error" : undefined
+                  errors.sessionDate
+                    ? "evolution-session-date-error"
+                    : undefined
                 }
                 className={cn(
                   fieldClass,
@@ -512,10 +540,7 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
                     type="checkbox"
                     checked={form.dateOverrideConfirmed}
                     onChange={(event) =>
-                      changeForm(
-                        "dateOverrideConfirmed",
-                        event.target.checked,
-                      )
+                      changeForm("dateOverrideConfirmed", event.target.checked)
                     }
                     disabled={busy}
                     className="mt-0.5"
@@ -541,7 +566,8 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
             <section className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <label className="text-xs font-semibold text-foreground">
-                  Evolução / Anotações <span className="text-destructive">*</span>
+                  Evolução / Anotações{" "}
+                  <span className="text-destructive">*</span>
                 </label>
                 <div className="relative">
                   <Button
@@ -666,8 +692,8 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
                     className="mt-1 block text-[11px] leading-4 text-muted-foreground"
                   >
                     Apenas você (autor) e administradores com permissão clínica
-                    explícita poderão visualizar esta evolução. Secretárias e outros
-                    profissionais não autorizados não terão acesso.
+                    explícita poderão visualizar esta evolução. Secretárias e
+                    outros profissionais não autorizados não terão acesso.
                   </span>
                 </span>
               </label>
@@ -700,10 +726,10 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
             </section>
 
             <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-[11px] text-muted-foreground">
-              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
-              O conteúdo é enviado somente ao servidor autenticado, armazenado de
-              forma criptografada e registrado em auditoria. Nenhum texto clínico é
-              salvo no navegador.
+              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />O
+              conteúdo é enviado somente ao servidor autenticado, armazenado de
+              forma criptografada e registrado em auditoria. Nenhum texto
+              clínico é salvo no navegador.
             </div>
 
             {errors.form && (
@@ -743,14 +769,11 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
   );
 }
 
-function initialForm(
-  evolution?: EvolutionWithModalData | null,
-): FormState {
+function initialForm(evolution?: EvolutionWithModalData | null): FormState {
   return {
     appointment: evolution?.appointment ? String(evolution.appointment) : "",
     sessionDate: evolution?.session_date || toDateInput(new Date()),
-    content:
-      evolution?.content || evolution?.therapist_observations || "",
+    content: evolution?.content || evolution?.therapist_observations || "",
     confidential: Boolean(evolution?.is_confidential),
     dateOverrideConfirmed: false,
   };
@@ -781,14 +804,20 @@ function formatAppointmentOption(item: EvolutionAppointmentOption) {
 
 function getApiErrors(error: unknown): Record<string, string> {
   if (!error || typeof error !== "object" || !("response" in error)) {
-    return { form: "Falha de conexão. Verifique sua internet e tente novamente." };
+    return {
+      form: "Falha de conexão. Verifique sua internet e tente novamente.",
+    };
   }
   const data = (error as { response?: { data?: unknown; status?: number } })
     .response?.data;
   const status = (error as { response?: { status?: number } }).response?.status;
   if (status === 401) return { form: "Sua sessão expirou. Entre novamente." };
-  if (status === 403) return { form: "Você não possui permissão para esta ação." };
-  if (status === 409) return { form: "O registro foi alterado por outro usuário. Recarregue a página." };
+  if (status === 403)
+    return { form: "Você não possui permissão para esta ação." };
+  if (status === 409)
+    return {
+      form: "O registro foi alterado por outro usuário. Recarregue a página.",
+    };
   if (!data || typeof data !== "object") {
     return { form: "O servidor não conseguiu concluir a operação." };
   }
@@ -799,7 +828,8 @@ function getApiErrors(error: unknown): Record<string, string> {
       result[normalizeErrorKey(key)] = value[0];
     }
   });
-  if (!Object.keys(result).length) result.form = "Revise os dados e tente novamente.";
+  if (!Object.keys(result).length)
+    result.form = "Revise os dados e tente novamente.";
   return result;
 }
 

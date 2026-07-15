@@ -41,8 +41,9 @@ export function SiteFooter() {
             organizar cuidado clínico e operação em um só ambiente.
           </p>
           <small>
-            O projeto está em evolução contínua. Informações comerciais e documentos
-            legais serão publicados antes da disponibilização comercial.
+            O projeto está em evolução contínua. Informações comerciais e
+            documentos legais serão publicados antes da disponibilização
+            comercial.
           </small>
         </div>
 
@@ -52,9 +53,15 @@ export function SiteFooter() {
               <strong>{column.title}</strong>
               {column.links.map(([label, href]) =>
                 href.startsWith("/") ? (
-                  <Link key={label} href={href}>{label}<ArrowUpRight aria-hidden="true" /></Link>
+                  <Link key={label} href={href}>
+                    {label}
+                    <ArrowUpRight aria-hidden="true" />
+                  </Link>
                 ) : (
-                  <a key={label} href={href}>{label}<ArrowUpRight aria-hidden="true" /></a>
+                  <a key={label} href={href}>
+                    {label}
+                    <ArrowUpRight aria-hidden="true" />
+                  </a>
                 ),
               )}
             </nav>

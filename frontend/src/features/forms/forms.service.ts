@@ -1,18 +1,27 @@
 import { api } from "@/lib/api";
 
-import type { FormFilters, FormPayload, FormTemplate, PaginatedForms, TherapeuticForm } from "./types";
+import type {
+  FormFilters,
+  FormPayload,
+  FormTemplate,
+  PaginatedForms,
+  TherapeuticForm,
+} from "./types";
 
 function cleanParams(filters?: FormFilters) {
   const params = new URLSearchParams();
   Object.entries(filters ?? {}).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") params.set(key, String(value));
+    if (value !== undefined && value !== null && value !== "")
+      params.set(key, String(value));
   });
   return params;
 }
 
 export const formsService = {
   list: async (filters?: FormFilters) => {
-    const response = await api.get<PaginatedForms<TherapeuticForm>>("forms/", { params: cleanParams(filters) });
+    const response = await api.get<PaginatedForms<TherapeuticForm>>("forms/", {
+      params: cleanParams(filters),
+    });
     return response.data;
   },
   get: async (id: number) => {
@@ -43,11 +52,17 @@ export const formsService = {
     return response.data;
   },
   templates: async (filters?: FormFilters) => {
-    const response = await api.get<PaginatedForms<FormTemplate>>("forms/templates/", { params: cleanParams(filters) });
+    const response = await api.get<PaginatedForms<FormTemplate>>(
+      "forms/templates/",
+      { params: cleanParams(filters) },
+    );
     return response.data;
   },
   createFromTemplate: async (templateId: number, payload: FormPayload) => {
-    const response = await api.post<TherapeuticForm>(`forms/from-template/${templateId}/`, payload);
+    const response = await api.post<TherapeuticForm>(
+      `forms/from-template/${templateId}/`,
+      payload,
+    );
     return response.data;
   },
 };

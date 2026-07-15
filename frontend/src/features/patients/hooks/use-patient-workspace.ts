@@ -69,7 +69,9 @@ export function usePatientWorkspaceState() {
     if (page > 1) params.set("page", String(page));
     if (selectedId) params.set("patient", String(selectedId));
     const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
   }, [filters, page, pathname, router, selectedId]);
 
   return {

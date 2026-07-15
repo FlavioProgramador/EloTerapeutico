@@ -13,24 +13,42 @@ export const transactionSchema = z.object({
     .string()
     .min(1, "Valor é obrigatório.")
     .refine(
-      (val) => !isNaN(parseFloat(val.replace(",", "."))) && parseFloat(val.replace(",", ".")) > 0,
-      "Informe um valor válido maior que zero."
+      (val) =>
+        !isNaN(parseFloat(val.replace(",", "."))) &&
+        parseFloat(val.replace(",", ".")) > 0,
+      "Informe um valor válido maior que zero.",
     ),
   type: z.enum(["income", "expense"], "Tipo é obrigatório."),
-  category: z.enum(["session", "subscription", "material", "refund", "other"], "Categoria é obrigatória."),
-  status: z
-    .enum(["pending", "paid", "overdue", "cancelled"]),
+  category: z.enum(
+    ["session", "subscription", "material", "refund", "other"],
+    "Categoria é obrigatória.",
+  ),
+  status: z.enum(["pending", "paid", "overdue", "cancelled"]),
   due_date: z
     .string()
     .min(1, "Data de vencimento é obrigatória.")
     .refine((val) => !isNaN(Date.parse(val)), "Data inválida."),
   payment_date: z.string().optional().or(z.literal("")),
   payment_method: z
-    .enum(["pix", "credit_card", "debit_card", "cash", "bank_transfer", "boleto", "payment_link", "uninformed", "other"])
+    .enum([
+      "pix",
+      "credit_card",
+      "debit_card",
+      "cash",
+      "bank_transfer",
+      "boleto",
+      "payment_link",
+      "uninformed",
+      "other",
+    ])
     .optional(),
   patient: z.union([z.string(), z.number()]).optional(),
   appointment: z.union([z.string(), z.number()]).optional(),
-  payment_link: z.string().url("Link de pagamento inválido").optional().or(z.literal("")),
+  payment_link: z
+    .string()
+    .url("Link de pagamento inválido")
+    .optional()
+    .or(z.literal("")),
   notes: z.string().max(500).optional().or(z.literal("")),
 });
 

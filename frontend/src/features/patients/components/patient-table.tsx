@@ -37,7 +37,10 @@ export function PatientTableSkeleton() {
           className="grid grid-cols-[1.5fr_1.3fr_.7fr_1fr_.6fr_.7fr_3rem] gap-4 border-b border-border/70 p-4 last:border-0"
         >
           {Array.from({ length: 7 }).map((__, cell) => (
-            <div key={cell} className="h-8 animate-pulse rounded bg-secondary" />
+            <div
+              key={cell}
+              className="h-8 animate-pulse rounded bg-secondary"
+            />
           ))}
         </div>
       ))}
@@ -151,7 +154,8 @@ export function PatientTable({
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="min-w-24 text-center">
-            Página {pagination?.current_page ?? page} de {pagination?.total_pages ?? 1}
+            Página {pagination?.current_page ?? page} de{" "}
+            {pagination?.total_pages ?? 1}
           </span>
           <Button
             size="icon"

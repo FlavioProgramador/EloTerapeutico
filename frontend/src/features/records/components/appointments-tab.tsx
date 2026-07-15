@@ -2,7 +2,15 @@
 
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Calendar, Clock, Video, User, FileEdit, Eye, AlertCircle } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  Video,
+  User,
+  FileEdit,
+  Eye,
+  AlertCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -32,7 +40,12 @@ export function AppointmentsTab({
   const [page, setPage] = useState(1);
 
   // Busca as consultas do paciente usando TanStack Query
-  const { data: appointments = [], isLoading, isError, refetch } = useQuery({
+  const {
+    data: appointments = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["records", patientId, "appointments", page],
     queryFn: () => agendaService.list({ patient: patientId, page }),
     enabled: Number.isFinite(patientId) && patientId > 0,
@@ -41,17 +54,41 @@ export function AppointmentsTab({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "scheduled":
-        return <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">Agendada</span>;
+        return (
+          <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
+            Agendada
+          </span>
+        );
       case "confirmed":
-        return <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">Confirmada</span>;
+        return (
+          <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+            Confirmada
+          </span>
+        );
       case "completed":
-        return <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">Realizada</span>;
+        return (
+          <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+            Realizada
+          </span>
+        );
       case "cancelled":
-        return <span className="inline-flex items-center rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:text-red-300">Cancelada</span>;
+        return (
+          <span className="inline-flex items-center rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:text-red-300">
+            Cancelada
+          </span>
+        );
       case "missed":
-        return <span className="inline-flex items-center rounded-full bg-gray-500/10 px-2 py-0.5 text-[10px] font-medium text-gray-700 dark:text-gray-300">Faltou</span>;
+        return (
+          <span className="inline-flex items-center rounded-full bg-gray-500/10 px-2 py-0.5 text-[10px] font-medium text-gray-700 dark:text-gray-300">
+            Faltou
+          </span>
+        );
       default:
-        return <span className="inline-flex items-center rounded-full bg-slate-500/10 px-2 py-0.5 text-[10px] font-medium text-slate-700 dark:text-slate-300">{status}</span>;
+        return (
+          <span className="inline-flex items-center rounded-full bg-slate-500/10 px-2 py-0.5 text-[10px] font-medium text-slate-700 dark:text-slate-300">
+            {status}
+          </span>
+        );
     }
   };
 
@@ -89,9 +126,18 @@ export function AppointmentsTab({
     return (
       <Card className="flex flex-col items-center justify-center p-8 text-center">
         <AlertCircle className="h-8 w-8 text-destructive mb-2" />
-        <h3 className="text-sm font-semibold text-foreground">Erro ao carregar consultas</h3>
-        <p className="text-xs text-muted-foreground mt-1">Ocorreu um erro ao buscar o histórico de consultas.</p>
-        <Button size="sm" variant="outline" className="mt-4" onClick={() => refetch()}>
+        <h3 className="text-sm font-semibold text-foreground">
+          Erro ao carregar consultas
+        </h3>
+        <p className="text-xs text-muted-foreground mt-1">
+          Ocorreu um erro ao buscar o histórico de consultas.
+        </p>
+        <Button
+          size="sm"
+          variant="outline"
+          className="mt-4"
+          onClick={() => refetch()}
+        >
           Tentar novamente
         </Button>
       </Card>
@@ -156,7 +202,9 @@ export function AppointmentsTab({
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => onViewEvolution(appointment.evolution_id!)}
+                          onClick={() =>
+                            onViewEvolution(appointment.evolution_id!)
+                          }
                           title="Visualizar evolução vinculada"
                           className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
                         >
@@ -173,7 +221,9 @@ export function AppointmentsTab({
                           <FileEdit className="h-4 w-4" />
                         </Button>
                       ) : (
-                        <span className="text-xs text-muted-foreground">--</span>
+                        <span className="text-xs text-muted-foreground">
+                          --
+                        </span>
                       )}
                     </TableCell>
                   </TableRow>

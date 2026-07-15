@@ -10,8 +10,8 @@ export function Faq() {
           <span className="landing-eyebrow">Perguntas frequentes</span>
           <h2>Clareza antes de entrar na plataforma.</h2>
           <p>
-            As respostas abaixo refletem o estado real do projeto e evitam promessas
-            sobre recursos que ainda não estão disponíveis.
+            As respostas abaixo refletem o estado real do projeto e evitam
+            promessas sobre recursos que ainda não estão disponíveis.
           </p>
           <a href="#produto">
             Rever demonstração <ArrowUpRight aria-hidden="true" />

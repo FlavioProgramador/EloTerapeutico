@@ -78,7 +78,9 @@ export function RecordTabsNav({ activeTab, onChange }: RecordTabsNavProps) {
             <Icon
               className={cn(
                 "h-4 w-4 transition-colors",
-                active ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+                active
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-muted-foreground",
               )}
             />
             <span className="hidden sm:inline">{label}</span>
@@ -86,9 +88,7 @@ export function RecordTabsNav({ activeTab, onChange }: RecordTabsNavProps) {
             <span
               className={cn(
                 "absolute inset-x-2 bottom-0 h-0.5 rounded-full transition-all duration-200",
-                active
-                  ? "bg-emerald-500 opacity-100"
-                  : "opacity-0",
+                active ? "bg-emerald-500 opacity-100" : "opacity-0",
               )}
             />
           </button>

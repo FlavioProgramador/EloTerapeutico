@@ -6,8 +6,12 @@ import { EmptyState } from "@/components/ui/empty-state";
 export function PatientListError({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-10 text-center">
-      <p className="text-sm font-semibold text-foreground">Não foi possível carregar a listagem.</p>
-      <Button className="mt-4" size="sm" variant="outline" onClick={onRetry}>Tentar novamente</Button>
+      <p className="text-sm font-semibold text-foreground">
+        Não foi possível carregar a listagem.
+      </p>
+      <Button className="mt-4" size="sm" variant="outline" onClick={onRetry}>
+        Tentar novamente
+      </Button>
     </div>
   );
 }
@@ -31,7 +35,11 @@ export function PatientListEmpty({
             <UsersRound className="h-6 w-6 text-muted-foreground" />
           )
         }
-        title={isFiltered ? "Nenhum paciente encontrado" : "Sua lista de pacientes está vazia"}
+        title={
+          isFiltered
+            ? "Nenhum paciente encontrado"
+            : "Sua lista de pacientes está vazia"
+        }
         description={
           isFiltered
             ? "Não encontramos resultados para os filtros aplicados. Tente ajustar sua busca ou limpar os filtros."

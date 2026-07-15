@@ -24,7 +24,11 @@ export function validatePatientRules(
   const today = new Date();
   const birth = new Date(`${data.birth_date}T12:00:00`);
   if (birth > today) {
-    issue(context, "birth_date", "A data de nascimento não pode estar no futuro.");
+    issue(
+      context,
+      "birth_date",
+      "A data de nascimento não pode estar no futuro.",
+    );
   }
   if (
     data.treatment_start_date &&
@@ -51,10 +55,18 @@ export function validatePatientRules(
   }
   if (["financial_responsible", "both"].includes(data.reminder_recipient)) {
     if (!data.financial_responsible_name) {
-      issue(context, "financial_responsible_name", "Informe o responsável financeiro.");
+      issue(
+        context,
+        "financial_responsible_name",
+        "Informe o responsável financeiro.",
+      );
     }
     if (!data.financial_responsible_phone) {
-      issue(context, "financial_responsible_phone", "Informe o telefone do responsável.");
+      issue(
+        context,
+        "financial_responsible_phone",
+        "Informe o telefone do responsável.",
+      );
     }
   }
 }

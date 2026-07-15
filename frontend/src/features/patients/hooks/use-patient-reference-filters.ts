@@ -63,7 +63,9 @@ export function usePatientReferenceFilters() {
     if (page === 1) visible.delete("page");
     if (pageSize === 10) visible.delete("page_size");
     const query = visible.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
   }, [filters, page, pageSize, params, pathname, router]);
 
   const clearFilters = () => {

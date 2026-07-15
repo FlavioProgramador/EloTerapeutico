@@ -1,4 +1,8 @@
-export type ReportTab = "appointments" | "patients" | "financial" | "online-scheduling";
+export type ReportTab =
+  | "appointments"
+  | "patients"
+  | "financial"
+  | "online-scheduling";
 
 export interface PeriodPayload {
   start_date: string;

@@ -13,18 +13,26 @@ const endpoints: Record<ReportTab, string> = {
 
 export const reportsService = {
   appointments: async (params: ReportParams) => {
-    const response = await api.get<AppointmentsReport>(endpoints.appointments, { params });
+    const response = await api.get<AppointmentsReport>(endpoints.appointments, {
+      params,
+    });
     return response.data;
   },
   patients: async (params: ReportParams) => {
-    const response = await api.get<PatientsReport>(endpoints.patients, { params });
+    const response = await api.get<PatientsReport>(endpoints.patients, {
+      params,
+    });
     return response.data;
   },
   byTab: async (tab: ReportTab, params: ReportParams) => {
     const response = await api.get(endpoints[tab], { params });
     return response.data;
   },
-  download: async (tab: ReportTab, format: "csv" | "pdf", params: ReportParams) => {
+  download: async (
+    tab: ReportTab,
+    format: "csv" | "pdf",
+    params: ReportParams,
+  ) => {
     const response = await api.get("reports/export/", {
       params: { ...params, type: tab, format },
       responseType: "blob",

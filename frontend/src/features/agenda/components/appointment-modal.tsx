@@ -111,7 +111,9 @@ export function AppointmentModal({
   }, [open, defaultDate, defaultTime, user?.id]);
 
   useEffect(() => {
-    const selected = patients.find((patient) => patient.id === Number(form.patient));
+    const selected = patients.find(
+      (patient) => patient.id === Number(form.patient),
+    );
     if (!selected) return;
     setForm((current) => ({
       ...current,
@@ -150,7 +152,8 @@ export function AppointmentModal({
   function submit(event: React.FormEvent) {
     event.preventDefault();
     const start = new Date(`${form.date}T${form.time}:00`);
-    if (!form.patient || !form.therapist || Number.isNaN(start.getTime())) return;
+    if (!form.patient || !form.therapist || Number.isNaN(start.getTime()))
+      return;
 
     const payload: CreateAppointmentPayload = {
       patient: Number(form.patient),
@@ -159,8 +162,7 @@ export function AppointmentModal({
       end_time: endTime.toISOString(),
       modality: form.modality,
       appointment_type: form.appointmentType,
-      room:
-        form.modality === "online" || !form.room ? null : Number(form.room),
+      room: form.modality === "online" || !form.room ? null : Number(form.room),
       session_value: Number(form.sessionValue || 0).toFixed(2),
       notes: form.notes,
       send_whatsapp_reminder: form.reminder,
@@ -339,8 +341,7 @@ export function AppointmentModal({
                     setForm((current) => ({
                       ...current,
                       modality: event.target.value as AppointmentModality,
-                      room:
-                        event.target.value === "online" ? "" : current.room,
+                      room: event.target.value === "online" ? "" : current.room,
                     }))
                   }
                   className={fieldClass}
@@ -415,7 +416,8 @@ export function AppointmentModal({
                       onChange={(event) =>
                         setForm((current) => ({
                           ...current,
-                          frequency: event.target.value as AppointmentForm["frequency"],
+                          frequency: event.target
+                            .value as AppointmentForm["frequency"],
                         }))
                       }
                       className={fieldClass}
@@ -460,13 +462,16 @@ export function AppointmentModal({
                     onChange={(event) =>
                       setForm((current) => ({
                         ...current,
-                        conflictStrategy: event.target.value as AppointmentForm["conflictStrategy"],
+                        conflictStrategy: event.target
+                          .value as AppointmentForm["conflictStrategy"],
                       }))
                     }
                     className={fieldClass}
                   >
                     <option value="error">Interromper e informar</option>
-                    <option value="skip">Pular apenas a ocorrência conflitante</option>
+                    <option value="skip">
+                      Pular apenas a ocorrência conflitante
+                    </option>
                   </select>
                 </Field>
               </div>
@@ -478,7 +483,10 @@ export function AppointmentModal({
             <textarea
               value={form.notes}
               onChange={(event) =>
-                setForm((current) => ({ ...current, notes: event.target.value }))
+                setForm((current) => ({
+                  ...current,
+                  notes: event.target.value,
+                }))
               }
               rows={6}
               placeholder="Informações operacionais sobre a consulta..."

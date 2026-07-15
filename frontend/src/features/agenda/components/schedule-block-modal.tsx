@@ -89,7 +89,8 @@ export function ScheduleBlockModal({
       <form onSubmit={submit} className="space-y-4" noValidate>
         <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
           <LockKeyhole className="size-4 text-primary" />
-          Consultas existentes serão preservadas. O sistema pedirá confirmação quando houver impacto.
+          Consultas existentes serão preservadas. O sistema pedirá confirmação
+          quando houver impacto.
         </div>
 
         {(user?.role === "admin" || user?.role === "secretary") && (
@@ -97,7 +98,10 @@ export function ScheduleBlockModal({
             <select
               value={form.therapist}
               onChange={(event) =>
-                setForm((current) => ({ ...current, therapist: event.target.value }))
+                setForm((current) => ({
+                  ...current,
+                  therapist: event.target.value,
+                }))
               }
               className={fieldClass}
             >
@@ -128,7 +132,10 @@ export function ScheduleBlockModal({
               type="time"
               value={form.start}
               onChange={(event) =>
-                setForm((current) => ({ ...current, start: event.target.value }))
+                setForm((current) => ({
+                  ...current,
+                  start: event.target.value,
+                }))
               }
               className={fieldClass}
             />
@@ -166,7 +173,10 @@ export function ScheduleBlockModal({
           <select
             value={form.recurrence}
             onChange={(event) =>
-              setForm((current) => ({ ...current, recurrence: event.target.value }))
+              setForm((current) => ({
+                ...current,
+                recurrence: event.target.value,
+              }))
             }
             className={fieldClass}
           >
@@ -200,7 +210,8 @@ export function ScheduleBlockModal({
             className="mt-0.5"
           />
           <span>
-            Confirmo a criação mesmo que existam consultas no intervalo. Nenhuma consulta será cancelada automaticamente.
+            Confirmo a criação mesmo que existam consultas no intervalo. Nenhuma
+            consulta será cancelada automaticamente.
           </span>
         </label>
 
@@ -223,7 +234,13 @@ export function ScheduleBlockModal({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block space-y-1.5">
       <span className="text-xs font-semibold">{label}</span>

@@ -7,7 +7,12 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonTable } from "@/components/ui/skeleton";
 import type { FinancialTransaction } from "@/types";
 
-import { formatCurrency, formatDate, TRANSACTION_STATUS_LABELS, PAYMENT_METHOD_LABELS } from "../financeiro-formatters";
+import {
+  formatCurrency,
+  formatDate,
+  TRANSACTION_STATUS_LABELS,
+  PAYMENT_METHOD_LABELS,
+} from "../financeiro-formatters";
 import { FinanceiroActionsMenu } from "./financeiro-actions-menu";
 
 interface Props {
@@ -43,7 +48,9 @@ export function FinanceiroTransactionsPanel({
 }: Props) {
   const isIncome = mode === "income";
   const title = isIncome ? "Contas a receber" : "Contas a pagar";
-  const description = isIncome ? "Cobranças pendentes de pacientes" : "Despesas e contas pendentes";
+  const description = isIncome
+    ? "Cobranças pendentes de pacientes"
+    : "Despesas e contas pendentes";
 
   return (
     <Card className="overflow-hidden">
@@ -54,29 +61,53 @@ export function FinanceiroTransactionsPanel({
         </div>
         <div className="flex flex-wrap gap-2">
           {isIncome && onGenerateCharges && (
-            <Button variant="outline" size="sm" onClick={onGenerateCharges} leftIcon={<ReceiptText className="h-4 w-4" />}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGenerateCharges}
+              leftIcon={<ReceiptText className="h-4 w-4" />}
+            >
               Gerar cobranças do mês
             </Button>
           )}
           {isIncome && onNewCharge && (
-            <Button variant="outline" size="sm" onClick={onNewCharge} leftIcon={<Plus className="h-4 w-4" />}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onNewCharge}
+              leftIcon={<Plus className="h-4 w-4" />}
+            >
               Nova cobrança
             </Button>
           )}
-          <Button size="sm" onClick={onCreate} leftIcon={<Plus className="h-4 w-4" />}>
+          <Button
+            size="sm"
+            onClick={onCreate}
+            leftIcon={<Plus className="h-4 w-4" />}
+          >
             {isIncome ? "Nova receita" : "Nova despesa"}
           </Button>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="p-5"><SkeletonTable /></div>
+        <div className="p-5">
+          <SkeletonTable />
+        </div>
       ) : transactions.length === 0 ? (
         <EmptyState
           icon={<ReceiptText className="h-5 w-5 text-muted-foreground" />}
-          title={isIncome ? "Nenhuma conta a receber cadastrada" : "Nenhuma conta a pagar cadastrada"}
+          title={
+            isIncome
+              ? "Nenhuma conta a receber cadastrada"
+              : "Nenhuma conta a pagar cadastrada"
+          }
           description="Os lançamentos compatíveis com os filtros selecionados aparecerão aqui."
-          action={<Button size="sm" onClick={onCreate}>Criar lançamento</Button>}
+          action={
+            <Button size="sm" onClick={onCreate}>
+              Criar lançamento
+            </Button>
+          }
         />
       ) : (
         <div className="overflow-x-auto">
@@ -95,21 +126,43 @@ export function FinanceiroTransactionsPanel({
             </thead>
             <tbody>
               {transactions.map((transaction) => (
-                <tr key={transaction.id} className="border-b border-border/60 last:border-0 hover:bg-secondary/20">
-                  {isIncome && <td className="px-5 py-4 font-semibold">{transaction.patient_name ?? "—"}</td>}
-                  <td className="max-w-72 truncate px-5 py-4">{transaction.description || "Sem descrição"}</td>
-                  <td className="px-5 py-4 font-semibold">{formatCurrency(transaction.amount, hidden)}</td>
-                  <td className="px-5 py-4">{formatDate(transaction.due_date)}</td>
-                  <td className="px-5 py-4">{formatDate(transaction.payment_date)}</td>
-                  <td className="px-5 py-4 text-xs font-medium text-muted-foreground">{transaction.payment_method ? PAYMENT_METHOD_LABELS[transaction.payment_method] : "—"}</td>
+                <tr
+                  key={transaction.id}
+                  className="border-b border-border/60 last:border-0 hover:bg-secondary/20"
+                >
+                  {isIncome && (
+                    <td className="px-5 py-4 font-semibold">
+                      {transaction.patient_name ?? "—"}
+                    </td>
+                  )}
+                  <td className="max-w-72 truncate px-5 py-4">
+                    {transaction.description || "Sem descrição"}
+                  </td>
+                  <td className="px-5 py-4 font-semibold">
+                    {formatCurrency(transaction.amount, hidden)}
+                  </td>
                   <td className="px-5 py-4">
-                    <Badge variant={getTransactionStatusVariant(transaction.status)}>
-                      {TRANSACTION_STATUS_LABELS[transaction.status] ?? transaction.status}
+                    {formatDate(transaction.due_date)}
+                  </td>
+                  <td className="px-5 py-4">
+                    {formatDate(transaction.payment_date)}
+                  </td>
+                  <td className="px-5 py-4 text-xs font-medium text-muted-foreground">
+                    {transaction.payment_method
+                      ? PAYMENT_METHOD_LABELS[transaction.payment_method]
+                      : "—"}
+                  </td>
+                  <td className="px-5 py-4">
+                    <Badge
+                      variant={getTransactionStatusVariant(transaction.status)}
+                    >
+                      {TRANSACTION_STATUS_LABELS[transaction.status] ??
+                        transaction.status}
                     </Badge>
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex justify-end gap-1">
-                      <FinanceiroActionsMenu 
+                      <FinanceiroActionsMenu
                         transaction={transaction}
                         onEdit={onEdit}
                         onMarkPaid={onMarkPaid}

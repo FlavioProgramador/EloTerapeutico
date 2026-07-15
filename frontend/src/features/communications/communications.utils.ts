@@ -1,8 +1,41 @@
-import type { ChannelConnectionStatus, CommunicationChannel, CommunicationStatus } from "./types";
+import type {
+  ChannelConnectionStatus,
+  CommunicationChannel,
+  CommunicationStatus,
+} from "./types";
 
-export const communicationStatusLabel: Record<CommunicationStatus, string> = { draft: "Rascunho", scheduled: "Agendada", queued: "Na fila", processing: "Processando", sent: "Enviada", delivered: "Entregue", read: "Lida", responded: "Respondida", failed: "Falhou", canceled: "Cancelada", expired: "Expirada" };
-export const communicationChannelLabel: Record<CommunicationChannel, string> = { in_app: "Interna", email: "E-mail", whatsapp_manual: "WhatsApp manual", whatsapp: "WhatsApp Business", sms: "SMS" };
-export const communicationConnectionStatusLabel: Record<ChannelConnectionStatus, string> = { not_configured: "Não configurado", incomplete: "Configuração incompleta", validating: "Validando", configured: "Configurado", error: "Com erro", disabled: "Desativado", unavailable: "Indisponível temporariamente" };
+export const communicationStatusLabel: Record<CommunicationStatus, string> = {
+  draft: "Rascunho",
+  scheduled: "Agendada",
+  queued: "Na fila",
+  processing: "Processando",
+  sent: "Enviada",
+  delivered: "Entregue",
+  read: "Lida",
+  responded: "Respondida",
+  failed: "Falhou",
+  canceled: "Cancelada",
+  expired: "Expirada",
+};
+export const communicationChannelLabel: Record<CommunicationChannel, string> = {
+  in_app: "Interna",
+  email: "E-mail",
+  whatsapp_manual: "WhatsApp manual",
+  whatsapp: "WhatsApp Business",
+  sms: "SMS",
+};
+export const communicationConnectionStatusLabel: Record<
+  ChannelConnectionStatus,
+  string
+> = {
+  not_configured: "Não configurado",
+  incomplete: "Configuração incompleta",
+  validating: "Validando",
+  configured: "Configurado",
+  error: "Com erro",
+  disabled: "Desativado",
+  unavailable: "Indisponível temporariamente",
+};
 
 const fieldLabels: Record<string, string> = {
   patient_id: "Paciente",
@@ -27,7 +60,8 @@ function normalizeApiMessage(message: string): string {
 }
 
 function firstErrorMessage(value: unknown): string | null {
-  if (typeof value === "string" && value.trim()) return normalizeApiMessage(value);
+  if (typeof value === "string" && value.trim())
+    return normalizeApiMessage(value);
   if (Array.isArray(value)) {
     for (const item of value) {
       const message = firstErrorMessage(item);
@@ -43,7 +77,8 @@ function firstErrorMessage(value: unknown): string | null {
     if (message) return message;
   }
   for (const [key, item] of Object.entries(record)) {
-    if (["code", "message", "detail", "non_field_errors"].includes(key)) continue;
+    if (["code", "message", "detail", "non_field_errors"].includes(key))
+      continue;
     const message = firstErrorMessage(item);
     if (message) return `${fieldLabels[key] ?? key}: ${message}`;
   }
@@ -70,7 +105,23 @@ export function getCommunicationApiErrorMessage(
   return firstErrorMessage(data) ?? fallback;
 }
 
-export function canCancelCommunication(status: CommunicationStatus): boolean { return ["draft", "scheduled", "queued", "failed"].includes(status); }
-export function canRetryCommunication(status: CommunicationStatus): boolean { return status === "failed"; }
-export function isManualWhatsAppReady(channel: CommunicationChannel, status: CommunicationStatus, manualUrl?: string): boolean { return channel === "whatsapp_manual" && status === "draft" && Boolean(manualUrl); }
-export function canActivateCommunicationChannel(status: ChannelConnectionStatus): boolean { return status === "configured"; }
+export function canCancelCommunication(status: CommunicationStatus): boolean {
+  return ["draft", "scheduled", "queued", "failed"].includes(status);
+}
+export function canRetryCommunication(status: CommunicationStatus): boolean {
+  return status === "failed";
+}
+export function isManualWhatsAppReady(
+  channel: CommunicationChannel,
+  status: CommunicationStatus,
+  manualUrl?: string,
+): boolean {
+  return (
+    channel === "whatsapp_manual" && status === "draft" && Boolean(manualUrl)
+  );
+}
+export function canActivateCommunicationChannel(
+  status: ChannelConnectionStatus,
+): boolean {
+  return status === "configured";
+}

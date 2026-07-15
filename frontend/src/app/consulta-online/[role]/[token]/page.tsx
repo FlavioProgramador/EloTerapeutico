@@ -41,11 +41,11 @@ export default function OnlineConsultationPage() {
           reason &&
           typeof reason === "object" &&
           "response" in reason &&
-          typeof (reason as { response?: { data?: { detail?: unknown } } }).response
-            ?.data?.detail === "string"
+          typeof (reason as { response?: { data?: { detail?: unknown } } })
+            .response?.data?.detail === "string"
             ? String(
-                (reason as { response?: { data?: { detail?: string } } }).response
-                  ?.data?.detail,
+                (reason as { response?: { data?: { detail?: string } } })
+                  .response?.data?.detail,
               )
             : "A sala não está disponível.";
         setError(message);
@@ -106,15 +106,18 @@ export default function OnlineConsultationPage() {
                 value={`${new Date(data.appointment_start).toLocaleTimeString(
                   "pt-BR",
                   { hour: "2-digit", minute: "2-digit" },
-                )}–${new Date(data.appointment_end).toLocaleTimeString("pt-BR", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}`}
+                )}–${new Date(data.appointment_end).toLocaleTimeString(
+                  "pt-BR",
+                  {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  },
+                )}`}
               />
             </div>
             <div className="flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 p-4 text-xs text-muted-foreground">
-              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
-              O link é individual, revogável e expira após o atendimento. Não
+              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />O
+              link é individual, revogável e expira após o atendimento. Não
               compartilhe com terceiros.
             </div>
             <Button

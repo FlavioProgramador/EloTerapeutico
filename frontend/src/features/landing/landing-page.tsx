@@ -5,12 +5,12 @@ import { FinalCta } from "./final-cta";
 import { SiteFooter } from "./site-footer";
 import { EloDivider } from "./elo-svg";
 
-import { 
-  NewHero, 
-  NewAboutSection, 
-  NewVideoStatsSection, 
-  NewFeaturesGrid, 
-  NewTailoredCareSection 
+import {
+  NewHero,
+  NewAboutSection,
+  NewVideoStatsSection,
+  NewFeaturesGrid,
+  NewTailoredCareSection,
 } from "./new-sections";
 
 export function LandingPage() {

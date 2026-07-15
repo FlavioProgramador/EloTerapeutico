@@ -35,7 +35,7 @@ export const authService = {
    * Renova o access token usando o refresh token.
    */
   refreshToken: async (
-    refresh: string
+    refresh: string,
   ): Promise<{ access: string; refresh?: string }> => {
     const response = await api.post("auth/token/refresh/", { refresh });
     return response.data;
@@ -58,7 +58,10 @@ export const authService = {
    * Solicita a redefinição de senha (forgot password).
    */
   requestPasswordReset: async (email: string): Promise<{ message: string }> => {
-    const response = await api.post<{ message: string }>("auth/password/reset/", { email });
+    const response = await api.post<{ message: string }>(
+      "auth/password/reset/",
+      { email },
+    );
     return response.data;
   },
 
@@ -71,7 +74,10 @@ export const authService = {
     new_password: string;
     new_password_confirm: string;
   }): Promise<{ message: string }> => {
-    const response = await api.post<{ message: string }>("auth/password/reset/confirm/", data);
+    const response = await api.post<{ message: string }>(
+      "auth/password/reset/confirm/",
+      data,
+    );
     return response.data;
   },
 };

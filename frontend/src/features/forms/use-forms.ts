@@ -4,11 +4,17 @@ import { formsService } from "./forms.service";
 import type { FormFilters, FormPayload } from "./types";
 
 export function useForms(filters?: FormFilters) {
-  return useQuery({ queryKey: ["forms", filters], queryFn: () => formsService.list(filters) });
+  return useQuery({
+    queryKey: ["forms", filters],
+    queryFn: () => formsService.list(filters),
+  });
 }
 
 export function useFormTemplates(filters?: FormFilters) {
-  return useQuery({ queryKey: ["form-templates", filters], queryFn: () => formsService.templates(filters) });
+  return useQuery({
+    queryKey: ["form-templates", filters],
+    queryFn: () => formsService.templates(filters),
+  });
 }
 
 export function useCreateForm() {
@@ -22,7 +28,13 @@ export function useCreateForm() {
 export function useUpdateForm() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: Partial<FormPayload> }) => formsService.update(id, payload),
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: number;
+      payload: Partial<FormPayload>;
+    }) => formsService.update(id, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["forms"] }),
   });
 }
@@ -30,12 +42,20 @@ export function useUpdateForm() {
 export function useCreateFormFromTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ templateId, payload }: { templateId: number; payload: FormPayload }) => formsService.createFromTemplate(templateId, payload),
+    mutationFn: ({
+      templateId,
+      payload,
+    }: {
+      templateId: number;
+      payload: FormPayload;
+    }) => formsService.createFromTemplate(templateId, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["forms"] }),
   });
 }
 
-export function useFormAction(action: "duplicate" | "archive" | "restore" | "remove") {
+export function useFormAction(
+  action: "duplicate" | "archive" | "restore" | "remove",
+) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: number): Promise<unknown> => {

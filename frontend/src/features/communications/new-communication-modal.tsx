@@ -18,10 +18,7 @@ import {
   useCommunicationTemplates,
   useCreateCommunication,
 } from "./use-communications";
-import type {
-  CommunicationChannel,
-  CreateCommunicationPayload,
-} from "./types";
+import type { CommunicationChannel, CreateCommunicationPayload } from "./types";
 
 const channelOptions: CommunicationChannel[] = [
   "email",
@@ -62,7 +59,7 @@ export function NewCommunicationModal({ onClose }: { onClose: () => void }) {
   );
   const selectedChannelReady = Boolean(
     selectedChannelConfig?.is_active &&
-      selectedChannelConfig.connection_status === "configured",
+    selectedChannelConfig.connection_status === "configured",
   );
   const requiresPatient = payload.channel !== "in_app";
 
@@ -226,7 +223,7 @@ export function NewCommunicationModal({ onClose }: { onClose: () => void }) {
                 );
                 const ready = Boolean(
                   config?.is_active &&
-                    config.connection_status === "configured",
+                  config.connection_status === "configured",
                 );
                 return (
                   <option key={channel} value={channel}>
@@ -252,7 +249,9 @@ export function NewCommunicationModal({ onClose }: { onClose: () => void }) {
               }
             >
               <option value="patient_message">Mensagem ao paciente</option>
-              <option value="system_notification">Notificação do sistema</option>
+              <option value="system_notification">
+                Notificação do sistema
+              </option>
               <option value="appointment_confirmation">
                 Confirmação de consulta
               </option>
@@ -266,16 +265,16 @@ export function NewCommunicationModal({ onClose }: { onClose: () => void }) {
 
           {selectedChannelConfig && !selectedChannelReady && (
             <div className="rounded-xl border border-warning/20 bg-warning/5 p-4 text-xs text-muted-foreground md:col-span-2">
-              O canal {" "}
-              <strong>{communicationChannelLabel[payload.channel]}</strong> está {" "}
+              O canal{" "}
+              <strong>{communicationChannelLabel[payload.channel]}</strong> está{" "}
               <strong>
                 {communicationConnectionStatusLabel[
                   selectedChannelConfig.connection_status
                 ].toLowerCase()}
               </strong>
               {selectedChannelConfig.is_active ? "." : " e desativado."} Você
-              pode salvar como rascunho, mas precisa configurá-lo e ativá-lo antes
-              do envio.
+              pode salvar como rascunho, mas precisa configurá-lo e ativá-lo
+              antes do envio.
             </div>
           )}
 

@@ -199,7 +199,9 @@ export function PatientActionsMenu({
             run(() => {
               const url = getWhatsappUrl(patient.whatsapp || patient.phone);
               if (!url) {
-                toast.error("Este paciente não possui WhatsApp ou telefone cadastrado.");
+                toast.error(
+                  "Este paciente não possui WhatsApp ou telefone cadastrado.",
+                );
                 return;
               }
               window.open(url, "_blank", "noopener,noreferrer");

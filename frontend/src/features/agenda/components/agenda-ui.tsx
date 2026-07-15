@@ -88,7 +88,9 @@ export function Field({
     <label className="block space-y-1.5">
       <span className="text-xs font-semibold text-foreground">{label}</span>
       {children}
-      {hint && <span className="block text-[11px] text-muted-foreground">{hint}</span>}
+      {hint && (
+        <span className="block text-[11px] text-muted-foreground">{hint}</span>
+      )}
     </label>
   );
 }
@@ -179,7 +181,11 @@ const statusLabels: Record<string, string> = {
   finished: "Finalizada",
 };
 
-export function StatusBadge({ status }: { status: string | AppointmentStatus }) {
+export function StatusBadge({
+  status,
+}: {
+  status: string | AppointmentStatus;
+}) {
   return (
     <span
       className={cn(
@@ -190,7 +196,9 @@ export function StatusBadge({ status }: { status: string | AppointmentStatus }) 
             ? "border-warning/25 bg-warning/10 text-warning"
             : status === "completed" || status === "finished"
               ? "border-success/25 bg-success/10 text-success"
-              : status === "missed" || status === "cancelled" || status === "expired"
+              : status === "missed" ||
+                  status === "cancelled" ||
+                  status === "expired"
                 ? "border-destructive/25 bg-destructive/10 text-destructive"
                 : "border-border bg-secondary text-muted-foreground",
       )}
@@ -204,7 +212,8 @@ export function PaginationSummary({ page }: { page?: AgendaPagination }) {
   if (!page) return null;
   return (
     <p className="text-xs text-muted-foreground">
-      Mostrando {page.count} registro{page.count === 1 ? "" : "s"} · Página {page.current_page} de {Math.max(page.total_pages, 1)}
+      Mostrando {page.count} registro{page.count === 1 ? "" : "s"} · Página{" "}
+      {page.current_page} de {Math.max(page.total_pages, 1)}
     </p>
   );
 }

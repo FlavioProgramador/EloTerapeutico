@@ -85,10 +85,15 @@ export function PatientBrowser() {
   const list = useQuery({
     queryKey: ["patients", "secure-browser", debouncedSearch, status, page],
     queryFn: async () => {
-      const params = new URLSearchParams({ page: String(page), page_size: "6" });
+      const params = new URLSearchParams({
+        page: String(page),
+        page_size: "6",
+      });
       if (debouncedSearch) params.set("search", debouncedSearch);
       if (status) params.set("status", status);
-      const response = await api.get<PatientPage>(`patients/?${params.toString()}`);
+      const response = await api.get<PatientPage>(
+        `patients/?${params.toString()}`,
+      );
       return response.data;
     },
   });
@@ -96,7 +101,9 @@ export function PatientBrowser() {
   const metrics = useQuery({
     queryKey: ["patients", "dashboard-metrics"],
     queryFn: async () => {
-      const response = await api.get<PatientMetrics>("patients/dashboard-metrics/");
+      const response = await api.get<PatientMetrics>(
+        "patients/dashboard-metrics/",
+      );
       return response.data;
     },
   });
@@ -104,7 +111,9 @@ export function PatientBrowser() {
   const panel = useQuery({
     queryKey: ["patients", selectedId, "administrative-panel"],
     queryFn: async () => {
-      const response = await api.get<PanelData>(`patients/${selectedId}/dashboard/`);
+      const response = await api.get<PanelData>(
+        `patients/${selectedId}/dashboard/`,
+      );
       return response.data;
     },
     enabled: Boolean(selectedId),
@@ -119,12 +128,17 @@ export function PatientBrowser() {
     <div className="space-y-4">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Pacientes</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Pacientes
+          </h1>
           <p className="mt-1 text-xs text-muted-foreground">
             Gerencie cadastros, contatos e acompanhamentos.
           </p>
         </div>
-        <Button onClick={() => router.push("/dashboard/patients/new")} leftIcon={<Plus className="h-4 w-4" />}>
+        <Button
+          onClick={() => router.push("/dashboard/patients/new")}
+          leftIcon={<Plus className="h-4 w-4" />}
+        >
           Novo paciente
         </Button>
       </header>
@@ -193,10 +207,16 @@ export function PatientBrowser() {
                     </div>
                   </div>
                   <div className="min-w-0 text-[11px] text-muted-foreground">
-                    <p className="truncate">{patient.phone || "Sem telefone"}</p>
+                    <p className="truncate">
+                      {patient.phone || "Sem telefone"}
+                    </p>
                     <p className="truncate">{patient.email || "Sem e-mail"}</p>
                   </div>
-                  <Badge variant={patient.status === "active" ? "success" : "outline"}>
+                  <Badge
+                    variant={
+                      patient.status === "active" ? "success" : "outline"
+                    }
+                  >
                     {patient.status_display}
                   </Badge>
                 </button>
@@ -219,7 +239,8 @@ export function PatientBrowser() {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span>
-                {list.data?.pagination.current_page ?? page} de {list.data?.pagination.total_pages ?? 1}
+                {list.data?.pagination.current_page ?? page} de{" "}
+                {list.data?.pagination.total_pages ?? 1}
               </span>
               <Button
                 variant="outline"
@@ -240,14 +261,17 @@ export function PatientBrowser() {
           ) : panel.data ? (
             <div className="space-y-4">
               <div>
-                <h2 className="font-bold text-foreground">{panel.data.patient.display_name}</h2>
+                <h2 className="font-bold text-foreground">
+                  {panel.data.patient.display_name}
+                </h2>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {panel.data.patient.phone || "Telefone não informado"}
                 </p>
               </div>
               <div className="rounded-lg border border-border bg-secondary/20 p-3">
                 <p className="flex items-center gap-2 text-[10px] font-semibold text-muted-foreground">
-                  <CalendarDays className="h-4 w-4 text-primary" /> Próxima sessão
+                  <CalendarDays className="h-4 w-4 text-primary" /> Próxima
+                  sessão
                 </p>
                 <p className="mt-2 text-xs font-medium text-foreground">
                   {formatDate(panel.data.next_session?.start_time)}
@@ -256,7 +280,9 @@ export function PatientBrowser() {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => router.push(`/dashboard/patients/${panel.data.patient.id}`)}
+                onClick={() =>
+                  router.push(`/dashboard/patients/${panel.data.patient.id}`)
+                }
                 leftIcon={<Settings2 className="h-4 w-4" />}
               >
                 Editar ou arquivar cadastro

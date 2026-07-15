@@ -502,7 +502,8 @@ export function EvolutionTimeline({
                     )}
                   </div>
                   <p className="mt-1 text-[10px] text-muted-foreground">
-                    {selected.created_by_name} · {formatTime(selected.session_time)} ·{" "}
+                    {selected.created_by_name} ·{" "}
+                    {formatTime(selected.session_time)} ·{" "}
                     {selected.duration_minutes} minutos · versão{" "}
                     {Math.max(1, selected.version_count + 1)}
                   </p>
@@ -591,7 +592,8 @@ export function EvolutionTimeline({
                     <strong className="text-[10px]">Modalidade</strong>
                   </div>
                   <p className="mt-2 text-[10px] text-muted-foreground">
-                    {modalityLabel(selected.modality)} · {selected.duration_minutes} min.
+                    {modalityLabel(selected.modality)} ·{" "}
+                    {selected.duration_minutes} min.
                   </p>
                 </div>
                 <div className="rounded-lg bg-background/35 p-3">
@@ -607,7 +609,8 @@ export function EvolutionTimeline({
 
               <footer className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-sky-400/15 pt-4 text-[10px] text-muted-foreground">
                 <span>
-                  Criada em {new Date(selected.created_at).toLocaleString("pt-BR")}
+                  Criada em{" "}
+                  {new Date(selected.created_at).toLocaleString("pt-BR")}
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <Archive className="h-3 w-3 text-violet-300" />
@@ -624,7 +627,10 @@ export function EvolutionTimeline({
 }
 
 function SafeMarkdownRenderer({ content }: { content: string }) {
-  if (!content) return <span className="text-xs text-muted-foreground">Não informado.</span>;
+  if (!content)
+    return (
+      <span className="text-xs text-muted-foreground">Não informado.</span>
+    );
 
   const escaped = content
     .replace(/&/g, "&amp;")
@@ -650,5 +656,10 @@ function SafeMarkdownRenderer({ content }: { content: string }) {
   });
 
   const finalHtml = processedLines.join("");
-  return <div className="text-xs leading-5 text-muted-foreground" dangerouslySetInnerHTML={{ __html: finalHtml }} />;
+  return (
+    <div
+      className="text-xs leading-5 text-muted-foreground"
+      dangerouslySetInnerHTML={{ __html: finalHtml }}
+    />
+  );
 }

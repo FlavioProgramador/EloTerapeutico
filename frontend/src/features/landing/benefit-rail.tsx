@@ -30,7 +30,10 @@ const items = [
 
 export function BenefitRail() {
   return (
-    <section className="benefit-rail" aria-label="Diferenciais do Elo Terapêutico">
+    <section
+      className="benefit-rail"
+      aria-label="Diferenciais do Elo Terapêutico"
+    >
       <div className="benefit-rail__inner">
         {items.map((item) => (
           <article key={item.title} className="benefit-rail__item">

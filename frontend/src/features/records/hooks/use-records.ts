@@ -5,7 +5,10 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { recordsService, type RecordFilters } from "../services/records.service";
+import {
+  recordsService,
+  type RecordFilters,
+} from "../services/records.service";
 import { QUERY_KEYS } from "@/constants";
 import type {
   CreateEvolutionPayload,
@@ -65,11 +68,16 @@ export function useCreateRecord() {
     onError: (error: unknown) => {
       let serverMsg = "";
       if (error && typeof error === "object" && "response" in error) {
-        const errObj = (error as { response?: { data?: { session_date?: string[]; detail?: string } } }).response?.data;
+        const errObj = (
+          error as {
+            response?: { data?: { session_date?: string[]; detail?: string } };
+          }
+        ).response?.data;
         serverMsg = errObj?.session_date?.[0] || errObj?.detail || "";
       }
       toast.error("Erro ao salvar evolução clínica.", {
-        description: serverMsg || "Verifique se já existe um registro para esta data.",
+        description:
+          serverMsg || "Verifique se já existe um registro para esta data.",
       });
     },
   });
@@ -98,7 +106,11 @@ export function useUpdateRecord(id: number) {
       let isLocked = false;
       let detail = "Erro ao atualizar evolução clínica.";
       if (error && typeof error === "object" && "response" in error) {
-        const response = (error as { response?: { status?: number; data?: { detail?: string } } }).response;
+        const response = (
+          error as {
+            response?: { status?: number; data?: { detail?: string } };
+          }
+        ).response;
         isLocked = response?.status === 403 || response?.status === 400;
         detail = response?.data?.detail || detail;
       }
@@ -106,7 +118,7 @@ export function useUpdateRecord(id: number) {
         isLocked
           ? "Esta evolução está bloqueada para edição (prazo de 48h esgotado)."
           : "Erro ao atualizar evolução.",
-        { description: detail }
+        { description: detail },
       );
     },
   });
@@ -133,13 +145,17 @@ export function useSaveAnamnesis(patientId: number) {
     mutationFn: ({ data, exists }: { data: Anamnesis; exists: boolean }) =>
       recordsService.saveAnamnesis(patientId, data, exists),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.anamnesis(patientId) });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.anamnesis(patientId),
+      });
       toast.success("Ficha de anamnese salva com sucesso.");
     },
     onError: (error: unknown) => {
       let serverMsg = "Erro ao salvar anamnese.";
       if (error && typeof error === "object" && "response" in error) {
-        serverMsg = (error as { response?: { data?: { detail?: string } } }).response?.data?.detail || serverMsg;
+        serverMsg =
+          (error as { response?: { data?: { detail?: string } } }).response
+            ?.data?.detail || serverMsg;
       }
       toast.error("Erro ao salvar.", { description: serverMsg });
     },
@@ -156,14 +172,20 @@ export function useCreateAddendum(evolutionId: number, patientId: number) {
     mutationFn: (data: CreateAddendumPayload) =>
       recordsService.createAddendum(evolutionId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.record(evolutionId) });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.recordsByPatient(patientId) });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.record(evolutionId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.recordsByPatient(patientId),
+      });
       toast.success("Aditivo inserido com sucesso.");
     },
     onError: (error: unknown) => {
       let serverMsg = "Erro ao registrar aditivo.";
       if (error && typeof error === "object" && "response" in error) {
-        serverMsg = (error as { response?: { data?: { detail?: string } } }).response?.data?.detail || serverMsg;
+        serverMsg =
+          (error as { response?: { data?: { detail?: string } } }).response
+            ?.data?.detail || serverMsg;
       }
       toast.error("Erro ao salvar aditivo.", { description: serverMsg });
     },

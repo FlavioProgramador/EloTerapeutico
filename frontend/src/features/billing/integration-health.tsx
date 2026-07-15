@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, AlertTriangle, CheckCircle2, Loader2, RefreshCw, ShieldAlert } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  RefreshCw,
+  ShieldAlert,
+} from "lucide-react";
 
 import { getAsaasIntegrationHealth } from "./api";
 import type { AsaasIntegrationHealth } from "./types";
@@ -75,20 +82,30 @@ export function BillingIntegrationHealth() {
     <section className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm">
         <div className="flex items-center gap-4">
-          <div className={`grid h-12 w-12 place-items-center rounded-2xl ${health.connected ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}>
-            {health.connected ? <CheckCircle2 className="h-6 w-6" /> : <AlertTriangle className="h-6 w-6" />}
+          <div
+            className={`grid h-12 w-12 place-items-center rounded-2xl ${health.connected ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}
+          >
+            {health.connected ? (
+              <CheckCircle2 className="h-6 w-6" />
+            ) : (
+              <AlertTriangle className="h-6 w-6" />
+            )}
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-xl font-bold text-foreground">Asaas</h2>
-              <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${health.connected ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}>
+              <span
+                className={`rounded-full px-2.5 py-1 text-xs font-bold ${health.connected ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}
+              >
                 {health.connected ? "Conectado" : "Com falha"}
               </span>
               <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-bold text-muted-foreground">
                 {health.environment === "SANDBOX" ? "Sandbox" : "Produção"}
               </span>
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">{health.detail}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {health.detail}
+            </p>
           </div>
         </div>
         <button
@@ -123,7 +140,10 @@ export function BillingIntegrationHealth() {
       <div className="rounded-3xl border border-border bg-card p-6 text-sm text-muted-foreground shadow-sm">
         <h3 className="font-bold text-foreground">Operação recomendada</h3>
         <p className="mt-2 leading-6">
-          Em produção, mantenha o processamento inline desativado, execute o worker de webhooks continuamente e agende a reconciliação de cobranças. Credenciais e payloads sensíveis não são exibidos nesta tela.
+          Em produção, mantenha o processamento inline desativado, execute o
+          worker de webhooks continuamente e agende a reconciliação de
+          cobranças. Credenciais e payloads sensíveis não são exibidos nesta
+          tela.
         </p>
       </div>
     </section>
@@ -143,11 +163,19 @@ function Metric({
 }) {
   return (
     <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-      <div className={`inline-flex rounded-xl p-2 ${warning ? "bg-warning-soft text-warning" : "bg-primary/10 text-primary"}`}>
+      <div
+        className={`inline-flex rounded-xl p-2 ${warning ? "bg-warning-soft text-warning" : "bg-primary/10 text-primary"}`}
+      >
         {icon}
       </div>
-      <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={`mt-1 text-lg font-extrabold ${warning ? "text-warning" : "text-foreground"}`}>{value}</p>
+      <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p
+        className={`mt-1 text-lg font-extrabold ${warning ? "text-warning" : "text-foreground"}`}
+      >
+        {value}
+      </p>
     </div>
   );
 }

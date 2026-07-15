@@ -12,7 +12,10 @@ import type {
   PlaceholderDefinition,
 } from "../types";
 
-const documentTypes: Array<{ value: DocumentTemplatePayload["document_type"]; label: string }> = [
+const documentTypes: Array<{
+  value: DocumentTemplatePayload["document_type"];
+  label: string;
+}> = [
   { value: "declaration", label: "Declaração" },
   { value: "report", label: "Relatório" },
   { value: "referral", label: "Encaminhamento" },
@@ -74,23 +77,30 @@ export function DocumentTemplateModal({
       footer_content: initial?.footer_content ?? "",
       include_professional_identification:
         initial?.include_professional_identification ?? true,
-      include_clinic_identification: initial?.include_clinic_identification ?? true,
+      include_clinic_identification:
+        initial?.include_clinic_identification ?? true,
       requires_signature: initial?.requires_signature ?? true,
       status: initial?.status ?? "active",
     });
   }, [initial, open]);
 
   const grouped = useMemo(() => {
-    return placeholders.reduce<Record<string, PlaceholderDefinition[]>>((acc, placeholder) => {
-      (acc[placeholder.group] ??= []).push(placeholder);
-      return acc;
-    }, {});
+    return placeholders.reduce<Record<string, PlaceholderDefinition[]>>(
+      (acc, placeholder) => {
+        (acc[placeholder.group] ??= []).push(placeholder);
+        return acc;
+      },
+      {},
+    );
   }, [placeholders]);
 
   const insertPlaceholder = (token: string) => {
     const textarea = contentRef.current;
     if (!textarea) {
-      setForm((current) => ({ ...current, content: `${current.content}${token}` }));
+      setForm((current) => ({
+        ...current,
+        content: `${current.content}${token}`,
+      }));
       return;
     }
     const start = textarea.selectionStart;
@@ -128,7 +138,9 @@ export function DocumentTemplateModal({
               className={inputClass}
               value={form.name}
               maxLength={160}
-              onChange={(event) => setForm({ ...form, name: event.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, name: event.target.value })
+              }
               placeholder="Ex.: Declaração de acompanhamento"
             />
           </label>
@@ -138,7 +150,9 @@ export function DocumentTemplateModal({
               className={inputClass}
               value={form.category}
               maxLength={100}
-              onChange={(event) => setForm({ ...form, category: event.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, category: event.target.value })
+              }
               placeholder="Ex.: Declaração"
             />
           </label>
@@ -150,7 +164,8 @@ export function DocumentTemplateModal({
               onChange={(event) =>
                 setForm({
                   ...form,
-                  document_type: event.target.value as DocumentTemplatePayload["document_type"],
+                  document_type: event.target
+                    .value as DocumentTemplatePayload["document_type"],
                 })
               }
             >
@@ -167,7 +182,9 @@ export function DocumentTemplateModal({
               className={inputClass}
               value={form.specialty}
               maxLength={120}
-              onChange={(event) => setForm({ ...form, specialty: event.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, specialty: event.target.value })
+              }
               placeholder="Ex.: Psicologia"
             />
           </label>
@@ -179,7 +196,9 @@ export function DocumentTemplateModal({
             className={inputClass}
             value={form.description}
             maxLength={500}
-            onChange={(event) => setForm({ ...form, description: event.target.value })}
+            onChange={(event) =>
+              setForm({ ...form, description: event.target.value })
+            }
             placeholder="Explique quando este modelo deve ser utilizado."
           />
         </label>
@@ -192,7 +211,9 @@ export function DocumentTemplateModal({
               className={`${textareaClass} min-h-72 font-mono text-xs`}
               value={form.content}
               maxLength={50000}
-              onChange={(event) => setForm({ ...form, content: event.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, content: event.target.value })
+              }
               placeholder="Digite o conteúdo. Use Markdown e selecione variáveis ao lado."
             />
             <span className="block text-right text-[10px] font-normal text-muted-foreground">
@@ -240,7 +261,9 @@ export function DocumentTemplateModal({
               <textarea
                 className={`${textareaClass} min-h-24`}
                 value={form.header_content}
-                onChange={(event) => setForm({ ...form, header_content: event.target.value })}
+                onChange={(event) =>
+                  setForm({ ...form, header_content: event.target.value })
+                }
               />
             </label>
             <label className="space-y-1.5 text-xs font-semibold text-foreground">
@@ -248,14 +271,22 @@ export function DocumentTemplateModal({
               <textarea
                 className={`${textareaClass} min-h-24`}
                 value={form.footer_content}
-                onChange={(event) => setForm({ ...form, footer_content: event.target.value })}
+                onChange={(event) =>
+                  setForm({ ...form, footer_content: event.target.value })
+                }
               />
             </label>
           </div>
           <div className="mt-4 flex flex-wrap gap-4 text-xs text-foreground">
             {[
-              ["include_professional_identification", "Exibir identificação profissional"],
-              ["include_clinic_identification", "Exibir identificação da clínica"],
+              [
+                "include_professional_identification",
+                "Exibir identificação profissional",
+              ],
+              [
+                "include_clinic_identification",
+                "Exibir identificação da clínica",
+              ],
               ["requires_signature", "Preparar bloco de assinatura"],
             ].map(([key, label]) => (
               <label key={key} className="flex items-center gap-2">
@@ -273,7 +304,10 @@ export function DocumentTemplateModal({
         </details>
 
         {error && (
-          <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">
+          <p
+            role="alert"
+            className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger"
+          >
             {error}
           </p>
         )}
@@ -349,7 +383,9 @@ export function EvolutionTemplateModal({
     <Modal
       isOpen={open}
       onClose={onClose}
-      title={initial ? "Editar template de evolução" : "Novo template de evolução"}
+      title={
+        initial ? "Editar template de evolução" : "Novo template de evolução"
+      }
       description="Crie um texto-base que poderá ser inserido sem apagar o que já foi digitado."
       className="max-w-2xl"
     >
@@ -361,7 +397,9 @@ export function EvolutionTemplateModal({
               className={inputClass}
               value={form.name}
               maxLength={120}
-              onChange={(event) => setForm({ ...form, name: event.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, name: event.target.value })
+              }
               placeholder="Ex.: Sessão de terapia individual"
             />
           </label>
@@ -371,7 +409,9 @@ export function EvolutionTemplateModal({
               className={inputClass}
               value={form.category}
               maxLength={100}
-              onChange={(event) => setForm({ ...form, category: event.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, category: event.target.value })
+              }
               placeholder="Ex.: Terapia, avaliação"
             />
           </label>
@@ -381,7 +421,9 @@ export function EvolutionTemplateModal({
               className={inputClass}
               value={form.specialty}
               maxLength={120}
-              onChange={(event) => setForm({ ...form, specialty: event.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, specialty: event.target.value })
+              }
             />
           </label>
           <label className="space-y-1.5 text-xs font-semibold text-foreground">
@@ -390,7 +432,9 @@ export function EvolutionTemplateModal({
               className={inputClass}
               value={form.description}
               maxLength={300}
-              onChange={(event) => setForm({ ...form, description: event.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, description: event.target.value })
+              }
             />
           </label>
         </div>
@@ -400,7 +444,9 @@ export function EvolutionTemplateModal({
             className={`${textareaClass} min-h-64 font-mono text-xs`}
             value={form.content}
             maxLength={50000}
-            onChange={(event) => setForm({ ...form, content: event.target.value })}
+            onChange={(event) =>
+              setForm({ ...form, content: event.target.value })
+            }
             placeholder="Digite o texto-base da evolução em Markdown."
           />
         </label>
@@ -408,12 +454,17 @@ export function EvolutionTemplateModal({
           <input
             type="checkbox"
             checked={form.is_active}
-            onChange={(event) => setForm({ ...form, is_active: event.target.checked })}
+            onChange={(event) =>
+              setForm({ ...form, is_active: event.target.checked })
+            }
           />
           Template ativo
         </label>
         {error && (
-          <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">
+          <p
+            role="alert"
+            className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger"
+          >
             {error}
           </p>
         )}

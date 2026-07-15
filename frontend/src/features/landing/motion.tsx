@@ -12,7 +12,12 @@ interface RevealProps {
   distance?: number;
 }
 
-export function Reveal({ children, className, delay = 0, distance = 24 }: RevealProps) {
+export function Reveal({
+  children,
+  className,
+  delay = 0,
+  distance = 24,
+}: RevealProps) {
   const reduceMotion = useReducedMotion();
 
   return (
@@ -40,7 +45,9 @@ export function ParallaxOrb({ className, speed = 28 }: ParallaxOrbProps) {
     <motion.span
       aria-hidden="true"
       className={cn(className)}
-      animate={reduceMotion ? undefined : { y: [-speed / 3, speed / 3, -speed / 3] }}
+      animate={
+        reduceMotion ? undefined : { y: [-speed / 3, speed / 3, -speed / 3] }
+      }
       transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
     />
   );
@@ -86,7 +93,9 @@ export function AnimatedCounter({
 
   return (
     <span ref={ref} className={cn("stat-number", className)} data-mono>
-      {prefix}{count}{suffix}
+      {prefix}
+      {count}
+      {suffix}
     </span>
   );
 }

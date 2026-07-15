@@ -72,8 +72,11 @@ export function DocumentsTab({
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [editingDocument, setEditingDocument] = useState<ClinicalDocument | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(documents[0]?.id ?? null);
+  const [editingDocument, setEditingDocument] =
+    useState<ClinicalDocument | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(
+    documents[0]?.id ?? null,
+  );
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [page, setPage] = useState(1);
@@ -87,7 +90,10 @@ export function DocumentsTab({
 
   useEffect(() => {
     if (!selectedId && documents[0]) setSelectedId(documents[0].id);
-    if (selectedId && !documents.some((document) => document.id === selectedId)) {
+    if (
+      selectedId &&
+      !documents.some((document) => document.id === selectedId)
+    ) {
       setSelectedId(documents[0]?.id ?? null);
     }
   }, [documents, selectedId]);
@@ -105,7 +111,10 @@ export function DocumentsTab({
     });
   }, [categoryFilter, documents, search]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredDocuments.length / pageSize));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredDocuments.length / pageSize),
+  );
   const pageDocuments = filteredDocuments.slice(
     (page - 1) * pageSize,
     page * pageSize,
@@ -183,7 +192,9 @@ export function DocumentsTab({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="text-sm font-bold text-foreground">Documentos clínicos</h3>
+          <h3 className="text-sm font-bold text-foreground">
+            Documentos clínicos
+          </h3>
           <p className="mt-1 text-[10px] text-muted-foreground">
             {documents.length} documento(s) protegido(s) no prontuário.
           </p>
@@ -253,7 +264,11 @@ export function DocumentsTab({
               <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-muted-foreground">
                 Anexe termos, relatórios, avaliações e outros arquivos clínicos.
               </p>
-              <Button size="sm" className="mt-4" onClick={() => setUploadOpen(true)}>
+              <Button
+                size="sm"
+                className="mt-4"
+                onClick={() => setUploadOpen(true)}
+              >
                 Anexar primeiro documento
               </Button>
             </div>
@@ -280,11 +295,15 @@ export function DocumentsTab({
                 <table className="w-full min-w-[44rem] text-left text-[10px]">
                   <thead className="bg-background/40 text-muted-foreground">
                     <tr>
-                      <th className="px-4 py-2.5 font-semibold">Nome do documento</th>
+                      <th className="px-4 py-2.5 font-semibold">
+                        Nome do documento
+                      </th>
                       <th className="px-4 py-2.5 font-semibold">Categoria</th>
                       <th className="px-4 py-2.5 font-semibold">Status</th>
                       <th className="px-4 py-2.5 font-semibold">Data</th>
-                      <th className="px-4 py-2.5 text-right font-semibold">Ações</th>
+                      <th className="px-4 py-2.5 text-right font-semibold">
+                        Ações
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -310,7 +329,8 @@ export function DocumentsTab({
                                   {document.original_name}
                                 </strong>
                                 <small className="mt-1 block text-[9px] text-muted-foreground">
-                                  {formatSize(document.size_bytes)} · versão {document.version}
+                                  {formatSize(document.size_bytes)} · versão{" "}
+                                  {document.version}
                                 </small>
                               </div>
                             </div>
@@ -324,7 +344,9 @@ export function DocumentsTab({
                             </span>
                           </td>
                           <td className="px-4 py-3 text-muted-foreground">
-                            {new Date(document.created_at).toLocaleDateString("pt-BR")}
+                            {new Date(document.created_at).toLocaleDateString(
+                              "pt-BR",
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex justify-end gap-1">
@@ -332,7 +354,9 @@ export function DocumentsTab({
                                 type="button"
                                 onClick={(event) => {
                                   event.stopPropagation();
-                                  recordWorkspaceService.downloadDocument(document);
+                                  recordWorkspaceService.downloadDocument(
+                                    document,
+                                  );
                                 }}
                                 className="rounded-md p-1.5 text-sky-300 hover:bg-sky-500/10"
                                 aria-label="Baixar documento"
@@ -368,13 +392,17 @@ export function DocumentsTab({
 
               <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-[9px] text-muted-foreground">
                 <span>
-                  Mostrando {(page - 1) * pageSize + 1} a {Math.min(page * pageSize, filteredDocuments.length)} de {filteredDocuments.length} documento(s)
+                  Mostrando {(page - 1) * pageSize + 1} a{" "}
+                  {Math.min(page * pageSize, filteredDocuments.length)} de{" "}
+                  {filteredDocuments.length} documento(s)
                 </span>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     disabled={page === 1}
-                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                    onClick={() =>
+                      setPage((current) => Math.max(1, current - 1))
+                    }
                     className="grid h-7 w-7 place-items-center rounded-md border border-border disabled:opacity-40"
                     aria-label="Página anterior"
                   >
@@ -386,7 +414,9 @@ export function DocumentsTab({
                   <button
                     type="button"
                     disabled={page >= totalPages}
-                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                    onClick={() =>
+                      setPage((current) => Math.min(totalPages, current + 1))
+                    }
                     className="grid h-7 w-7 place-items-center rounded-md border border-border disabled:opacity-40"
                     aria-label="Próxima página"
                   >
@@ -433,7 +463,9 @@ export function DocumentsTab({
                 <div>
                   <dt className="text-muted-foreground">Data do documento</dt>
                   <dd className="mt-1 font-semibold text-foreground">
-                    {new Date(selectedDocument.created_at).toLocaleDateString("pt-BR")}
+                    {new Date(selectedDocument.created_at).toLocaleDateString(
+                      "pt-BR",
+                    )}
                   </dd>
                 </div>
                 {selectedDocument.uploaded_by_name && (
@@ -452,9 +484,13 @@ export function DocumentsTab({
                 </div>
                 {selectedDocument.evolution_date && (
                   <div>
-                    <dt className="text-muted-foreground">Evolução vinculada</dt>
+                    <dt className="text-muted-foreground">
+                      Evolução vinculada
+                    </dt>
                     <dd className="mt-1 font-semibold text-foreground">
-                      {new Date(`${selectedDocument.evolution_date}T12:00:00`).toLocaleDateString("pt-BR")}
+                      {new Date(
+                        `${selectedDocument.evolution_date}T12:00:00`,
+                      ).toLocaleDateString("pt-BR")}
                     </dd>
                   </div>
                 )}
@@ -469,7 +505,9 @@ export function DocumentsTab({
               <div className="grid gap-2 border-t border-border p-4">
                 <Button
                   size="sm"
-                  onClick={() => recordWorkspaceService.downloadDocument(selectedDocument)}
+                  onClick={() =>
+                    recordWorkspaceService.downloadDocument(selectedDocument)
+                  }
                   leftIcon={<Eye className="h-3.5 w-3.5" />}
                   className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
                 >
@@ -487,7 +525,8 @@ export function DocumentsTab({
                   size="sm"
                   variant="ghost"
                   onClick={() =>
-                    window.confirm("Arquivar este documento?") && onArchive(selectedDocument.id)
+                    window.confirm("Arquivar este documento?") &&
+                    onArchive(selectedDocument.id)
                   }
                   leftIcon={<Archive className="h-3.5 w-3.5" />}
                   className="text-amber-300 hover:bg-amber-500/10"
@@ -499,7 +538,9 @@ export function DocumentsTab({
           ) : (
             <div className="px-5 py-16 text-center">
               <FileText className="mx-auto h-6 w-6 text-muted-foreground" />
-              <p className="mt-3 text-xs font-semibold">Selecione um documento</p>
+              <p className="mt-3 text-xs font-semibold">
+                Selecione um documento
+              </p>
               <p className="mt-1 text-[10px] text-muted-foreground">
                 Os detalhes aparecerão neste painel.
               </p>
@@ -543,7 +584,9 @@ export function DocumentsTab({
             multiple
             accept=".pdf,.jpg,.jpeg,.png,.txt,.docx"
             className="sr-only"
-            onChange={(event) => validateFiles(Array.from(event.target.files ?? []))}
+            onChange={(event) =>
+              validateFiles(Array.from(event.target.files ?? []))
+            }
           />
           <Button
             size="sm"
@@ -558,17 +601,26 @@ export function DocumentsTab({
         {files.length > 0 && (
           <div className="mt-3 space-y-2">
             {files.map((file) => (
-              <div key={`${file.name}-${file.size}`} className="flex items-center gap-3 rounded-lg border border-border p-3">
+              <div
+                key={`${file.name}-${file.size}`}
+                className="flex items-center gap-3 rounded-lg border border-border p-3"
+              >
                 <FileText className="h-4 w-4 text-emerald-300" />
                 <div className="min-w-0 flex-1">
                   <strong className="block truncate text-[10px] text-foreground">
                     {file.name}
                   </strong>
-                  <small className="text-[9px] text-muted-foreground">{formatSize(file.size)}</small>
+                  <small className="text-[9px] text-muted-foreground">
+                    {formatSize(file.size)}
+                  </small>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setFiles((current) => current.filter((item) => item !== file))}
+                  onClick={() =>
+                    setFiles((current) =>
+                      current.filter((item) => item !== file),
+                    )
+                  }
                   className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary"
                   aria-label={`Remover ${file.name}`}
                 >

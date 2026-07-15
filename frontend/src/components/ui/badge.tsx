@@ -22,8 +22,7 @@ const variantClasses: Record<BadgeVariant, string> = {
   primary: "border-transparent bg-primary text-primary-foreground",
   success: "border-success-soft bg-success-soft text-success",
   warning: "border-warning-soft bg-warning-soft text-warning",
-  destructive:
-    "border-danger-soft bg-danger-soft text-danger",
+  destructive: "border-danger-soft bg-danger-soft text-danger",
   outline: "border-border bg-transparent text-foreground",
   muted: "border-transparent bg-muted text-muted-foreground",
 };

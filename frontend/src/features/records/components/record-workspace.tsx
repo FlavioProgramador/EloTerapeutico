@@ -16,11 +16,7 @@ import {
   useRecordSummary,
   useUpdateClinicalEvolution,
 } from "../hooks/use-record-workspace";
-import type {
-  EvolutionPayload,
-  EvolutionWorkspace,
-  RecordTab,
-} from "../types";
+import type { EvolutionPayload, EvolutionWorkspace, RecordTab } from "../types";
 
 import { AppointmentsTab } from "./appointments-tab";
 import { FormsTab } from "./forms-tab";
@@ -32,9 +28,13 @@ import { RecordHeader } from "./record-header";
 import { RecordTabsNav } from "./record-tabs-nav";
 
 function isRecordTab(value: string | null): value is RecordTab {
-  return ["evolutions", "appointments", "documents", "forms", "exports"].includes(
-    value ?? "",
-  );
+  return [
+    "evolutions",
+    "appointments",
+    "documents",
+    "forms",
+    "exports",
+  ].includes(value ?? "");
 }
 
 export function RecordWorkspace({ patientId }: { patientId: number }) {
@@ -258,19 +258,15 @@ export function RecordWorkspace({ patientId }: { patientId: number }) {
           />
         )}
 
-        {activeTab === "forms" && (
-          <FormsTab patientId={patientId} />
-        )}
+        {activeTab === "forms" && <FormsTab patientId={patientId} />}
 
-        {activeTab === "exports" && (
-          <ExportsTab patientId={patientId} />
-        )}
+        {activeTab === "exports" && <ExportsTab patientId={patientId} />}
       </div>
 
       <div className="flex items-center justify-center gap-2 py-2 text-[10px] text-muted-foreground">
         <span className="h-2 w-2 rounded-full bg-emerald-400" />
-        Dados clínicos protegidos por controle de acesso, auditoria e criptografia
-        em repouso.
+        Dados clínicos protegidos por controle de acesso, auditoria e
+        criptografia em repouso.
       </div>
 
       <EvolutionEditor

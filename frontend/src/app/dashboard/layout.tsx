@@ -34,8 +34,12 @@ export default function DashboardLayout({
           </div>
         </div>
         <div className="flex flex-col items-center gap-1 z-10">
-          <h2 className="text-sm font-semibold tracking-tight text-foreground">Carregando painel...</h2>
-          <p className="text-xs text-muted-foreground">Validando sua assinatura e seus dados clínicos protegidos</p>
+          <h2 className="text-sm font-semibold tracking-tight text-foreground">
+            Carregando painel...
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Validando sua assinatura e seus dados clínicos protegidos
+          </p>
         </div>
       </div>
     );

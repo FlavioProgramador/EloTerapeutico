@@ -55,7 +55,11 @@ export function PackagesPanel() {
   return (
     <section className="space-y-4">
       <Toolbar>
-        <SearchInput value={search} onChange={setSearch} placeholder="Pacote ou paciente..." />
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Pacote ou paciente..."
+        />
         <FilterSelect value={status} onChange={setStatus} label="Status">
           <option value="">Status: todos</option>
           <option value="active">Ativo</option>
@@ -74,7 +78,11 @@ export function PackagesPanel() {
         </Button>
       </Toolbar>
 
-      <TableShell loading={isLoading} empty={!rows.length} emptyText="Nenhum pacote encontrado.">
+      <TableShell
+        loading={isLoading}
+        empty={!rows.length}
+        emptyText="Nenhum pacote encontrado."
+      >
         <table className="w-full min-w-[980px] text-left text-sm">
           <thead className="bg-secondary/30 text-[11px] uppercase tracking-wide text-muted-foreground">
             <tr>
@@ -88,36 +96,74 @@ export function PackagesPanel() {
                 "Status",
                 "Ações",
               ].map((label) => (
-                <th key={label} className="px-4 py-3 font-semibold">{label}</th>
+                <th key={label} className="px-4 py-3 font-semibold">
+                  {label}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => {
               const progress = row.sessions_contracted
-                ? Math.min((row.sessions_used / row.sessions_contracted) * 100, 100)
+                ? Math.min(
+                    (row.sessions_used / row.sessions_contracted) * 100,
+                    100,
+                  )
                 : 0;
               return (
-                <tr key={row.id} className="border-t border-border hover:bg-secondary/15">
-                  <td className="px-4 py-4 font-semibold">{row.patient_name}</td>
-                  <td className="px-4 py-4 text-muted-foreground">{row.therapist_name}</td>
+                <tr
+                  key={row.id}
+                  className="border-t border-border hover:bg-secondary/15"
+                >
+                  <td className="px-4 py-4 font-semibold">
+                    {row.patient_name}
+                  </td>
+                  <td className="px-4 py-4 text-muted-foreground">
+                    {row.therapist_name}
+                  </td>
                   <td className="px-4 py-4">{row.name}</td>
                   <td className="min-w-52 px-4 py-4">
                     <div className="flex justify-between text-xs">
-                      <strong>{row.sessions_used}/{row.sessions_contracted}</strong>
-                      <span className={row.remaining_sessions ? "text-muted-foreground" : "text-destructive"}>
-                        {row.remaining_sessions ? `${row.remaining_sessions} restantes` : "Sem saldo"}
+                      <strong>
+                        {row.sessions_used}/{row.sessions_contracted}
+                      </strong>
+                      <span
+                        className={
+                          row.remaining_sessions
+                            ? "text-muted-foreground"
+                            : "text-destructive"
+                        }
+                      >
+                        {row.remaining_sessions
+                          ? `${row.remaining_sessions} restantes`
+                          : "Sem saldo"}
                       </span>
                     </div>
                     <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary">
-                      <div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} />
+                      <div
+                        className="h-full rounded-full bg-primary"
+                        style={{ width: `${progress}%` }}
+                      />
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-muted-foreground">{formatDate(row.created_at)}</td>
-                  <td className="px-4 py-4 text-muted-foreground">{row.valid_until ? formatDate(row.valid_until) : "Sem limite"}</td>
-                  <td className="px-4 py-4"><StatusBadge status={row.status} /></td>
+                  <td className="px-4 py-4 text-muted-foreground">
+                    {formatDate(row.created_at)}
+                  </td>
+                  <td className="px-4 py-4 text-muted-foreground">
+                    {row.valid_until
+                      ? formatDate(row.valid_until)
+                      : "Sem limite"}
+                  </td>
                   <td className="px-4 py-4">
-                    <Button size="icon" variant="ghost" onClick={() => setEditing(row)} aria-label="Editar sessões">
+                    <StatusBadge status={row.status} />
+                  </td>
+                  <td className="px-4 py-4">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setEditing(row)}
+                      aria-label="Editar sessões"
+                    >
                       <Edit3 className="size-4" />
                     </Button>
                   </td>
@@ -129,15 +175,27 @@ export function PackagesPanel() {
       </TableShell>
       <PaginationSummary page={page?.pagination} />
       <CreatePackageModal open={creating} onClose={() => setCreating(false)} />
-      <PackageSessionsModal packageItem={editing} onClose={() => setEditing(undefined)} />
+      <PackageSessionsModal
+        packageItem={editing}
+        onClose={() => setEditing(undefined)}
+      />
     </section>
   );
 }
 
-function CreatePackageModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function CreatePackageModal({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
   const { user } = useAuth();
   const mutation = useCreatePackage();
-  const { data: patientsPage } = usePatients({ status: "active", page_size: 100 });
+  const { data: patientsPage } = usePatients({
+    status: "active",
+    page_size: 100,
+  });
   const { data: professionals = [] } = usePatientProfessionals();
   const { data: rooms = [] } = useRooms();
   const [form, setForm] = useState({
@@ -159,9 +217,10 @@ function CreatePackageModal({ open, onClose }: { open: boolean; onClose: () => v
     sendCharge: false,
   });
   const patients = patientsPage?.results || [];
-  const unitValue = Number(form.sessions) > 0
-    ? Number(form.totalValue || 0) / Number(form.sessions)
-    : 0;
+  const unitValue =
+    Number(form.sessions) > 0
+      ? Number(form.totalValue || 0) / Number(form.sessions)
+      : 0;
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -200,20 +259,57 @@ function CreatePackageModal({ open, onClose }: { open: boolean; onClose: () => v
           <SectionLabel>Paciente e profissional</SectionLabel>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Paciente *">
-              <select value={form.patient} onChange={(event) => setForm((current) => ({ ...current, patient: event.target.value }))} className={fieldClass} required>
+              <select
+                value={form.patient}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    patient: event.target.value,
+                  }))
+                }
+                className={fieldClass}
+                required
+              >
                 <option value="">Selecione</option>
-                {patients.map((patient) => <option key={patient.id} value={patient.id}>{patient.social_name || patient.full_name}</option>)}
+                {patients.map((patient) => (
+                  <option key={patient.id} value={patient.id}>
+                    {patient.social_name || patient.full_name}
+                  </option>
+                ))}
               </select>
             </Field>
             <Field label="Profissional *">
-              <select value={form.therapist} onChange={(event) => setForm((current) => ({ ...current, therapist: event.target.value }))} className={fieldClass} disabled={user?.role === "therapist"} required>
+              <select
+                value={form.therapist}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    therapist: event.target.value,
+                  }))
+                }
+                className={fieldClass}
+                disabled={user?.role === "therapist"}
+                required
+              >
                 <option value="">Selecione</option>
-                {professionals.map((professional) => <option key={professional.id} value={professional.id}>{professional.full_name}</option>)}
+                {professionals.map((professional) => (
+                  <option key={professional.id} value={professional.id}>
+                    {professional.full_name}
+                  </option>
+                ))}
               </select>
             </Field>
           </div>
           <Field label="Nome do pacote *">
-            <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Ex.: Pacote 10 sessões" className={fieldClass} required />
+            <input
+              value={form.name}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, name: event.target.value }))
+              }
+              placeholder="Ex.: Pacote 10 sessões"
+              className={fieldClass}
+              required
+            />
           </Field>
         </section>
 
@@ -221,65 +317,197 @@ function CreatePackageModal({ open, onClose }: { open: boolean; onClose: () => v
           <SectionLabel>Sessões e valor</SectionLabel>
           <div className="grid grid-cols-3 gap-3">
             <Field label="Quantidade">
-              <input type="number" min={1} value={form.sessions} onChange={(event) => setForm((current) => ({ ...current, sessions: event.target.value }))} className={fieldClass} />
+              <input
+                type="number"
+                min={1}
+                value={form.sessions}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    sessions: event.target.value,
+                  }))
+                }
+                className={fieldClass}
+              />
             </Field>
             <Field label="Valor total">
-              <input inputMode="decimal" value={form.totalValue} onChange={(event) => setForm((current) => ({ ...current, totalValue: event.target.value.replace(",", ".") }))} className={fieldClass} />
+              <input
+                inputMode="decimal"
+                value={form.totalValue}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    totalValue: event.target.value.replace(",", "."),
+                  }))
+                }
+                className={fieldClass}
+              />
             </Field>
             <Field label="Por sessão">
-              <input value={unitValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} disabled className={fieldClass} />
+              <input
+                value={unitValue.toLocaleString("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                })}
+                disabled
+                className={fieldClass}
+              />
             </Field>
           </div>
           <Field label="Descrição">
-            <textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} rows={3} className="w-full rounded-md border border-border bg-background p-3 text-sm" />
+            <textarea
+              value={form.description}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  description: event.target.value,
+                }))
+              }
+              rows={3}
+              className="w-full rounded-md border border-border bg-background p-3 text-sm"
+            />
           </Field>
         </section>
 
         <section className="space-y-3 border-t border-border pt-4">
-          <Toggle checked={form.autoSchedule} onChange={(value) => setForm((current) => ({ ...current, autoSchedule: value }))} label="Agendar sessões automaticamente" />
+          <Toggle
+            checked={form.autoSchedule}
+            onChange={(value) =>
+              setForm((current) => ({ ...current, autoSchedule: value }))
+            }
+            label="Agendar sessões automaticamente"
+          />
           {form.autoSchedule && (
             <div className="grid gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4 sm:grid-cols-2">
               <Field label="Primeiro atendimento">
-                <input type="date" value={form.firstDate} onChange={(event) => setForm((current) => ({ ...current, firstDate: event.target.value }))} className={fieldClass} />
+                <input
+                  type="date"
+                  value={form.firstDate}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      firstDate: event.target.value,
+                    }))
+                  }
+                  className={fieldClass}
+                />
               </Field>
               <Field label="Horário">
-                <input type="time" value={form.time} onChange={(event) => setForm((current) => ({ ...current, time: event.target.value }))} className={fieldClass} />
+                <input
+                  type="time"
+                  value={form.time}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      time: event.target.value,
+                    }))
+                  }
+                  className={fieldClass}
+                />
               </Field>
               <Field label="Frequência">
-                <select value={form.frequency} onChange={(event) => setForm((current) => ({ ...current, frequency: event.target.value }))} className={fieldClass}>
+                <select
+                  value={form.frequency}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      frequency: event.target.value,
+                    }))
+                  }
+                  className={fieldClass}
+                >
                   <option value="weekly">Semanal</option>
                   <option value="biweekly">Quinzenal</option>
                   <option value="monthly">Mensal</option>
                 </select>
               </Field>
               <Field label="Duração">
-                <select value={form.duration} onChange={(event) => setForm((current) => ({ ...current, duration: event.target.value }))} className={fieldClass}>
-                  {[30, 45, 50, 60, 90].map((value) => <option key={value} value={value}>{value} min</option>)}
+                <select
+                  value={form.duration}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      duration: event.target.value,
+                    }))
+                  }
+                  className={fieldClass}
+                >
+                  {[30, 45, 50, 60, 90].map((value) => (
+                    <option key={value} value={value}>
+                      {value} min
+                    </option>
+                  ))}
                 </select>
               </Field>
               <Field label="Modalidade">
-                <select value={form.modality} onChange={(event) => setForm((current) => ({ ...current, modality: event.target.value, room: event.target.value === "online" ? "" : current.room }))} className={fieldClass}>
+                <select
+                  value={form.modality}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      modality: event.target.value,
+                      room: event.target.value === "online" ? "" : current.room,
+                    }))
+                  }
+                  className={fieldClass}
+                >
                   <option value="in_person">Presencial</option>
                   <option value="online">Online</option>
                   <option value="hybrid">Híbrida</option>
                 </select>
               </Field>
               <Field label="Sala">
-                <select value={form.room} onChange={(event) => setForm((current) => ({ ...current, room: event.target.value }))} disabled={form.modality === "online"} className={fieldClass}>
+                <select
+                  value={form.room}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      room: event.target.value,
+                    }))
+                  }
+                  disabled={form.modality === "online"}
+                  className={fieldClass}
+                >
                   <option value="">Sem sala</option>
-                  {rooms.map((room) => <option key={room.id} value={room.id}>{room.name}</option>)}
+                  {rooms.map((room) => (
+                    <option key={room.id} value={room.id}>
+                      {room.name}
+                    </option>
+                  ))}
                 </select>
               </Field>
             </div>
           )}
-          <Toggle checked={form.reminder} onChange={(value) => setForm((current) => ({ ...current, reminder: value }))} label="Enviar lembretes automáticos" />
-          <Toggle checked={form.generateCharge} onChange={(value) => setForm((current) => ({ ...current, generateCharge: value }))} label="Gerar cobrança no financeiro" />
-          <Toggle checked={form.sendCharge} onChange={(value) => setForm((current) => ({ ...current, sendCharge: value }))} label="Marcar cobrança para envio" />
+          <Toggle
+            checked={form.reminder}
+            onChange={(value) =>
+              setForm((current) => ({ ...current, reminder: value }))
+            }
+            label="Enviar lembretes automáticos"
+          />
+          <Toggle
+            checked={form.generateCharge}
+            onChange={(value) =>
+              setForm((current) => ({ ...current, generateCharge: value }))
+            }
+            label="Gerar cobrança no financeiro"
+          />
+          <Toggle
+            checked={form.sendCharge}
+            onChange={(value) =>
+              setForm((current) => ({ ...current, sendCharge: value }))
+            }
+            label="Marcar cobrança para envio"
+          />
         </section>
 
         <div className="flex justify-end gap-2 border-t border-border pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button type="submit" isLoading={mutation.isPending}>Criar pacote</Button>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" isLoading={mutation.isPending}>
+            Criar pacote
+          </Button>
         </div>
       </form>
     </Modal>
@@ -300,8 +528,12 @@ function PackageSessionsModal({
   const removeMutation = useMutation({
     mutationFn: agendaService.packages.removeSession,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: AGENDA_QUERY_KEYS.packages });
-      await queryClient.invalidateQueries({ queryKey: AGENDA_QUERY_KEYS.appointments });
+      await queryClient.invalidateQueries({
+        queryKey: AGENDA_QUERY_KEYS.packages,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: AGENDA_QUERY_KEYS.appointments,
+      });
       toast.success("Sessão removida e saldo recalculado.");
     },
   });
@@ -321,8 +553,12 @@ function PackageSessionsModal({
       return agendaService.packages.addSession(packageItem!.id, payload);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: AGENDA_QUERY_KEYS.packages });
-      await queryClient.invalidateQueries({ queryKey: AGENDA_QUERY_KEYS.appointments });
+      await queryClient.invalidateQueries({
+        queryKey: AGENDA_QUERY_KEYS.packages,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: AGENDA_QUERY_KEYS.appointments,
+      });
       toast.success("Sessão adicionada.");
       setAdding(false);
     },
@@ -332,43 +568,105 @@ function PackageSessionsModal({
     <Modal
       isOpen={Boolean(packageItem)}
       onClose={onClose}
-      title={packageItem ? `Editar sessões – ${packageItem.name}` : "Editar sessões"}
-      description={packageItem ? `${packageItem.patient_name} · ${packageItem.sessions_used}/${packageItem.sessions_contracted} sessões` : undefined}
+      title={
+        packageItem ? `Editar sessões – ${packageItem.name}` : "Editar sessões"
+      }
+      description={
+        packageItem
+          ? `${packageItem.patient_name} · ${packageItem.sessions_used}/${packageItem.sessions_contracted} sessões`
+          : undefined
+      }
       className="max-w-2xl"
     >
       <div className="space-y-3">
         <div className="max-h-[55vh] space-y-2 overflow-y-auto pr-1">
           {packageItem?.sessions.map((session, index) => (
-            <div key={session.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
-              <span className="w-6 text-center text-xs font-semibold text-muted-foreground">{index + 1}</span>
+            <div
+              key={session.id}
+              className="flex items-center gap-3 rounded-lg border border-border p-3"
+            >
+              <span className="w-6 text-center text-xs font-semibold text-muted-foreground">
+                {index + 1}
+              </span>
               <div className="grid flex-1 grid-cols-2 gap-2 text-sm sm:grid-cols-3">
                 <span>{formatDate(session.scheduled_for)}</span>
-                <span>{new Date(session.scheduled_for).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+                <span>
+                  {new Date(session.scheduled_for).toLocaleTimeString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
                 <StatusBadge status={session.status} />
               </div>
-              <Button size="icon" variant="ghost" aria-label="Remover sessão" disabled={session.status === "completed"} onClick={() => removeMutation.mutate(session.id)}>
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label="Remover sessão"
+                disabled={session.status === "completed"}
+                onClick={() => removeMutation.mutate(session.id)}
+              >
                 <Trash2 className="size-4" />
               </Button>
             </div>
           ))}
-          {!packageItem?.sessions.length && <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma sessão vinculada.</p>}
+          {!packageItem?.sessions.length && (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Nenhuma sessão vinculada.
+            </p>
+          )}
         </div>
 
         {adding ? (
           <div className="grid grid-cols-2 gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
-            <Field label="Data"><input type="date" value={date} onChange={(event) => setDate(event.target.value)} className={fieldClass} /></Field>
-            <Field label="Horário"><input type="time" value={time} onChange={(event) => setTime(event.target.value)} className={fieldClass} /></Field>
+            <Field label="Data">
+              <input
+                type="date"
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+                className={fieldClass}
+              />
+            </Field>
+            <Field label="Horário">
+              <input
+                type="time"
+                value={time}
+                onChange={(event) => setTime(event.target.value)}
+                className={fieldClass}
+              />
+            </Field>
             <div className="col-span-2 flex justify-end gap-2">
-              <Button size="sm" variant="outline" onClick={() => setAdding(false)}>Cancelar</Button>
-              <Button size="sm" isLoading={addMutation.isPending} onClick={() => addMutation.mutate()}>Adicionar</Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setAdding(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                isLoading={addMutation.isPending}
+                onClick={() => addMutation.mutate()}
+              >
+                Adicionar
+              </Button>
             </div>
           </div>
         ) : (
-          <Button variant="outline" className="w-full border-dashed" leftIcon={<Plus className="size-4" />} onClick={() => setAdding(true)} disabled={!packageItem?.remaining_sessions}>
+          <Button
+            variant="outline"
+            className="w-full border-dashed"
+            leftIcon={<Plus className="size-4" />}
+            onClick={() => setAdding(true)}
+            disabled={!packageItem?.remaining_sessions}
+          >
             Adicionar sessão
           </Button>
         )}
-        <div className="flex justify-end border-t border-border pt-4"><Button variant="outline" onClick={onClose}>Fechar</Button></div>
+        <div className="flex justify-end border-t border-border pt-4">
+          <Button variant="outline" onClick={onClose}>
+            Fechar
+          </Button>
+        </div>
       </div>
     </Modal>
   );

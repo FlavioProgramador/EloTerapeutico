@@ -32,7 +32,12 @@ export function toPatientRequest(data: PatientFormData): PatientFormRequest {
     session_value: currencyToDecimal(session_value),
     therapist: therapist ? Number(therapist) : undefined,
     insurance_name: data.payer_type === "insurance" ? data.insurance_name : "",
-    tags: tags ? tags.split(",").map((tag) => tag.trim()).filter(Boolean) : [],
+    tags: tags
+      ? tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean)
+      : [],
     address: {
       zip_code: address_zip_code || undefined,
       street: address_street || undefined,
@@ -44,7 +49,6 @@ export function toPatientRequest(data: PatientFormData): PatientFormRequest {
     },
   };
 }
-
 
 export function toPatientMultipart(request: PatientFormRequest, photo: File) {
   const form = new FormData();

@@ -37,7 +37,9 @@ export function PatientSidePanel({ data, loading, onClose }: Props) {
   const router = useRouter();
 
   if (loading) {
-    return <aside className="h-[32rem] animate-pulse rounded-xl border border-border bg-card" />;
+    return (
+      <aside className="h-[32rem] animate-pulse rounded-xl border border-border bg-card" />
+    );
   }
 
   if (!data) {
@@ -68,12 +70,15 @@ export function PatientSidePanel({ data, loading, onClose }: Props) {
                 {patient.display_name}
               </h2>
               <p className="mt-1 text-[10px] text-muted-foreground">
-                {patient.age ? `${patient.age} anos` : "Idade não informada"} • {patient.masked_cpf}
+                {patient.age ? `${patient.age} anos` : "Idade não informada"} •{" "}
+                {patient.masked_cpf}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant={patient.status === "active" ? "success" : "outline"}>
+            <Badge
+              variant={patient.status === "active" ? "success" : "outline"}
+            >
               {patient.status_display}
             </Badge>
             {onClose && (
@@ -125,7 +130,9 @@ export function PatientSidePanel({ data, loading, onClose }: Props) {
               size="sm"
               variant="outline"
               className="mt-3 w-full"
-              onClick={() => router.push(`/dashboard/agenda?patient=${patient.id}`)}
+              onClick={() =>
+                router.push(`/dashboard/agenda?patient=${patient.id}`)
+              }
             >
               Agendar sessão
             </Button>
@@ -140,7 +147,8 @@ export function PatientSidePanel({ data, loading, onClose }: Props) {
           <div className="mt-3 grid grid-cols-3 gap-2 text-center">
             <div>
               <strong className="block text-sm text-foreground">
-                {attendance ?? "—"}{attendance !== null ? "%" : ""}
+                {attendance ?? "—"}
+                {attendance !== null ? "%" : ""}
               </strong>
               <span className="text-[9px] text-muted-foreground">Adesão</span>
             </div>

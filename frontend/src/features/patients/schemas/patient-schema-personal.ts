@@ -11,7 +11,12 @@ export const patientPersonalFields = {
   remove_photo: z.boolean(),
   full_name: z.string().trim().min(3, "Informe o nome completo.").max(255),
   social_name: z.string().trim().max(255).optional().or(z.literal("")),
-  email: z.string().trim().email("Informe um e-mail válido.").optional().or(z.literal("")),
+  email: z
+    .string()
+    .trim()
+    .email("Informe um e-mail válido.")
+    .optional()
+    .or(z.literal("")),
   phone: optionalPhone,
   whatsapp: optionalPhone,
   birth_date: z.string().min(1, "Informe a data de nascimento."),

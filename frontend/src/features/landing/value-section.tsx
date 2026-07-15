@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  ArrowRight,
-  Check,
-  Layers3,
-  Link2,
-  X,
-} from "lucide-react";
+import { ArrowRight, Check, Layers3, Link2, X } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Reveal } from "./motion";
 
@@ -33,7 +27,11 @@ export function ValueSection() {
         initial: { opacity: 0, x: -8 },
         whileInView: { opacity: 1, x: 0 },
         viewport: { once: true, amount: 0.16 },
-        transition: { duration: 0.58, delay: 0.05, ease: [0.22, 1, 0.36, 1] as const },
+        transition: {
+          duration: 0.58,
+          delay: 0.05,
+          ease: [0.22, 1, 0.36, 1] as const,
+        },
       };
 
   const rightAnim = reduceMotion
@@ -42,7 +40,11 @@ export function ValueSection() {
         initial: { opacity: 0, x: 8 },
         whileInView: { opacity: 1, x: 0 },
         viewport: { once: true, amount: 0.16 },
-        transition: { duration: 0.58, delay: 0.05, ease: [0.22, 1, 0.36, 1] as const },
+        transition: {
+          duration: 0.58,
+          delay: 0.05,
+          ease: [0.22, 1, 0.36, 1] as const,
+        },
       };
 
   return (
@@ -50,14 +52,19 @@ export function ValueSection() {
       <div className="value-section__inner">
         <Reveal className="value-section__heading">
           <div className="value-section__heading-left">
-            <span className="landing-eyebrow">O diferencial está na conexão</span>
+            <span className="landing-eyebrow">
+              O diferencial está na conexão
+            </span>
             <p className="value-section__heading-desc">
-              A plataforma não substitui o trabalho clínico. Ela reduz a fragmentação
-              administrativa que cerca esse trabalho.
+              A plataforma não substitui o trabalho clínico. Ela reduz a
+              fragmentação administrativa que cerca esse trabalho.
             </p>
           </div>
           <div className="value-section__heading-right">
-            <h2>Ferramentas genéricas guardam informações. O Elo organiza relações.</h2>
+            <h2>
+              Ferramentas genéricas guardam informações. O Elo organiza
+              relações.
+            </h2>
           </div>
         </Reveal>
 
@@ -70,13 +77,18 @@ export function ValueSection() {
             <h3>Mais pontos para conferir.</h3>
             <ul>
               {manualItems.map((item) => (
-                <li key={item}><X aria-hidden="true" />{item}</li>
+                <li key={item}>
+                  <X aria-hidden="true" />
+                  {item}
+                </li>
               ))}
             </ul>
           </motion.div>
 
           <div className="value-comparison__bridge" aria-hidden="true">
-            <span><ArrowRight /></span>
+            <span>
+              <ArrowRight />
+            </span>
           </div>
 
           <motion.div
@@ -87,16 +99,31 @@ export function ValueSection() {
             <h3>Um fluxo com continuidade.</h3>
             <ul>
               {connectedItems.map((item) => (
-                <li key={item}><Check aria-hidden="true" />{item}</li>
+                <li key={item}>
+                  <Check aria-hidden="true" />
+                  {item}
+                </li>
               ))}
             </ul>
           </motion.div>
         </div>
 
         <div className="value-numbers">
-          <article><Layers3 /><strong>5</strong><span>áreas principais conectadas</span></article>
-          <article><Link2 /><strong>1</strong><span>visão operacional compartilhada</span></article>
-          <article><Check /><strong>3</strong><span>perfis com responsabilidades distintas</span></article>
+          <article>
+            <Layers3 />
+            <strong>5</strong>
+            <span>áreas principais conectadas</span>
+          </article>
+          <article>
+            <Link2 />
+            <strong>1</strong>
+            <span>visão operacional compartilhada</span>
+          </article>
+          <article>
+            <Check />
+            <strong>3</strong>
+            <span>perfis com responsabilidades distintas</span>
+          </article>
         </div>
       </div>
     </section>

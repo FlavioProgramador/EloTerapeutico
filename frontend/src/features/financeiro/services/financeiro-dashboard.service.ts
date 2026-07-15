@@ -54,9 +54,12 @@ export interface CreateMonthlySubscription {
 
 export const financeiroDashboardService = {
   summary: async (startDate: string, endDate: string) => {
-    const response = await api.get<FinancialDashboardSummary>("financeiro/summary/", {
-      params: { start_date: startDate, end_date: endDate },
-    });
+    const response = await api.get<FinancialDashboardSummary>(
+      "financeiro/summary/",
+      {
+        params: { start_date: startDate, end_date: endDate },
+      },
+    );
     return response.data;
   },
   generateCharges: async (appointmentIds: number[], dueDate: string) => {
@@ -64,19 +67,32 @@ export const financeiroDashboardService = {
       appointment_ids: appointmentIds,
       due_date: dueDate,
     });
-    return response.data as { created_count: number; created: number[]; skipped: number[] };
+    return response.data as {
+      created_count: number;
+      created: number[];
+      skipped: number[];
+    };
   },
   subscriptions: async (status?: string) => {
-    const response = await api.get<MonthlySubscription[]>("financeiro/subscriptions/", {
-      params: status && status !== "all" ? { status } : undefined,
-    });
+    const response = await api.get<MonthlySubscription[]>(
+      "financeiro/subscriptions/",
+      {
+        params: status && status !== "all" ? { status } : undefined,
+      },
+    );
     return response.data;
   },
   createSubscription: async (payload: CreateMonthlySubscription) => {
-    const response = await api.post<MonthlySubscription>("financeiro/subscriptions/", payload);
+    const response = await api.post<MonthlySubscription>(
+      "financeiro/subscriptions/",
+      payload,
+    );
     return response.data;
   },
-  updateSubscriptionStatus: async (id: number, status: MonthlySubscription["status"]) => {
+  updateSubscriptionStatus: async (
+    id: number,
+    status: MonthlySubscription["status"],
+  ) => {
     const response = await api.post<MonthlySubscription>(
       `financeiro/subscriptions/${id}/status/`,
       { status },

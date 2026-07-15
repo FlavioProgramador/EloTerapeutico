@@ -112,7 +112,9 @@ function DashboardVisual() {
       <div className="story-dashboard__metrics">
         {metrics.map(({ label, value, icon: Icon }) => (
           <article key={label}>
-            <span><Icon aria-hidden="true" /></span>
+            <span>
+              <Icon aria-hidden="true" />
+            </span>
             <small>{label}</small>
             <strong>{value}</strong>
           </article>
@@ -120,13 +122,19 @@ function DashboardVisual() {
       </div>
       <div className="story-dashboard__timeline">
         <header>
-          <span><Activity aria-hidden="true" /></span>
+          <span>
+            <Activity aria-hidden="true" />
+          </span>
           <div>
             <small>Operação de hoje</small>
             <strong>Visão integrada</strong>
           </div>
         </header>
-        {["Sessão confirmada", "Pagamento registrado", "Prontuário atualizado"].map((item, index) => (
+        {[
+          "Sessão confirmada",
+          "Pagamento registrado",
+          "Prontuário atualizado",
+        ].map((item, index) => (
           <div key={item} className={index === 0 ? "is-active" : ""}>
             <span />
             <b>{item}</b>
@@ -146,16 +154,26 @@ function PatientsVisual() {
           <Search aria-hidden="true" />
           <span>Lista de pacientes</span>
         </header>
-        {["Acompanhamento ativo", "Retorno agendado", "Cadastro recente"].map((item, index) => (
-          <button key={item} type="button" className={index === 0 ? "is-active" : ""}>
-            <span><UserRound aria-hidden="true" /></span>
-            <b>{item}</b>
-          </button>
-        ))}
+        {["Acompanhamento ativo", "Retorno agendado", "Cadastro recente"].map(
+          (item, index) => (
+            <button
+              key={item}
+              type="button"
+              className={index === 0 ? "is-active" : ""}
+            >
+              <span>
+                <UserRound aria-hidden="true" />
+              </span>
+              <b>{item}</b>
+            </button>
+          ),
+        )}
       </div>
       <article className="story-patients__profile">
         <header>
-          <span><UsersRound aria-hidden="true" /></span>
+          <span>
+            <UsersRound aria-hidden="true" />
+          </span>
           <div>
             <small>Ficha administrativa</small>
             <strong>Contexto do atendimento</strong>
@@ -180,14 +198,38 @@ function AgendaVisual() {
   return (
     <div className="story-visual story-visual--agenda">
       <div className="story-calendar">
-        <header><span><CalendarDays aria-hidden="true" /></span><div><small>Agenda clínica</small><strong>Semana atual</strong></div></header>
+        <header>
+          <span>
+            <CalendarDays aria-hidden="true" />
+          </span>
+          <div>
+            <small>Agenda clínica</small>
+            <strong>Semana atual</strong>
+          </div>
+        </header>
         <div className="story-calendar__grid">
           {["Seg", "Ter", "Qua", "Qui", "Sex"].map((day, index) => (
-            <div key={day}><b>{day}</b><small>{24 + index}</small>{index !== 2 && <span className={index === 3 ? "is-accent" : ""}>Sessão<br /><em>{index % 2 ? "14:00" : "09:00"}</em></span>}</div>
+            <div key={day}>
+              <b>{day}</b>
+              <small>{24 + index}</small>
+              {index !== 2 && (
+                <span className={index === 3 ? "is-accent" : ""}>
+                  Sessão
+                  <br />
+                  <em>{index % 2 ? "14:00" : "09:00"}</em>
+                </span>
+              )}
+            </div>
           ))}
         </div>
       </div>
-      <div className="story-floating-note"><UserRound aria-hidden="true" /><span><b>Paciente vinculado</b><small>Contexto disponível</small></span></div>
+      <div className="story-floating-note">
+        <UserRound aria-hidden="true" />
+        <span>
+          <b>Paciente vinculado</b>
+          <small>Contexto disponível</small>
+        </span>
+      </div>
     </div>
   );
 }
@@ -198,9 +240,26 @@ function RecordsVisual() {
       <div className="story-document story-document--back" />
       <div className="story-document story-document--middle" />
       <article className="story-document story-document--front">
-        <header><span><FileText aria-hidden="true" /></span><div><small>Evolução clínica</small><strong>Registro estruturado</strong></div></header>
-        <div className="story-document__lines"><span /><span /><span /><span /><span /></div>
-        <footer><CheckCircle2 aria-hidden="true" /> Vinculado ao atendimento e ao profissional</footer>
+        <header>
+          <span>
+            <FileText aria-hidden="true" />
+          </span>
+          <div>
+            <small>Evolução clínica</small>
+            <strong>Registro estruturado</strong>
+          </div>
+        </header>
+        <div className="story-document__lines">
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+        </div>
+        <footer>
+          <CheckCircle2 aria-hidden="true" /> Vinculado ao atendimento e ao
+          profissional
+        </footer>
       </article>
       <div className="story-records__tag">Acesso por perfil</div>
     </div>
@@ -213,12 +272,34 @@ function FinanceVisual() {
       <div className="story-finance__summary">
         <small>Resumo do período</small>
         <strong>Receitas e pendências</strong>
-        <div className="story-finance__chart" aria-hidden="true"><span /><span /><span /><span /><span /><span /><span /></div>
+        <div className="story-finance__chart" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+        </div>
       </div>
       <div className="story-finance__list">
-        {["Sessão confirmada", "Retorno registrado", "Material clínico"].map((item, index) => (
-          <div key={item}><span>{index === 2 ? <ReceiptText aria-hidden="true" /> : <WalletCards aria-hidden="true" />}</span><b>{item}</b><small className={index === 2 ? "is-pending" : ""}>{index === 2 ? "Pendente" : "Pago"}</small></div>
-        ))}
+        {["Sessão confirmada", "Retorno registrado", "Material clínico"].map(
+          (item, index) => (
+            <div key={item}>
+              <span>
+                {index === 2 ? (
+                  <ReceiptText aria-hidden="true" />
+                ) : (
+                  <WalletCards aria-hidden="true" />
+                )}
+              </span>
+              <b>{item}</b>
+              <small className={index === 2 ? "is-pending" : ""}>
+                {index === 2 ? "Pendente" : "Pago"}
+              </small>
+            </div>
+          ),
+        )}
       </div>
     </div>
   );
@@ -232,18 +313,27 @@ const visuals: Record<ModuleId, () => ReactNode> = {
   finance: FinanceVisual,
 };
 
-export function ModuleStories({ modules = landingModules }: ModuleStoriesProps) {
+export function ModuleStories({
+  modules = landingModules,
+}: ModuleStoriesProps) {
   const moduleList = modules.length > 0 ? modules : landingModules;
   const reduceMotion = useReducedMotion();
   const tablistRef = useRef<HTMLDivElement | null>(null);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const [activeModuleId, setActiveModuleId] = useState<ModuleId>(moduleList[0]?.id ?? "dashboard");
+  const [activeModuleId, setActiveModuleId] = useState<ModuleId>(
+    moduleList[0]?.id ?? "dashboard",
+  );
   const selectedIndex = Math.max(
     moduleList.findIndex((module) => module.id === activeModuleId),
     0,
   );
   const [focusedIndex, setFocusedIndex] = useState(selectedIndex);
-  const [indicator, setIndicator] = useState({ left: 0, width: 0, center: 0, opacity: 0 });
+  const [indicator, setIndicator] = useState({
+    left: 0,
+    width: 0,
+    center: 0,
+    opacity: 0,
+  });
   const active = moduleList[selectedIndex] ?? landingModules[0];
   const ActiveVisual = visuals[active.visual];
   const rovingIndex = moduleList[focusedIndex] ? focusedIndex : selectedIndex;
@@ -303,7 +393,10 @@ export function ModuleStories({ modules = landingModules }: ModuleStoriesProps) 
     setFocusedIndex(index);
   };
 
-  const handleKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>, index: number) => {
+  const handleKeyDown = (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
     if (event.key === "ArrowRight" || event.key === "ArrowDown") {
       event.preventDefault();
       focusTab(index + 1);
@@ -338,12 +431,21 @@ export function ModuleStories({ modules = landingModules }: ModuleStoriesProps) 
     <section id="modulos" className="module-stories-section">
       <div className="module-stories__inner">
         <Reveal className="module-stories__intro">
-          <span className="landing-eyebrow">Módulos que compartilham contexto</span>
-          <h2>Cada área tem sua função. O valor aparece quando elas se conectam.</h2>
+          <span className="landing-eyebrow">
+            Módulos que compartilham contexto
+          </span>
+          <h2>
+            Cada área tem sua função. O valor aparece quando elas se conectam.
+          </h2>
         </Reveal>
 
         <Reveal className="module-selector" delay={0.08}>
-          <div className="module-tabs" role="tablist" aria-label="Módulos do Elo Terapêutico" ref={tablistRef}>
+          <div
+            className="module-tabs"
+            role="tablist"
+            aria-label="Módulos do Elo Terapêutico"
+            ref={tablistRef}
+          >
             <span
               className="module-tabs__indicator"
               aria-hidden="true"
@@ -396,7 +498,11 @@ export function ModuleStories({ modules = landingModules }: ModuleStoriesProps) 
                   className="module-selector__copy"
                   initial={reduceMotion ? false : { opacity: 0, y: 8 }}
                   animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-                  transition={{ duration: 0.28, delay: reduceMotion ? 0 : 0.06, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{
+                    duration: 0.28,
+                    delay: reduceMotion ? 0 : 0.06,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
                 >
                   <span className="module-story__index">
                     {String(selectedIndex + 1).padStart(2, "0")} · {active.nome}
@@ -405,7 +511,10 @@ export function ModuleStories({ modules = landingModules }: ModuleStoriesProps) 
                   <p>{active.descricao}</p>
                   <ul>
                     {active.benefits.map((benefit) => (
-                      <li key={benefit}><CheckCircle2 aria-hidden="true" />{benefit}</li>
+                      <li key={benefit}>
+                        <CheckCircle2 aria-hidden="true" />
+                        {benefit}
+                      </li>
                     ))}
                   </ul>
                 </motion.div>

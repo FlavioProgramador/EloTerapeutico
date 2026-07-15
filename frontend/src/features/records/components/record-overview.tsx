@@ -110,10 +110,7 @@ export function RecordStats({ summary }: { summary: RecordSummary }) {
                 {item.label}
               </p>
               <strong
-                className={cn(
-                  "mt-1 block truncate text-sm",
-                  item.valueTone,
-                )}
+                className={cn("mt-1 block truncate text-sm", item.valueTone)}
               >
                 {item.value}
               </strong>
@@ -243,7 +240,8 @@ export function RecordSupportPanel({
                   {document.original_name}
                 </strong>
                 <small className="mt-1 block text-[9px] text-muted-foreground">
-                  {document.category_display} · {formatDate(document.created_at)}
+                  {document.category_display} ·{" "}
+                  {formatDate(document.created_at)}
                 </small>
               </div>
             </div>

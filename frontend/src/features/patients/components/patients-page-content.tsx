@@ -54,8 +54,14 @@ export function PatientsPageContent() {
   if (list.isError) {
     return (
       <div className="rounded-xl border border-destructive/30 p-10 text-center">
-        <p className="text-sm font-semibold">Não foi possível carregar os pacientes.</p>
-        <button type="button" onClick={() => list.refetch()} className="mt-4 rounded-md border px-4 py-2 text-xs">
+        <p className="text-sm font-semibold">
+          Não foi possível carregar os pacientes.
+        </p>
+        <button
+          type="button"
+          onClick={() => list.refetch()}
+          className="mt-4 rounded-md border px-4 py-2 text-xs"
+        >
           Tentar novamente
         </button>
       </div>
@@ -90,12 +96,21 @@ export function PatientsPageContent() {
         <PatientSidePanel
           data={panel.data}
           loading={panel.isLoading}
-          onClose={state.selectedId ? () => state.setSelectedId(undefined) : undefined}
+          onClose={
+            state.selectedId ? () => state.setSelectedId(undefined) : undefined
+          }
         />
       </div>
-      <NewPatientModal open={newOpen} onClose={() => setNewOpen(false)} onCreated={state.setSelectedId} />
+      <NewPatientModal
+        open={newOpen}
+        onClose={() => setNewOpen(false)}
+        onCreated={state.setSelectedId}
+      />
       {user?.role === "therapist" && (
-        <PatientImportModal open={importOpen} onClose={() => setImportOpen(false)} />
+        <PatientImportModal
+          open={importOpen}
+          onClose={() => setImportOpen(false)}
+        />
       )}
     </div>
   );

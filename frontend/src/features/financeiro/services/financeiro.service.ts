@@ -98,7 +98,7 @@ function toAppTransaction(data: FinancialTransactionApi): FinancialTransaction {
 }
 
 function normalizePaymentStatus(
-  status: CreateTransactionPayload["status"]
+  status: CreateTransactionPayload["status"],
 ): ApiTransactionStatus | undefined {
   return status === "overdue" ? "pending" : status;
 }
@@ -115,14 +115,13 @@ function toApiPayload(data: CreateTransactionPayload): TransactionApiPayload {
     payment_method: data.payment_method,
     payment_status: paymentStatus,
     due_date: data.due_date,
-    paid_at:
-      paymentStatus === "paid" ? toPaidAt(data.payment_date) : undefined,
+    paid_at: paymentStatus === "paid" ? toPaidAt(data.payment_date) : undefined,
     description: data.description,
   };
 }
 
 function toApiPatchPayload(
-  data: Partial<CreateTransactionPayload>
+  data: Partial<CreateTransactionPayload>,
 ): Partial<TransactionApiPayload> {
   const paymentStatus = normalizePaymentStatus(data.status);
 
@@ -135,8 +134,7 @@ function toApiPatchPayload(
     payment_method: data.payment_method,
     payment_status: paymentStatus,
     due_date: data.due_date,
-    paid_at:
-      paymentStatus === "paid" ? toPaidAt(data.payment_date) : undefined,
+    paid_at: paymentStatus === "paid" ? toPaidAt(data.payment_date) : undefined,
     description: data.description,
   };
 }
@@ -146,20 +144,20 @@ export const financeiroService = {
    * Lista transações com filtros opcionais.
    */
   list: async (
-    filters?: TransactionFilters
+    filters?: TransactionFilters,
   ): Promise<FinancialTransaction[]> => {
     const params = new URLSearchParams();
-    if (filters?.transaction_type) params.set("transaction_type", filters.transaction_type);
-    if (filters?.payment_status) params.set("payment_status", filters.payment_status);
+    if (filters?.transaction_type)
+      params.set("transaction_type", filters.transaction_type);
+    if (filters?.payment_status)
+      params.set("payment_status", filters.payment_status);
     if (filters?.category) params.set("category", filters.category);
     if (filters?.patient) params.set("patient", filters.patient);
     if (filters?.page) params.set("page", String(filters.page));
 
     const response = await api.get<
       FinancialTransactionApi[] | PaginatedResponse<FinancialTransactionApi>
-    >(
-      `financeiro/?${params.toString()}`
-    );
+    >(`financeiro/?${params.toString()}`);
     const results = Array.isArray(response.data)
       ? response.data
       : response.data.results || [];
@@ -170,14 +168,19 @@ export const financeiroService = {
    * Busca uma transação pelo ID.
    */
   getById: async (id: number): Promise<FinancialTransaction> => {
-    const response = await api.get<FinancialTransactionApi>(`financeiro/${id}/`);
+    const response = await api.get<FinancialTransactionApi>(
+      `financeiro/${id}/`,
+    );
     return toAppTransaction(response.data);
   },
 
   /**
    * Busca o resumo financeiro mensal.
    */
-  getSummary: async (year: number, month: number): Promise<FinancialSummary> => {
+  getSummary: async (
+    year: number,
+    month: number,
+  ): Promise<FinancialSummary> => {
     const response = await api.get<FinancialSummary>("financeiro/summary/", {
       params: { year, month },
     });
@@ -188,11 +191,11 @@ export const financeiroService = {
    * Cria uma nova transação financeira.
    */
   create: async (
-    data: CreateTransactionPayload
+    data: CreateTransactionPayload,
   ): Promise<FinancialTransaction> => {
     const response = await api.post<FinancialTransactionApi>(
       "financeiro/",
-      toApiPayload(data)
+      toApiPayload(data),
     );
     return toAppTransaction(response.data);
   },
@@ -202,11 +205,11 @@ export const financeiroService = {
    */
   update: async (
     id: number,
-    data: Partial<CreateTransactionPayload>
+    data: Partial<CreateTransactionPayload>,
   ): Promise<FinancialTransaction> => {
     const response = await api.patch<FinancialTransactionApi>(
       `financeiro/${id}/`,
-      toApiPatchPayload(data)
+      toApiPatchPayload(data),
     );
     return toAppTransaction(response.data);
   },
@@ -217,12 +220,15 @@ export const financeiroService = {
   markAsPaid: async (
     id: number,
     paymentMethod: FinancialPaymentMethod = "pix",
-    paidAt?: string
+    paidAt?: string,
   ): Promise<FinancialTransaction> => {
-    const response = await api.patch<FinancialTransactionApi>(`financeiro/${id}/pay/`, {
-      payment_method: paymentMethod,
-      paid_at: paidAt ?? new Date().toISOString(),
-    });
+    const response = await api.patch<FinancialTransactionApi>(
+      `financeiro/${id}/pay/`,
+      {
+        payment_method: paymentMethod,
+        paid_at: paidAt ?? new Date().toISOString(),
+      },
+    );
     return toAppTransaction(response.data);
   },
 
@@ -237,7 +243,9 @@ export const financeiroService = {
    * Cancela uma transação pendente.
    */
   cancel: async (id: number): Promise<FinancialTransaction> => {
-    const response = await api.post<FinancialTransactionApi>(`financeiro/${id}/cancel/`);
+    const response = await api.post<FinancialTransactionApi>(
+      `financeiro/${id}/cancel/`,
+    );
     return toAppTransaction(response.data);
   },
 
@@ -245,7 +253,9 @@ export const financeiroService = {
    * Estorna uma transação paga.
    */
   refund: async (id: number): Promise<FinancialTransaction> => {
-    const response = await api.post<FinancialTransactionApi>(`financeiro/${id}/refund/`);
+    const response = await api.post<FinancialTransactionApi>(
+      `financeiro/${id}/refund/`,
+    );
     return toAppTransaction(response.data);
   },
 
@@ -254,8 +264,10 @@ export const financeiroService = {
    */
   exportCSV: async (filters?: TransactionFilters): Promise<Blob> => {
     const params = new URLSearchParams();
-    if (filters?.transaction_type) params.set("transaction_type", filters.transaction_type);
-    if (filters?.payment_status) params.set("payment_status", filters.payment_status);
+    if (filters?.transaction_type)
+      params.set("transaction_type", filters.transaction_type);
+    if (filters?.payment_status)
+      params.set("payment_status", filters.payment_status);
     if (filters?.category) params.set("category", filters.category);
     if (filters?.patient) params.set("patient", filters.patient);
 
@@ -268,22 +280,26 @@ export const financeiroService = {
   /**
    * Obtém a lista de consultas concluídas sem lançamento financeiro associado.
    */
-  getUnbilledAppointments: async (): Promise<Array<{
-    id: number;
-    patient_id: number;
-    patient_name: string;
-    start_time: string;
-    end_time: string;
-    session_value: string;
-  }>> => {
-    const response = await api.get<Array<{
+  getUnbilledAppointments: async (): Promise<
+    Array<{
       id: number;
       patient_id: number;
       patient_name: string;
       start_time: string;
       end_time: string;
       session_value: string;
-    }>>("financeiro/unbilled-appointments/");
+    }>
+  > => {
+    const response = await api.get<
+      Array<{
+        id: number;
+        patient_id: number;
+        patient_name: string;
+        start_time: string;
+        end_time: string;
+        session_value: string;
+      }>
+    >("financeiro/unbilled-appointments/");
     return response.data;
   },
 };

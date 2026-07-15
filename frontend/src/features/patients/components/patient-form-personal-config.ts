@@ -16,7 +16,11 @@ export const PERSONAL_FIELD_CONFIG: PatientFieldConfig[] = [
   { name: "phone", label: "Telefone", mask: "phone" },
   { name: "whatsapp", label: "WhatsApp", mask: "phone" },
   { name: "birth_date", label: "Data de nascimento *", type: "date" },
-  { name: "treatment_start_date", label: "Início dos atendimentos", type: "date" },
+  {
+    name: "treatment_start_date",
+    label: "Início dos atendimentos",
+    type: "date",
+  },
   {
     name: "gender",
     label: "Gênero",

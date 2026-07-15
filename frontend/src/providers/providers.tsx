@@ -18,7 +18,9 @@ if (typeof window !== "undefined") {
   console.error = (...args) => {
     if (
       typeof args[0] === "string" &&
-      args[0].includes("Encountered a script tag while rendering React component")
+      args[0].includes(
+        "Encountered a script tag while rendering React component",
+      )
     ) {
       return;
     }

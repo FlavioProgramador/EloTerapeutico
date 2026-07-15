@@ -1,7 +1,13 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback } from "react";
-import { X, CheckCircle2, AlertCircle, AlertTriangle, Info } from "lucide-react";
+import {
+  X,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  Info,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface Toast {
@@ -28,7 +34,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toast = useCallback(
-    ({ title, description, variant = "default", duration = 4000 }: Omit<Toast, "id">) => {
+    ({
+      title,
+      description,
+      variant = "default",
+      duration = 4000,
+    }: Omit<Toast, "id">) => {
       const id = Math.random().toString(36).substring(2, 9);
       const newToast: Toast = { id, title, description, variant, duration };
 
@@ -40,7 +51,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         }, duration);
       }
     },
-    [dismiss]
+    [dismiss],
   );
 
   return (
@@ -59,15 +70,27 @@ export function useToast() {
   return context;
 }
 
-function ToastContainer({ toasts, dismiss }: { toasts: Toast[]; dismiss: (id: string) => void }) {
+function ToastContainer({
+  toasts,
+  dismiss,
+}: {
+  toasts: Toast[];
+  dismiss: (id: string) => void;
+}) {
   return (
     <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2.5 w-full max-w-sm pointer-events-none p-4 md:p-0">
       {toasts.map((t) => {
         const icons = {
           default: null,
-          success: <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />,
-          destructive: <AlertCircle className="h-5 w-5 text-destructive shrink-0" />,
-          warning: <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />,
+          success: (
+            <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+          ),
+          destructive: (
+            <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
+          ),
+          warning: (
+            <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />
+          ),
           info: <Info className="h-5 w-5 text-blue-500 shrink-0" />,
         };
 
@@ -84,14 +107,18 @@ function ToastContainer({ toasts, dismiss }: { toasts: Toast[]; dismiss: (id: st
             key={t.id}
             className={cn(
               "pointer-events-auto flex items-start gap-3 w-full p-4 rounded-xl border shadow-lg glass-effect animate-slide-in-right",
-              bgVariants[t.variant || "default"]
+              bgVariants[t.variant || "default"],
             )}
           >
             {t.variant && icons[t.variant]}
             <div className="flex-1 flex flex-col gap-0.5">
-              <span className="font-semibold text-sm leading-snug">{t.title}</span>
+              <span className="font-semibold text-sm leading-snug">
+                {t.title}
+              </span>
               {t.description && (
-                <span className="text-xs text-muted-foreground leading-relaxed">{t.description}</span>
+                <span className="text-xs text-muted-foreground leading-relaxed">
+                  {t.description}
+                </span>
               )}
             </div>
             <button

@@ -23,18 +23,27 @@ function paramsFrom(filters?: DocumentFilters) {
 }
 
 export const documentsService = {
-  listTemplates: async (filters?: DocumentFilters): Promise<PaginatedTemplates> => {
+  listTemplates: async (
+    filters?: DocumentFilters,
+  ): Promise<PaginatedTemplates> => {
     const response = await api.get<PaginatedTemplates>("documents/templates/", {
       params: paramsFrom(filters),
     });
     return response.data;
   },
   getTemplate: async (publicId: string): Promise<DocumentTemplate> => {
-    const response = await api.get<DocumentTemplate>(`documents/templates/${publicId}/`);
+    const response = await api.get<DocumentTemplate>(
+      `documents/templates/${publicId}/`,
+    );
     return response.data;
   },
-  createTemplate: async (payload: DocumentTemplatePayload): Promise<DocumentTemplate> => {
-    const response = await api.post<DocumentTemplate>("documents/templates/", payload);
+  createTemplate: async (
+    payload: DocumentTemplatePayload,
+  ): Promise<DocumentTemplate> => {
+    const response = await api.post<DocumentTemplate>(
+      "documents/templates/",
+      payload,
+    );
     return response.data;
   },
   updateTemplate: async (
@@ -60,7 +69,12 @@ export const documentsService = {
     publicId: string,
     payload?: { patient_id?: number; local_emissao?: string },
     library = false,
-  ): Promise<{ title: string; header_html: string; content_html: string; footer_html: string }> => {
+  ): Promise<{
+    title: string;
+    header_html: string;
+    content_html: string;
+    footer_html: string;
+  }> => {
     const scope = library ? "library" : "templates";
     const response = await api.post(
       `documents/${scope}/${publicId}/preview/`,
@@ -68,32 +82,43 @@ export const documentsService = {
     );
     return response.data;
   },
-  listLibrary: async (filters?: DocumentFilters): Promise<PaginatedTemplates> => {
+  listLibrary: async (
+    filters?: DocumentFilters,
+  ): Promise<PaginatedTemplates> => {
     const response = await api.get<PaginatedTemplates>("documents/library/", {
       params: paramsFrom(filters),
     });
     return response.data;
   },
-  importLibraryTemplate: async (publicId: string): Promise<DocumentTemplate> => {
+  importLibraryTemplate: async (
+    publicId: string,
+  ): Promise<DocumentTemplate> => {
     const response = await api.post<DocumentTemplate>(
       `documents/library/${publicId}/import/`,
     );
     return response.data;
   },
   placeholders: async (): Promise<PlaceholderDefinition[]> => {
-    const response = await api.get<PlaceholderDefinition[]>("documents/placeholders/");
+    const response = await api.get<PlaceholderDefinition[]>(
+      "documents/placeholders/",
+    );
     return response.data;
   },
   listGenerated: async (
     filters?: DocumentFilters,
   ): Promise<PaginatedGeneratedDocuments> => {
-    const response = await api.get<PaginatedGeneratedDocuments>("documents/generated/", {
-      params: paramsFrom(filters),
-    });
+    const response = await api.get<PaginatedGeneratedDocuments>(
+      "documents/generated/",
+      {
+        params: paramsFrom(filters),
+      },
+    );
     return response.data;
   },
   getGenerated: async (publicId: string): Promise<GeneratedDocument> => {
-    const response = await api.get<GeneratedDocument>(`documents/generated/${publicId}/`);
+    const response = await api.get<GeneratedDocument>(
+      `documents/generated/${publicId}/`,
+    );
     return response.data;
   },
   createGenerated: async (payload: {
@@ -102,9 +127,13 @@ export const documentsService = {
     title?: string;
     local_emissao?: string;
   }): Promise<GeneratedDocument> => {
-    const response = await api.post<GeneratedDocument>("documents/generated/", payload, {
-      headers: { "Idempotency-Key": crypto.randomUUID() },
-    });
+    const response = await api.post<GeneratedDocument>(
+      "documents/generated/",
+      payload,
+      {
+        headers: { "Idempotency-Key": crypto.randomUUID() },
+      },
+    );
     return response.data;
   },
   updateGenerated: async (
@@ -126,7 +155,10 @@ export const documentsService = {
     );
     return response.data;
   },
-  downloadGenerated: async (publicId: string, filename: string): Promise<void> => {
+  downloadGenerated: async (
+    publicId: string,
+    filename: string,
+  ): Promise<void> => {
     const response = await api.get<Blob>(
       `documents/generated/${publicId}/download/`,
       { responseType: "blob" },

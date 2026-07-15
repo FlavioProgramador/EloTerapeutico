@@ -32,24 +32,38 @@ export async function listPlanPrices(params?: {
   billing_interval?: string;
   billing_model?: string;
 }): Promise<PlanPrice[]> {
-  const response = await api.get<Paginated<PlanPrice> | PlanPrice[]>("billing/plan-prices/", { params });
+  const response = await api.get<Paginated<PlanPrice> | PlanPrice[]>(
+    "billing/plan-prices/",
+    { params },
+  );
   return unwrap(response.data);
 }
 
 export async function getMySubscription(): Promise<Subscription | null> {
-  const response = await api.get<{ subscription: Subscription | null }>("billing/subscription/me/");
+  const response = await api.get<{ subscription: Subscription | null }>(
+    "billing/subscription/me/",
+  );
   return response.data.subscription;
 }
 
-export async function previewCheckout(payload: CheckoutPayload): Promise<CheckoutPreview> {
-  const response = await api.post<CheckoutPreview>("billing/checkout/preview/", payload);
+export async function previewCheckout(
+  payload: CheckoutPayload,
+): Promise<CheckoutPreview> {
+  const response = await api.post<CheckoutPreview>(
+    "billing/checkout/preview/",
+    payload,
+  );
   return response.data;
 }
 
-export async function createCheckout(payload: CheckoutPayload): Promise<CheckoutPreview> {
+export async function createCheckout(
+  payload: CheckoutPayload,
+): Promise<CheckoutPreview> {
   const idempotencyKey = payload.idempotency_key;
   if (!idempotencyKey) {
-    throw new Error("A tentativa de checkout não possui chave de idempotência.");
+    throw new Error(
+      "A tentativa de checkout não possui chave de idempotência.",
+    );
   }
   const response = await api.post<CheckoutPreview>(
     "billing/checkout/create/",
@@ -59,16 +73,23 @@ export async function createCheckout(payload: CheckoutPayload): Promise<Checkout
   return response.data;
 }
 
-export async function createSubscription(planId: number): Promise<Subscription> {
-  const response = await api.post<Subscription>("billing/subscription/create/", { plan_id: planId });
+export async function createSubscription(
+  planId: number,
+): Promise<Subscription> {
+  const response = await api.post<Subscription>(
+    "billing/subscription/create/",
+    { plan_id: planId },
+  );
   return response.data;
 }
 
-export async function changePlan(planId: number): Promise<{ subscription: Subscription; detail: string }> {
-  const response = await api.post<{ subscription: Subscription; detail: string }>(
-    "billing/subscription/change-plan/",
-    { plan_id: planId },
-  );
+export async function changePlan(
+  planId: number,
+): Promise<{ subscription: Subscription; detail: string }> {
+  const response = await api.post<{
+    subscription: Subscription;
+    detail: string;
+  }>("billing/subscription/change-plan/", { plan_id: planId });
   return response.data;
 }
 
@@ -78,7 +99,9 @@ export async function cancelSubscription(): Promise<Subscription> {
 }
 
 export async function scheduleCancellation(): Promise<Subscription> {
-  const response = await api.post<Subscription>("billing/subscription/cancel-at-period-end/");
+  const response = await api.post<Subscription>(
+    "billing/subscription/cancel-at-period-end/",
+  );
   return response.data;
 }
 
@@ -88,7 +111,9 @@ export async function resumeSubscription(): Promise<Subscription> {
 }
 
 export async function listOrders(): Promise<BillingOrder[]> {
-  const response = await api.get<Paginated<BillingOrder> | BillingOrder[]>("billing/orders/");
+  const response = await api.get<Paginated<BillingOrder> | BillingOrder[]>(
+    "billing/orders/",
+  );
   return unwrap(response.data);
 }
 
@@ -102,11 +127,16 @@ export async function listPayments(params?: {
   order?: string;
   ordering?: string;
 }): Promise<Payment[]> {
-  const response = await api.get<Paginated<Payment> | Payment[]>("billing/payments/", { params });
+  const response = await api.get<Paginated<Payment> | Payment[]>(
+    "billing/payments/",
+    { params },
+  );
   return unwrap(response.data);
 }
 
-export async function getPaymentSummary(order?: string): Promise<PaymentSummary> {
+export async function getPaymentSummary(
+  order?: string,
+): Promise<PaymentSummary> {
   const response = await api.get<PaymentSummary>("billing/payments/summary/", {
     params: order ? { order } : undefined,
   });
@@ -114,11 +144,15 @@ export async function getPaymentSummary(order?: string): Promise<PaymentSummary>
 }
 
 export async function refreshPayment(paymentId: number): Promise<Payment> {
-  const response = await api.post<Payment>(`billing/payments/${paymentId}/refresh/`);
+  const response = await api.post<Payment>(
+    `billing/payments/${paymentId}/refresh/`,
+  );
   return response.data;
 }
 
 export async function getAsaasIntegrationHealth(): Promise<AsaasIntegrationHealth> {
-  const response = await api.get<AsaasIntegrationHealth>("billing/integrations/asaas/health/");
+  const response = await api.get<AsaasIntegrationHealth>(
+    "billing/integrations/asaas/health/",
+  );
   return response.data;
 }

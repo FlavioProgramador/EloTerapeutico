@@ -63,7 +63,9 @@ export function useUpdatePatient(id: number | undefined) {
   return useMutation({
     mutationFn: (data: PatientFormRequest | FormData) => {
       if (id === undefined) {
-        throw new Error("O identificador do paciente é obrigatório para edição.");
+        throw new Error(
+          "O identificador do paciente é obrigatório para edição.",
+        );
       }
       return patientsService.update(id, data);
     },

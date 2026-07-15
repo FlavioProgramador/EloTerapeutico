@@ -16,7 +16,9 @@ export function Hero() {
 
       <div className="hero-dark__inner">
         <Reveal className="hero-dark__copy">
-          <span className="landing-eyebrow">O sistema feito para terapeutas</span>
+          <span className="landing-eyebrow">
+            O sistema feito para terapeutas
+          </span>
           <h1>
             Gestão completa.
             <br />
@@ -24,12 +26,14 @@ export function Hero() {
           </h1>
           <p>
             Organize agenda, prontuários, pacientes e financeiro em um só lugar.
-            Menos burocracia para manter o foco no acompanhamento de quem você atende.
+            Menos burocracia para manter o foco no acompanhamento de quem você
+            atende.
           </p>
 
           <div className="hero-dark__actions">
             <Link href="/register" className="hero-dark__primary">
-              Testar grátis <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              Testar grátis{" "}
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
             <a href="#produto" className="hero-dark__secondary">
               <Play className="h-4 w-4" aria-hidden="true" />
@@ -46,7 +50,11 @@ export function Hero() {
       <Reveal className="hero-dark__stats" delay={0.2}>
         {stats.map((stat) => (
           <article key={stat.label} className="hero-dark__stat">
-            <AnimatedCounter target={stat.value} suffix={stat.suffix} className="hero-dark__stat-value" />
+            <AnimatedCounter
+              target={stat.value}
+              suffix={stat.suffix}
+              className="hero-dark__stat-value"
+            />
             <span className="hero-dark__stat-label">{stat.label}</span>
           </article>
         ))}

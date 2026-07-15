@@ -22,7 +22,9 @@ function downloadBlob(blob: Blob, filename: string) {
 
 export const recordWorkspaceService = {
   getSummary: async (patientId: number) => {
-    const response = await api.get<RecordSummary>(`records/patients/${patientId}/workspace/`);
+    const response = await api.get<RecordSummary>(
+      `records/patients/${patientId}/workspace/`,
+    );
     return response.data;
   },
 
@@ -36,7 +38,9 @@ export const recordWorkspaceService = {
   },
 
   getEvolution: async (id: number) => {
-    const response = await api.get<EvolutionWorkspace>(`records/clinical-evolutions/${id}/`);
+    const response = await api.get<EvolutionWorkspace>(
+      `records/clinical-evolutions/${id}/`,
+    );
     return response.data;
   },
 
@@ -78,7 +82,10 @@ export const recordWorkspaceService = {
     return response.data;
   },
 
-  saveAnamnesis: async (patientId: number, payload: Partial<AnamnesisWorkspace>) => {
+  saveAnamnesis: async (
+    patientId: number,
+    payload: Partial<AnamnesisWorkspace>,
+  ) => {
     const response = await api.patch<AnamnesisWorkspace>(
       `records/patients/${patientId}/clinical-anamnesis/`,
       payload,
@@ -87,7 +94,9 @@ export const recordWorkspaceService = {
   },
 
   listGoals: async (patientId: number) => {
-    const response = await api.get<TreatmentGoal[]>(`records/patients/${patientId}/goals/`);
+    const response = await api.get<TreatmentGoal[]>(
+      `records/patients/${patientId}/goals/`,
+    );
     return response.data;
   },
 
@@ -100,7 +109,10 @@ export const recordWorkspaceService = {
   },
 
   updateGoal: async (id: number, payload: Partial<TreatmentGoal>) => {
-    const response = await api.patch<TreatmentGoal>(`records/goals/${id}/`, payload);
+    const response = await api.patch<TreatmentGoal>(
+      `records/goals/${id}/`,
+      payload,
+    );
     return response.data;
   },
 
@@ -125,7 +137,10 @@ export const recordWorkspaceService = {
   },
 
   updateDocument: async (id: number, payload: Partial<ClinicalDocument>) => {
-    const response = await api.patch<ClinicalDocument>(`records/documents/${id}/`, payload);
+    const response = await api.patch<ClinicalDocument>(
+      `records/documents/${id}/`,
+      payload,
+    );
     return response.data;
   },
 
@@ -134,16 +149,22 @@ export const recordWorkspaceService = {
   },
 
   downloadDocument: async (document: ClinicalDocument) => {
-    const response = await api.get(`records/documents/${document.id}/download/`, {
-      responseType: "blob",
-    });
+    const response = await api.get(
+      `records/documents/${document.id}/download/`,
+      {
+        responseType: "blob",
+      },
+    );
     downloadBlob(response.data, document.original_name);
   },
 
   exportPatientPdf: async (patientId: number) => {
-    const response = await api.get(`records/patients/${patientId}/export-pdf/`, {
-      responseType: "blob",
-    });
+    const response = await api.get(
+      `records/patients/${patientId}/export-pdf/`,
+      {
+        responseType: "blob",
+      },
+    );
     downloadBlob(response.data, `prontuario-paciente-${patientId}.pdf`);
   },
 
@@ -156,20 +177,32 @@ export const recordWorkspaceService = {
   },
 
   submitForm: async (patientId: number, payload: any) => {
-    const response = await api.post<any>(`records/patients/${patientId}/forms/`, payload);
+    const response = await api.post<any>(
+      `records/patients/${patientId}/forms/`,
+      payload,
+    );
     return response.data;
   },
 
   listExports: async (patientId: number) => {
-    const response = await api.get<any[]>(`records/patients/${patientId}/exports/`);
+    const response = await api.get<any[]>(
+      `records/patients/${patientId}/exports/`,
+    );
     return response.data;
   },
 
-  createExport: async (patientId: number, exportType: string, period: string) => {
-    const response = await api.post<any>(`records/patients/${patientId}/exports/`, {
-      export_type: exportType,
-      period: period,
-    });
+  createExport: async (
+    patientId: number,
+    exportType: string,
+    period: string,
+  ) => {
+    const response = await api.post<any>(
+      `records/patients/${patientId}/exports/`,
+      {
+        export_type: exportType,
+        period: period,
+      },
+    );
     return response.data;
   },
 

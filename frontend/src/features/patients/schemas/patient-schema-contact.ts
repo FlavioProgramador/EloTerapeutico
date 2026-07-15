@@ -20,12 +20,27 @@ export const patientContactFields = {
       /^(|AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$/,
       "Selecione uma UF válida.",
     ),
-  emergency_contact_name: z.string().trim().max(255).optional().or(z.literal("")),
-  emergency_contact_relationship: z.string().trim().max(80).optional().or(z.literal("")),
+  emergency_contact_name: z
+    .string()
+    .trim()
+    .max(255)
+    .optional()
+    .or(z.literal("")),
+  emergency_contact_relationship: z
+    .string()
+    .trim()
+    .max(80)
+    .optional()
+    .or(z.literal("")),
   emergency_contact_phone: optionalPhone,
   guardian_name: z.string().trim().max(255).optional().or(z.literal("")),
   guardian_cpf: optionalCpf,
   guardian_phone: optionalPhone,
-  guardian_email: z.string().trim().email("Informe um e-mail válido.").optional().or(z.literal("")),
+  guardian_email: z
+    .string()
+    .trim()
+    .email("Informe um e-mail válido.")
+    .optional()
+    .or(z.literal("")),
   guardian_relationship: z.string().trim().max(80).optional().or(z.literal("")),
 };

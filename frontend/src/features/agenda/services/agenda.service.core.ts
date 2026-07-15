@@ -137,16 +137,9 @@ export const agendaService = {
     },
     create: async (payload: CreateScheduleBlockPayload) =>
       (await api.post<ScheduleBlock>("agenda/schedule-blocks/", payload)).data,
-    update: async (
-      id: number,
-      payload: Partial<CreateScheduleBlockPayload>,
-    ) =>
-      (
-        await api.patch<ScheduleBlock>(
-          `agenda/schedule-blocks/${id}/`,
-          payload,
-        )
-      ).data,
+    update: async (id: number, payload: Partial<CreateScheduleBlockPayload>) =>
+      (await api.patch<ScheduleBlock>(`agenda/schedule-blocks/${id}/`, payload))
+        .data,
     remove: async (id: number) => {
       await api.delete(`agenda/schedule-blocks/${id}/`);
     },
@@ -167,10 +160,7 @@ export const agendaService = {
           payload,
         )
       ).data,
-    action: async (
-      id: number,
-      action: "pause" | "reactivate" | "end",
-    ) =>
+    action: async (id: number, action: "pause" | "reactivate" | "end") =>
       (
         await api.post<AppointmentRecurrence>(
           `agenda/appointment-recurrences/${id}/${action}/`,
@@ -202,7 +192,8 @@ export const agendaService = {
       return normalizePage(response.data);
     },
     create: async (payload: CreatePackagePayload) =>
-      (await api.post<PatientPackage>("agenda/patient-packages/", payload)).data,
+      (await api.post<PatientPackage>("agenda/patient-packages/", payload))
+        .data,
     update: async (id: number, payload: Partial<CreatePackagePayload>) =>
       (
         await api.patch<PatientPackage>(
@@ -217,11 +208,7 @@ export const agendaService = {
           payload,
         )
       ).data,
-    action: async (
-      id: number,
-      action: "cancel" | "renew",
-      payload = {},
-    ) =>
+    action: async (id: number, action: "cancel" | "renew", payload = {}) =>
       (
         await api.post<PatientPackage>(
           `agenda/patient-packages/${id}/${action}/`,

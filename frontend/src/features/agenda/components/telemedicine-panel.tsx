@@ -7,12 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTelemedicine, useTelemedicineAction } from "../hooks/use-agenda";
-import {
-  SearchInput,
-  StatusBadge,
-  TableShell,
-  Toolbar,
-} from "./agenda-ui";
+import { SearchInput, StatusBadge, TableShell, Toolbar } from "./agenda-ui";
 
 export function TelemedicinePanel() {
   const [search, setSearch] = useState("");
@@ -79,7 +74,10 @@ export function TelemedicinePanel() {
         </TableShell>
       ) : (
         grouped.map(([dateKey, items]) => (
-          <div key={dateKey} className="rounded-xl border border-border bg-card">
+          <div
+            key={dateKey}
+            className="rounded-xl border border-border bg-card"
+          >
             <div className="border-b border-border px-4 py-3 text-sm font-semibold capitalize">
               {new Date(dateKey).toLocaleDateString("pt-BR", {
                 weekday: "long",

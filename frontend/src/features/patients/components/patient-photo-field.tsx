@@ -23,7 +23,9 @@ function sanitizeImageSrc(
     const parsed = new URL(candidate);
 
     if (parsed.protocol === "blob:") {
-      return expectedPreview && candidate === expectedPreview ? candidate : null;
+      return expectedPreview && candidate === expectedPreview
+        ? candidate
+        : null;
     }
 
     if (parsed.protocol === "https:" || parsed.protocol === "http:") {

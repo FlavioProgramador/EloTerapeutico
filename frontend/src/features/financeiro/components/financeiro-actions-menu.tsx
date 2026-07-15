@@ -134,7 +134,7 @@ export function FinanceiroActionsMenu({
     close();
     action();
   };
-  
+
   const itemClass =
     "flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-xs font-medium text-popover-foreground outline-none transition hover:bg-secondary focus-visible:bg-secondary focus-visible:ring-2 focus-visible:ring-ring/40";
 
@@ -147,19 +147,23 @@ export function FinanceiroActionsMenu({
       className="fixed z-[100] w-[232px] rounded-xl border border-border bg-popover p-1.5 text-popover-foreground shadow-xl"
       style={{ left: position.left, top: position.top }}
     >
-      {(transaction.status === "pending" || transaction.status === "overdue" || transaction.status === "paid") && (
+      {(transaction.status === "pending" ||
+        transaction.status === "overdue" ||
+        transaction.status === "paid") && (
         <div className="py-1 border-b border-border">
-          {(transaction.status === "pending" || transaction.status === "overdue") && onMarkPaid && (
-            <button
-              type="button"
-              role="menuitem"
-              className={itemClass}
-              onClick={() => run(() => onMarkPaid(transaction.id))}
-            >
-              <CheckCircle2 className="h-4 w-4" /> Marcar como Pago
-            </button>
-          )}
-          
+          {(transaction.status === "pending" ||
+            transaction.status === "overdue") &&
+            onMarkPaid && (
+              <button
+                type="button"
+                role="menuitem"
+                className={itemClass}
+                onClick={() => run(() => onMarkPaid(transaction.id))}
+              >
+                <CheckCircle2 className="h-4 w-4" /> Marcar como Pago
+              </button>
+            )}
+
           {transaction.status === "paid" && onRefund && (
             <button
               type="button"
@@ -185,16 +189,18 @@ export function FinanceiroActionsMenu({
           </button>
         )}
 
-        {(transaction.status === "pending" || transaction.status === "overdue") && onCancel && (
-          <button
-            type="button"
-            role="menuitem"
-            className={itemClass}
-            onClick={() => run(() => onCancel(transaction.id))}
-          >
-            <XCircle className="h-4 w-4" /> Cancelar
-          </button>
-        )}
+        {(transaction.status === "pending" ||
+          transaction.status === "overdue") &&
+          onCancel && (
+            <button
+              type="button"
+              role="menuitem"
+              className={itemClass}
+              onClick={() => run(() => onCancel(transaction.id))}
+            >
+              <XCircle className="h-4 w-4" /> Cancelar
+            </button>
+          )}
 
         {onDelete && (
           <button

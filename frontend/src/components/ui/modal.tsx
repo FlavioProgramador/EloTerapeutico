@@ -51,7 +51,7 @@ export function Modal({
         className={cn(
           "w-full max-w-lg bg-card border border-border/60 rounded-xl shadow-xl z-10 flex flex-col relative",
           "animate-scale-in max-h-[90vh] overflow-hidden",
-          className
+          className,
         )}
       >
         {/* Header */}

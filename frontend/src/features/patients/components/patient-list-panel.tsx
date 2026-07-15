@@ -88,7 +88,10 @@ export function PatientListPanel({
         className="space-y-2 rounded-xl border border-border bg-card p-3"
       >
         {Array.from({ length: pageSize }).map((_, index) => (
-          <div key={index} className="h-24 animate-pulse rounded-lg bg-secondary" />
+          <div
+            key={index}
+            className="h-24 animate-pulse rounded-lg bg-secondary"
+          />
         ))}
       </div>
     );

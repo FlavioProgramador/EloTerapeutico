@@ -11,9 +11,12 @@ import type {
 } from "../types";
 
 const keys = {
-  templates: (filters?: DocumentFilters) => ["documents", "templates", filters] as const,
-  library: (filters?: DocumentFilters) => ["documents", "library", filters] as const,
-  generated: (filters?: DocumentFilters) => ["documents", "generated", filters] as const,
+  templates: (filters?: DocumentFilters) =>
+    ["documents", "templates", filters] as const,
+  library: (filters?: DocumentFilters) =>
+    ["documents", "library", filters] as const,
+  generated: (filters?: DocumentFilters) =>
+    ["documents", "generated", filters] as const,
   placeholders: ["documents", "placeholders"] as const,
   evolution: (filters?: Record<string, string | undefined>) =>
     ["documents", "evolution-templates", filters] as const,
@@ -41,10 +44,15 @@ export function useGeneratedDocuments(filters?: DocumentFilters) {
 }
 
 export function usePlaceholders() {
-  return useQuery({ queryKey: keys.placeholders, queryFn: documentsService.placeholders });
+  return useQuery({
+    queryKey: keys.placeholders,
+    queryFn: documentsService.placeholders,
+  });
 }
 
-export function useEvolutionTemplates(filters?: Record<string, string | undefined>) {
+export function useEvolutionTemplates(
+  filters?: Record<string, string | undefined>,
+) {
   return useQuery({
     queryKey: keys.evolution(filters),
     queryFn: () => documentsService.listEvolutionTemplates(filters),
@@ -71,7 +79,8 @@ export function useCreateDocumentTemplate() {
   return useDocumentMutation<DocumentTemplatePayload, unknown>(
     documentsService.createTemplate,
     "Template criado com sucesso.",
-    (client) => client.invalidateQueries({ queryKey: ["documents", "templates"] }),
+    (client) =>
+      client.invalidateQueries({ queryKey: ["documents", "templates"] }),
   );
 }
 
@@ -80,20 +89,26 @@ export function useUpdateDocumentTemplate() {
     { publicId: string; payload: Partial<DocumentTemplatePayload> },
     unknown
   >(
-    ({ publicId, payload }) => documentsService.updateTemplate(publicId, payload),
+    ({ publicId, payload }) =>
+      documentsService.updateTemplate(publicId, payload),
     "Template atualizado com sucesso.",
-    (client) => client.invalidateQueries({ queryKey: ["documents", "templates"] }),
+    (client) =>
+      client.invalidateQueries({ queryKey: ["documents", "templates"] }),
   );
 }
 
 export function useTemplateAction() {
   return useDocumentMutation<
-    { publicId: string; action: "duplicate" | "archive" | "activate" | "deactivate" },
+    {
+      publicId: string;
+      action: "duplicate" | "archive" | "activate" | "deactivate";
+    },
     unknown
   >(
     ({ publicId, action }) => documentsService.templateAction(publicId, action),
     "Template atualizado.",
-    (client) => client.invalidateQueries({ queryKey: ["documents", "templates"] }),
+    (client) =>
+      client.invalidateQueries({ queryKey: ["documents", "templates"] }),
   );
 }
 
@@ -110,12 +125,18 @@ export function useImportLibraryTemplate() {
 
 export function useCreateGeneratedDocument() {
   return useDocumentMutation<
-    { template_public_id: string; patient_id: number; title?: string; local_emissao?: string },
+    {
+      template_public_id: string;
+      patient_id: number;
+      title?: string;
+      local_emissao?: string;
+    },
     { public_id: string }
   >(
     documentsService.createGenerated,
     "Rascunho criado. Revise e gere o PDF.",
-    (client) => client.invalidateQueries({ queryKey: ["documents", "generated"] }),
+    (client) =>
+      client.invalidateQueries({ queryKey: ["documents", "generated"] }),
   );
 }
 
@@ -124,9 +145,11 @@ export function useGeneratedDocumentAction() {
     { publicId: string; action: "generate" | "archive" | "cancel" },
     unknown
   >(
-    ({ publicId, action }) => documentsService.generatedAction(publicId, action),
+    ({ publicId, action }) =>
+      documentsService.generatedAction(publicId, action),
     "Documento atualizado.",
-    (client) => client.invalidateQueries({ queryKey: ["documents", "generated"] }),
+    (client) =>
+      client.invalidateQueries({ queryKey: ["documents", "generated"] }),
   );
 }
 
@@ -134,7 +157,10 @@ export function useCreateEvolutionTemplate() {
   return useDocumentMutation<EvolutionTemplatePayload, unknown>(
     documentsService.createEvolutionTemplate,
     "Template de evolução criado.",
-    (client) => client.invalidateQueries({ queryKey: ["documents", "evolution-templates"] }),
+    (client) =>
+      client.invalidateQueries({
+        queryKey: ["documents", "evolution-templates"],
+      }),
   );
 }
 
@@ -145,7 +171,10 @@ export function useUpdateEvolutionTemplate() {
   >(
     ({ id, payload }) => documentsService.updateEvolutionTemplate(id, payload),
     "Template de evolução atualizado.",
-    (client) => client.invalidateQueries({ queryKey: ["documents", "evolution-templates"] }),
+    (client) =>
+      client.invalidateQueries({
+        queryKey: ["documents", "evolution-templates"],
+      }),
   );
 }
 
@@ -156,6 +185,9 @@ export function useEvolutionTemplateAction() {
   >(
     ({ id, action }) => documentsService.evolutionTemplateAction(id, action),
     "Template de evolução atualizado.",
-    (client) => client.invalidateQueries({ queryKey: ["documents", "evolution-templates"] }),
+    (client) =>
+      client.invalidateQueries({
+        queryKey: ["documents", "evolution-templates"],
+      }),
   );
 }

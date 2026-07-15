@@ -1,14 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import {
-  Bold,
-  Italic,
-  List,
-  ListOrdered,
-  Redo2,
-  Undo2,
-} from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Redo2, Undo2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -119,7 +112,10 @@ export function ClinicalMarkdownEditor({
       />
       <div className="flex items-center justify-between border-t border-border px-3 py-2 text-[11px] text-muted-foreground">
         <span>Markdown seguro: negrito, itálico e listas.</span>
-        <span>{value.length.toLocaleString("pt-BR")} / {maxLength.toLocaleString("pt-BR")}</span>
+        <span>
+          {value.length.toLocaleString("pt-BR")} /{" "}
+          {maxLength.toLocaleString("pt-BR")}
+        </span>
       </div>
     </div>
   );

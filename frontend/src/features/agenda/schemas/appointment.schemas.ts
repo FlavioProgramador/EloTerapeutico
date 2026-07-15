@@ -21,9 +21,18 @@ export const appointmentSchema = z
       .string()
       .min(1, "Horário de término é obrigatório.")
       .regex(timeRegex, "Formato: HH:MM."),
-    status: z
-      .enum(["scheduled", "confirmed", "completed", "cancelled", "missed"]),
-    notes: z.string().max(1000, "Observações limitadas a 1000 caracteres.").optional().or(z.literal("")),
+    status: z.enum([
+      "scheduled",
+      "confirmed",
+      "completed",
+      "cancelled",
+      "missed",
+    ]),
+    notes: z
+      .string()
+      .max(1000, "Observações limitadas a 1000 caracteres.")
+      .optional()
+      .or(z.literal("")),
   })
   .refine(
     (data) => {
@@ -35,7 +44,7 @@ export const appointmentSchema = z
     {
       message: "O horário de término deve ser após o horário de início.",
       path: ["end_time"],
-    }
+    },
   );
 
 export type AppointmentFormData = z.infer<typeof appointmentSchema>;

@@ -89,9 +89,15 @@ function StatusBadge({ status, label }: { status: string; label: string }) {
 
 function LoadingState() {
   return (
-    <div role="status" className="space-y-3 rounded-xl border border-border bg-card p-4">
+    <div
+      role="status"
+      className="space-y-3 rounded-xl border border-border bg-card p-4"
+    >
       {[1, 2, 3].map((item) => (
-        <div key={item} className="h-14 animate-pulse rounded-lg bg-secondary" />
+        <div
+          key={item}
+          className="h-14 animate-pulse rounded-lg bg-secondary"
+        />
       ))}
     </div>
   );
@@ -101,8 +107,12 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="rounded-xl border border-danger/20 bg-danger/5 px-6 py-12 text-center">
       <XCircle className="mx-auto h-8 w-8 text-danger" />
-      <h3 className="mt-3 text-sm font-bold text-foreground">Não foi possível carregar os dados</h3>
-      <p className="mt-1 text-xs text-muted-foreground">Verifique a conexão e tente novamente.</p>
+      <h3 className="mt-3 text-sm font-bold text-foreground">
+        Não foi possível carregar os dados
+      </h3>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Verifique a conexão e tente novamente.
+      </p>
       <Button size="sm" variant="outline" className="mt-4" onClick={onRetry}>
         Tentar novamente
       </Button>
@@ -142,7 +152,11 @@ function EmptyState({
             {secondaryLabel}
           </Button>
         )}
-        <Button size="sm" leftIcon={<Plus className="h-4 w-4" />} onClick={onPrimary}>
+        <Button
+          size="sm"
+          leftIcon={<Plus className="h-4 w-4" />}
+          onClick={onPrimary}
+        >
           {primaryLabel}
         </Button>
       </div>
@@ -155,7 +169,8 @@ export function DocumentsWorkspace() {
   const searchParams = useSearchParams();
   const tab = (searchParams.get("tab") as Tab) || "templates";
   const libraryOpen = searchParams.get("library") === "true";
-  const initialPatientId = Number(searchParams.get("patient") || 0) || undefined;
+  const initialPatientId =
+    Number(searchParams.get("patient") || 0) || undefined;
 
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [statusFilter, setStatusFilter] = useState("");
@@ -164,16 +179,21 @@ export function DocumentsWorkspace() {
   const [page, setPage] = useState(1);
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [evolutionModalOpen, setEvolutionModalOpen] = useState(false);
-  const [generateModalOpen, setGenerateModalOpen] = useState(Boolean(initialPatientId));
-  const [editingTemplate, setEditingTemplate] = useState<DocumentTemplate | null>(null);
-  const [editingEvolution, setEditingEvolution] = useState<EvolutionTemplate | null>(null);
+  const [generateModalOpen, setGenerateModalOpen] = useState(
+    Boolean(initialPatientId),
+  );
+  const [editingTemplate, setEditingTemplate] =
+    useState<DocumentTemplate | null>(null);
+  const [editingEvolution, setEditingEvolution] =
+    useState<EvolutionTemplate | null>(null);
   const [preview, setPreview] = useState<{
     title: string;
     header_html: string;
     content_html: string;
     footer_html: string;
   } | null>(null);
-  const [selectedDocument, setSelectedDocument] = useState<GeneratedDocument | null>(null);
+  const [selectedDocument, setSelectedDocument] =
+    useState<GeneratedDocument | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
   const commonFilters = useMemo(
@@ -205,7 +225,10 @@ export function DocumentsWorkspace() {
   });
   const placeholdersQuery = usePlaceholders();
   const patientsQuery = usePatients({ status: "active", page_size: 100 });
-  const activeTemplatesQuery = useDocumentTemplates({ status: "active", page_size: 100 });
+  const activeTemplatesQuery = useDocumentTemplates({
+    status: "active",
+    page_size: 100,
+  });
 
   const createTemplate = useCreateDocumentTemplate();
   const updateTemplate = useUpdateDocumentTemplate();
@@ -255,7 +278,10 @@ export function DocumentsWorkspace() {
 
   const saveTemplate = async (payload: DocumentTemplatePayload) => {
     if (editingTemplate) {
-      await updateTemplate.mutateAsync({ publicId: editingTemplate.public_id, payload });
+      await updateTemplate.mutateAsync({
+        publicId: editingTemplate.public_id,
+        payload,
+      });
     } else {
       await createTemplate.mutateAsync(payload);
     }
@@ -273,7 +299,10 @@ export function DocumentsWorkspace() {
     setEditingEvolution(null);
   };
 
-  const showTemplatePreview = async (template: DocumentTemplate, library = false) => {
+  const showTemplatePreview = async (
+    template: DocumentTemplate,
+    library = false,
+  ) => {
     setPreviewLoading(true);
     try {
       const result = await documentsService.previewTemplate(
@@ -309,7 +338,10 @@ export function DocumentsWorkspace() {
   ) => {
     const created = await createGenerated.mutateAsync(payload);
     if (generateNow) {
-      await generatedAction.mutateAsync({ publicId: created.public_id, action: "generate" });
+      await generatedAction.mutateAsync({
+        publicId: created.public_id,
+        action: "generate",
+      });
     }
     setGenerateModalOpen(false);
     navigate("generated");
@@ -322,7 +354,9 @@ export function DocumentsWorkspace() {
     <div className="space-y-6">
       <header>
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Documentos</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
+            Documentos
+          </h1>
           <BookOpen className="h-5 w-5 text-primary" />
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -330,7 +364,10 @@ export function DocumentsWorkspace() {
         </p>
       </header>
 
-      <nav className="flex overflow-x-auto border-b border-border" aria-label="Seções de documentos">
+      <nav
+        className="flex overflow-x-auto border-b border-border"
+        aria-label="Seções de documentos"
+      >
         {tabs.map((item) => {
           const Icon = item.icon;
           const active = tab === item.value && !libraryOpen;
@@ -341,12 +378,16 @@ export function DocumentsWorkspace() {
               onClick={() => navigate(item.value)}
               aria-current={active ? "page" : undefined}
               className={`relative flex shrink-0 items-center gap-2 px-4 py-3 text-xs font-semibold transition ${
-                active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                active
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <Icon className="h-4 w-4" />
               {item.label}
-              {active && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" />}
+              {active && (
+                <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" />
+              )}
             </button>
           );
         })}
@@ -424,9 +465,12 @@ export function DocumentsWorkspace() {
               >
                 <ChevronLeft className="h-4 w-4" /> Voltar aos templates
               </button>
-              <h2 className="text-base font-bold text-foreground">Biblioteca de templates</h2>
+              <h2 className="text-base font-bold text-foreground">
+                Biblioteca de templates
+              </h2>
               <p className="text-xs text-muted-foreground">
-                Modelos prontos para importar e personalizar sem alterar o original global.
+                Modelos prontos para importar e personalizar sem alterar o
+                original global.
               </p>
             </div>
           </div>
@@ -456,7 +500,9 @@ export function DocumentsWorkspace() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h3 className="truncate text-sm font-bold text-foreground">{template.name}</h3>
+                      <h3 className="truncate text-sm font-bold text-foreground">
+                        {template.name}
+                      </h3>
                       <p className="mt-1 line-clamp-2 text-[11px] leading-5 text-muted-foreground">
                         {template.description || template.content_preview}
                       </p>
@@ -466,8 +512,14 @@ export function DocumentsWorkspace() {
                     </span>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2 text-[9px] text-muted-foreground">
-                    {template.specialty && <span className="rounded bg-secondary px-2 py-1">{template.specialty}</span>}
-                    <span className="rounded bg-secondary px-2 py-1">{template.category}</span>
+                    {template.specialty && (
+                      <span className="rounded bg-secondary px-2 py-1">
+                        {template.specialty}
+                      </span>
+                    )}
+                    <span className="rounded bg-secondary px-2 py-1">
+                      {template.category}
+                    </span>
                   </div>
                   <div className="mt-4 grid grid-cols-2 gap-2">
                     <Button
@@ -497,9 +549,12 @@ export function DocumentsWorkspace() {
         <section className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-base font-bold text-foreground">Templates de documentos</h2>
+              <h2 className="text-base font-bold text-foreground">
+                Templates de documentos
+              </h2>
               <p className="text-xs text-muted-foreground">
-                Crie modelos de declarações, relatórios e encaminhamentos para geração automática.
+                Crie modelos de declarações, relatórios e encaminhamentos para
+                geração automática.
               </p>
             </div>
             <div className="flex gap-2">
@@ -551,19 +606,35 @@ export function DocumentsWorkspace() {
                   </thead>
                   <tbody className="divide-y divide-border">
                     {templatesQuery.data?.results.map((template) => (
-                      <tr key={template.public_id} className="hover:bg-secondary/20">
+                      <tr
+                        key={template.public_id}
+                        className="hover:bg-secondary/20"
+                      >
                         <td className="px-4 py-3">
-                          <strong className="block text-foreground">{template.name}</strong>
+                          <strong className="block text-foreground">
+                            {template.name}
+                          </strong>
                           <span className="mt-1 block max-w-sm truncate text-[10px] text-muted-foreground">
                             {template.content_preview || template.description}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">{template.category}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{template.specialty || "—"}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{formatDate(template.updated_at)}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{template.usage_count}</td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {template.category}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {template.specialty || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {formatDate(template.updated_at)}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {template.usage_count}
+                        </td>
                         <td className="px-4 py-3">
-                          <StatusBadge status={template.status} label={template.status_display} />
+                          <StatusBadge
+                            status={template.status}
+                            label={template.status_display}
+                          />
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-1">
@@ -601,11 +672,18 @@ export function DocumentsWorkspace() {
                               onClick={() =>
                                 templateAction.mutate({
                                   publicId: template.public_id,
-                                  action: template.status === "active" ? "deactivate" : "activate",
+                                  action:
+                                    template.status === "active"
+                                      ? "deactivate"
+                                      : "activate",
                                 })
                               }
                               className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                              aria-label={template.status === "active" ? "Inativar template" : "Ativar template"}
+                              aria-label={
+                                template.status === "active"
+                                  ? "Inativar template"
+                                  : "Ativar template"
+                              }
                             >
                               {template.status === "active" ? (
                                 <XCircle className="h-4 w-4" />
@@ -616,7 +694,11 @@ export function DocumentsWorkspace() {
                             <button
                               type="button"
                               onClick={() => {
-                                if (confirm(`Arquivar o template “${template.name}”?`)) {
+                                if (
+                                  confirm(
+                                    `Arquivar o template “${template.name}”?`,
+                                  )
+                                ) {
                                   templateAction.mutate({
                                     publicId: template.public_id,
                                     action: "archive",
@@ -649,9 +731,12 @@ export function DocumentsWorkspace() {
         <section className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-base font-bold text-foreground">Todos os documentos</h2>
+              <h2 className="text-base font-bold text-foreground">
+                Todos os documentos
+              </h2>
               <p className="text-xs text-muted-foreground">
-                Acompanhe rascunhos, PDFs concluídos, falhas e documentos arquivados.
+                Acompanhe rascunhos, PDFs concluídos, falhas e documentos
+                arquivados.
               </p>
             </div>
             <Button
@@ -691,21 +776,37 @@ export function DocumentsWorkspace() {
                   </thead>
                   <tbody className="divide-y divide-border">
                     {generatedQuery.data?.results.map((document) => (
-                      <tr key={document.public_id} className="hover:bg-secondary/20">
+                      <tr
+                        key={document.public_id}
+                        className="hover:bg-secondary/20"
+                      >
                         <td className="px-4 py-3">
-                          <strong className="block text-foreground">{document.title}</strong>
+                          <strong className="block text-foreground">
+                            {document.title}
+                          </strong>
                           <span className="mt-1 block font-mono text-[10px] text-muted-foreground">
                             {document.document_number}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">{document.patient_name}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{document.professional_name}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{document.document_type_display}</td>
                         <td className="px-4 py-3 text-muted-foreground">
-                          {formatDate(document.generated_at || document.created_at)}
+                          {document.patient_name}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {document.professional_name}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {document.document_type_display}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {formatDate(
+                            document.generated_at || document.created_at,
+                          )}
                         </td>
                         <td className="px-4 py-3">
-                          <StatusBadge status={document.status} label={document.status_display} />
+                          <StatusBadge
+                            status={document.status}
+                            label={document.status_display}
+                          />
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-1">
@@ -717,7 +818,8 @@ export function DocumentsWorkspace() {
                             >
                               <Eye className="h-4 w-4" />
                             </button>
-                            {(document.status === "draft" || document.status === "failed") && (
+                            {(document.status === "draft" ||
+                              document.status === "failed") && (
                               <button
                                 type="button"
                                 onClick={() =>
@@ -755,7 +857,11 @@ export function DocumentsWorkspace() {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  if (confirm(`Arquivar o documento “${document.title}”?`)) {
+                                  if (
+                                    confirm(
+                                      `Arquivar o documento “${document.title}”?`,
+                                    )
+                                  ) {
                                     generatedAction.mutate({
                                       publicId: document.public_id,
                                       action: "archive",
@@ -789,9 +895,12 @@ export function DocumentsWorkspace() {
         <section className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-base font-bold text-foreground">Templates de evolução</h2>
+              <h2 className="text-base font-bold text-foreground">
+                Templates de evolução
+              </h2>
               <p className="text-xs text-muted-foreground">
-                Modelos privados para agilizar o preenchimento das evoluções do prontuário.
+                Modelos privados para agilizar o preenchimento das evoluções do
+                prontuário.
               </p>
             </div>
             <Button
@@ -841,22 +950,34 @@ export function DocumentsWorkspace() {
                       return (
                         <tr key={template.id} className="hover:bg-secondary/20">
                           <td className="px-4 py-3">
-                            <strong className="text-foreground">{template.name}</strong>
+                            <strong className="text-foreground">
+                              {template.name}
+                            </strong>
                             {template.is_system && (
                               <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[8px] font-bold text-primary">
                                 SISTEMA
                               </span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-muted-foreground">{template.category || "—"}</td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            {template.category || "—"}
+                          </td>
                           <td className="max-w-sm truncate px-4 py-3 text-muted-foreground">
                             {template.content_preview}
                           </td>
-                          <td className="px-4 py-3 text-muted-foreground">{template.usage_count}</td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            {template.usage_count}
+                          </td>
                           <td className="px-4 py-3">
                             <StatusBadge
                               status={status}
-                              label={status === "active" ? "Ativo" : status === "archived" ? "Arquivado" : "Inativo"}
+                              label={
+                                status === "active"
+                                  ? "Ativo"
+                                  : status === "archived"
+                                    ? "Arquivado"
+                                    : "Inativo"
+                              }
                             />
                           </td>
                           <td className="px-4 py-3">
@@ -876,7 +997,10 @@ export function DocumentsWorkspace() {
                               <button
                                 type="button"
                                 onClick={() =>
-                                  evolutionAction.mutate({ id: template.id, action: "duplicate" })
+                                  evolutionAction.mutate({
+                                    id: template.id,
+                                    action: "duplicate",
+                                  })
                                 }
                                 className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
                                 aria-label={`Duplicar ${template.name}`}
@@ -889,11 +1013,15 @@ export function DocumentsWorkspace() {
                                   onClick={() =>
                                     evolutionAction.mutate({
                                       id: template.id,
-                                      action: template.is_active ? "deactivate" : "activate",
+                                      action: template.is_active
+                                        ? "deactivate"
+                                        : "activate",
                                     })
                                   }
                                   className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                                  aria-label={template.is_active ? "Inativar" : "Ativar"}
+                                  aria-label={
+                                    template.is_active ? "Inativar" : "Ativar"
+                                  }
                                 >
                                   {template.is_active ? (
                                     <XCircle className="h-4 w-4" />
@@ -906,8 +1034,15 @@ export function DocumentsWorkspace() {
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    if (confirm(`Arquivar o template “${template.name}”?`)) {
-                                      evolutionAction.mutate({ id: template.id, action: "archive" });
+                                    if (
+                                      confirm(
+                                        `Arquivar o template “${template.name}”?`,
+                                      )
+                                    ) {
+                                      evolutionAction.mutate({
+                                        id: template.id,
+                                        action: "archive",
+                                      });
                                     }
                                   }}
                                   className="rounded-md p-2 text-muted-foreground hover:bg-danger/10 hover:text-danger"
@@ -1000,11 +1135,15 @@ export function DocumentsWorkspace() {
           <div className="grid gap-3 rounded-xl border border-border bg-secondary/20 p-4 text-xs sm:grid-cols-3">
             <div>
               <span className="text-muted-foreground">Paciente</span>
-              <strong className="mt-1 block text-foreground">{selectedDocument?.patient_name}</strong>
+              <strong className="mt-1 block text-foreground">
+                {selectedDocument?.patient_name}
+              </strong>
             </div>
             <div>
               <span className="text-muted-foreground">Profissional</span>
-              <strong className="mt-1 block text-foreground">{selectedDocument?.professional_name}</strong>
+              <strong className="mt-1 block text-foreground">
+                {selectedDocument?.professional_name}
+              </strong>
             </div>
             <div>
               <span className="text-muted-foreground">Status</span>
@@ -1025,7 +1164,8 @@ export function DocumentsWorkspace() {
             />
           ) : (
             <p className="rounded-lg border border-border p-6 text-center text-xs text-muted-foreground">
-              Abra novamente após a atualização da listagem para carregar os detalhes completos.
+              Abra novamente após a atualização da listagem para carregar os
+              detalhes completos.
             </p>
           )}
           {selectedDocument?.failure_reason && (

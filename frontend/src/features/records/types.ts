@@ -1,12 +1,32 @@
 import type { Patient } from "@/types";
 
-export type RecordTab = "evolutions" | "appointments" | "documents" | "forms" | "exports";
+export type RecordTab =
+  | "evolutions"
+  | "appointments"
+  | "documents"
+  | "forms"
+  | "exports";
 export type EvolutionStatus = "draft" | "finalized" | "archived";
 export type EvolutionModality = "in_person" | "online" | "hybrid";
-export type AppointmentType = "individual" | "couple" | "family" | "group" | "other";
+export type AppointmentType =
+  | "individual"
+  | "couple"
+  | "family"
+  | "group"
+  | "other";
 
 export interface RecordSummary {
-  patient: Pick<Patient, "id" | "full_name" | "age" | "phone" | "email" | "status" | "created_at" | "updated_at"> & {
+  patient: Pick<
+    Patient,
+    | "id"
+    | "full_name"
+    | "age"
+    | "phone"
+    | "email"
+    | "status"
+    | "created_at"
+    | "updated_at"
+  > & {
     status_display: string;
   };
   sessions_total: number;

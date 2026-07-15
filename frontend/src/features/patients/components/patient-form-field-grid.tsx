@@ -1,8 +1,4 @@
-import type {
-  FieldPath,
-  FieldPathValue,
-  UseFormReturn,
-} from "react-hook-form";
+import type { FieldPath, FieldPathValue, UseFormReturn } from "react-hook-form";
 
 import type { PatientFormData } from "../schemas/patient.schemas";
 import {
@@ -45,7 +41,9 @@ export function PatientFormFieldGrid({
   return (
     <section
       className={`rounded-xl border p-4 ${
-        attention ? "border-warning/30 bg-warning/5" : "border-border bg-card/40"
+        attention
+          ? "border-warning/30 bg-warning/5"
+          : "border-border bg-card/40"
       }`}
     >
       <h3 className="border-b border-border pb-3 text-sm font-semibold text-foreground">
@@ -88,10 +86,10 @@ export function PatientFormFieldGrid({
                       ? (event) =>
                           setValue(
                             name,
-                            applyMask(field.mask, event.target.value) as FieldPathValue<
-                              PatientFormData,
-                              typeof name
-                            >,
+                            applyMask(
+                              field.mask,
+                              event.target.value,
+                            ) as FieldPathValue<PatientFormData, typeof name>,
                             { shouldDirty: true, shouldValidate: true },
                           )
                       : undefined
@@ -99,7 +97,10 @@ export function PatientFormFieldGrid({
                 />
               )}
               {error && (
-                <span className="block text-[10px] font-normal text-destructive" role="alert">
+                <span
+                  className="block text-[10px] font-normal text-destructive"
+                  role="alert"
+                >
                   {error}
                 </span>
               )}

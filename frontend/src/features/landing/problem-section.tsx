@@ -1,9 +1,4 @@
-import {
-  CalendarClock,
-  FileSpreadsheet,
-  FileText,
-  Link2,
-} from "lucide-react";
+import { CalendarClock, FileSpreadsheet, FileText, Link2 } from "lucide-react";
 import { Reveal } from "./motion";
 
 const fragments = [
@@ -32,12 +27,15 @@ export function ProblemSection() {
     <section className="problem-section">
       <div className="problem-section__inner">
         <Reveal className="problem-section__copy">
-          <span className="landing-eyebrow">O problema não é falta de ferramenta</span>
+          <span className="landing-eyebrow">
+            O problema não é falta de ferramenta
+          </span>
           <h2>É precisar reconstruir o contexto a cada tarefa.</h2>
           <p>
             Quando agenda, registros e financeiro vivem em lugares diferentes, o
-            profissional perde tempo procurando informações e repetindo processos.
-            O Elo Terapêutico aproxima essas áreas sem confundir suas responsabilidades.
+            profissional perde tempo procurando informações e repetindo
+            processos. O Elo Terapêutico aproxima essas áreas sem confundir suas
+            responsabilidades.
           </p>
           <div className="problem-section__quote">
             <span>Menos troca de contexto.</span>

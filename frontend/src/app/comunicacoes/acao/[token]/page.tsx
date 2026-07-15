@@ -3,22 +3,168 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CalendarCheck, CalendarX, Clock3, Download, FileText, Loader2, ShieldCheck } from "lucide-react";
+import {
+  CalendarCheck,
+  CalendarX,
+  Clock3,
+  Download,
+  FileText,
+  Loader2,
+  ShieldCheck,
+} from "lucide-react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1/";
-type PublicField = { id: number; type: string; label: string; placeholder?: string; help_text?: string; required: boolean; config?: { options?: string[]; min?: number; max?: number; step?: number } };
-type State = { status: "loading" | "valid" | "invalid" | "success" | "error"; purpose?: "confirm_appointment" | "cancel_request" | "reschedule_request" | "form_access" | "document_access"; clinic_name?: string; message?: string; form?: { name: string; description?: string; fields: PublicField[] }; document?: { name: string } };
-const appointmentActions = { confirm_appointment: { action: "confirm", label: "Confirmar presença", icon: CalendarCheck }, cancel_request: { action: "cancel-request", label: "Solicitar cancelamento", icon: CalendarX }, reschedule_request: { action: "reschedule-request", label: "Solicitar reagendamento", icon: Clock3 } } as const;
-const inputClass = "mt-2 min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1/";
+type PublicField = {
+  id: number;
+  type: string;
+  label: string;
+  placeholder?: string;
+  help_text?: string;
+  required: boolean;
+  config?: { options?: string[]; min?: number; max?: number; step?: number };
+};
+type State = {
+  status: "loading" | "valid" | "invalid" | "success" | "error";
+  purpose?:
+    | "confirm_appointment"
+    | "cancel_request"
+    | "reschedule_request"
+    | "form_access"
+    | "document_access";
+  clinic_name?: string;
+  message?: string;
+  form?: { name: string; description?: string; fields: PublicField[] };
+  document?: { name: string };
+};
+const appointmentActions = {
+  confirm_appointment: {
+    action: "confirm",
+    label: "Confirmar presença",
+    icon: CalendarCheck,
+  },
+  cancel_request: {
+    action: "cancel-request",
+    label: "Solicitar cancelamento",
+    icon: CalendarX,
+  },
+  reschedule_request: {
+    action: "reschedule-request",
+    label: "Solicitar reagendamento",
+    icon: Clock3,
+  },
+} as const;
+const inputClass =
+  "mt-2 min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary";
 
-function Field({ field, value, onChange }: { field: PublicField; value: unknown; onChange: (value: unknown) => void }) {
+function Field({
+  field,
+  value,
+  onChange,
+}: {
+  field: PublicField;
+  value: unknown;
+  onChange: (value: unknown) => void;
+}) {
   const options = field.config?.options ?? [];
-  if (field.type === "long_text") return <textarea className={`${inputClass} min-h-28`} required={field.required} placeholder={field.placeholder} value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} />;
-  if (field.type === "select") return <select className={inputClass} required={field.required} value={String(value ?? "")} onChange={(event) => onChange(event.target.value)}><option value="">Selecione...</option>{options.map((option) => <option key={option}>{option}</option>)}</select>;
-  if (field.type === "checkbox") { const selected = Array.isArray(value) ? value.map(String) : []; return <div className="mt-2 grid gap-2">{options.map((option) => <label key={option} className="flex items-center gap-2 rounded-lg border p-3 text-sm"><input type="checkbox" checked={selected.includes(option)} onChange={(event) => onChange(event.target.checked ? [...selected, option] : selected.filter((item) => item !== option))} />{option}</label>)}</div>; }
-  if (field.type === "radio") return <div className="mt-2 grid gap-2">{options.map((option) => <label key={option} className="flex items-center gap-2 rounded-lg border p-3 text-sm"><input type="radio" name={`field-${field.id}`} checked={value === option} onChange={() => onChange(option)} required={field.required} />{option}</label>)}</div>;
-  if (field.type === "scale") return <input type="range" className="mt-3 w-full" min={field.config?.min ?? 1} max={field.config?.max ?? 10} step={field.config?.step ?? 1} value={Number(value ?? field.config?.min ?? 1)} onChange={(event) => onChange(Number(event.target.value))} />;
-  return <input className={inputClass} type={field.type === "date" ? "date" : field.type === "number" ? "number" : "text"} required={field.required} placeholder={field.placeholder} value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} />;
+  if (field.type === "long_text")
+    return (
+      <textarea
+        className={`${inputClass} min-h-28`}
+        required={field.required}
+        placeholder={field.placeholder}
+        value={String(value ?? "")}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    );
+  if (field.type === "select")
+    return (
+      <select
+        className={inputClass}
+        required={field.required}
+        value={String(value ?? "")}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        <option value="">Selecione...</option>
+        {options.map((option) => (
+          <option key={option}>{option}</option>
+        ))}
+      </select>
+    );
+  if (field.type === "checkbox") {
+    const selected = Array.isArray(value) ? value.map(String) : [];
+    return (
+      <div className="mt-2 grid gap-2">
+        {options.map((option) => (
+          <label
+            key={option}
+            className="flex items-center gap-2 rounded-lg border p-3 text-sm"
+          >
+            <input
+              type="checkbox"
+              checked={selected.includes(option)}
+              onChange={(event) =>
+                onChange(
+                  event.target.checked
+                    ? [...selected, option]
+                    : selected.filter((item) => item !== option),
+                )
+              }
+            />
+            {option}
+          </label>
+        ))}
+      </div>
+    );
+  }
+  if (field.type === "radio")
+    return (
+      <div className="mt-2 grid gap-2">
+        {options.map((option) => (
+          <label
+            key={option}
+            className="flex items-center gap-2 rounded-lg border p-3 text-sm"
+          >
+            <input
+              type="radio"
+              name={`field-${field.id}`}
+              checked={value === option}
+              onChange={() => onChange(option)}
+              required={field.required}
+            />
+            {option}
+          </label>
+        ))}
+      </div>
+    );
+  if (field.type === "scale")
+    return (
+      <input
+        type="range"
+        className="mt-3 w-full"
+        min={field.config?.min ?? 1}
+        max={field.config?.max ?? 10}
+        step={field.config?.step ?? 1}
+        value={Number(value ?? field.config?.min ?? 1)}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+    );
+  return (
+    <input
+      className={inputClass}
+      type={
+        field.type === "date"
+          ? "date"
+          : field.type === "number"
+            ? "number"
+            : "text"
+      }
+      required={field.required}
+      placeholder={field.placeholder}
+      value={String(value ?? "")}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
 }
 
 export default function PublicCommunicationActionPage() {
@@ -26,17 +172,218 @@ export default function PublicCommunicationActionPage() {
   const [state, setState] = useState<State>({ status: "loading" });
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [submitting, setSubmitting] = useState(false);
-  useEffect(() => { const controller = new AbortController(); fetch(`${API_URL}public/communications/actions/${encodeURIComponent(token)}/`, { signal: controller.signal, cache: "no-store" }).then(async (response) => ({ ok: response.ok, data: await response.json() })).then(({ ok, data }) => setState(ok && data.status === "valid" ? { status: "valid", purpose: data.purpose, clinic_name: data.clinic_name, form: data.form, document: data.document } : { status: "invalid", message: "Este link é inválido ou expirou." })).catch((error) => { if (!(error instanceof DOMException && error.name === "AbortError")) setState({ status: "error", message: "Não foi possível validar este link." }); }); return () => controller.abort(); }, [token]);
-  const appointment = state.purpose && state.purpose in appointmentActions ? appointmentActions[state.purpose as keyof typeof appointmentActions] : null;
-  async function post(action: string, body: unknown = {}) { setSubmitting(true); try { const response = await fetch(`${API_URL}public/communications/actions/${encodeURIComponent(token)}/${action}/`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok || data.status !== "success") throw new Error(); setState({ status: "success", clinic_name: data.clinic_name, message: action === "form-submit" ? "Formulário enviado com segurança." : "Sua solicitação foi registrada com segurança." }); } catch { setState((current) => ({ ...current, status: "error", message: "Não foi possível concluir esta ação. O link pode ter expirado ou já ter sido usado." })); } finally { setSubmitting(false); } }
-  const Icon = appointment?.icon ?? (state.purpose === "form_access" || state.purpose === "document_access" ? FileText : ShieldCheck);
-  return <main className="grid min-h-screen place-items-center bg-background p-4"><section className="w-full max-w-2xl rounded-2xl border border-border bg-card p-7 shadow-xl sm:p-10"><div className="text-center"><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary"><Icon className="h-7 w-7" /></span><p className="mt-5 text-xs font-semibold uppercase tracking-widest text-primary">{state.clinic_name || "Elo Terapêutico"}</p></div>
-    {state.status === "loading" && <div className="mt-6 flex justify-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Validando link seguro...</div>}
-    {state.status === "valid" && appointment && <div className="text-center"><h1 className="mt-3 text-2xl font-bold">{appointment.label}</h1><p className="mt-3 text-sm text-muted-foreground">Nenhum dado clínico é exibido nesta página.</p><button type="button" onClick={() => post(appointment.action)} disabled={submitting} className="mt-7 inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground">{submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{appointment.label}</button></div>}
-    {state.status === "valid" && state.purpose === "form_access" && state.form && <form className="mt-5" onSubmit={(event) => { event.preventDefault(); post("form-submit", { answers }); }}><h1 className="text-2xl font-bold">{state.form.name}</h1>{state.form.description && <p className="mt-2 text-sm text-muted-foreground">{state.form.description}</p>}<div className="mt-7 grid gap-6">{state.form.fields.map((field) => <label key={field.id} className="block text-sm font-semibold">{field.label}{field.required && <span className="text-destructive"> *</span>}{field.help_text && <span className="mt-1 block text-xs font-normal text-muted-foreground">{field.help_text}</span>}<Field field={field} value={answers[String(field.id)]} onChange={(value) => setAnswers((current) => ({ ...current, [String(field.id)]: value }))} /></label>)}</div><button type="submit" disabled={submitting} className="mt-8 inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground">{submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Enviar formulário</button></form>}
-    {state.status === "valid" && state.purpose === "document_access" && state.document && <div className="mt-5 text-center"><h1 className="text-2xl font-bold">Documento disponível</h1><p className="mt-3 text-sm text-muted-foreground">{state.document.name}</p><a href={`${API_URL}public/communications/actions/${encodeURIComponent(token)}/document-download/`} className="mt-7 inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground"><Download className="mr-2 h-4 w-4" />Baixar documento</a><p className="mt-3 text-xs text-muted-foreground">Link individual, temporário e de uso único.</p></div>}
-    {state.status === "success" && <div className="text-center"><h1 className="mt-4 text-2xl font-bold">Ação registrada</h1><p className="mt-3 text-sm text-muted-foreground">{state.message}</p></div>}
-    {(state.status === "invalid" || state.status === "error") && <div className="text-center"><h1 className="mt-4 text-2xl font-bold">Link indisponível</h1><p className="mt-3 text-sm text-muted-foreground">{state.message}</p></div>}
-    <div className="text-center"><Link href="/" className="mt-7 inline-block text-xs font-semibold text-primary hover:underline">Voltar para o início</Link><p className="mt-8 border-t border-border pt-5 text-[10px] leading-relaxed text-muted-foreground">Esta página é destinada a comunicações administrativas. Em caso de emergência, procure o serviço de emergência da sua região.</p></div>
-  </section></main>;
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(
+      `${API_URL}public/communications/actions/${encodeURIComponent(token)}/`,
+      { signal: controller.signal, cache: "no-store" },
+    )
+      .then(async (response) => ({
+        ok: response.ok,
+        data: await response.json(),
+      }))
+      .then(({ ok, data }) =>
+        setState(
+          ok && data.status === "valid"
+            ? {
+                status: "valid",
+                purpose: data.purpose,
+                clinic_name: data.clinic_name,
+                form: data.form,
+                document: data.document,
+              }
+            : {
+                status: "invalid",
+                message: "Este link é inválido ou expirou.",
+              },
+        ),
+      )
+      .catch((error) => {
+        if (!(error instanceof DOMException && error.name === "AbortError"))
+          setState({
+            status: "error",
+            message: "Não foi possível validar este link.",
+          });
+      });
+    return () => controller.abort();
+  }, [token]);
+  const appointment =
+    state.purpose && state.purpose in appointmentActions
+      ? appointmentActions[state.purpose as keyof typeof appointmentActions]
+      : null;
+  async function post(action: string, body: unknown = {}) {
+    setSubmitting(true);
+    try {
+      const response = await fetch(
+        `${API_URL}public/communications/actions/${encodeURIComponent(token)}/${action}/`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
+      const data = await response.json();
+      if (!response.ok || data.status !== "success") throw new Error();
+      setState({
+        status: "success",
+        clinic_name: data.clinic_name,
+        message:
+          action === "form-submit"
+            ? "Formulário enviado com segurança."
+            : "Sua solicitação foi registrada com segurança.",
+      });
+    } catch {
+      setState((current) => ({
+        ...current,
+        status: "error",
+        message:
+          "Não foi possível concluir esta ação. O link pode ter expirado ou já ter sido usado.",
+      }));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+  const Icon =
+    appointment?.icon ??
+    (state.purpose === "form_access" || state.purpose === "document_access"
+      ? FileText
+      : ShieldCheck);
+  return (
+    <main className="grid min-h-screen place-items-center bg-background p-4">
+      <section className="w-full max-w-2xl rounded-2xl border border-border bg-card p-7 shadow-xl sm:p-10">
+        <div className="text-center">
+          <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+            <Icon className="h-7 w-7" />
+          </span>
+          <p className="mt-5 text-xs font-semibold uppercase tracking-widest text-primary">
+            {state.clinic_name || "Elo Terapêutico"}
+          </p>
+        </div>
+        {state.status === "loading" && (
+          <div className="mt-6 flex justify-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Validando link seguro...
+          </div>
+        )}
+        {state.status === "valid" && appointment && (
+          <div className="text-center">
+            <h1 className="mt-3 text-2xl font-bold">{appointment.label}</h1>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Nenhum dado clínico é exibido nesta página.
+            </p>
+            <button
+              type="button"
+              onClick={() => post(appointment.action)}
+              disabled={submitting}
+              className="mt-7 inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground"
+            >
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {appointment.label}
+            </button>
+          </div>
+        )}
+        {state.status === "valid" &&
+          state.purpose === "form_access" &&
+          state.form && (
+            <form
+              className="mt-5"
+              onSubmit={(event) => {
+                event.preventDefault();
+                post("form-submit", { answers });
+              }}
+            >
+              <h1 className="text-2xl font-bold">{state.form.name}</h1>
+              {state.form.description && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {state.form.description}
+                </p>
+              )}
+              <div className="mt-7 grid gap-6">
+                {state.form.fields.map((field) => (
+                  <label key={field.id} className="block text-sm font-semibold">
+                    {field.label}
+                    {field.required && (
+                      <span className="text-destructive"> *</span>
+                    )}
+                    {field.help_text && (
+                      <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                        {field.help_text}
+                      </span>
+                    )}
+                    <Field
+                      field={field}
+                      value={answers[String(field.id)]}
+                      onChange={(value) =>
+                        setAnswers((current) => ({
+                          ...current,
+                          [String(field.id)]: value,
+                        }))
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="mt-8 inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground"
+              >
+                {submitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Enviar formulário
+              </button>
+            </form>
+          )}
+        {state.status === "valid" &&
+          state.purpose === "document_access" &&
+          state.document && (
+            <div className="mt-5 text-center">
+              <h1 className="text-2xl font-bold">Documento disponível</h1>
+              <p className="mt-3 text-sm text-muted-foreground">
+                {state.document.name}
+              </p>
+              <a
+                href={`${API_URL}public/communications/actions/${encodeURIComponent(token)}/document-download/`}
+                className="mt-7 inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Baixar documento
+              </a>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Link individual, temporário e de uso único.
+              </p>
+            </div>
+          )}
+        {state.status === "success" && (
+          <div className="text-center">
+            <h1 className="mt-4 text-2xl font-bold">Ação registrada</h1>
+            <p className="mt-3 text-sm text-muted-foreground">
+              {state.message}
+            </p>
+          </div>
+        )}
+        {(state.status === "invalid" || state.status === "error") && (
+          <div className="text-center">
+            <h1 className="mt-4 text-2xl font-bold">Link indisponível</h1>
+            <p className="mt-3 text-sm text-muted-foreground">
+              {state.message}
+            </p>
+          </div>
+        )}
+        <div className="text-center">
+          <Link
+            href="/"
+            className="mt-7 inline-block text-xs font-semibold text-primary hover:underline"
+          >
+            Voltar para o início
+          </Link>
+          <p className="mt-8 border-t border-border pt-5 text-[10px] leading-relaxed text-muted-foreground">
+            Esta página é destinada a comunicações administrativas. Em caso de
+            emergência, procure o serviço de emergência da sua região.
+          </p>
+        </div>
+      </section>
+    </main>
+  );
 }

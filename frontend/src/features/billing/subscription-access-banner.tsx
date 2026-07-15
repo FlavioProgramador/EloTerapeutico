@@ -18,9 +18,13 @@ interface EntitlementResponse {
   } | null;
 }
 
-function trialMessage(daysRemaining: number | null, trialEndsAt?: string | null) {
+function trialMessage(
+  daysRemaining: number | null,
+  trialEndsAt?: string | null,
+) {
   if (daysRemaining === null) return "Seu teste gratuito está ativo.";
-  if (daysRemaining > 1) return `Teste gratuito: ${daysRemaining} dias restantes.`;
+  if (daysRemaining > 1)
+    return `Teste gratuito: ${daysRemaining} dias restantes.`;
   if (daysRemaining === 1) return "Seu teste gratuito termina amanhã.";
 
   if (trialEndsAt) {
@@ -36,18 +40,25 @@ function trialMessage(daysRemaining: number | null, trialEndsAt?: string | null)
 export function SubscriptionAccessBanner() {
   const router = useRouter();
   const pathname = usePathname();
-  const [entitlement, setEntitlement] = useState<EntitlementResponse | null>(null);
+  const [entitlement, setEntitlement] = useState<EntitlementResponse | null>(
+    null,
+  );
 
   useEffect(() => {
     let mounted = true;
 
     async function loadEntitlement() {
       try {
-        const response = await api.get<EntitlementResponse>("billing/entitlement/");
+        const response = await api.get<EntitlementResponse>(
+          "billing/entitlement/",
+        );
         if (!mounted) return;
 
         setEntitlement(response.data);
-        if (!response.data.allowed && !pathname.startsWith("/dashboard/assinatura")) {
+        if (
+          !response.data.allowed &&
+          !pathname.startsWith("/dashboard/assinatura")
+        ) {
           router.replace(response.data.redirect_to || "/planos");
         }
       } catch {
@@ -95,8 +106,12 @@ export function SubscriptionAccessBanner() {
         className="mx-6 mt-4 flex items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm text-foreground md:mx-8"
       >
         <span className="flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-amber-600" aria-hidden="true" />
-          Há um pagamento em atraso. Regularize antes do fim do período de tolerância.
+          <AlertTriangle
+            className="h-4 w-4 text-amber-600"
+            aria-hidden="true"
+          />
+          Há um pagamento em atraso. Regularize antes do fim do período de
+          tolerância.
         </span>
         <button
           type="button"

@@ -67,7 +67,9 @@ export function PatientFormDrawerShell(props: Props) {
         className="relative flex h-dvh w-full flex-col border-l border-border bg-background shadow-2xl md:w-[68vw] xl:w-[44vw] xl:min-w-[620px]"
       >
         <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-5">
-          <h2 className="text-base font-semibold text-foreground">{props.title}</h2>
+          <h2 className="text-base font-semibold text-foreground">
+            {props.title}
+          </h2>
           <button
             type="button"
             onClick={props.onClose}
@@ -78,7 +80,9 @@ export function PatientFormDrawerShell(props: Props) {
           </button>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">{props.children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+          {props.children}
+        </div>
 
         <footer className="flex shrink-0 justify-end gap-2 border-t border-border bg-background px-5 py-3">
           <Button

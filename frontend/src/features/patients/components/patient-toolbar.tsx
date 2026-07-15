@@ -64,7 +64,10 @@ export function PatientToolbar({
     });
 
   const hasAdvanced = Boolean(
-    filters.modality || filters.payerType || filters.tag || filters.noNextSession,
+    filters.modality ||
+    filters.payerType ||
+    filters.tag ||
+    filters.noNextSession,
   );
 
   return (
@@ -75,22 +78,43 @@ export function PatientToolbar({
             Pacientes
           </h1>
           <p className="mt-1 text-xs text-muted-foreground">
-            Gerencie cadastros, prontuários, contatos e acompanhamentos dos pacientes.
+            Gerencie cadastros, prontuários, contatos e acompanhamentos dos
+            pacientes.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {onImport && (
-            <Button variant="outline" size="sm" onClick={onImport} leftIcon={<Upload className="h-4 w-4" />}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onImport}
+              leftIcon={<Upload className="h-4 w-4" />}
+            >
               Importar
             </Button>
           )}
-          <Button variant="outline" size="sm" isLoading={exporting} onClick={onExport} leftIcon={<Download className="h-4 w-4" />}>
+          <Button
+            variant="outline"
+            size="sm"
+            isLoading={exporting}
+            onClick={onExport}
+            leftIcon={<Download className="h-4 w-4" />}
+          >
             Exportar
           </Button>
-          <Button variant="outline" size="sm" onClick={onAdvancedToggle} leftIcon={<SlidersHorizontal className="h-4 w-4" />}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onAdvancedToggle}
+            leftIcon={<SlidersHorizontal className="h-4 w-4" />}
+          >
             Filtros avançados
           </Button>
-          <Button size="sm" onClick={onNew} leftIcon={<Plus className="h-4 w-4" />}>
+          <Button
+            size="sm"
+            onClick={onNew}
+            leftIcon={<Plus className="h-4 w-4" />}
+          >
             Novo paciente
           </Button>
         </div>
@@ -132,7 +156,9 @@ export function PatientToolbar({
             variant="ghost"
             size="sm"
             onClick={clear}
-            disabled={!filters.search && filters.status === "all" && !hasAdvanced}
+            disabled={
+              !filters.search && filters.status === "all" && !hasAdvanced
+            }
             leftIcon={<X className="h-3.5 w-3.5" />}
           >
             Limpar filtros
@@ -179,7 +205,9 @@ export function PatientToolbar({
               <input
                 type="checkbox"
                 checked={filters.noNextSession}
-                onChange={(event) => update("noNextSession", event.target.checked)}
+                onChange={(event) =>
+                  update("noNextSession", event.target.checked)
+                }
                 className="accent-primary"
               />
               Sem próxima sessão

@@ -1,5 +1,20 @@
-export type FormFieldType = "short_text" | "long_text" | "number" | "date" | "select" | "radio" | "checkbox" | "scale" | "heading";
-export type FormCategory = "anamnese" | "avaliacao" | "evolucao" | "escalas" | "questionario" | "outro";
+export type FormFieldType =
+  | "short_text"
+  | "long_text"
+  | "number"
+  | "date"
+  | "select"
+  | "radio"
+  | "checkbox"
+  | "scale"
+  | "heading";
+export type FormCategory =
+  | "anamnese"
+  | "avaliacao"
+  | "evolucao"
+  | "escalas"
+  | "questionario"
+  | "outro";
 export type FormStatus = "active" | "archived";
 
 export interface FormFieldConfig {

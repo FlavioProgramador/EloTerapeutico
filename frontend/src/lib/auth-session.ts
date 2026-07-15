@@ -21,7 +21,10 @@ export function getRefreshToken(): string | null {
   return typeof value === "string" && value ? value : null;
 }
 
-export function persistAuthTokens(access: string, refresh?: string | null): void {
+export function persistAuthTokens(
+  access: string,
+  refresh?: string | null,
+): void {
   setCookie(AUTH_ACCESS_COOKIE, access, {
     ...commonOptions,
     maxAge: 30 * 60,

@@ -45,7 +45,10 @@ export function SkeletonCard({ className = "" }: SkeletonProps) {
 /** Linha de tabela skeleton */
 export function SkeletonTableRow() {
   return (
-    <div className="flex gap-4 py-3 border-b border-border/40 items-center" role="status">
+    <div
+      className="flex gap-4 py-3 border-b border-border/40 items-center"
+      role="status"
+    >
       <SkeletonBase className="h-8 w-8 rounded-full flex-shrink-0" />
       <div className="flex-1 space-y-1.5">
         <SkeletonBase className="h-3.5 w-40" />
@@ -92,7 +95,11 @@ export function SkeletonStat() {
 /** Bloco de formulário skeleton */
 export function SkeletonForm({ lines = 3 }: SkeletonProps) {
   return (
-    <div className="space-y-4" role="status" aria-label="Carregando formulário...">
+    <div
+      className="space-y-4"
+      role="status"
+      aria-label="Carregando formulário..."
+    >
       {Array.from({ length: lines }).map((_, i) => (
         <div key={i} className="space-y-1.5">
           <SkeletonBase className="h-3 w-24" />

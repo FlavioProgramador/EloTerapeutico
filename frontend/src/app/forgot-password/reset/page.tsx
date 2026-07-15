@@ -45,7 +45,8 @@ function ResetPasswordForm() {
   const onSubmit = async (data: ResetPasswordFormData) => {
     if (!token || !uid) {
       toast.error("Parâmetros inválidos", {
-        description: "O link de redefinição de senha está incompleto ou inválido.",
+        description:
+          "O link de redefinição de senha está incompleto ou inválido.",
       });
       return;
     }
@@ -63,11 +64,17 @@ function ResetPasswordForm() {
         description: "Sua senha foi alterada com sucesso.",
       });
     } catch (error: unknown) {
-      const axiosError = error as AxiosError<{ error?: { message?: string }; detail?: string; token?: string[] }>;
+      const axiosError = error as AxiosError<{
+        error?: { message?: string };
+        detail?: string;
+        token?: string[];
+      }>;
       const serverMessage =
         axiosError?.response?.data?.error?.message ||
         axiosError?.response?.data?.detail ||
-        (axiosError?.response?.data?.token ? axiosError.response.data.token[0] : null) ||
+        (axiosError?.response?.data?.token
+          ? axiosError.response.data.token[0]
+          : null) ||
         "Erro ao redefinir a senha. O link pode ter expirado.";
 
       toast.error("Falha ao alterar senha", {
@@ -84,7 +91,8 @@ function ResetPasswordForm() {
             Link Inválido
           </CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
-            O link de redefinição de senha que você acessou é inválido, está expirado ou incompleto.
+            O link de redefinição de senha que você acessou é inválido, está
+            expirado ou incompleto.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -112,12 +120,16 @@ function ResetPasswordForm() {
             Senha Alterada!
           </CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
-            Sua senha foi redefinida com sucesso. Agora você já pode entrar no sistema com a nova credencial.
+            Sua senha foi redefinida com sucesso. Agora você já pode entrar no
+            sistema com a nova credencial.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Link href="/login" passHref className="w-full block">
-            <Button className="w-full text-white font-semibold" rightIcon={<ArrowRight className="h-4 w-4" />}>
+            <Button
+              className="w-full text-white font-semibold"
+              rightIcon={<ArrowRight className="h-4 w-4" />}
+            >
               Acessar Painel
             </Button>
           </Link>
@@ -133,7 +145,8 @@ function ResetPasswordForm() {
           Nova Senha
         </CardTitle>
         <CardDescription className="text-xs text-muted-foreground">
-          Crie uma senha forte com pelo menos 8 caracteres, contendo letra maiúscula e número.
+          Crie uma senha forte com pelo menos 8 caracteres, contendo letra
+          maiúscula e número.
         </CardDescription>
       </CardHeader>
 
@@ -182,7 +195,9 @@ function ResetPasswordForm() {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  aria-label={showConfirmPassword ? "Ocultar senha" : "Mostrar senha"}
+                  aria-label={
+                    showConfirmPassword ? "Ocultar senha" : "Mostrar senha"
+                  }
                   className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
                   {showConfirmPassword ? (

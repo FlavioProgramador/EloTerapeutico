@@ -14,7 +14,9 @@ export function recordToPatientForm(
   const address =
     record.address && typeof record.address === "object" ? record.address : {};
   const legacyAddress =
-    typeof record.address === "string" ? record.address : address.street ?? "";
+    typeof record.address === "string"
+      ? record.address
+      : (address.street ?? "");
   return {
     ...EMPTY_PATIENT_FORM,
     full_name: record.full_name ?? "",
@@ -34,8 +36,7 @@ export function recordToPatientForm(
     attendance_type:
       (record.attendance_type as PatientFormData["attendance_type"]) ??
       "individual",
-    modality:
-      (record.modality as PatientFormData["modality"]) ?? "in_person",
+    modality: (record.modality as PatientFormData["modality"]) ?? "in_person",
     payer_type:
       (record.payer_type as PatientFormData["payer_type"]) ?? "private",
     insurance_name: record.insurance_name ?? "",

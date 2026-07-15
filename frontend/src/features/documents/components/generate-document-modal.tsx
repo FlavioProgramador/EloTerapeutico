@@ -101,7 +101,9 @@ export function GenerateDocumentModal({
             onChange={(event) => {
               const value = event.target.value;
               setTemplateId(value);
-              const selected = templates.find((item) => item.public_id === value);
+              const selected = templates.find(
+                (item) => item.public_id === value,
+              );
               if (selected && !title) setTitle(selected.name);
             }}
           >
@@ -136,13 +138,16 @@ export function GenerateDocumentModal({
           />
         </label>
         {error && (
-          <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">
+          <p
+            role="alert"
+            className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger"
+          >
             {error}
           </p>
         )}
         <p className="rounded-lg border border-primary/15 bg-primary/5 px-3 py-2 text-[11px] leading-5 text-muted-foreground">
-          O conteúdo final é salvo como snapshot. Alterações posteriores no template não
-          modificam documentos já criados.
+          O conteúdo final é salvo como snapshot. Alterações posteriores no
+          template não modificam documentos já criados.
         </p>
         <div className="flex flex-col-reverse justify-end gap-2 border-t border-border pt-4 sm:flex-row">
           <Button variant="outline" size="sm" onClick={onClose}>

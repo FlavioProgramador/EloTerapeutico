@@ -52,7 +52,8 @@ export function PatientFormSupplementary({
       />
       {["financial_responsible", "both"].includes(reminderRecipient) && (
         <p className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-[11px] text-warning">
-          Nome e telefone do responsável são obrigatórios para este destinatário.
+          Nome e telefone do responsável são obrigatórios para este
+          destinatário.
         </p>
       )}
       <section className="rounded-xl border border-border bg-card/40 p-4">

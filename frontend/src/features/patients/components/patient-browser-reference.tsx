@@ -116,9 +116,7 @@ export function PatientBrowserReference() {
           onReminderChange={(patient, enabled) =>
             data.reminder.mutate({ id: patient.id, enabled })
           }
-          onEdit={(patient) =>
-            setDrawer({ open: true, patientId: patient.id })
-          }
+          onEdit={(patient) => setDrawer({ open: true, patientId: patient.id })}
           onDeactivate={data.deactivatePatient}
           onRestore={(patient) => {
             if (window.confirm(`Reativar ${patient.display_name}?`)) {

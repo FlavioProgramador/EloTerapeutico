@@ -13,7 +13,8 @@ import {
   persistAuthTokens,
 } from "@/lib/auth-session";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1/";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1/";
 
 type RetriableRequest = InternalAxiosRequestConfig & { _retry?: boolean };
 
@@ -85,23 +86,38 @@ api.interceptors.response.use(
     const originalRequest = rawError.config as RetriableRequest | undefined;
 
     if (rawError.response?.status === 402) {
-      const code = String(rawError.response.data?.error?.code || "SUBSCRIPTION_REQUIRED");
-      const isBillingRequest = String(originalRequest?.url || "").includes("billing/");
+      const code = String(
+        rawError.response.data?.error?.code || "SUBSCRIPTION_REQUIRED",
+      );
+      const isBillingRequest = String(originalRequest?.url || "").includes(
+        "billing/",
+      );
       if (typeof window !== "undefined" && !isBillingRequest) {
         let target = "/planos";
         if (code === "PAYMENT_PENDING") {
           target = "/billing/pending";
-        } else if (code === "PAYMENT_PAST_DUE" || code === "SUBSCRIPTION_SUSPENDED") {
+        } else if (
+          code === "PAYMENT_PAST_DUE" ||
+          code === "SUBSCRIPTION_SUSPENDED"
+        ) {
           target = "/billing/past-due";
-        } else if (code === "TRIAL_EXPIRED" || code === "SUBSCRIPTION_EXPIRED" || code === "SUBSCRIPTION_CANCELED") {
+        } else if (
+          code === "TRIAL_EXPIRED" ||
+          code === "SUBSCRIPTION_EXPIRED" ||
+          code === "SUBSCRIPTION_CANCELED"
+        ) {
           target = "/billing/expired";
         }
-        window.location.assign(`${target}?reason=${encodeURIComponent(code.toLowerCase())}`);
+        window.location.assign(
+          `${target}?reason=${encodeURIComponent(code.toLowerCase())}`,
+        );
       }
       return Promise.reject(rawError);
     }
 
-    const isRefreshRequest = originalRequest?.url?.includes("auth/token/refresh/");
+    const isRefreshRequest = originalRequest?.url?.includes(
+      "auth/token/refresh/",
+    );
     const isLoginRequest = originalRequest?.url?.includes("auth/login/");
     if (
       rawError.response?.status !== 401 ||

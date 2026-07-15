@@ -53,7 +53,10 @@ export default function RootLayout({
       className={`${outfit.variable} ${piazzolla.variable} ${workSans.variable} ${ibmPlexMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
+      <body
+        className="min-h-full flex flex-col font-sans"
+        suppressHydrationWarning
+      >
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -39,10 +39,14 @@ export default function ForgotPasswordPage() {
       await authService.requestPasswordReset(data.email);
       setSubmittedEmail(data.email);
       toast.success("Solicitação processada", {
-        description: "Se o e-mail estiver cadastrado, as instruções foram enviadas.",
+        description:
+          "Se o e-mail estiver cadastrado, as instruções foram enviadas.",
       });
     } catch (error: unknown) {
-      const axiosError = error as AxiosError<{ error?: { message?: string }; detail?: string }>;
+      const axiosError = error as AxiosError<{
+        error?: { message?: string };
+        detail?: string;
+      }>;
       const serverMessage =
         axiosError?.response?.data?.error?.message ||
         axiosError?.response?.data?.detail ||
@@ -81,15 +85,23 @@ export default function ForgotPasswordPage() {
                 Verifique seu e-mail
               </CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
-                Se a conta <strong className="text-foreground">{submittedEmail}</strong> estiver cadastrada na plataforma, você receberá um e-mail com instruções para redefinir sua senha.
+                Se a conta{" "}
+                <strong className="text-foreground">{submittedEmail}</strong>{" "}
+                estiver cadastrada na plataforma, você receberá um e-mail com
+                instruções para redefinir sua senha.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-xs text-muted-foreground text-center leading-relaxed">
-                Por favor, verifique sua caixa de entrada e também a pasta de spam. O link expira em poucas horas por motivos de segurança.
+                Por favor, verifique sua caixa de entrada e também a pasta de
+                spam. O link expira em poucas horas por motivos de segurança.
               </p>
               <Link href="/login" passHref className="w-full block">
-                <Button variant="outline" className="w-full font-semibold" leftIcon={<ArrowLeft className="h-4 w-4" />}>
+                <Button
+                  variant="outline"
+                  className="w-full font-semibold"
+                  leftIcon={<ArrowLeft className="h-4 w-4" />}
+                >
                   Voltar para o Login
                 </Button>
               </Link>
@@ -103,7 +115,8 @@ export default function ForgotPasswordPage() {
                 Esqueceu a senha?
               </CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
-                Insira o seu e-mail de acesso abaixo para receber um link de redefinição de senha.
+                Insira o seu e-mail de acesso abaixo para receber um link de
+                redefinição de senha.
               </CardDescription>
             </CardHeader>
 
@@ -120,7 +133,9 @@ export default function ForgotPasswordPage() {
                     placeholder="seuemail@exemplo.com"
                     type="email"
                     autoComplete="email"
-                    leftIcon={<Mail className="h-4.5 w-4.5 text-muted-foreground" />}
+                    leftIcon={
+                      <Mail className="h-4.5 w-4.5 text-muted-foreground" />
+                    }
                     error={errors.email?.message}
                     {...register("email")}
                   />

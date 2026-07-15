@@ -2,7 +2,16 @@
 
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FileDown, RefreshCw, Download, Calendar, User, FileText, AlertCircle, Play } from "lucide-react";
+import {
+  FileDown,
+  RefreshCw,
+  Download,
+  Calendar,
+  User,
+  FileText,
+  AlertCircle,
+  Play,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -28,7 +37,12 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
   const [selectedPeriod, setSelectedPeriod] = useState("Todo o período");
 
   // Query das exportações clínicas no backend
-  const { data: exports = [], isLoading, isError, refetch } = useQuery({
+  const {
+    data: exports = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["records", patientId, "exports"],
     queryFn: () => recordWorkspaceService.listExports(patientId),
     enabled: Number.isFinite(patientId) && patientId > 0,
@@ -37,7 +51,7 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
   // Polling controlado das exportações: roda a cada 3 segundos apenas se houver algum job PENDING ou PROCESSING
   useEffect(() => {
     const hasActiveJobs = exports.some(
-      (job) => job.status === "PENDING" || job.status === "PROCESSING"
+      (job) => job.status === "PENDING" || job.status === "PROCESSING",
     );
 
     if (!hasActiveJobs) return;
@@ -51,25 +65,43 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
 
   // Mutação para solicitar nova exportação
   const createMutation = useMutation({
-    mutationFn: () => recordWorkspaceService.createExport(patientId, selectedType, selectedPeriod),
+    mutationFn: () =>
+      recordWorkspaceService.createExport(
+        patientId,
+        selectedType,
+        selectedPeriod,
+      ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["records", patientId, "exports"] });
-      toast.success("Solicitação de exportação criada com sucesso! O arquivo está sendo gerado em segundo plano.");
+      queryClient.invalidateQueries({
+        queryKey: ["records", patientId, "exports"],
+      });
+      toast.success(
+        "Solicitação de exportação criada com sucesso! O arquivo está sendo gerado em segundo plano.",
+      );
     },
     onError: (err: any) => {
-      toast.error(`Falha ao criar exportação: ${err.response?.data?.detail || err.message}`);
+      toast.error(
+        `Falha ao criar exportação: ${err.response?.data?.detail || err.message}`,
+      );
     },
   });
 
   // Mutação para reprocessar exportação falha
   const retryMutation = useMutation({
-    mutationFn: (exportId: number) => recordWorkspaceService.retryExport(exportId),
+    mutationFn: (exportId: number) =>
+      recordWorkspaceService.retryExport(exportId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["records", patientId, "exports"] });
-      toast.success("O reprocessamento do arquivo foi iniciado em segundo plano.");
+      queryClient.invalidateQueries({
+        queryKey: ["records", patientId, "exports"],
+      });
+      toast.success(
+        "O reprocessamento do arquivo foi iniciado em segundo plano.",
+      );
     },
     onError: (err: any) => {
-      toast.error(`Falha ao reiniciar processamento: ${err.response?.data?.detail || err.message}`);
+      toast.error(
+        `Falha ao reiniciar processamento: ${err.response?.data?.detail || err.message}`,
+      );
     },
   });
 
@@ -118,7 +150,11 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
           </span>
         );
       default:
-        return <span className="inline-flex items-center rounded-full bg-slate-500/10 px-2 py-0.5 text-[10px] font-medium text-slate-700 dark:text-slate-300">{status}</span>;
+        return (
+          <span className="inline-flex items-center rounded-full bg-slate-500/10 px-2 py-0.5 text-[10px] font-medium text-slate-700 dark:text-slate-300">
+            {status}
+          </span>
+        );
     }
   };
 
@@ -142,9 +178,18 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
     return (
       <Card className="flex flex-col items-center justify-center p-8 text-center">
         <AlertCircle className="h-8 w-8 text-destructive mb-2" />
-        <h3 className="text-sm font-semibold text-foreground">Erro ao carregar exportações</h3>
-        <p className="text-xs text-muted-foreground mt-1">Não foi possível recuperar o histórico de relatórios gerados.</p>
-        <Button size="md" variant="outline" className="mt-4" onClick={() => refetch()}>
+        <h3 className="text-sm font-semibold text-foreground">
+          Erro ao carregar exportações
+        </h3>
+        <p className="text-xs text-muted-foreground mt-1">
+          Não foi possível recuperar o histórico de relatórios gerados.
+        </p>
+        <Button
+          size="md"
+          variant="outline"
+          className="mt-4"
+          onClick={() => refetch()}
+        >
           Tentar novamente
         </Button>
       </Card>
@@ -158,20 +203,30 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
         <div className="flex flex-col gap-4 md:flex-row md:items-end justify-between">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 flex-1 max-w-xl">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Tipo de Exportação</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Tipo de Exportação
+              </label>
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background"
               >
-                <option value="Completo">Prontuário Completo (Evoluções + Fichas)</option>
-                <option value="Apenas Evoluções">Apenas Evoluções Clínicas</option>
-                <option value="Apenas Documentos">Apenas Arquivos & Anexos</option>
+                <option value="Completo">
+                  Prontuário Completo (Evoluções + Fichas)
+                </option>
+                <option value="Apenas Evoluções">
+                  Apenas Evoluções Clínicas
+                </option>
+                <option value="Apenas Documentos">
+                  Apenas Arquivos & Anexos
+                </option>
               </select>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Período</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Período
+              </label>
               <select
                 value={selectedPeriod}
                 onChange={(e) => setSelectedPeriod(e.target.value)}
@@ -224,14 +279,17 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
                 {exports.map((job: any) => {
                   const dateObj = new Date(job.created_at);
                   const isCompleted = job.status === "COMPLETED";
-                  const isFailedOrExpired = job.status === "FAILED" || job.status === "EXPIRED";
+                  const isFailedOrExpired =
+                    job.status === "FAILED" || job.status === "EXPIRED";
 
                   return (
                     <TableRow key={job.id}>
                       <TableCell className="font-semibold text-foreground max-w-xs truncate">
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4 text-emerald-600/70 shrink-0" />
-                          <span className="truncate" title={job.filename}>{job.filename}</span>
+                          <span className="truncate" title={job.filename}>
+                            {job.filename}
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
@@ -276,7 +334,9 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
                             <RefreshCw className="h-4 w-4" />
                           </Button>
                         ) : (
-                          <span className="text-xs text-muted-foreground">--</span>
+                          <span className="text-xs text-muted-foreground">
+                            --
+                          </span>
                         )}
                       </TableCell>
                     </TableRow>

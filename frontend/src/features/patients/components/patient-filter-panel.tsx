@@ -61,17 +61,25 @@ export function PatientFilterPanel({
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {PATIENT_FILTER_SELECTS.map(({ key, label, options }) => (
-          <label key={key} className="space-y-1 text-[10px] font-semibold text-muted-foreground">
+          <label
+            key={key}
+            className="space-y-1 text-[10px] font-semibold text-muted-foreground"
+          >
             {label}
             <select
               value={String(filters[key])}
               onChange={(event) =>
-                update(key, event.target.value as PatientListFilters[typeof key])
+                update(
+                  key,
+                  event.target.value as PatientListFilters[typeof key],
+                )
               }
               className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs font-normal text-foreground"
             >
               {options.map(([value, text]) => (
-                <option key={value} value={value}>{text}</option>
+                <option key={value} value={value}>
+                  {text}
+                </option>
               ))}
             </select>
           </label>
@@ -93,7 +101,10 @@ export function PatientFilterPanel({
         )}
 
         {INPUTS.map(([key, label, placeholder, type]) => (
-          <label key={key} className="space-y-1 text-[10px] font-semibold text-muted-foreground">
+          <label
+            key={key}
+            className="space-y-1 text-[10px] font-semibold text-muted-foreground"
+          >
             {label}
             <input
               type={type}
@@ -117,8 +128,12 @@ export function PatientFilterPanel({
       </div>
 
       <div className="mt-4 flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
-        <Button size="sm" variant="ghost" onClick={onClear}>Limpar filtros</Button>
-        <Button size="sm" onClick={onApply}>Aplicar filtros</Button>
+        <Button size="sm" variant="ghost" onClick={onClear}>
+          Limpar filtros
+        </Button>
+        <Button size="sm" onClick={onApply}>
+          Aplicar filtros
+        </Button>
       </div>
     </div>
   );

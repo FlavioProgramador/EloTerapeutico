@@ -15,7 +15,11 @@ import {
 import { productTabs, type ProductTabId } from "./content";
 import { Reveal } from "./motion";
 
-const overviewMetrics: Array<{ label: string; value: string; icon: LucideIcon }> = [
+const overviewMetrics: Array<{
+  label: string;
+  value: string;
+  icon: LucideIcon;
+}> = [
   { label: "Atendimentos", value: "23", icon: CalendarDays },
   { label: "Pacientes", value: "Base ativa", icon: Users },
   { label: "Receita", value: "R$ 8.540", icon: WalletCards },
@@ -28,7 +32,9 @@ function OverviewPanel() {
       <div className="product-ui__metrics">
         {overviewMetrics.map(({ label, value, icon: Icon }) => (
           <article key={label}>
-            <span><Icon className="h-4 w-4" aria-hidden="true" /></span>
+            <span>
+              <Icon className="h-4 w-4" aria-hidden="true" />
+            </span>
             <small>{label}</small>
             <strong>{value}</strong>
           </article>
@@ -36,15 +42,37 @@ function OverviewPanel() {
       </div>
       <div className="product-ui__columns">
         <section>
-          <header><strong>Agenda de hoje</strong><small>Visual demonstrativo</small></header>
-          {["08:00 · Ana Clara", "09:30 · Marcos Lima", "11:00 · Juliana Rocha"].map((item) => (
-            <div key={item} className="product-ui__row"><Clock3 aria-hidden="true" /><span>{item}</span><b>Confirmado</b></div>
+          <header>
+            <strong>Agenda de hoje</strong>
+            <small>Visual demonstrativo</small>
+          </header>
+          {[
+            "08:00 · Ana Clara",
+            "09:30 · Marcos Lima",
+            "11:00 · Juliana Rocha",
+          ].map((item) => (
+            <div key={item} className="product-ui__row">
+              <Clock3 aria-hidden="true" />
+              <span>{item}</span>
+              <b>Confirmado</b>
+            </div>
           ))}
         </section>
         <section>
-          <header><strong>Atividades recentes</strong><small>Atualizações do sistema</small></header>
-          {["Paciente cadastrado", "Pagamento registrado", "Prontuário atualizado"].map((item) => (
-            <div key={item} className="product-ui__activity"><span /><b>{item}</b><small>Agora</small></div>
+          <header>
+            <strong>Atividades recentes</strong>
+            <small>Atualizações do sistema</small>
+          </header>
+          {[
+            "Paciente cadastrado",
+            "Pagamento registrado",
+            "Prontuário atualizado",
+          ].map((item) => (
+            <div key={item} className="product-ui__activity">
+              <span />
+              <b>{item}</b>
+              <small>Agora</small>
+            </div>
           ))}
         </section>
       </div>
@@ -56,7 +84,10 @@ function AgendaPanel() {
   return (
     <div className="product-ui__agenda">
       <div className="product-ui__calendar-head">
-        <div><small>Agenda clínica</small><strong>Semana atual</strong></div>
+        <div>
+          <small>Agenda clínica</small>
+          <strong>Semana atual</strong>
+        </div>
         <button type="button">Novo atendimento</button>
       </div>
       <div className="product-ui__week">
@@ -74,7 +105,8 @@ function AgendaPanel() {
         ))}
       </div>
       <div className="product-ui__agenda-foot">
-        <CheckCircle2 aria-hidden="true" /> Horários, paciente e status permanecem no mesmo fluxo.
+        <CheckCircle2 aria-hidden="true" /> Horários, paciente e status
+        permanecem no mesmo fluxo.
       </div>
     </div>
   );
@@ -87,13 +119,35 @@ function RecordsPanel() {
         <Search aria-hidden="true" />
         <span>Histórico clínico</span>
         {["Sessão 12", "Sessão 11", "Sessão 10"].map((item, index) => (
-          <button key={item} type="button" className={index === 0 ? "is-active" : ""}>{item}</button>
+          <button
+            key={item}
+            type="button"
+            className={index === 0 ? "is-active" : ""}
+          >
+            {item}
+          </button>
         ))}
       </aside>
       <article>
-        <header><span><FileText aria-hidden="true" /></span><div><small>Evolução clínica</small><strong>Atendimento vinculado</strong></div></header>
-        <div className="product-ui__record-lines"><span /><span /><span /><span /></div>
-        <footer><CheckCircle2 aria-hidden="true" /> Registro associado ao paciente e ao profissional responsável.</footer>
+        <header>
+          <span>
+            <FileText aria-hidden="true" />
+          </span>
+          <div>
+            <small>Evolução clínica</small>
+            <strong>Atendimento vinculado</strong>
+          </div>
+        </header>
+        <div className="product-ui__record-lines">
+          <span />
+          <span />
+          <span />
+          <span />
+        </div>
+        <footer>
+          <CheckCircle2 aria-hidden="true" /> Registro associado ao paciente e
+          ao profissional responsável.
+        </footer>
       </article>
     </div>
   );
@@ -103,13 +157,31 @@ function FinancePanel() {
   return (
     <div className="product-ui__finance">
       <div className="product-ui__finance-summary">
-        <small>Resumo financeiro</small><strong>Visão do período</strong>
-        <div className="product-ui__chart" aria-hidden="true"><span /><span /><span /><span /><span /><span /></div>
+        <small>Resumo financeiro</small>
+        <strong>Visão do período</strong>
+        <div className="product-ui__chart" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+        </div>
       </div>
       <div className="product-ui__transactions">
-        {["Sessão · Ana Clara", "Sessão · Marcos Lima", "Material clínico"].map((item, index) => (
-          <div key={item}><span><WalletCards aria-hidden="true" /></span><b>{item}</b><small className={index === 2 ? "is-pending" : ""}>{index === 2 ? "Pendente" : "Pago"}</small></div>
-        ))}
+        {["Sessão · Ana Clara", "Sessão · Marcos Lima", "Material clínico"].map(
+          (item, index) => (
+            <div key={item}>
+              <span>
+                <WalletCards aria-hidden="true" />
+              </span>
+              <b>{item}</b>
+              <small className={index === 2 ? "is-pending" : ""}>
+                {index === 2 ? "Pendente" : "Pago"}
+              </small>
+            </div>
+          ),
+        )}
       </div>
     </div>
   );
@@ -117,7 +189,8 @@ function FinancePanel() {
 
 export function ProductStage() {
   const [activeTab, setActiveTab] = useState<ProductTabId>("overview");
-  const active = productTabs.find((item) => item.id === activeTab) ?? productTabs[0];
+  const active =
+    productTabs.find((item) => item.id === activeTab) ?? productTabs[0];
 
   return (
     <section id="produto" className="product-stage">
@@ -129,7 +202,11 @@ export function ProductStage() {
         </Reveal>
 
         <Reveal className="product-stage__frame" delay={0.08}>
-          <div className="product-stage__tabs" role="tablist" aria-label="Áreas da plataforma">
+          <div
+            className="product-stage__tabs"
+            role="tablist"
+            aria-label="Áreas da plataforma"
+          >
             {productTabs.map((tab) => (
               <button
                 key={tab.id}
@@ -145,7 +222,12 @@ export function ProductStage() {
             ))}
           </div>
           <div className="product-stage__browser">
-            <div className="product-stage__bar"><span /><span /><span /><small>Dados demonstrativos</small></div>
+            <div className="product-stage__bar">
+              <span />
+              <span />
+              <span />
+              <small>Dados demonstrativos</small>
+            </div>
             <div
               id="product-panel"
               role="tabpanel"
@@ -158,7 +240,10 @@ export function ProductStage() {
               {activeTab === "finance" && <FinancePanel />}
             </div>
           </div>
-          <div className="product-stage__caption"><strong>{active.title}</strong><span>{active.eyebrow}</span></div>
+          <div className="product-stage__caption">
+            <strong>{active.title}</strong>
+            <span>{active.eyebrow}</span>
+          </div>
         </Reveal>
       </div>
     </section>

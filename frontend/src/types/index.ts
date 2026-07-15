@@ -38,7 +38,12 @@ export type PatientStatus =
   | "archived"
   | "on_hold";
 
-export type PaymentMethod = "pix" | "credit_card" | "cash" | "insurance" | "boleto";
+export type PaymentMethod =
+  | "pix"
+  | "credit_card"
+  | "cash"
+  | "insurance"
+  | "boleto";
 export type FinancialPaymentMethod =
   | "pix"
   | "credit_card"
@@ -246,7 +251,12 @@ export interface CreateAddendumPayload {
 // ─── Financeiro ────────────────────────────────────────────────────────────────
 
 export type TransactionType = "income" | "expense";
-export type TransactionStatus = "pending" | "paid" | "overdue" | "cancelled" | "refunded";
+export type TransactionStatus =
+  | "pending"
+  | "paid"
+  | "overdue"
+  | "cancelled"
+  | "refunded";
 
 export interface FinancialTransaction {
   id: number;

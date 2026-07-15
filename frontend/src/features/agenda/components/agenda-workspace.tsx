@@ -26,7 +26,12 @@ import { toDateInput } from "../lib/calendar.mjs";
 export type AgendaTab = "agenda" | "recurrences" | "packages" | "telemedicine";
 
 const tabs = [
-  { id: "agenda" as const, label: "Agenda", href: "/dashboard/agenda", icon: CalendarDays },
+  {
+    id: "agenda" as const,
+    label: "Agenda",
+    href: "/dashboard/agenda",
+    icon: CalendarDays,
+  },
   {
     id: "recurrences" as const,
     label: "Recorrências",
@@ -47,7 +52,11 @@ const tabs = [
   },
 ];
 
-export function AgendaWorkspace({ initialTab = "agenda" }: { initialTab?: AgendaTab }) {
+export function AgendaWorkspace({
+  initialTab = "agenda",
+}: {
+  initialTab?: AgendaTab;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -74,8 +83,13 @@ export function AgendaWorkspace({ initialTab = "agenda" }: { initialTab?: Agenda
   const [newAppointmentTime, setNewAppointmentTime] = useState("09:00");
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("elo-agenda-view") as AgendaView | null;
-    if (!viewParam && (saved === "day" || saved === "week" || saved === "month")) {
+    const saved = window.localStorage.getItem(
+      "elo-agenda-view",
+    ) as AgendaView | null;
+    if (
+      !viewParam &&
+      (saved === "day" || saved === "week" || saved === "month")
+    ) {
       setView(saved);
     }
   }, [viewParam]);
@@ -109,10 +123,17 @@ export function AgendaWorkspace({ initialTab = "agenda" }: { initialTab?: Agenda
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Agenda</h1>
-            <CalendarRange className="size-5 text-muted-foreground" aria-hidden="true" />
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Agenda
+            </h1>
+            <CalendarRange
+              className="size-5 text-muted-foreground"
+              aria-hidden="true"
+            />
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">Gerencie consultas e horários</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Gerencie consultas e horários
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -122,13 +143,19 @@ export function AgendaWorkspace({ initialTab = "agenda" }: { initialTab?: Agenda
           >
             Bloquear horário
           </Button>
-          <Button leftIcon={<Plus className="size-4" />} onClick={() => openAppointment()}>
+          <Button
+            leftIcon={<Plus className="size-4" />}
+            onClick={() => openAppointment()}
+          >
             Nova consulta
           </Button>
         </div>
       </header>
 
-      <nav className="flex gap-1 overflow-x-auto border-b border-border" aria-label="Seções da agenda">
+      <nav
+        className="flex gap-1 overflow-x-auto border-b border-border"
+        aria-label="Seções da agenda"
+      >
         {tabs.map(({ id, label, href, icon: Icon }) => (
           <Link
             key={id}

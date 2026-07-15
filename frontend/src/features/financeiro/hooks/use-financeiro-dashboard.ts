@@ -27,8 +27,13 @@ export function useMonthlySubscriptions(status?: string) {
 export function useGenerateCharges() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ appointmentIds, dueDate }: { appointmentIds: number[]; dueDate: string }) =>
-      financeiroDashboardService.generateCharges(appointmentIds, dueDate),
+    mutationFn: ({
+      appointmentIds,
+      dueDate,
+    }: {
+      appointmentIds: number[];
+      dueDate: string;
+    }) => financeiroDashboardService.generateCharges(appointmentIds, dueDate),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: DASHBOARD_KEY });
@@ -57,8 +62,13 @@ export function useCreateMonthlySubscription() {
 export function useUpdateMonthlySubscriptionStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }: { id: number; status: MonthlySubscription["status"] }) =>
-      financeiroDashboardService.updateSubscriptionStatus(id, status),
+    mutationFn: ({
+      id,
+      status,
+    }: {
+      id: number;
+      status: MonthlySubscription["status"];
+    }) => financeiroDashboardService.updateSubscriptionStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: SUBSCRIPTIONS_KEY });
       toast.success("Status da mensalidade atualizado.");

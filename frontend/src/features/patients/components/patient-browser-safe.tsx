@@ -69,10 +69,15 @@ export function PatientBrowserSafe() {
   const patientsQuery = useQuery({
     queryKey: ["patients", "browser", query, status, page],
     queryFn: async () => {
-      const params = new URLSearchParams({ page: String(page), page_size: "6" });
+      const params = new URLSearchParams({
+        page: String(page),
+        page_size: "6",
+      });
       if (query) params.set("search", query);
       if (status) params.set("status", status);
-      const response = await api.get<PageData>(`patients/?${params.toString()}`);
+      const response = await api.get<PageData>(
+        `patients/?${params.toString()}`,
+      );
       return response.data;
     },
   });
@@ -80,7 +85,9 @@ export function PatientBrowserSafe() {
   const metricsQuery = useQuery({
     queryKey: ["patients", "dashboard-metrics"],
     queryFn: async () => {
-      const response = await api.get<PatientMetrics>("patients/dashboard-metrics/");
+      const response = await api.get<PatientMetrics>(
+        "patients/dashboard-metrics/",
+      );
       return response.data;
     },
   });
@@ -93,7 +100,11 @@ export function PatientBrowserSafe() {
 
   useEffect(() => {
     if (!selectedId && patients[0]) setSelectedId(patients[0].id);
-    if (selectedId && patients.length && !patients.some((item) => item.id === selectedId)) {
+    if (
+      selectedId &&
+      patients.length &&
+      !patients.some((item) => item.id === selectedId)
+    ) {
       setSelectedId(patients[0].id);
     }
   }, [patients, selectedId]);
@@ -102,7 +113,9 @@ export function PatientBrowserSafe() {
     <div className="space-y-4">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Pacientes</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Pacientes
+          </h1>
           <p className="mt-1 text-xs text-muted-foreground">
             Gerencie cadastros, contatos e acompanhamentos.
           </p>
@@ -179,10 +192,16 @@ export function PatientBrowserSafe() {
                     </div>
                   </div>
                   <div className="min-w-0 text-[11px] text-muted-foreground">
-                    <p className="truncate">{patient.phone || "Sem telefone"}</p>
+                    <p className="truncate">
+                      {patient.phone || "Sem telefone"}
+                    </p>
                     <p className="truncate">{patient.email || "Sem e-mail"}</p>
                   </div>
-                  <Badge variant={patient.status === "active" ? "success" : "outline"}>
+                  <Badge
+                    variant={
+                      patient.status === "active" ? "success" : "outline"
+                    }
+                  >
                     {patient.status_display}
                   </Badge>
                 </button>
@@ -192,7 +211,8 @@ export function PatientBrowserSafe() {
 
           <footer className="flex items-center justify-between border-t border-border px-4 py-3 text-[11px] text-muted-foreground">
             <span>
-              Mostrando {patients.length} de {patientsQuery.data?.pagination.count ?? 0}
+              Mostrando {patients.length} de{" "}
+              {patientsQuery.data?.pagination.count ?? 0}
             </span>
             <div className="flex items-center gap-2">
               <Button
@@ -225,14 +245,17 @@ export function PatientBrowserSafe() {
           {selected ? (
             <div className="space-y-4">
               <div>
-                <h2 className="font-bold text-foreground">{selected.display_name}</h2>
+                <h2 className="font-bold text-foreground">
+                  {selected.display_name}
+                </h2>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {selected.phone || "Telefone não informado"}
                 </p>
               </div>
               <div className="rounded-lg border border-border bg-secondary/20 p-3">
                 <p className="flex items-center gap-2 text-[10px] font-semibold text-muted-foreground">
-                  <CalendarDays className="h-4 w-4 text-primary" /> Próxima sessão
+                  <CalendarDays className="h-4 w-4 text-primary" /> Próxima
+                  sessão
                 </p>
                 <p className="mt-2 text-xs font-medium text-foreground">
                   {dateLabel(selected.next_session)}
@@ -241,7 +264,9 @@ export function PatientBrowserSafe() {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => router.push(`/dashboard/patients/${selected.id}`)}
+                onClick={() =>
+                  router.push(`/dashboard/patients/${selected.id}`)
+                }
                 leftIcon={<Settings2 className="h-4 w-4" />}
               >
                 Editar ou arquivar cadastro

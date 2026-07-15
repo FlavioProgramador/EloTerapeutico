@@ -29,7 +29,7 @@ export function formatDate(
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  }
+  },
 ): string {
   const d = typeof date === "string" ? new Date(date) : date;
   if (isNaN(d.getTime())) return "—";
@@ -62,7 +62,10 @@ export function extractApiError(error: unknown): string {
     if (errObj && typeof errObj.message === "string") return errObj.message;
 
     const nonFieldErrors = dataObj.non_field_errors;
-    if (Array.isArray(nonFieldErrors) && typeof nonFieldErrors[0] === "string") {
+    if (
+      Array.isArray(nonFieldErrors) &&
+      typeof nonFieldErrors[0] === "string"
+    ) {
       return nonFieldErrors[0];
     }
 

@@ -144,29 +144,37 @@ export function PatientImportModal({ open, onClose }: Props) {
                 <strong className="block text-lg text-foreground">
                   {preview.total}
                 </strong>
-                <span className="text-[10px] text-muted-foreground">Linhas</span>
+                <span className="text-[10px] text-muted-foreground">
+                  Linhas
+                </span>
               </div>
               <div>
                 <strong className="block text-lg text-primary">
                   {preview.valid}
                 </strong>
-                <span className="text-[10px] text-muted-foreground">Válidas</span>
+                <span className="text-[10px] text-muted-foreground">
+                  Válidas
+                </span>
               </div>
               <div>
                 <strong className="block text-lg text-destructive">
                   {preview.errors.length + preview.duplicates.length}
                 </strong>
-                <span className="text-[10px] text-muted-foreground">Pendências</span>
+                <span className="text-[10px] text-muted-foreground">
+                  Pendências
+                </span>
               </div>
             </div>
             {preview.duplicates.length > 0 && (
               <p className="mt-3 text-xs text-destructive">
-                CPFs duplicados nas linhas: {preview.duplicates.map((item) => item.line).join(", ")}.
+                CPFs duplicados nas linhas:{" "}
+                {preview.duplicates.map((item) => item.line).join(", ")}.
               </p>
             )}
             {preview.errors.length > 0 && (
               <p className="mt-2 text-xs text-destructive">
-                Linhas com erro: {preview.errors.map((item) => item.line).join(", ")}.
+                Linhas com erro:{" "}
+                {preview.errors.map((item) => item.line).join(", ")}.
               </p>
             )}
           </section>

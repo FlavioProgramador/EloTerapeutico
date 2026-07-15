@@ -28,10 +28,13 @@ export function middleware(request: NextRequest) {
   const isPublicRoute = publicRoutes.some(
     (route) => pathname.startsWith(route) || pathname === route,
   );
-  const isDashboardRoute = pathname.startsWith("/dashboard") || pathname === "/dashboard";
-  const isCheckoutRoute = pathname.startsWith("/checkout") || pathname.startsWith("/billing");
+  const isDashboardRoute =
+    pathname.startsWith("/dashboard") || pathname === "/dashboard";
+  const isCheckoutRoute =
+    pathname.startsWith("/checkout") || pathname.startsWith("/billing");
   const isOnboardingRoute = pathname.startsWith("/onboarding");
-  const isProtectedRoute = isDashboardRoute || isCheckoutRoute || isOnboardingRoute;
+  const isProtectedRoute =
+    isDashboardRoute || isCheckoutRoute || isOnboardingRoute;
 
   if (!token && isProtectedRoute) {
     const loginUrl = new URL("/login", request.url);

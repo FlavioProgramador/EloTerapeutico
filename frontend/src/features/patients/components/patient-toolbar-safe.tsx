@@ -1,4 +1,10 @@
-import { Download, Plus, Search, SlidersHorizontal, Upload } from "lucide-react";
+import {
+  Download,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  Upload,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { PatientStatus } from "../types";
@@ -34,24 +40,46 @@ export function PatientToolbarSafe(props: Props) {
     <div className="space-y-3">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Pacientes</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Pacientes
+          </h1>
           <p className="mt-1 text-xs text-muted-foreground">
             Gerencie cadastros, contatos e acompanhamentos.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {props.canImport && (
-            <Button variant="outline" size="sm" onClick={props.onImport} leftIcon={<Upload className="h-4 w-4" />}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={props.onImport}
+              leftIcon={<Upload className="h-4 w-4" />}
+            >
               Importar
             </Button>
           )}
-          <Button variant="outline" size="sm" isLoading={props.exporting} onClick={props.onExport} leftIcon={<Download className="h-4 w-4" />}>
+          <Button
+            variant="outline"
+            size="sm"
+            isLoading={props.exporting}
+            onClick={props.onExport}
+            leftIcon={<Download className="h-4 w-4" />}
+          >
             Exportar
           </Button>
-          <Button variant="outline" size="sm" onClick={props.onAdvanced} leftIcon={<SlidersHorizontal className="h-4 w-4" />}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={props.onAdvanced}
+            leftIcon={<SlidersHorizontal className="h-4 w-4" />}
+          >
             Filtros
           </Button>
-          <Button size="sm" onClick={props.onNew} leftIcon={<Plus className="h-4 w-4" />}>
+          <Button
+            size="sm"
+            onClick={props.onNew}
+            leftIcon={<Plus className="h-4 w-4" />}
+          >
             Novo paciente
           </Button>
         </div>
@@ -72,7 +100,12 @@ export function PatientToolbarSafe(props: Props) {
           </label>
           <select
             value={props.filters.status}
-            onChange={(event) => update("status", event.target.value as SafeToolbarFilters["status"])}
+            onChange={(event) =>
+              update(
+                "status",
+                event.target.value as SafeToolbarFilters["status"],
+              )
+            }
             className="h-10 rounded-md border border-border bg-background px-3 text-xs text-foreground"
           >
             <option value="all">Todos os status</option>
@@ -86,20 +119,39 @@ export function PatientToolbarSafe(props: Props) {
 
         {props.advancedOpen && (
           <div className="mt-3 grid gap-3 border-t border-border pt-3 sm:grid-cols-2 xl:grid-cols-4">
-            <select value={props.filters.modality} onChange={(event) => update("modality", event.target.value)} className="h-9 rounded-md border border-border bg-background px-3 text-xs">
+            <select
+              value={props.filters.modality}
+              onChange={(event) => update("modality", event.target.value)}
+              className="h-9 rounded-md border border-border bg-background px-3 text-xs"
+            >
               <option value="">Todas as modalidades</option>
               <option value="in_person">Presencial</option>
               <option value="online">Online</option>
               <option value="hybrid">Híbrido</option>
             </select>
-            <select value={props.filters.payerType} onChange={(event) => update("payerType", event.target.value)} className="h-9 rounded-md border border-border bg-background px-3 text-xs">
+            <select
+              value={props.filters.payerType}
+              onChange={(event) => update("payerType", event.target.value)}
+              className="h-9 rounded-md border border-border bg-background px-3 text-xs"
+            >
               <option value="">Todos os atendimentos</option>
               <option value="private">Particular</option>
               <option value="insurance">Convênio</option>
             </select>
-            <input value={props.filters.tag} onChange={(event) => update("tag", event.target.value)} placeholder="Etiqueta" className="h-9 rounded-md border border-border bg-background px-3 text-xs" />
+            <input
+              value={props.filters.tag}
+              onChange={(event) => update("tag", event.target.value)}
+              placeholder="Etiqueta"
+              className="h-9 rounded-md border border-border bg-background px-3 text-xs"
+            />
             <label className="flex h-9 items-center gap-2 rounded-md border border-border px-3 text-xs">
-              <input type="checkbox" checked={props.filters.noNextSession} onChange={(event) => update("noNextSession", event.target.checked)} />
+              <input
+                type="checkbox"
+                checked={props.filters.noNextSession}
+                onChange={(event) =>
+                  update("noNextSession", event.target.checked)
+                }
+              />
               Sem próxima sessão
             </label>
           </div>

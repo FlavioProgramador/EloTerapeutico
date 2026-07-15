@@ -27,9 +27,10 @@ export function usePatientFormSubmit(options: Options) {
   const submit = options.form.handleSubmit(
     async (data) => {
       const request = toPatientRequest(data);
-      const payload = data.photo instanceof File
-        ? toPatientMultipart(request, data.photo)
-        : request;
+      const payload =
+        data.photo instanceof File
+          ? toPatientMultipart(request, data.photo)
+          : request;
       try {
         const saved = editing
           ? await updateMutation.mutateAsync(payload)

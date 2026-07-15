@@ -8,11 +8,18 @@ export function FinalCta() {
       <ParallaxOrb className="final-cta__orb final-cta__orb--one" speed={24} />
       <ParallaxOrb className="final-cta__orb final-cta__orb--two" speed={16} />
       <Reveal className="final-cta__inner">
-        <span className="final-cta__icon"><LayoutDashboard aria-hidden="true" /></span>
+        <span className="final-cta__icon">
+          <LayoutDashboard aria-hidden="true" />
+        </span>
         <span className="landing-eyebrow">Comece pela organização</span>
-        <h2>Menos ferramentas separadas.<br />Mais clareza para cuidar.</h2>
+        <h2>
+          Menos ferramentas separadas.
+          <br />
+          Mais clareza para cuidar.
+        </h2>
         <p>
-          Crie seu acesso e conheça os módulos já disponíveis no Elo Terapêutico.
+          Crie seu acesso e conheça os módulos já disponíveis no Elo
+          Terapêutico.
         </p>
         <div className="final-cta__actions">
           <Link href="/register">

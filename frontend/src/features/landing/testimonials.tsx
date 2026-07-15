@@ -32,13 +32,18 @@ export function Testimonials() {
           <span className="landing-eyebrow">Quem já usa</span>
           <h2>O que terapeutas estão dizendo.</h2>
           <p>
-            Depoimentos de profissionais que já organizaram sua rotina com o Elo Terapêutico.
+            Depoimentos de profissionais que já organizaram sua rotina com o Elo
+            Terapêutico.
           </p>
         </Reveal>
 
         <div className="testimonials__grid">
           {testimonials.map((t, i) => (
-            <Reveal key={t.name} className="testimonials__card" delay={i * 0.06}>
+            <Reveal
+              key={t.name}
+              className="testimonials__card"
+              delay={i * 0.06}
+            >
               <blockquote>
                 <p>&ldquo;{t.quote}&rdquo;</p>
               </blockquote>

@@ -15,7 +15,10 @@ interface Props {
 
 export function FinanceiroTabs({ value, onChange }: Props) {
   return (
-    <nav className="flex gap-1 border-b border-border" aria-label="Seções financeiras">
+    <nav
+      className="flex gap-1 border-b border-border"
+      aria-label="Seções financeiras"
+    >
       {tabs.map((item) => (
         <button
           key={item.id}

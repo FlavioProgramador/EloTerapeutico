@@ -21,24 +21,56 @@ const featureLabels: Record<keyof Plan["features"], string> = {
 };
 
 const fallbackPlans = [
-  { name: "Essencial", slug: "essencial", description: "Plano inicial para organizar a rotina clínica.", features: ["Agenda e pacientes", "Prontuário eletrônico", "Configuração simples"] },
-  { name: "Profissional", slug: "profissional", description: "Plano recomendado para terapeutas que precisam de mais controle.", features: ["Módulos avançados", "Mais limites de uso", "Gestão profissional"] },
-  { name: "Premium", slug: "premium", description: "Plano completo para operar com recursos ampliados.", features: ["Relatórios", "Documentos e formulários", "Recursos premium"] },
+  {
+    name: "Essencial",
+    slug: "essencial",
+    description: "Plano inicial para organizar a rotina clínica.",
+    features: [
+      "Agenda e pacientes",
+      "Prontuário eletrônico",
+      "Configuração simples",
+    ],
+  },
+  {
+    name: "Profissional",
+    slug: "profissional",
+    description:
+      "Plano recomendado para terapeutas que precisam de mais controle.",
+    features: [
+      "Módulos avançados",
+      "Mais limites de uso",
+      "Gestão profissional",
+    ],
+  },
+  {
+    name: "Premium",
+    slug: "premium",
+    description: "Plano completo para operar com recursos ampliados.",
+    features: ["Relatórios", "Documentos e formulários", "Recursos premium"],
+  },
 ];
 
 function currency(value: string, currencyCode = "BRL") {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: currencyCode }).format(Number(value));
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: currencyCode,
+  }).format(Number(value));
 }
 
 function planFeatures(plan: Plan) {
   const enabled = Object.entries(plan.features)
     .filter(([, active]) => active)
     .map(([key]) => featureLabels[key as keyof Plan["features"]]);
-  if (!enabled.includes(featureLabels.patients)) enabled.unshift(featureLabels.patients);
+  if (!enabled.includes(featureLabels.patients))
+    enabled.unshift(featureLabels.patients);
   return [
     ...enabled,
-    plan.max_patients ? `Até ${plan.max_patients} pacientes` : "Pacientes ilimitados",
-    plan.max_storage_mb ? `${plan.max_storage_mb} MB de armazenamento` : "Armazenamento conforme plano",
+    plan.max_patients
+      ? `Até ${plan.max_patients} pacientes`
+      : "Pacientes ilimitados",
+    plan.max_storage_mb
+      ? `${plan.max_storage_mb} MB de armazenamento`
+      : "Armazenamento conforme plano",
   ].slice(0, 6);
 }
 
@@ -68,8 +100,14 @@ function trialHref(plan: Plan, price: PlanPrice) {
 }
 
 function preferredLandingPrice(plan: Plan) {
-  return plan.prices.find((price) => price.available && price.billing_interval === "MONTHLY" && price.billing_model === "RECURRING")
-    || plan.prices.find((price) => price.available);
+  return (
+    plan.prices.find(
+      (price) =>
+        price.available &&
+        price.billing_interval === "MONTHLY" &&
+        price.billing_model === "RECURRING",
+    ) || plan.prices.find((price) => price.available)
+  );
 }
 
 export function Pricing() {
@@ -95,7 +133,9 @@ export function Pricing() {
       }
     }
     void load();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const orderedPlans = useMemo(() => {
@@ -111,19 +151,50 @@ export function Pricing() {
         <Reveal className="pricing-section__heading">
           <span className="landing-eyebrow">Planos</span>
           <h2>Escolha o plano certo para sua prática.</h2>
-          <p>Comece com 7 dias grátis ou assine diretamente. O preço e os limites são sempre validados pelo backend.</p>
+          <p>
+            Comece com 7 dias grátis ou assine diretamente. O preço e os limites
+            são sempre validados pelo backend.
+          </p>
         </Reveal>
 
         {loading ? (
-          <div className="pricing-section__loading"><Loader2 aria-hidden="true" /> Carregando planos...</div>
+          <div className="pricing-section__loading">
+            <Loader2 aria-hidden="true" /> Carregando planos...
+          </div>
         ) : hasApiError || orderedPlans.length === 0 ? (
           <div className="pricing-section__grid">
             {fallbackPlans.map((plan, index) => (
-              <Reveal key={plan.slug} className={`pricing-card ${plan.slug === "profissional" ? "pricing-card--highlighted" : ""}`} delay={index * 0.06}>
-                {plan.slug === "profissional" && <span className="pricing-card__badge">Recomendado</span>}
-                <div className="pricing-card__header"><span className="pricing-card__name">{plan.name}</span><div className="pricing-card__price"><strong>Indisponível</strong><small>tente novamente</small></div><p className="pricing-card__desc">{plan.description}</p></div>
-                <ul className="pricing-card__features">{plan.features.map((feature) => <li key={feature}><Check aria-hidden="true" />{feature}</li>)}</ul>
-                <Link href="/planos" className={`pricing-card__cta ${plan.slug === "profissional" ? "pricing-card__cta--primary" : ""}`}>Ver planos<ArrowRight aria-hidden="true" /></Link>
+              <Reveal
+                key={plan.slug}
+                className={`pricing-card ${plan.slug === "profissional" ? "pricing-card--highlighted" : ""}`}
+                delay={index * 0.06}
+              >
+                {plan.slug === "profissional" && (
+                  <span className="pricing-card__badge">Recomendado</span>
+                )}
+                <div className="pricing-card__header">
+                  <span className="pricing-card__name">{plan.name}</span>
+                  <div className="pricing-card__price">
+                    <strong>Indisponível</strong>
+                    <small>tente novamente</small>
+                  </div>
+                  <p className="pricing-card__desc">{plan.description}</p>
+                </div>
+                <ul className="pricing-card__features">
+                  {plan.features.map((feature) => (
+                    <li key={feature}>
+                      <Check aria-hidden="true" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/planos"
+                  className={`pricing-card__cta ${plan.slug === "profissional" ? "pricing-card__cta--primary" : ""}`}
+                >
+                  Ver planos
+                  <ArrowRight aria-hidden="true" />
+                </Link>
               </Reveal>
             ))}
           </div>
@@ -134,23 +205,66 @@ export function Pricing() {
               const price = preferredLandingPrice(plan);
               if (!price) return null;
               return (
-                <Reveal key={plan.slug} className={`pricing-card ${highlighted ? "pricing-card--highlighted" : ""}`} delay={index * 0.06}>
-                  {highlighted && <span className="pricing-card__badge">Recomendado</span>}
+                <Reveal
+                  key={plan.slug}
+                  className={`pricing-card ${highlighted ? "pricing-card--highlighted" : ""}`}
+                  delay={index * 0.06}
+                >
+                  {highlighted && (
+                    <span className="pricing-card__badge">Recomendado</span>
+                  )}
                   <div className="pricing-card__header">
                     <span className="pricing-card__name">{plan.name}</span>
-                    <div className="pricing-card__price"><strong>{currency(price.total_amount, price.currency)}</strong><small>/{price.billing_interval === "MONTHLY" ? "mês" : "ano"}</small></div>
+                    <div className="pricing-card__price">
+                      <strong>
+                        {currency(price.total_amount, price.currency)}
+                      </strong>
+                      <small>
+                        /{price.billing_interval === "MONTHLY" ? "mês" : "ano"}
+                      </small>
+                    </div>
                     <p className="pricing-card__desc">{plan.description}</p>
                   </div>
-                  <ul className="pricing-card__features">{planFeatures(plan).map((feature) => <li key={feature}><Check aria-hidden="true" />{feature}</li>)}</ul>
+                  <ul className="pricing-card__features">
+                    {planFeatures(plan).map((feature) => (
+                      <li key={feature}>
+                        <Check aria-hidden="true" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
                   {isAuthenticated ? (
-                    <Link href={checkoutHref(plan, price, true)} className={`pricing-card__cta ${highlighted ? "pricing-card__cta--primary" : ""}`}>Escolher plano<ArrowRight aria-hidden="true" /></Link>
+                    <Link
+                      href={checkoutHref(plan, price, true)}
+                      className={`pricing-card__cta ${highlighted ? "pricing-card__cta--primary" : ""}`}
+                    >
+                      Escolher plano
+                      <ArrowRight aria-hidden="true" />
+                    </Link>
                   ) : (
                     <div className="grid gap-2">
-                      <Link href={trialHref(plan, price)} className="pricing-card__cta pricing-card__cta--primary">Começar teste grátis<ArrowRight aria-hidden="true" /></Link>
-                      <Link href={checkoutHref(plan, price, false)} className="pricing-card__cta">Assinar agora<ArrowRight aria-hidden="true" /></Link>
+                      <Link
+                        href={trialHref(plan, price)}
+                        className="pricing-card__cta pricing-card__cta--primary"
+                      >
+                        Começar teste grátis
+                        <ArrowRight aria-hidden="true" />
+                      </Link>
+                      <Link
+                        href={checkoutHref(plan, price, false)}
+                        className="pricing-card__cta"
+                      >
+                        Assinar agora
+                        <ArrowRight aria-hidden="true" />
+                      </Link>
                     </div>
                   )}
-                  <Link href="/planos" className="mt-3 text-center text-xs font-bold text-[var(--color-primary)] hover:underline">Comparar mensal e anual</Link>
+                  <Link
+                    href="/planos"
+                    className="mt-3 text-center text-xs font-bold text-[var(--color-primary)] hover:underline"
+                  >
+                    Comparar mensal e anual
+                  </Link>
                 </Reveal>
               );
             })}

@@ -171,9 +171,8 @@ export function AnamnesisTab({
       Object.fromEntries(
         sections.map((section) => [
           section.id,
-          section.fields.filter(([field]) =>
-            String(draft[field] ?? "").trim(),
-          ).length,
+          section.fields.filter(([field]) => String(draft[field] ?? "").trim())
+            .length,
         ]),
       ),
     [draft],

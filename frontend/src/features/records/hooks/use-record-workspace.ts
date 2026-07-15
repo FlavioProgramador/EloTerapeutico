@@ -10,13 +10,23 @@ import type {
 } from "../types";
 
 const keys = {
-  summary: (patientId: number) => ["record-workspace", patientId, "summary"] as const,
+  summary: (patientId: number) =>
+    ["record-workspace", patientId, "summary"] as const,
   evolutions: (patientId: number, page = 1, status?: string) =>
-    ["record-workspace", patientId, "evolutions", page, status ?? "all"] as const,
+    [
+      "record-workspace",
+      patientId,
+      "evolutions",
+      page,
+      status ?? "all",
+    ] as const,
   evolution: (id: number) => ["record-workspace", "evolution", id] as const,
-  anamnesis: (patientId: number) => ["record-workspace", patientId, "anamnesis"] as const,
-  goals: (patientId: number) => ["record-workspace", patientId, "goals"] as const,
-  documents: (patientId: number) => ["record-workspace", patientId, "documents"] as const,
+  anamnesis: (patientId: number) =>
+    ["record-workspace", patientId, "anamnesis"] as const,
+  goals: (patientId: number) =>
+    ["record-workspace", patientId, "goals"] as const,
+  documents: (patientId: number) =>
+    ["record-workspace", patientId, "documents"] as const,
 };
 
 export function useRecordSummary(patientId: number) {
@@ -35,7 +45,8 @@ export function useClinicalEvolutions(
 ) {
   return useQuery({
     queryKey: keys.evolutions(patientId, page, status),
-    queryFn: () => recordWorkspaceService.listEvolutions(patientId, page, status),
+    queryFn: () =>
+      recordWorkspaceService.listEvolutions(patientId, page, status),
     enabled: enabled && Number.isFinite(patientId) && patientId > 0,
   });
 }
@@ -61,14 +72,18 @@ export function useCreateClinicalEvolution(patientId: number) {
   });
 }
 
-export function useUpdateClinicalEvolution(patientId: number, evolutionId?: number | null) {
+export function useUpdateClinicalEvolution(
+  patientId: number,
+  evolutionId?: number | null,
+) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (payload: Partial<EvolutionPayload>) =>
       recordWorkspaceService.updateEvolution(evolutionId!, payload),
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ["record-workspace", patientId] });
-      if (evolutionId) client.invalidateQueries({ queryKey: keys.evolution(evolutionId) });
+      if (evolutionId)
+        client.invalidateQueries({ queryKey: keys.evolution(evolutionId) });
       toast.success("Alterações salvas.");
     },
     onError: () => toast.error("Não foi possível atualizar a evolução."),
@@ -146,8 +161,13 @@ export function useGoalMutations(patientId: number) {
     onError: () => toast.error("Não foi possível criar a meta."),
   });
   const update = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: Partial<TreatmentGoal> }) =>
-      recordWorkspaceService.updateGoal(id, payload),
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: number;
+      payload: Partial<TreatmentGoal>;
+    }) => recordWorkspaceService.updateGoal(id, payload),
     onSuccess: () => {
       invalidate();
       toast.success("Meta terapêutica atualizada.");
@@ -189,8 +209,13 @@ export function useDocumentMutations(patientId: number) {
     onError: () => toast.error("Não foi possível anexar o documento."),
   });
   const update = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: Partial<ClinicalDocument> }) =>
-      recordWorkspaceService.updateDocument(id, payload),
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: number;
+      payload: Partial<ClinicalDocument>;
+    }) => recordWorkspaceService.updateDocument(id, payload),
     onSuccess: () => {
       invalidate();
       toast.success("Documento atualizado.");

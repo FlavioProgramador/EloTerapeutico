@@ -1,9 +1,4 @@
-import {
-  Activity,
-  BadgeCheck,
-  UserRoundPlus,
-  UsersRound,
-} from "lucide-react";
+import { Activity, BadgeCheck, UserRoundPlus, UsersRound } from "lucide-react";
 
 import type { PatientMetrics } from "../types";
 
@@ -58,9 +53,7 @@ export function PatientMetricsGrid({ metrics }: { metrics?: PatientMetrics }) {
               <strong className="mt-1 block text-3xl font-extrabold text-foreground">
                 {value}
               </strong>
-              <p className="mt-2 text-xs text-muted-foreground">
-                {detail}
-              </p>
+              <p className="mt-2 text-xs text-muted-foreground">{detail}</p>
             </div>
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
               <Icon className="h-4 w-4" />
