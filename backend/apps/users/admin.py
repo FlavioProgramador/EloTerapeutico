@@ -5,7 +5,8 @@ from unfold.admin import ModelAdmin
 
 from apps.audit.services.access_logging import AuditLog, log_access
 
-from .models import User, WorkingHours
+from .models import AuthSession, User, WorkingHours
+from .services.sessions import revoke_all_user_sessions
 
 
 @admin.register(User)
@@ -112,14 +113,16 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
         return obj.onboarding_completed
 
     def save_model(self, request, obj, form, change):
-        if "password" in form.changed_data:
+        password_changed = "password" in form.changed_data
+        super().save_model(request, obj, form, change)
+        if password_changed:
+            revoke_all_user_sessions(user=obj, reason="password_changed_by_admin")
             log_access(
                 request,
                 AuditLog.Action.UPDATE,
                 obj=obj,
-                obj_repr=f"Senha alterada via admin: {obj}",
+                obj_repr=f"users.User#{obj.pk}:password_changed_by_admin",
             )
-        super().save_model(request, obj, form, change)
 
     @admin.action(description="Ativar usuários selecionados")
     def action_activate_users(self, request, queryset):
@@ -145,6 +148,47 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
             return
         updated = queryset.update(failed_login_attempts=0, locked_until=None)
         self.message_user(request, f"{updated} usuário(s) desbloqueado(s).", messages.SUCCESS)
+
+
+@admin.register(AuthSession)
+class AuthSessionAdmin(ModelAdmin):
+    list_display = [
+        "public_id",
+        "user",
+        "created_at",
+        "last_seen_at",
+        "expires_at",
+        "revoked_at",
+        "active_status",
+    ]
+    list_filter = ["created_at", "expires_at", "revoked_at"]
+    search_fields = ["public_id", "user__email", "user__full_name"]
+    list_select_related = ["user"]
+    ordering = ["-last_seen_at"]
+    readonly_fields = [
+        "public_id",
+        "user",
+        "user_agent",
+        "created_at",
+        "last_seen_at",
+        "expires_at",
+        "revoked_at",
+        "revoked_reason",
+    ]
+    exclude = ["refresh_jti"]
+
+    @admin.display(description="Ativa", boolean=True)
+    def active_status(self, obj):
+        return obj.is_active
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(WorkingHours)
