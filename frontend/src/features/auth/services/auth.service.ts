@@ -1,62 +1,79 @@
 /**
  * Serviço de autenticação.
- * Encapsula todas as chamadas de API relacionadas à autenticação.
- * Separa a lógica de cookie/state (que fica no AuthContext) da lógica de rede.
+ * Credenciais são mantidas exclusivamente pelo BFF em cookies HttpOnly.
  */
 
+import axios from "axios";
+
 import { api } from "@/lib/api";
-import type { LoginCredentials, AuthTokens, User } from "@/types";
+import { getCsrfToken } from "@/lib/auth-session";
+import type { LoginCredentials, User } from "@/types";
+
+interface AuthResponse {
+  user?: User;
+  message?: string;
+  next?: string;
+}
+
+function csrfHeaders(): Record<string, string> {
+  const token = getCsrfToken();
+  return token ? { "X-CSRF-Token": token } : {};
+}
 
 export const authService = {
-  /**
-   * Realiza o login e retorna access + refresh tokens (e opcionalmente user).
-   */
-  login: async (credentials: LoginCredentials): Promise<AuthTokens> => {
-    const response = await api.post<AuthTokens>("auth/login/", credentials);
+  login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
+    const response = await axios.post<AuthResponse>(
+      "/api/auth/login/",
+      credentials,
+      { withCredentials: true },
+    );
     return response.data;
   },
 
-  /**
-   * Realiza o logout e invalida o refresh token no backend.
-   */
-  logout: async (refreshToken: string): Promise<void> => {
-    await api.post("auth/logout/", { refresh: refreshToken });
+  logout: async (): Promise<void> => {
+    await axios.post(
+      "/api/auth/logout/",
+      {},
+      { withCredentials: true, headers: csrfHeaders() },
+    );
   },
 
-  /**
-   * Busca o perfil do usuário autenticado.
-   */
+  logoutAll: async (): Promise<void> => {
+    await axios.post(
+      "/api/auth/logout-all/",
+      {},
+      { withCredentials: true, headers: csrfHeaders() },
+    );
+  },
+
   getMe: async (): Promise<User> => {
     const response = await api.get<User>("auth/me/");
     return response.data;
   },
 
-  /**
-   * Renova o access token usando o refresh token.
-   */
-  refreshToken: async (
-    refresh: string,
-  ): Promise<{ access: string; refresh?: string }> => {
-    const response = await api.post("auth/token/refresh/", { refresh });
-    return response.data;
+  refreshSession: async (): Promise<void> => {
+    await axios.post(
+      "/api/auth/refresh/",
+      {},
+      { withCredentials: true, headers: csrfHeaders() },
+    );
   },
 
-  /**
-   * Registra um novo usuário.
-   */
   register: async (data: {
     email: string;
     password: string;
+    password_confirm: string;
     full_name: string;
     role?: string;
-  }): Promise<User> => {
-    const response = await api.post<User>("auth/register/", data);
+  }): Promise<AuthResponse> => {
+    const response = await axios.post<AuthResponse>(
+      "/api/auth/register/",
+      data,
+      { withCredentials: true },
+    );
     return response.data;
   },
 
-  /**
-   * Solicita a redefinição de senha (forgot password).
-   */
   requestPasswordReset: async (email: string): Promise<{ message: string }> => {
     const response = await api.post<{ message: string }>(
       "auth/password/reset/",
@@ -65,9 +82,6 @@ export const authService = {
     return response.data;
   },
 
-  /**
-   * Confirma a nova senha usando o token e uidb64 recebidos por e-mail.
-   */
   confirmPasswordReset: async (data: {
     uidb64: string;
     token: string;
