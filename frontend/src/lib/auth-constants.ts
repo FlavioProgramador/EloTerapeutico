@@ -12,7 +12,6 @@ export function isBlockedAuthProxyPath(path: string): boolean {
   const normalized = path.replace(/^\/+|\/+$/g, "").toLowerCase();
   return new Set([
     "auth/login",
-    "auth/register",
     "auth/logout",
     "auth/logout-all",
     "auth/token/refresh",
