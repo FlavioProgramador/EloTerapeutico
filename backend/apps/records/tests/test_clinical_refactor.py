@@ -153,7 +153,7 @@ def test_export_confidential_evolution_permission(api_client, therapist_user, ot
     api_client.force_authenticate(user=other_therapist_user)
 
     response = api_client.post(export_url, {"export_type": "Completo", "period": "Todo o período"})
-    assert response.status_code == status.HTTP_201_CREATED
+    assert response.status_code == status.HTTP_202_ACCEPTED
 
 
 # ── 3. TESTES DO WORKER E FILA DE PROCESSAMENTO ────────────────────────────────

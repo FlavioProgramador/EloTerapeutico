@@ -1,6 +1,7 @@
 """Settings de desenvolvimento."""
 
 from .base import *  # noqa
+from .celery import *  # noqa
 
 DEBUG = True
 
@@ -16,6 +17,16 @@ CORS_ALLOW_CREDENTIALS = False
 
 # Banco de dados local (Usa a DATABASE_URL definida no .env, com fallback para SQLite)
 DATABASES = {"default": env.db("DATABASE_URL", default="sqlite:///db.sqlite3")}  # noqa: F405
+
+# Redis é opcional fora do Docker; quando configurado, cache e Celery usam o mesmo serviço.
+_redis_url = env("REDIS_URL", default="")  # noqa: F405
+if _redis_url:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": _redis_url,
+        }
+    }
 
 # E-mail – exibir no console em dev
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
