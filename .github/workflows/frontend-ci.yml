@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Lint, type check and build
+    name: Lint, type check, test and build
     runs-on: ubuntu-latest
 
     defaults:
@@ -47,7 +47,13 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          npx tsc --noEmit 2>&1 | tee typescript-output.txt
+          npm run typecheck 2>&1 | tee typescript-output.txt
+
+      - name: Run frontend tests
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee test-output.txt
 
       - name: Build Next.js application
         env:
@@ -65,6 +71,7 @@ jobs:
           path: |
             frontend/eslint-output.txt
             frontend/typescript-output.txt
+            frontend/test-output.txt
             frontend/build-output.txt
           if-no-files-found: ignore
           retention-days: 7
