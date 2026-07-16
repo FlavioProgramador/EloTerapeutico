@@ -148,7 +148,10 @@ export function PatientListPanel({
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-primary/25 bg-primary/8 text-[11px] font-bold text-primary">
+                      <span
+                        aria-hidden="true"
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-primary/25 bg-primary/8 text-[11px] font-bold text-primary"
+                      >
                         {initials(patient.display_name)}
                       </span>
                       <div className="min-w-0">
@@ -203,7 +206,7 @@ export function PatientListPanel({
               onClick={() => onSelect(patient.id)}
               aria-pressed={selected}
               aria-label={`Selecionar paciente ${patient.display_name}`}
-              className={`w-full p-4 text-left transition-colors ${
+              className={`w-full p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 ${
                 selected
                   ? "bg-primary/8 shadow-[inset_3px_0_0_hsl(var(--primary))]"
                   : "hover:bg-secondary/45"
@@ -211,7 +214,10 @@ export function PatientListPanel({
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-primary/25 bg-primary/8 text-xs font-bold text-primary">
+                  <span
+                    aria-hidden="true"
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-primary/25 bg-primary/8 text-xs font-bold text-primary"
+                  >
                     {initials(patient.display_name)}
                   </span>
                   <div className="min-w-0">
