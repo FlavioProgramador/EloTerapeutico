@@ -17,7 +17,7 @@ from .managers import UserManager
 class User(AbstractBaseUser, PermissionsMixin):
     """
     Usuário do sistema. O identificador principal é o e-mail.
-    Suporta três papéis: Terapeuta, Secretária e Administrador de Clínica.
+    O papel global legado não substitui as funções por clínica.
     """
 
     class Role(models.TextChoices):
@@ -25,16 +25,14 @@ class User(AbstractBaseUser, PermissionsMixin):
         SECRETARY = "secretary", "Secretária"
         ADMIN = "admin", "Administrador"
 
-    # ── Identificação ───────────────────────────────────────────────────────
     email = models.EmailField(unique=True, verbose_name="E-mail")
     full_name = models.CharField(max_length=255, verbose_name="Nome completo")
-
-    # ── Perfil profissional ─────────────────────────────────────────────────
     role = models.CharField(
         max_length=20,
         choices=Role.choices,
         default=Role.THERAPIST,
-        verbose_name="Papel no sistema",
+        verbose_name="Papel global legado",
+        help_text="Não utilizar como substituto do papel no membership da clínica.",
     )
     specialty = models.CharField(
         max_length=100,
@@ -65,15 +63,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     clinic_name = models.CharField(
         max_length=160,
         blank=True,
-        verbose_name="Nome da clínica",
+        verbose_name="Nome da clínica legado",
+        help_text="Mantido temporariamente durante a migração para Clinic.",
     )
     professional_address = models.JSONField(
         default=dict,
         blank=True,
         verbose_name="Endereço profissional",
     )
-
-    # ── Configurações de agenda ─────────────────────────────────────────────
     default_session_duration = models.PositiveIntegerField(
         default=50,
         verbose_name="Duração padrão da sessão (min)",
@@ -84,8 +81,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         default=0,
         verbose_name="Valor padrão da sessão (R$)",
     )
-
-    # ── Ciclo de vida da conta ──────────────────────────────────────────────
     terms_accepted_at = models.DateTimeField(
         null=True,
         blank=True,
@@ -107,14 +102,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         blank=True,
         verbose_name="Onboarding concluído em",
     )
-
-    # ── Controle de conta ───────────────────────────────────────────────────
     is_active = models.BooleanField(default=True, verbose_name="Ativo")
     is_staff = models.BooleanField(default=False, verbose_name="Staff")
     date_joined = models.DateTimeField(default=timezone.now, verbose_name="Data de cadastro")
     last_login = models.DateTimeField(null=True, blank=True, verbose_name="Último login")
-
-    # Contador de tentativas de login para bloqueio de conta
     failed_login_attempts = models.PositiveSmallIntegerField(default=0)
     locked_until = models.DateTimeField(null=True, blank=True)
 
@@ -172,7 +163,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class AuthSession(models.Model):
-    """Sessão revogável associada a um refresh token rotativo."""
+    """Sessão revogável associada a um refresh token e a uma clínica ativa."""
 
     public_id = models.UUIDField(
         default=uuid.uuid4,
@@ -186,6 +177,14 @@ class AuthSession(models.Model):
         on_delete=models.CASCADE,
         related_name="auth_sessions",
         verbose_name="Usuário",
+    )
+    active_clinic = models.ForeignKey(
+        "Clinic",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="auth_sessions",
+        verbose_name="Clínica ativa",
     )
     refresh_jti = models.CharField(
         max_length=255,
@@ -220,6 +219,10 @@ class AuthSession(models.Model):
             models.Index(
                 fields=["user", "revoked_at", "expires_at"],
                 name="users_auths_user_active_idx",
+            ),
+            models.Index(
+                fields=["active_clinic", "revoked_at"],
+                name="users_auths_clinic_active_idx",
             ),
         ]
 
@@ -262,3 +265,6 @@ class WorkingHours(models.Model):
 
     def __str__(self):
         return f"{self.therapist.full_name} – {self.get_weekday_display()} {self.start_time}–{self.end_time}"
+
+
+from .clinic_models import Clinic, ClinicInvitation, ClinicMembership  # noqa: E402,F401

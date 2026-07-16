@@ -2,6 +2,12 @@ from django.urls import path
 
 from apps.billing.registration import PlanRegistrationView
 
+from .api.clinic_views import (
+    ClinicContextView,
+    ClinicInvitationAcceptView,
+    ClinicInvitationCreateView,
+    ClinicSwitchView,
+)
 from .api.onboarding import OnboardingView
 from .api.views import (
     AuthSessionListView,
@@ -28,6 +34,18 @@ urlpatterns = [
         "sessions/<uuid:public_id>/revoke/",
         AuthSessionRevokeView.as_view(),
         name="auth-session-revoke",
+    ),
+    path("clinics/", ClinicContextView.as_view(), name="clinic-context"),
+    path("clinics/switch/", ClinicSwitchView.as_view(), name="clinic-switch"),
+    path(
+        "clinics/invitations/",
+        ClinicInvitationCreateView.as_view(),
+        name="clinic-invitation-create",
+    ),
+    path(
+        "clinics/invitations/accept/",
+        ClinicInvitationAcceptView.as_view(),
+        name="clinic-invitation-accept",
     ),
     path(
         "token/refresh/",

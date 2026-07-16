@@ -33,14 +33,23 @@ def _attach_session_claim(refresh: RefreshToken, session: AuthSession) -> None:
     refresh[SESSION_CLAIM] = str(session.public_id)
 
 
+def _default_membership_for_session(*, user: User):
+    from apps.users.services.clinics import ensure_default_clinic_for_user
+
+    membership, _, _ = ensure_default_clinic_for_user(user=user)
+    return membership
+
+
 def _create_session_for_refresh(
     *,
     user: User,
     refresh: RefreshToken,
     request: Any | None,
 ) -> AuthSession:
+    membership = _default_membership_for_session(user=user)
     session = AuthSession.objects.create(
         user=user,
+        active_clinic=membership.clinic if membership else None,
         refresh_jti=str(refresh["jti"]),
         user_agent=_request_user_agent(request),
         expires_at=_token_expiration(refresh),
@@ -71,6 +80,7 @@ def _locked_session_for_refresh(
 
     session = (
         AuthSession.objects.select_for_update()
+        .select_related("active_clinic")
         .filter(public_id=session_id, user=user)
         .first()
     )
@@ -79,8 +89,6 @@ def _locked_session_for_refresh(
     if not session.is_active:
         raise TokenError("Sessão inválida ou revogada.")
     if session.refresh_jti != str(refresh["jti"]):
-        # Impede replay e resolve refresh simultâneo: somente o primeiro token
-        # que obtiver o lock ainda terá o JTI corrente da sessão.
         raise TokenError("Sessão inválida ou revogada.")
     return session
 
@@ -204,8 +212,12 @@ def revoke_user_session(
 
 def active_sessions_for_user(*, user: User):
     now = timezone.now()
-    return AuthSession.objects.filter(
-        user=user,
-        revoked_at__isnull=True,
-        expires_at__gt=now,
-    ).order_by("-last_seen_at")
+    return (
+        AuthSession.objects.select_related("active_clinic")
+        .filter(
+            user=user,
+            revoked_at__isnull=True,
+            expires_at__gt=now,
+        )
+        .order_by("-last_seen_at")
+    )
