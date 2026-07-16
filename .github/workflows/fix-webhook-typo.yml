@@ -1,0 +1,42 @@
+name: Temporary webhook typo fix
+
+on:
+  push:
+    branches:
+      - refactor/frontend-componentization
+    paths:
+      - .github/workflows/fix-webhook-typo.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/frontend-componentization
+          fetch-depth: 0
+
+      - name: Corrigir identificador e remover workflow temporário
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("backend/apps/billing/webhooks/asaas.py")
+          content = path.read_text(encoding="utf-8")
+          old = "gateway_subscription_id=gateway_subription_id"
+          new = "gateway_subscription_id=gateway_subscription_id"
+          if content.count(old) != 1:
+              raise SystemExit("Ocorrência esperada não encontrada exatamente uma vez.")
+          path.write_text(content.replace(old, new), encoding="utf-8")
+          PY
+          rm .github/workflows/fix-webhook-typo.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/apps/billing/webhooks/asaas.py .github/workflows/fix-webhook-typo.yml
+          git commit -m "fix: corrige busca de assinatura em webhook"
+          git push origin HEAD:refactor/frontend-componentization
