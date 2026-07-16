@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import {
+  type RefObject,
   useCallback,
   useEffect,
   useMemo,
@@ -29,13 +30,14 @@ import {
   toDateInput,
 } from "../components/evolution-editor/evolution-editor.utils";
 
-export function useEvolutionEditorController(props: EvolutionEditorProps) {
+export function useEvolutionEditorController(
+  props: EvolutionEditorProps,
+  dialogRef: RefObject<HTMLDivElement | null>,
+) {
   const { patientId: patientParam } = useParams<{ patientId: string }>();
   const patientId = Number(patientParam);
   const queryClient = useQueryClient();
-  const dialogRef = useRef<HTMLDivElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
-  const templateButtonRef = useRef<HTMLButtonElement>(null);
   const pendingFilesRef = useRef<PendingEvolutionAttachment[]>([]);
   const modalEvolution = props.evolution as
     | EvolutionWithModalData
@@ -133,7 +135,7 @@ export function useEvolutionEditorController(props: EvolutionEditorProps) {
       return;
     }
     props.onClose();
-  }, [busy, dirty, props]);
+  }, [busy, dirty, props.onClose]);
 
   useEffect(() => {
     if (!props.open) return;
@@ -189,7 +191,7 @@ export function useEvolutionEditorController(props: EvolutionEditorProps) {
       window.removeEventListener("keydown", onKeyDown);
       returnFocusRef.current?.focus();
     };
-  }, [props.open, requestClose]);
+  }, [dialogRef, props.open, requestClose]);
 
   useEffect(() => {
     pendingFilesRef.current = pendingFiles;
@@ -407,8 +409,6 @@ export function useEvolutionEditorController(props: EvolutionEditorProps) {
   }
 
   return {
-    dialogRef,
-    templateButtonRef,
     form,
     setForm,
     pendingFiles,
