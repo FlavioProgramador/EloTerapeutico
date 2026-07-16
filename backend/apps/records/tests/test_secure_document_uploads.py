@@ -8,7 +8,14 @@ from rest_framework.test import APIClient
 
 from apps.patients.models import Patient
 from apps.records.services.document_upload_security import validate_clinical_document_upload
+from apps.records.treatment_models import ClinicalDocument
 from apps.users.models import User
+
+
+@pytest.fixture(autouse=True)
+def secure_scanner_settings(settings):
+    settings.CLINICAL_UPLOAD_SCANNER_BACKEND = "mock_clean"
+    settings.CLINICAL_UPLOAD_SCANNER_ALLOW_MOCK = True
 
 
 def build_docx() -> bytes:
@@ -57,7 +64,7 @@ def test_endpoint_rejeita_pdf_com_conteudo_executavel_disfarcado():
 
 
 @pytest.mark.django_db
-def test_endpoint_aceita_pdf_com_assinatura_valida():
+def test_endpoint_aceita_pdf_e_mantem_em_quarentena_ate_worker():
     therapist = User.objects.create_user(
         email="upload.valid@example.com",
         password="password",
@@ -83,8 +90,12 @@ def test_endpoint_aceita_pdf_com_assinatura_valida():
         format="multipart",
     )
 
-    assert response.status_code == 201
-    assert patient.clinical_documents.filter(original_name="laudo.pdf").exists()
+    assert response.status_code == 202
+    document = ClinicalDocument.objects.get(patient=patient, original_name="laudo.pdf")
+    assert document.scan_status == ClinicalDocument.ScanStatus.PENDING
+    assert document.quarantine_file
+    assert not document.file
+    assert response.data["download_url"] is None
 
 
 def test_validador_rejeita_docx_que_e_apenas_um_zip_generico():

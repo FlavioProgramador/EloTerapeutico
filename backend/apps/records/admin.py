@@ -6,6 +6,7 @@ este arquivo apenas como ponto de carregamento do Django Admin.
 
 from .admin_parts import (  # noqa: F401
     AnamnesisAdmin,
+    ClinicalDocumentAdmin,
     EvolutionAddendumAdmin,
     EvolutionAdmin,
 )

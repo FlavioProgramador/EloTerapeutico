@@ -145,5 +145,7 @@ def test_upload_valido_e_assinatura_invalida(api, patient, tmp_path, settings):
     valid = api.post(url, {"file": valid_png}, format="multipart")
     invalid = api.post(url, {"file": invalid_png}, format="multipart")
 
-    assert valid.status_code == 201
+    assert valid.status_code == 202
+    assert valid.data["scan_status"] == "pending"
+    assert valid.data["download_url"] is None
     assert invalid.status_code == 400

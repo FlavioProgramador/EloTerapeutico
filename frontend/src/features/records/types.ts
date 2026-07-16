@@ -167,6 +167,13 @@ export interface TreatmentGoal {
   updated_at: string;
 }
 
+export type ClinicalDocumentScanStatus =
+  | "pending"
+  | "scanning"
+  | "clean"
+  | "infected"
+  | "failed";
+
 export interface ClinicalDocument {
   id: number;
   patient: number;
@@ -180,12 +187,16 @@ export interface ClinicalDocument {
   size_bytes: number;
   version: number;
   is_archived: boolean;
-  status?: "available" | "archived";
+  status?: "available" | "archived" | "processing" | "rejected" | "failed";
   status_display?: string;
+  scan_status: ClinicalDocumentScanStatus;
+  scan_status_display: string;
+  scan_attempts: number;
+  scanned_at: string | null;
   uploaded_by_name?: string;
   created_at: string;
   updated_at: string;
-  download_url: string;
+  download_url: string | null;
 }
 
 export interface Paginated<T> {

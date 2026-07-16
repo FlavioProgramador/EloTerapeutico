@@ -76,9 +76,11 @@ def create_document(*, patient, uploaded_by, evolution=None, name="relatorio.pdf
         category=ClinicalDocument.Category.REPORT,
         file=SimpleUploadedFile(name, content, content_type="application/pdf"),
         original_name=name,
+        content_type="application/pdf",
         size_bytes=len(content),
         checksum="abc",
         uploaded_by=uploaded_by,
+        scan_status=ClinicalDocument.ScanStatus.CLEAN,
     )
 
 

@@ -55,6 +55,7 @@ def create_document(*, patient, evolution, uploaded_by, name):
         size_bytes=len(content),
         checksum="workspace-checksum",
         uploaded_by=uploaded_by,
+        scan_status=ClinicalDocument.ScanStatus.CLEAN,
     )
 
 
