@@ -170,7 +170,7 @@ class ClinicInvitationCreateView(APIView):
             {
                 "invitation": ClinicInvitationSerializer(invitation).data,
                 "invitation_token": raw_token,
-                "token_displayed_once": True,
+                "displayed_once": True,
             },
             status=status.HTTP_201_CREATED,
         )
