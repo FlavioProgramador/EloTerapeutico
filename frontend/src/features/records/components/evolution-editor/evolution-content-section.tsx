@@ -1,14 +1,19 @@
 import { ChevronDown, FileText } from "lucide-react";
+import type { RefObject } from "react";
 
 import { Button } from "@/components/ui/button";
 import type { EvolutionEditorController } from "../../hooks/use-evolution-editor-controller";
 import { ClinicalMarkdownEditor } from "../clinical-markdown-editor";
 
+interface EvolutionContentSectionProps {
+  controller: EvolutionEditorController;
+  templateButtonRef: RefObject<HTMLButtonElement | null>;
+}
+
 export function EvolutionContentSection({
   controller,
-}: {
-  controller: EvolutionEditorController;
-}) {
+  templateButtonRef,
+}: EvolutionContentSectionProps) {
   return (
     <section className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -17,7 +22,7 @@ export function EvolutionContentSection({
         </label>
         <div className="relative">
           <Button
-            ref={controller.templateButtonRef}
+            ref={templateButtonRef}
             type="button"
             size="sm"
             variant="outline"
