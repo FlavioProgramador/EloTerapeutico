@@ -54,6 +54,7 @@ test("regras sensíveis permanecem nos controllers", async () => {
   assert.match(checkout, /idempotencyKeyRef/);
   assert.match(checkout, /previewCheckout/);
   assert.match(checkout, /createCheckout/);
+  assert.doesNotMatch(checkout, /localStorage|sessionStorage/);
 });
 
 test("seções extraídas preservam responsabilidades locais", async () => {
