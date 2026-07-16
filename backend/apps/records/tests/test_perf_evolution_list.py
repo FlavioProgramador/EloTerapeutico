@@ -6,9 +6,10 @@ from rest_framework.test import APIClient
 
 from apps.patients.models import Patient
 from apps.records.extended_models import EvolutionVersion
-from apps.records.models import Evolution, EvolutionAddendum, ClinicalDocument
+from apps.records.models import ClinicalDocument, Evolution, EvolutionAddendum
 from apps.records.models.evolution_clinical_data import EvolutionClinicalData
 from apps.users.models import User
+
 
 @pytest.fixture
 def therapist(db):
@@ -76,7 +77,7 @@ def test_evolution_list_queries_optimized(client, therapist, patient):
         assert response.status_code == 200
         count_large = len(queries_large)
 
-    print(f"\nSummary:")
+    print("\nSummary:")
     print(f"Queries with 2 evolutions: {count_small}")
     print(f"Queries with 5 evolutions: {count_large}")
 
