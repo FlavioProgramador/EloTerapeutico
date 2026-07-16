@@ -9,6 +9,7 @@ from .base import *  # noqa: F403,F401
 from .celery import *  # noqa: F403,F401
 
 DEBUG = False
+AUTH_REQUIRE_SESSION_CLAIM = False
 
 ADMIN_SQL_EXPLORER_ENABLED = False
 ADMIN_SQL_EXPLORER_DATABASE_ALIAS = "default"

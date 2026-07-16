@@ -4,8 +4,11 @@ from apps.billing.registration import PlanRegistrationView
 
 from .api.onboarding import OnboardingView
 from .api.views import (
+    AuthSessionListView,
+    AuthSessionRevokeView,
     ChangePasswordView,
     LoginView,
+    LogoutAllView,
     LogoutView,
     MeView,
     PasswordResetConfirmView,
@@ -19,6 +22,13 @@ urlpatterns = [
     path("register/", PlanRegistrationView.as_view(), name="auth-register"),
     path("login/", LoginView.as_view(), name="auth-login"),
     path("logout/", LogoutView.as_view(), name="auth-logout"),
+    path("logout-all/", LogoutAllView.as_view(), name="auth-logout-all"),
+    path("sessions/", AuthSessionListView.as_view(), name="auth-session-list"),
+    path(
+        "sessions/<uuid:public_id>/revoke/",
+        AuthSessionRevokeView.as_view(),
+        name="auth-session-revoke",
+    ),
     path(
         "token/refresh/",
         SafeTokenRefreshView.as_view(),

@@ -3,6 +3,8 @@ apps/users/models.py
 Modelo de usuário customizado para terapeutas, secretárias e administradores.
 """
 
+import uuid
+
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
 from django.utils import timezone
@@ -167,6 +169,66 @@ class User(AbstractBaseUser, PermissionsMixin):
         self.failed_login_attempts = 0
         self.locked_until = None
         self.save(update_fields=["failed_login_attempts", "locked_until"])
+
+
+class AuthSession(models.Model):
+    """Sessão revogável associada a um refresh token rotativo."""
+
+    public_id = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        db_index=True,
+        verbose_name="Identificador público",
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="auth_sessions",
+        verbose_name="Usuário",
+    )
+    refresh_jti = models.CharField(
+        max_length=255,
+        unique=True,
+        verbose_name="JTI do refresh token",
+    )
+    user_agent = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Agente do dispositivo",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criada em")
+    last_seen_at = models.DateTimeField(default=timezone.now, verbose_name="Última atividade")
+    expires_at = models.DateTimeField(db_index=True, verbose_name="Expira em")
+    revoked_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name="Revogada em",
+    )
+    revoked_reason = models.CharField(
+        max_length=80,
+        blank=True,
+        verbose_name="Motivo da revogação",
+    )
+
+    class Meta:
+        verbose_name = "Sessão autenticada"
+        verbose_name_plural = "Sessões autenticadas"
+        ordering = ["-last_seen_at"]
+        indexes = [
+            models.Index(
+                fields=["user", "revoked_at", "expires_at"],
+                name="users_auths_user_active_idx",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"Sessão {self.public_id} do usuário {self.user_id}"
+
+    @property
+    def is_active(self) -> bool:
+        return self.revoked_at is None and self.expires_at > timezone.now()
 
 
 class WorkingHours(models.Model):

@@ -8,22 +8,56 @@
 - referrer policy same-origin;
 - COOP same-origin;
 - `X_FRAME_OPTIONS=DENY`;
-- session e CSRF cookies Secure, HttpOnly e SameSite Lax;
+- session e CSRF cookies do Django seguros;
 - CORS sem wildcard e origens obrigatórias.
 
-## Cookies JWT do frontend
+## Sessão JWT pelo BFF
 
-Os cookies Django acima não protegem automaticamente `auth_token`, `auth_refresh_token` e `auth_role`, pois eles são criados no navegador com `cookies-next`. JavaScript não pode marcar cookie como HttpOnly.
+O navegador não recebe nem lê access token ou refresh token. O Next.js atua como Backend for Frontend:
 
-### Recomendação
+```text
+Navegador
+→ Route Handler /api/auth ou /api/backend
+→ Django REST Framework
+```
 
-Migrar para uma destas arquiteturas, após threat modeling:
+Cookies usados pelo BFF:
 
-1. backend/BFF define access/refresh em cookies HttpOnly, Secure e SameSite adequados;
-2. sessão server-side com CSRF robusto;
-3. access token apenas em memória e refresh HttpOnly com rotação.
+| Cookie | Acesso JavaScript | Finalidade |
+| --- | --- | --- |
+| `elo_access` | Não (`HttpOnly`) | access token de curta duração |
+| `elo_refresh` | Não (`HttpOnly`) | refresh token rotativo |
+| `elo_csrf` | Sim | double-submit token para requisições mutáveis |
 
-Definir CSP forte e remover XSS continua necessário.
+Regras aplicadas:
+
+- `HttpOnly` para access e refresh;
+- `Secure` em produção;
+- `SameSite=Lax`;
+- `Path=/`;
+- duração configurável;
+- respostas de login, cadastro e refresh são sanitizadas;
+- `Authorization` é adicionado somente no servidor Next.js;
+- requests `POST`, `PUT`, `PATCH` e `DELETE` autenticados exigem `X-CSRF-Token`;
+- endpoints públicos de autenticação validam `Origin` e `Sec-Fetch-Site`;
+- o proxy genérico bloqueia login, refresh e logout;
+- nenhuma credencial é persistida em `localStorage`.
+
+A presença do cookie no middleware serve apenas para navegação. Validade da sessão, role, tenant, assinatura e permissão de objeto são confirmados pelo Django.
+
+### Variáveis do frontend
+
+Consulte `frontend/.env.example`:
+
+- `BACKEND_API_URL`: URL interna do Django acessível pelo processo Next.js;
+- `AUTH_ACCESS_COOKIE_MAX_AGE`;
+- `AUTH_REFRESH_COOKIE_MAX_AGE`.
+
+No Docker, `BACKEND_API_URL` deve apontar para o nome interno do serviço, não para `localhost` do navegador.
+
+### Risco residual
+
+Cookies HttpOnly reduzem o impacto de exfiltração de token por XSS, mas não eliminam ações em nome do usuário. CSP forte, escaping, sanitização, dependências atualizadas e CSRF continuam obrigatórios.
 
 ## Storage
 

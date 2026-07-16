@@ -3,40 +3,36 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import {
   createSingleFlight,
   extractApiErrorMessage,
-  prepareRetryRequest,
   type ApiErrorEnvelope,
 } from "@/lib/auth-flow";
-import {
-  clearAuthSession,
-  getAccessToken,
-  getRefreshToken,
-  persistAuthTokens,
-} from "@/lib/auth-session";
+import { isUnsafeHttpMethod } from "@/lib/auth-constants";
+import { clearClientAuthState, getCsrfToken } from "@/lib/auth-session";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1/";
+const API_URL = "/api/backend/";
 
 type RetriableRequest = InternalAxiosRequestConfig & { _retry?: boolean };
 
 export const api = axios.create({
   baseURL: API_URL,
   headers: {
-    "Content-Type": "application/json",
+    Accept: "application/json",
   },
+  withCredentials: true,
 });
 
 api.interceptors.request.use(
   (config) => {
-    const token = getAccessToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (isUnsafeHttpMethod(config.method || "GET")) {
+      const csrfToken = getCsrfToken();
+      if (csrfToken) config.headers.set("X-CSRF-Token", csrfToken);
     }
+    config.headers.delete("Authorization");
     return config;
   },
   (error) => Promise.reject(error),
 );
 
-const runRefreshSingleFlight = createSingleFlight<string>();
+const runRefreshSingleFlight = createSingleFlight<void>();
 let redirectingToLogin = false;
 
 function normalizeErrorEnvelope(error: AxiosError<ApiErrorEnvelope>): void {
@@ -58,24 +54,19 @@ function redirectToLoginOnce(): void {
   window.location.replace(`${login.pathname}${login.search}`);
 }
 
-function refreshAccessToken(): Promise<string> {
+function refreshSession(): Promise<void> {
   return runRefreshSingleFlight(async () => {
-    const refresh = getRefreshToken();
-    if (!refresh) {
-      throw new Error("REFRESH_TOKEN_MISSING");
-    }
+    const csrfToken = getCsrfToken();
+    if (!csrfToken) throw new Error("CSRF_TOKEN_MISSING");
 
-    const response = await axios.post<{ access?: string; refresh?: string }>(
-      `${API_URL}auth/token/refresh/`,
-      { refresh },
+    await axios.post(
+      "/api/auth/refresh/",
+      {},
+      {
+        withCredentials: true,
+        headers: { "X-CSRF-Token": csrfToken },
+      },
     );
-    const access = response.data.access;
-    if (typeof access !== "string" || !access) {
-      throw new Error("INVALID_REFRESH_RESPONSE");
-    }
-    persistAuthTokens(access, response.data.refresh || null);
-    api.defaults.headers.common.Authorization = `Bearer ${access}`;
-    return access;
   });
 }
 
@@ -115,34 +106,21 @@ api.interceptors.response.use(
       return Promise.reject(rawError);
     }
 
-    const isRefreshRequest = originalRequest?.url?.includes(
-      "auth/token/refresh/",
-    );
-    const isLoginRequest = originalRequest?.url?.includes("auth/login/");
     if (
       rawError.response?.status !== 401 ||
       !originalRequest ||
-      originalRequest._retry ||
-      isRefreshRequest ||
-      isLoginRequest
+      originalRequest._retry
     ) {
       return Promise.reject(rawError);
     }
 
     originalRequest._retry = true;
     try {
-      const access = await refreshAccessToken();
-      prepareRetryRequest(
-        originalRequest as unknown as {
-          headers: Record<string, unknown>;
-          data?: unknown;
-        },
-        access,
-      );
-      // Axios preserva data e headers customizados, inclusive Idempotency-Key.
+      await refreshSession();
+      originalRequest.headers.delete("Authorization");
       return api(originalRequest);
     } catch (refreshError) {
-      clearAuthSession();
+      clearClientAuthState();
       redirectToLoginOnce();
       return Promise.reject(refreshError);
     }

@@ -11,12 +11,12 @@ from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.billing.models import PlanPrice, Subscription
 from apps.billing.serializers import PlanPriceSerializer, PlanSerializer, SubscriptionSerializer
 from apps.billing.services.trials import start_trial
 from apps.users.api.serializers import RegisterSerializer, UserProfileSerializer
+from apps.users.services.sessions import issue_token_pair
 
 logger = logging.getLogger(__name__)
 
@@ -202,14 +202,11 @@ class PlanRegistrationView(APIView):
             )
         )
 
-        refresh = RefreshToken.for_user(user)
+        tokens = issue_token_pair(user=user, request=request)
         return Response(
             {
                 "message": "Cadastro realizado com sucesso.",
-                "tokens": {
-                    "access": str(refresh.access_token),
-                    "refresh": str(refresh),
-                },
+                "tokens": tokens,
                 "user": UserProfileSerializer(user).data,
                 "access_mode": data["access_mode"],
                 "selected_plan": PlanSerializer(plan_price.plan).data if plan_price else None,

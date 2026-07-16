@@ -6,6 +6,7 @@ from .base import *  # noqa
 from .celery import *  # noqa
 
 DEBUG = True
+AUTH_REQUIRE_SESSION_CLAIM = False
 
 ADMIN_SQL_EXPLORER_ENABLED = env.bool("ADMIN_SQL_EXPLORER_ENABLED", default=False)  # noqa: F405
 ADMIN_SQL_EXPLORER_DATABASE_ALIAS = env(  # noqa: F405

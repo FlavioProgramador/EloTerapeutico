@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+import {
+  AUTH_ACCESS_COOKIE,
+  AUTH_REFRESH_COOKIE,
+} from "@/lib/auth-constants";
+
 const publicRoutes = [
   "/login",
   "/register",
@@ -13,8 +18,10 @@ const publicRoutes = [
 
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  const token = request.cookies.get("auth_token")?.value;
-  const role = request.cookies.get("auth_role")?.value;
+  const hasSession = Boolean(
+    request.cookies.get(AUTH_ACCESS_COOKIE)?.value ||
+      request.cookies.get(AUTH_REFRESH_COOKIE)?.value,
+  );
 
   if (
     pathname.startsWith("/_next") ||
@@ -36,31 +43,15 @@ export function middleware(request: NextRequest) {
   const isProtectedRoute =
     isDashboardRoute || isCheckoutRoute || isOnboardingRoute;
 
-  if (!token && isProtectedRoute) {
+  if (!hasSession && isProtectedRoute) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", `${pathname}${search}`);
     return NextResponse.redirect(loginUrl);
   }
 
-  // A validade do cookie e o estado da assinatura são confirmados pelas APIs.
-  // Assim, login/cadastro permanecem acessíveis para limpar sessões expiradas.
-  if (isPublicRoute) {
-    return NextResponse.next();
-  }
-
-  if (token && isDashboardRoute) {
-    if (role === "secretary" && pathname.startsWith("/dashboard/records")) {
-      const dashboardUrl = new URL("/dashboard", request.url);
-      dashboardUrl.searchParams.set("error", "access_denied_records");
-      return NextResponse.redirect(dashboardUrl);
-    }
-
-    if (role !== "admin" && pathname.startsWith("/dashboard/admin")) {
-      const dashboardUrl = new URL("/dashboard", request.url);
-      dashboardUrl.searchParams.set("error", "access_denied_admin");
-      return NextResponse.redirect(dashboardUrl);
-    }
-  }
+  // Este middleware melhora apenas a navegação. Validade da sessão, role,
+  // tenant, assinatura e object-level permissions são confirmados pelo backend.
+  if (isPublicRoute) return NextResponse.next();
 
   return NextResponse.next();
 }
