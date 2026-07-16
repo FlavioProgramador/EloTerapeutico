@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useEvolutionEditorController } from "../hooks/use-evolution-editor-controller";
@@ -12,7 +13,9 @@ import { EvolutionSecuritySection } from "./evolution-editor/evolution-security-
 export { handleEditorShortcut } from "./evolution-editor/evolution-editor.utils";
 
 export function EvolutionEditor(props: EvolutionEditorProps) {
-  const controller = useEvolutionEditorController(props);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const templateButtonRef = useRef<HTMLButtonElement>(null);
+  const controller = useEvolutionEditorController(props, dialogRef);
 
   if (!props.open) return null;
 
@@ -24,7 +27,7 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
       }}
     >
       <div
-        ref={controller.dialogRef}
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="evolution-modal-title"
@@ -62,7 +65,10 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
         <div className="flex-1 overflow-y-auto px-5 py-4">
           <div className="space-y-5">
             <EvolutionLinkSection controller={controller} />
-            <EvolutionContentSection controller={controller} />
+            <EvolutionContentSection
+              controller={controller}
+              templateButtonRef={templateButtonRef}
+            />
             <EvolutionSecuritySection controller={controller} />
           </div>
         </div>
