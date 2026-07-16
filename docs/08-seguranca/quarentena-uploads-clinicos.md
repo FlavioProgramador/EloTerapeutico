@@ -25,6 +25,8 @@ Upload
 
 A API retorna `202 Accepted` no upload. O frontend deve atualizar a listagem até o estado final e nunca construir URLs de storage.
 
+A liberação depende sempre do estado persistido pelo backend; a interface não pode antecipar nem substituir o resultado do scanner.
+
 ## Configuração
 
 ```text
