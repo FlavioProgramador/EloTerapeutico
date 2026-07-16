@@ -235,13 +235,13 @@ class ClinicInvitation(models.Model):
             models.UniqueConstraint(
                 fields=["clinic", "email"],
                 condition=Q(status="pending"),
-                name="users_clinic_pending_invite_unique",
+                name="users_clinic_pend_inv_unique",
             ),
         ]
         indexes = [
             models.Index(
                 fields=["clinic", "status", "expires_at"],
-                name="users_clinic_invite_pending_idx",
+                name="users_clinic_inv_pend_idx",
             ),
         ]
 
