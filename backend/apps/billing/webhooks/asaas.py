@@ -57,12 +57,12 @@ def _event_id(payload: dict) -> str | None:
     return f"{event_type}:{related_id}" if related_id else None
 
 
-def _legacy_order_for_subscription(gateway_subscription_id: str) -> BillingOrder | None:
+def _legacy_order_for_subscription(gateway_subscription_id: str | None) -> BillingOrder | None:
     if not gateway_subscription_id:
         return None
     subscription = (
         Subscription.objects.select_related("plan", "billing_order")
-        .filter(gateway_subscription_id=gateway_subscription_id)
+        .filter(gateway_subscription_id=gateway_subription_id)
         .first()
     )
     if not subscription:
@@ -160,7 +160,7 @@ def _find_order(payment_data: dict) -> BillingOrder | None:
 
 
 def _subscription_for_order(order: BillingOrder, payment_data: dict) -> Subscription | None:
-    subscription = order.subscriptions.order_by("-created_at").first()
+    subscription = Subscription.objects.filter(billing_order=order).order_by("-created_at").first()
     if subscription:
         return subscription
     gateway_subscription_id = payment_data.get("subscription")
@@ -173,7 +173,7 @@ def _subscription_for_order(order: BillingOrder, payment_data: dict) -> Subscrip
 
 
 def _update_order_financial_status(order: BillingOrder) -> None:
-    payments = order.payments.all()
+    payments = Payment.objects.filter(billing_order=order)
     total = payments.count()
     paid = payments.filter(
         status__in=[Payment.Status.CONFIRMED, Payment.Status.RECEIVED]
@@ -256,7 +256,7 @@ def _process_subscription_event(event_type: str, subscription_data: dict) -> str
         order = BillingOrder.objects.filter(
             gateway_subscription_id=gateway_subscription_id
         ).first()
-        subscription = order.subscriptions.order_by("-created_at").first() if order else None
+        subscription = Subscription.objects.filter(billing_order=order).order_by("-created_at").first() if order else None
     if not subscription:
         return "retry: assinatura local ainda não localizada"
 

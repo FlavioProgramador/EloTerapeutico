@@ -102,8 +102,8 @@ async function proxyRequest(
       return registrationResponse(backendResponse);
     }
     return backendResponseToNext(backendResponse);
-  } catch {
-    return gatewayUnavailableResponse();
+  } catch (error: any) {
+    return gatewayUnavailableResponse(error);
   }
 }
 

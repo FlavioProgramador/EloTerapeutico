@@ -62,7 +62,7 @@ function backendBaseUrl(): URL {
   const configured =
     process.env.BACKEND_API_URL ||
     process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:8000/api/v1/";
+    "http://backend:8000/api/v1/";
   return new URL(configured.endsWith("/") ? configured : `${configured}/`);
 }
 
@@ -143,12 +143,14 @@ export function originRejectedResponse(): NextResponse {
   );
 }
 
-export function gatewayUnavailableResponse(): NextResponse {
+export function gatewayUnavailableResponse(errorDetails?: any): NextResponse {
   return NextResponse.json(
     {
       error: {
         code: "AUTH_GATEWAY_UNAVAILABLE",
         message: "O serviço de autenticação está temporariamente indisponível.",
+        details: errorDetails ? (errorDetails.message || String(errorDetails)) : undefined,
+        url: backendBaseUrl().toString()
       },
     },
     { status: 502 },
@@ -233,6 +235,7 @@ export function createBackendHeaders(
     if (value) headers.set(name, value);
   }
   if (accessToken) headers.set("authorization", `Bearer ${accessToken}`);
+  headers.set("connection", "close");
   return headers;
 }
 
@@ -241,7 +244,8 @@ export async function fetchBackend(
   init: StreamingRequestInit,
   search = "",
 ): Promise<Response> {
-  return fetch(buildBackendUrl(path, search), {
+  const url = buildBackendUrl(path, search);
+  return fetch(url, {
     ...init,
     cache: "no-store",
     redirect: "manual",

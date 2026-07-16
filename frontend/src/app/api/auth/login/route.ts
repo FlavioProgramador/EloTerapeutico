@@ -24,12 +24,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       headers: createBackendHeaders(request),
       body: await request.text(),
     });
-  } catch {
-    return gatewayUnavailableResponse();
+  } catch (err: any) {
+    return NextResponse.json(
+      { 
+        error: "DEBUG_FETCH_FAILED", 
+        message: err?.message, 
+        cause: err?.cause?.message, 
+        stack: err?.stack,
+        url: process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || "fallback"
+      }, 
+      { status: 502 }
+    );
   }
 
   const payload = await parseBackendJson(backendResponse);
-  if (!payload) return gatewayUnavailableResponse();
+  if (!payload) {
+     return NextResponse.json({ 
+       error: "DEBUG_PAYLOAD_NULL", 
+       status: backendResponse.status,
+       statusText: backendResponse.statusText,
+       contentType: backendResponse.headers.get("content-type") 
+     }, { status: 502 });
+  }
 
   if (!backendResponse.ok) {
     return NextResponse.json(payload, {

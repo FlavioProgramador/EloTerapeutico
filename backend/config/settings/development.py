@@ -22,7 +22,7 @@ ADMIN_SQL_EXPLORER_ALLOWED_TABLES = env.list(  # noqa: F405
 ADMIN_SQL_EXPLORER_PERMISSION = "core.use_sql_explorer"
 configure_unfold_navigation(UNFOLD, enabled=ADMIN_SQL_EXPLORER_ENABLED)  # noqa: F405
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])  # noqa: F405
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "backend"])  # noqa: F405
 
 # Origens explícitas evitam esconder erros de CORS durante o desenvolvimento.
 CORS_ALLOW_ALL_ORIGINS = False
