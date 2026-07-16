@@ -419,6 +419,30 @@ class TreatmentGoalSerializer(serializers.ModelSerializer):
 
         return evolutions
 
+    def to_representation(self, instance):
+        """Filtra evoluções confidenciais da resposta caso o usuário não tenha acesso."""
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+
+        if not request or not data.get("evolutions"):
+            return data
+
+        user = request.user
+        if user.has_perm("records.view_confidential_evolution"):
+            return data
+
+        # Se o usuário não tem permissão global, filtramos as evoluções
+        # que ele não criou e que são confidenciais.
+        # Infelizmente, 'evolutions' no data são apenas IDs.
+        # Precisamos verificar a confidencialidade de cada uma.
+        authorized_evolution_ids = []
+        for evol in instance.evolutions.all():
+            if not evol.is_confidential or evol.created_by_id == user.id:
+                authorized_evolution_ids.append(evol.id)
+
+        data["evolutions"] = authorized_evolution_ids
+        return data
+
 
 class ClinicalDocumentSerializer(serializers.ModelSerializer):
     category_display = serializers.CharField(
