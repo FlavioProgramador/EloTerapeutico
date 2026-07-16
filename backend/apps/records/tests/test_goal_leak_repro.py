@@ -1,12 +1,14 @@
 from datetime import date
+
 import pytest
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.users.models import User
 from apps.patients.models import Patient, PatientProfessional
 from apps.records.models import Evolution
 from apps.records.treatment_models import TreatmentGoal
+from apps.users.models import User
+
 
 @pytest.mark.django_db
 def test_goal_leaks_confidential_evolution_id():
