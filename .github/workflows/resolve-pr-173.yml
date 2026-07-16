@@ -1,0 +1,66 @@
+name: Resolver PR 173
+
+on:
+  push:
+    branches:
+      - security/clinical-upload-scanning-resolved
+
+permissions:
+  contents: write
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout da branch técnica
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reaplicar somente os arquivos do PR
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch origin main security/clinical-upload-scanning
+          git checkout origin/security/clinical-upload-scanning -- \
+            backend/apps/records/admin.py \
+            backend/apps/records/admin_parts/__init__.py \
+            backend/apps/records/admin_parts/documents.py \
+            backend/apps/records/api/evolution_attachment_detail_views.py \
+            backend/apps/records/api/evolution_attachment_list_views.py \
+            backend/apps/records/api/evolution_attachment_serializers.py \
+            backend/apps/records/api/serializers/secure_document_serializers.py \
+            backend/apps/records/api/views/secure_document_views.py \
+            backend/apps/records/apps.py \
+            backend/apps/records/checks.py \
+            backend/apps/records/migrations/0012_clinicaldocument_quarantine_scan.py \
+            backend/apps/records/models/__init__.py \
+            backend/apps/records/models/documents.py \
+            backend/apps/records/models/paths.py \
+            backend/apps/records/services/clinical_document_scanning.py \
+            backend/apps/records/services/evolutions.py \
+            backend/apps/records/services/malware_scanning.py \
+            backend/apps/records/tasks.py \
+            backend/apps/records/tests/test_clinical_document_scanning.py \
+            backend/apps/records/tests/test_document_download_headers.py \
+            backend/apps/records/tests/test_document_security.py \
+            backend/apps/records/tests/test_documents_and_goals.py \
+            backend/apps/records/tests/test_evolution_modal_api.py \
+            backend/apps/records/tests/test_secure_document_uploads.py \
+            backend/apps/records/tests/test_workspace_confidential_documents.py \
+            backend/apps/records/treatment_models.py \
+            backend/config/settings/celery.py \
+            docs/08-seguranca/README.md \
+            docs/08-seguranca/quarentena-uploads-clinicos.md \
+            frontend/clinical-upload-security.test.mjs \
+            frontend/src/features/records/services/record-workspace.service.ts \
+            frontend/src/features/records/types.ts
+
+          git rm .github/workflows/resolve-pr-173.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit -m "merge: resolve conflito do PR 173 sobre a main atual"
+          git push origin HEAD:security/clinical-upload-scanning-resolved
+          git push --force origin HEAD:security/clinical-upload-scanning
