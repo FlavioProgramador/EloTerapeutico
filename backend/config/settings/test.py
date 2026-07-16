@@ -3,10 +3,20 @@
 
 from django.utils.crypto import get_random_string
 
+from apps.core.admin_sql_config import configure_unfold_navigation
+
 from .base import *  # noqa: F403,F401
 from .celery import *  # noqa: F403,F401
 
 DEBUG = False
+
+ADMIN_SQL_EXPLORER_ENABLED = False
+ADMIN_SQL_EXPLORER_DATABASE_ALIAS = "default"
+ADMIN_SQL_EXPLORER_MAX_ROWS = 100
+ADMIN_SQL_EXPLORER_TIMEOUT_MS = 2_000
+ADMIN_SQL_EXPLORER_ALLOWED_TABLES = []
+ADMIN_SQL_EXPLORER_PERMISSION = "core.use_sql_explorer"
+configure_unfold_navigation(UNFOLD, enabled=False)  # noqa: F405
 
 ALLOWED_HOSTS = ["testserver", "localhost", "127.0.0.1"]
 

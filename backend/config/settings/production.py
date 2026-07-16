@@ -2,12 +2,23 @@
 
 from django.core.exceptions import ImproperlyConfigured
 
+from apps.core.admin_sql_config import configure_unfold_navigation
 from apps.core.security_config import require_distinct_secrets, require_strong_secret
 
 from .base import *  # noqa: F401,F403
 from .celery import *  # noqa: F401,F403
 
 DEBUG = False
+
+if env.bool("ADMIN_SQL_EXPLORER_ENABLED", default=False):  # noqa: F405
+    raise ImproperlyConfigured("ADMIN_SQL_EXPLORER_ENABLED deve permanecer False em produção.")
+ADMIN_SQL_EXPLORER_ENABLED = False
+ADMIN_SQL_EXPLORER_DATABASE_ALIAS = "default"
+ADMIN_SQL_EXPLORER_MAX_ROWS = 100
+ADMIN_SQL_EXPLORER_TIMEOUT_MS = 2_000
+ADMIN_SQL_EXPLORER_ALLOWED_TABLES = []
+ADMIN_SQL_EXPLORER_PERMISSION = "core.use_sql_explorer"
+configure_unfold_navigation(UNFOLD, enabled=False)  # noqa: F405
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")  # noqa: F405
 

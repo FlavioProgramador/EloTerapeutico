@@ -17,11 +17,23 @@ api_v1_patterns = [
     path("public/communications/", include("apps.communications.urls_public")),
 ]
 
-from apps.core.admin_sql import sql_explorer_view, sql_schema_view
+
+def sql_explorer_urlpatterns():
+    """Registra as rotas sensíveis somente com a feature flag ativa."""
+
+    if not getattr(settings, "ADMIN_SQL_EXPLORER_ENABLED", False):
+        return []
+
+    from apps.core.admin_sql import sql_explorer_view, sql_schema_view
+
+    return [
+        path("admin/sql-explorer/", sql_explorer_view, name="sql_explorer"),
+        path("admin/sql-schema/", sql_schema_view, name="sql_schema"),
+    ]
+
 
 urlpatterns = [
-    path("admin/sql-explorer/", sql_explorer_view, name="sql_explorer"),
-    path("admin/sql-schema/", sql_schema_view, name="sql_schema"),
+    *sql_explorer_urlpatterns(),
     path("admin/", admin.site.urls),
     path("api/v1/", include(api_v1_patterns)),
     path("api/billing/", include("apps.billing.urls")),
