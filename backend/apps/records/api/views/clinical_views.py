@@ -6,7 +6,7 @@ from io import BytesIO
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -89,7 +89,11 @@ class ClinicalPatientMixin:
                 "patient__therapist",
                 "created_by",
                 "clinical_data",
-            ).prefetch_related("addenda"),
+            ).annotate(
+                version_count=Count("versions", distinct=True),
+                addenda_count=Count("addenda", distinct=True),
+                attached_documents_count=Count("documents", distinct=True),
+            ).prefetch_related("treatment_goals"),
             pk=pk,
         )
         self.get_patient(evolution.patient_id)
@@ -116,7 +120,7 @@ class ClinicalPatientMixin:
                 "status_display": (clinical_data.get_status_display() if clinical_data else "Rascunho"),
                 "finalized_at": clinical_data.finalized_at if clinical_data else None,
                 "archived_at": clinical_data.archived_at if clinical_data else None,
-                "version_count": evolution.versions.count(),
+                "version_count": getattr(evolution, "version_count", evolution.versions.count()),
             }
         )
         return data
@@ -264,7 +268,12 @@ class PatientEvolutionListCreateView(ClinicalPatientMixin, APIView):
         queryset = (
             Evolution.objects.filter(patient=patient)
             .select_related("created_by", "clinical_data")
-            .prefetch_related("addenda", "versions")
+            .annotate(
+                version_count=Count("versions", distinct=True),
+                addenda_count=Count("addenda", distinct=True),
+                attached_documents_count=Count("documents", distinct=True),
+            )
+            .prefetch_related("treatment_goals")
             .order_by("-session_date", "-created_at")
         )
 
