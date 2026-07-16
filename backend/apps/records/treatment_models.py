@@ -6,6 +6,7 @@ from .models import (
     ClinicalFormResponse,
     TreatmentGoal,
     clinical_document_path,
+    clinical_document_quarantine_path,
     clinical_export_path,
 )
 
@@ -15,5 +16,6 @@ __all__ = [
     "ClinicalFormResponse",
     "TreatmentGoal",
     "clinical_document_path",
+    "clinical_document_quarantine_path",
     "clinical_export_path",
 ]

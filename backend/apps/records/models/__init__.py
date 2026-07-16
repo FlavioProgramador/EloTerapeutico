@@ -9,7 +9,11 @@ from .evolution_clinical_data import EvolutionClinicalData
 from .exports import ClinicalExport
 from .forms import ClinicalFormResponse
 from .goals import TreatmentGoal
-from .paths import clinical_document_path, clinical_export_path
+from .paths import (
+    clinical_document_path,
+    clinical_document_quarantine_path,
+    clinical_export_path,
+)
 from .versions import AnamnesisVersion, EvolutionVersion
 
 __all__ = [
@@ -25,5 +29,6 @@ __all__ = [
     "EvolutionVersion",
     "TreatmentGoal",
     "clinical_document_path",
+    "clinical_document_quarantine_path",
     "clinical_export_path",
 ]

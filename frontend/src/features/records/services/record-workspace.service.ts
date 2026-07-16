@@ -149,6 +149,13 @@ export const recordWorkspaceService = {
   },
 
   downloadDocument: async (document: ClinicalDocument) => {
+    if (document.scan_status !== "clean" || !document.download_url) {
+      window.alert(
+        document.status_display ??
+          "O arquivo ainda não está disponível para download.",
+      );
+      return;
+    }
     const response = await api.get(
       `records/documents/${document.id}/download/`,
       {

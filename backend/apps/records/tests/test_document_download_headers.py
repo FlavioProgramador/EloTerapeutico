@@ -38,6 +38,7 @@ def test_clinical_document_download_disables_cache_and_mime_sniffing():
         size_bytes=22,
         checksum="checksum-test",
         uploaded_by=therapist,
+        scan_status=ClinicalDocument.ScanStatus.CLEAN,
     )
     client = APIClient()
     client.force_authenticate(therapist)

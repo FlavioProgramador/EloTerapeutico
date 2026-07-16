@@ -13,6 +13,7 @@ from rest_framework.views import APIView
 from apps.audit.services.access_logging import AuditLog, log_access
 from apps.records.api.serializers.secure_document_serializers import SecureClinicalDocumentSerializer
 from apps.records.api.views.clinical_views import ClinicalPatientMixin
+from apps.records.services.clinical_document_scanning import create_quarantined_document
 from apps.records.services.evolution_security import (
     can_view_confidential_evolution,
     has_explicit_records_permission,
@@ -85,32 +86,41 @@ class SecureClinicalDocumentListCreateView(SecureClinicalDocumentMixin, APIView)
                 {"file": ["Selecione um arquivo."]},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        document = serializer.save(
+
+        original_name = sanitize_original_filename(uploaded_file.name)
+        checksum = ClinicalDocument.calculate_checksum(uploaded_file)
+        document = create_quarantined_document(
             patient=patient,
             uploaded_by=request.user,
-            original_name=sanitize_original_filename(uploaded_file.name),
+            uploaded_file=uploaded_file,
+            original_name=original_name,
             content_type=uploaded_file.content_type,
-            size_bytes=uploaded_file.size,
-            checksum=ClinicalDocument.calculate_checksum(uploaded_file),
+            checksum=checksum,
+            validated_data=serializer.validated_data,
         )
         log_access(
             request,
             AuditLog.Action.CREATE,
             obj=document,
-            obj_repr=f"Documento clínico #{document.id}",
+            obj_repr=f"Documento clínico #{document.id}:quarentena",
         )
         return Response(
             SecureClinicalDocumentSerializer(
                 document,
                 context={"request": request, "patient": patient},
             ).data,
-            status=status.HTTP_201_CREATED,
+            status=status.HTTP_202_ACCEPTED,
         )
 
 
 class SecureClinicalDocumentDetailView(SecureClinicalDocumentMixin, APIView):
     def patch(self, request, pk):
         document = self.get_document(pk)
+        if "file" in request.data:
+            return Response(
+                {"file": ["Envie uma nova versão pelo fluxo de upload seguro."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         serializer = SecureClinicalDocumentSerializer(
             document,
             data=request.data,
@@ -148,6 +158,17 @@ class SecureClinicalDocumentDetailView(SecureClinicalDocumentMixin, APIView):
 class SecureClinicalDocumentDownloadView(SecureClinicalDocumentMixin, APIView):
     def get(self, request, pk):
         document = self.get_document(pk)
+        if not document.is_downloadable:
+            return Response(
+                {
+                    "error": {
+                        "code": "CLINICAL_DOCUMENT_NOT_RELEASED",
+                        "message": "O arquivo ainda não está disponível para download.",
+                    },
+                    "scan_status": document.scan_status,
+                },
+                status=status.HTTP_423_LOCKED,
+            )
         try:
             stream = document.file.open("rb")
         except FileNotFoundError as exc:

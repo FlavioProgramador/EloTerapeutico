@@ -8,6 +8,7 @@ from typing import Any
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 
+from apps.records.services.clinical_document_scanning import create_quarantined_document
 from apps.records.services.evolution_security import sanitize_original_filename
 
 from ..models import ClinicalDocument, Evolution, EvolutionClinicalData, EvolutionVersion
@@ -130,17 +131,20 @@ def create_evolution_attachment(*, evolution: Evolution, actor, uploaded_file):
     if profile and profile.status != EvolutionClinicalData.Status.DRAFT:
         raise ValidationError("Apenas rascunhos aceitam novos anexos.")
 
-    return ClinicalDocument.objects.create(
+    original_name = sanitize_original_filename(uploaded_file.name)
+    checksum = ClinicalDocument.calculate_checksum(uploaded_file)
+    return create_quarantined_document(
         patient=evolution.patient,
-        evolution=evolution,
-        category=ClinicalDocument.Category.OTHER,
-        file=uploaded_file,
-        original_name=sanitize_original_filename(uploaded_file.name),
-        description="Anexo protegido da evolução clínica",
-        content_type=uploaded_file.content_type,
-        size_bytes=uploaded_file.size,
-        checksum=ClinicalDocument.calculate_checksum(uploaded_file),
         uploaded_by=actor,
+        uploaded_file=uploaded_file,
+        original_name=original_name,
+        content_type=uploaded_file.content_type,
+        checksum=checksum,
+        validated_data={
+            "evolution": evolution,
+            "category": ClinicalDocument.Category.OTHER,
+            "description": "Anexo protegido da evolução clínica",
+        },
     )
 
 

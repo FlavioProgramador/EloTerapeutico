@@ -2,6 +2,7 @@ from datetime import date
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from rest_framework.test import APIClient
 
 from apps.patients.models import Patient
@@ -50,7 +51,11 @@ def test_documento_rejeita_extensao_invalida(context):
 
 
 @pytest.mark.django_db
-def test_documento_valido_nao_expoe_url_publica(context):
+@override_settings(
+    CLINICAL_UPLOAD_SCANNER_BACKEND="mock_clean",
+    CLINICAL_UPLOAD_SCANNER_ALLOW_MOCK=True,
+)
+def test_documento_valido_nao_expoe_url_antes_da_liberacao(context):
     client, therapist, patient = context
     uploaded = SimpleUploadedFile(
         "termo.pdf",
@@ -64,12 +69,16 @@ def test_documento_valido_nao_expoe_url_publica(context):
         format="multipart",
     )
 
-    assert response.status_code == 201
+    assert response.status_code == 202
     assert "file" not in response.data
-    assert response.data["download_url"].endswith(f"/api/v1/records/documents/{response.data['id']}/download/")
-    assert response.data["status"] == "available"
-    assert response.data["status_display"] == "Disponível"
+    assert response.data["download_url"] is None
+    assert response.data["status"] == "processing"
     assert response.data["uploaded_by_name"] == therapist.full_name
+    document = ClinicalDocument.objects.get(pk=response.data["id"])
+    assert document.scan_status == ClinicalDocument.ScanStatus.PENDING
+    assert document.quarantine_file
+    assert not document.file
+    assert document.is_downloadable is False
 
 
 @pytest.mark.django_db

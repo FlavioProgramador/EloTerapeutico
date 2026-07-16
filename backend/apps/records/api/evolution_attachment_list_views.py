@@ -44,10 +44,10 @@ class EvolutionAttachmentListCreateView(ClinicalPatientMixin, APIView):
             request,
             AuditLog.Action.CREATE,
             obj=document,
-            obj_repr=f"Anexo #{document.id} incluído na evolução #{evolution.id}",
+            obj_repr=f"Anexo #{document.id}:quarentena da evolução #{evolution.id}",
         )
         output = EvolutionAttachmentSerializer(
             document,
             context={"request": request, "evolution": evolution},
         )
-        return Response(output.data, status=status.HTTP_201_CREATED)
+        return Response(output.data, status=status.HTTP_202_ACCEPTED)

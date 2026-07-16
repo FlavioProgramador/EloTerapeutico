@@ -35,9 +35,26 @@ CELERY_TASK_DEFAULT_ROUTING_KEY = "default"
 CELERY_TASK_QUEUES = (
     Queue("default", Exchange("default"), routing_key="default"),
     Queue("exports", Exchange("exports"), routing_key="exports"),
+    Queue("uploads", Exchange("uploads"), routing_key="uploads"),
     Queue("communications", Exchange("communications"), routing_key="communications"),
 )
 CELERY_TASK_ROUTES = {
+    "apps.records.tasks.scan_clinical_document": {
+        "queue": "uploads",
+        "routing_key": "uploads",
+    },
+    "apps.records.tasks.dispatch_pending_document_scans": {
+        "queue": "uploads",
+        "routing_key": "uploads",
+    },
+    "apps.records.tasks.recover_stuck_document_scans": {
+        "queue": "uploads",
+        "routing_key": "uploads",
+    },
+    "apps.records.tasks.cleanup_rejected_clinical_documents": {
+        "queue": "uploads",
+        "routing_key": "uploads",
+    },
     "apps.records.tasks.*": {"queue": "exports", "routing_key": "exports"},
     "apps.communications.tasks.*": {
         "queue": "communications",
@@ -48,6 +65,21 @@ CELERY_TASK_ROUTES = {
 CELERY_TASK_SOFT_TIME_LIMIT = env.int("CELERY_TASK_SOFT_TIME_LIMIT_SECONDS", default=300)  # noqa: F405
 CELERY_TASK_TIME_LIMIT = env.int("CELERY_TASK_TIME_LIMIT_SECONDS", default=360)  # noqa: F405
 CELERY_BEAT_SCHEDULE = {
+    "uploads-dispatch-pending": {
+        "task": "apps.records.tasks.dispatch_pending_document_scans",
+        "schedule": env.int("CLINICAL_SCAN_DISPATCH_INTERVAL_SECONDS", default=20),  # noqa: F405
+        "options": {"queue": "uploads"},
+    },
+    "uploads-recover-stuck": {
+        "task": "apps.records.tasks.recover_stuck_document_scans",
+        "schedule": env.int("CLINICAL_SCAN_RECOVERY_INTERVAL_SECONDS", default=120),  # noqa: F405
+        "options": {"queue": "uploads"},
+    },
+    "uploads-cleanup-quarantine": {
+        "task": "apps.records.tasks.cleanup_rejected_clinical_documents",
+        "schedule": crontab(minute=30),
+        "options": {"queue": "uploads"},
+    },
     "exports-dispatch-pending": {
         "task": "apps.records.tasks.dispatch_pending_exports",
         "schedule": env.int("EXPORT_DISPATCH_INTERVAL_SECONDS", default=10),  # noqa: F405
