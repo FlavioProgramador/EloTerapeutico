@@ -1,0 +1,52 @@
+name: Correção idempotente temporária
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/debug-settings-ci.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix-timezone:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout da branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/settings-notifications
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Normalizar alias de timezone
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('backend/apps/users/models.py')
+          content = path.read_text()
+          content = re.sub(r'django_(?:django_)+timezone', 'django_timezone', content)
+          content = content.replace(
+              'from django.utils import timezone\n',
+              'from django.utils import timezone as django_timezone\n',
+          )
+          content = re.sub(r'(?<!django_)timezone\.now', 'django_timezone.now', content)
+          path.write_text(content)
+          PY
+
+          if git diff --quiet -- backend/apps/users/models.py; then
+            echo 'Arquivo já normalizado.'
+            exit 0
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add backend/apps/users/models.py
+          git commit --no-verify -m 'fix: normaliza alias de timezone'
+          git push origin HEAD:feat/settings-notifications
