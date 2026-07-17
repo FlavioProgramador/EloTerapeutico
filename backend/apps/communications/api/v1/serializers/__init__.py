@@ -1,13 +1,9 @@
-"""Compatibilidade para imports antigos de serializers.
-
-Novos imports devem utilizar ``apps.communications.api.v1.serializers``.
-"""
-
-from .api.v1.serializers.automations import (
+from .automations import (
     CommunicationAutomationRunSerializer,
     CommunicationAutomationSerializer,
 )
-from .api.v1.serializers.communications import (
+from .channels import CommunicationChannelConfigSerializer
+from .communications import (
     CommunicationAttemptSerializer,
     CommunicationCreateSerializer,
     CommunicationDetailSerializer,
@@ -15,15 +11,12 @@ from .api.v1.serializers.communications import (
     CommunicationListSerializer,
     CommunicationRecipientSerializer,
 )
-from .api.v1.serializers.legacy_channels import (
-    CommunicationChannelConfigSerializer,
-)
-from .api.v1.serializers.notifications import (
+from .notifications import (
     InAppNotificationSerializer,
     NotificationPreferenceSerializer,
 )
-from .api.v1.serializers.preferences import CommunicationPreferenceSerializer
-from .api.v1.serializers.templates import CommunicationTemplateSerializer
+from .preferences import CommunicationPreferenceSerializer
+from .templates import CommunicationTemplateSerializer
 
 __all__ = [
     "CommunicationAttemptSerializer",

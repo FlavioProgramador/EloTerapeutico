@@ -1,28 +1,23 @@
-"""Compatibilidade para imports antigos de provedores.
-
-Novos imports devem utilizar ``apps.communications.integrations.providers``.
-"""
-
-from .integrations.providers import (
-    DEFAULT_PROVIDER_NAMES,
-    PROVIDER_FACTORIES,
-    PROVIDERS,
+from .base import (
     CommunicationProvider,
     DisabledExternalProvider,
-    EmailProvider,
-    InAppProvider,
     InvalidRecipient,
     PermanentProviderError,
     ProviderError,
     ProviderNotConfigured,
     ProviderResult,
     RetryableProviderError,
-    SMTPEmailProvider,
-    TwilioSMSProvider,
-    WhatsAppCloudProvider,
-    WhatsAppManualProvider,
+)
+from .email import EmailProvider, SMTPEmailProvider
+from .in_app import InAppProvider
+from .registry import (
+    DEFAULT_PROVIDER_NAMES,
+    PROVIDER_FACTORIES,
+    PROVIDERS,
     get_provider,
 )
+from .sms import TwilioSMSProvider
+from .whatsapp import WhatsAppCloudProvider, WhatsAppManualProvider
 
 __all__ = [
     "CommunicationProvider",
