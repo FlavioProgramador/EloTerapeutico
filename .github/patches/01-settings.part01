@@ -1,0 +1,190 @@
+ields = [
+             "full_name",
++            "display_name",
++            "profession",
+             "specialty",
+             "crp_number",
+             "bio",
+             "phone",
+             "avatar",
++            "clinic_name",
++            "professional_address",
+             "default_session_duration",
+             "default_session_value",
++            "default_modality",
++            "timezone",
++            "language",
++            "date_format",
++            "time_format",
+         ]
+ 
++    def validate_default_session_duration(self, value):
++        if value < 15 or value > 240:
++            raise serializers.ValidationError("A duração deve estar entre 15 e 240 minutos.")
++        return value
++
++
++class PracticeSettingsSerializer(serializers.ModelSerializer):
++    class Meta:
++        model = PracticeSettings
++        fields = [
++            "trade_name",
++            "document",
++            "phone",
++            "email",
++            "address",
++            "timezone",
++            "currency",
++            "appointment_interval_minutes",
++            "minimum_booking_notice_hours",
++            "cancellation_notice_hours",
++            "allow_overbooking",
++            "consider_holidays",
++            "reminders_enabled",
++            "reminder_minutes",
++            "internal_communications_enabled",
++            "message_preview_enabled",
++            "auto_mark_read",
++            "mentions_enabled",
++            "notify_mentions",
++            "quiet_hours_enabled",
++            "quiet_hours_start",
++            "quiet_hours_end",
++            "communication_policy",
++            "updated_at",
++        ]
++        read_only_fields = ["updated_at"]
++
++    def validate(self, attrs):
++        enabled = attrs.get("quiet_hours_enabled", getattr(self.instance, "quiet_hours_enabled", False))
++        start = attrs.get("quiet_hours_start", getattr(self.instance, "quiet_hours_start", None))
++        end = attrs.get("quiet_hours_end", getattr(self.instance, "quiet_hours_end", None))
++        if enabled and (start is None or end is None):
++            raise serializers.ValidationError({"quiet_hours_start": "Informe o início e o fim do horário de silêncio."})
++        return attrs
++
++    def validate_appointment_interval_minutes(self, value):
++        if value > 180:
++            raise serializers.ValidationError("O intervalo não pode ultrapassar 180 minutos.")
++        return value
++
++    def validate_reminder_minutes(self, value):
++        if value > 43200:
++            raise serializers.ValidationError("A antecedência não pode ultrapassar 30 dias.")
++        return value
++
+ 
+ class AuthSessionSerializer(serializers.ModelSerializer):
+     is_current = serializers.SerializerMethodField()
+@@ -325,6 +398,7 @@ __all__ = [
+     "LoginSerializer",
+     "PasswordResetConfirmSerializer",
+     "PasswordResetRequestSerializer",
++    "PracticeSettingsSerializer",
+     "RegisterSerializer",
+     "SafeTokenRefreshSerializer",
+     "UserProfileSerializer",
+diff --git a/backend/apps/users/api/views.py b/backend/apps/users/api/views.py
+index 0c901f2..da10ae9 100644
+--- a/backend/apps/users/api/views.py
++++ b/backend/apps/users/api/views.py
+@@ -20,7 +20,7 @@ from rest_framework_simplejwt.exceptions import TokenError
+ from rest_framework_simplejwt.tokens import RefreshToken
+ from rest_framework_simplejwt.views import TokenRefreshView
+ 
+-from ..models import AuthSession, User, WorkingHours
++from ..models import AuthSession, PracticeSettings, User, WorkingHours
+ from ..services.sessions import (
+     SESSION_CLAIM,
+     active_sessions_for_user,
+@@ -35,6 +35,7 @@ from .serializers import (
+     LoginSerializer,
+     PasswordResetConfirmSerializer,
+     PasswordResetRequestSerializer,
++    PracticeSettingsSerializer,
+     RegisterSerializer,
+     SafeTokenRefreshSerializer,
+     UserProfileSerializer,
+@@ -232,6 +233,38 @@ class MeView(generics.RetrieveUpdateAPIView):
+         return UserProfileSerializer
+ 
+ 
++
++
++@extend_schema(tags=["users"], responses=PracticeSettingsSerializer)
++class PracticeSettingsView(generics.RetrieveUpdateAPIView):
++    permission_classes = [IsAuthenticated]
++    serializer_class = PracticeSettingsSerializer
++
++    def get_object(self):
++        settings_obj, _ = PracticeSettings.objects.get_or_create(
++            user=self.request.user,
++            defaults={
++                "trade_name": self.request.user.clinic_name,
++                "phone": self.request.user.phone,
++                "email": self.request.user.email,
++                "address": self.request.user.professional_address,
++                "timezone": self.request.user.timezone,
++            },
++        )
++        return settings_obj
++
++    def perform_update(self, serializer):
++        obj = serializer.save()
++        from apps.audit.services.access_logging import log_access
++        from apps.audit.models import AuditLog
++
++        log_access(
++            self.request,
++            AuditLog.Action.UPDATE,
++            obj=obj,
++            obj_repr=f"users.PracticeSettings#{obj.pk} action=settings_updated",
++        )
++
+ @extend_schema(tags=["users"])
+ class WorkingHoursListCreateView(generics.ListCreateAPIView):
+     serializer_class = WorkingHoursSerializer
+@@ -356,6 +389,7 @@ __all__ = [
+     "MeView",
+     "PasswordResetConfirmView",
+     "PasswordResetRequestView",
++    "PracticeSettingsView",
+     "RegisterView",
+     "SafeTokenRefreshView",
+     "WorkingHoursDetailView",
+diff --git a/backend/apps/users/migrations/0005_profile_and_practice_settings.py b/backend/apps/users/migrations/0005_profile_and_practice_settings.py
+new file mode 100644
+index 0000000..cf723cd
+--- /dev/null
++++ b/backend/apps/users/migrations/0005_profile_and_practice_settings.py
+@@ -0,0 +1,52 @@
++from django.conf import settings
++from django.db import migrations, models
++import django.db.models.deletion
++
++import apps.core.validators
++
++
++class Migration(migrations.Migration):
++    dependencies = [("users", "0004_authsession")]
++
++    operations = [
++        migrations.AddField(model_name="user", name="display_name", field=models.CharField(blank=True, max_length=120, verbose_name="Nome de exibição")),
++        migrations.AddField(model_name="user", name="profession", field=models.CharField(blank=True, max_length=100, verbose_name="Profissão")),
++        migrations.AddField(model_name="user", name="default_modality", field=models.CharField(choices=[("in_person", "Presencial"), ("online", "Online"), ("hybrid", "Híbrido")], default="in_person", max_length=20, verbose_name="Modalidade padrão")),
++        migrations.AddField(model_name="user", name="timezone", field=models.CharField(default="America/Sao_Paulo", max_length=64)),
++        migrations.AddField(model_name="user", name="language", field=models.CharField(default="pt-BR", max_length=10)),
++        migrations.AddField(model_name="user", name="date_format", field=models.CharField(default="DD/MM/YYYY", max_length=20)),
++        migrations.AddField(model_name="user", name="time_format", field=models.CharField(default="24h", max_length=10)),
++        migrations.CreateModel(
++            name="PracticeSettings",
++            fields=[
++                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
++                ("trade_name", models.CharField(blank=True, max_length=160)),
++                ("document", models.CharField(blank=True, max_length=32)),
++                ("phone", models.CharField(blank=True, max_length=20, validators=[apps.core.validators.validate_phone])),
++                ("email", models.EmailField(blank=True, max_length=254)),
++                ("address", models.JSONField(blank=True, default=dict)),
++                ("timezone", models.CharField(default="America/Sao_Paulo", max_length=64)),
++                ("currency", models.CharField(default="BRL", max_length=3)),
++                ("appointment_interval_minutes", models.PositiveSmallIntegerField(defau
