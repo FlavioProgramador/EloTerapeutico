@@ -1,6 +1,11 @@
 name: Correção temporária de importação
 
 on:
+  push:
+    branches:
+      - feat/settings-notifications
+    paths:
+      - .github/workflows/fix-settings-ruff.yml
   pull_request:
     branches:
       - main
