@@ -9,7 +9,7 @@ on:
       - .github/patches/**
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   diagnose-patches:
@@ -22,7 +22,7 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
-      - name: Registrar diagnóstico na branch
+      - name: Gerar diagnóstico
         shell: bash
         run: |
           set -uo pipefail
@@ -33,7 +33,7 @@ jobs:
           cat .github/patches/05-front-notifications.part* > /tmp/05-front-notifications.diff
           cat .github/patches/06-docs.part* > /tmp/06-docs.diff
 
-          report=.github/patch-diagnostic.txt
+          report=/tmp/patch-diagnostic.txt
           : > "$report"
           echo "expected b376adefe467cd5decd8b43ce705fce0ff01dbe0ecfae5dbd3a639c6cadc363f  /tmp/01-settings.diff" >> "$report"
           echo "expected c111b9033349c90a07bf6344ce71f36b77dd9f94f807ae36a6ab6033e32afa94  /tmp/02-domain.diff" >> "$report"
@@ -54,9 +54,13 @@ jobs:
               break
             fi
           done
+          exit 0
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "$report"
-          git commit -m "chore: registra diagnóstico dos patches" || true
-          git push origin HEAD:feat/settings-notifications
+      - name: Publicar diagnóstico
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: settings-notifications-patch-diagnostic
+          path: /tmp/patch-diagnostic.txt
+          retention-days: 1
+          if-no-files-found: error
