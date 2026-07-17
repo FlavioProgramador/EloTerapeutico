@@ -1,4 +1,4 @@
-name: Auditoria temporária de configurações
+name: Aplicação temporária de configurações e notificações
 
 on:
   push:
@@ -6,43 +6,51 @@ on:
       - feat/settings-notifications
     paths:
       - .github/workflows/audit-settings-notifications.yml
-  pull_request:
-    branches:
-      - main
-    paths:
-      - .github/workflows/audit-settings-notifications.yml
+      - .github/settings-backend.patch
+      - .github/settings-frontend.patch
+      - .github/settings-docs.patch
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  export-source:
+  apply-patches:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout da branch
         uses: actions/checkout@v4
+        with:
+          ref: feat/settings-notifications
+          fetch-depth: 0
 
-      - name: Gerar inventário
+      - name: Aplicar alterações organizadas
         shell: bash
         run: |
           set -euo pipefail
-          find frontend/src backend/apps backend/config docs -type f | sort > repository-inventory.txt
-          printf '\n## Branch\n' >> repository-inventory.txt
-          git rev-parse HEAD >> repository-inventory.txt
+          if [[ ! -f .github/settings-backend.patch || ! -f .github/settings-frontend.patch || ! -f .github/settings-docs.patch ]]; then
+            echo "Aguardando todos os patches."
+            exit 0
+          fi
 
-      - name: Publicar fontes para auditoria
-        uses: actions/upload-artifact@v4
-        with:
-          name: settings-notifications-audit
-          path: |
-            repository-inventory.txt
-            frontend/src
-            frontend/package.json
-            frontend/package-lock.json
-            backend/apps
-            backend/config
-            backend/manage.py
-            backend/requirements.txt
-            docs
-          retention-days: 1
-          if-no-files-found: error
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git apply --check .github/settings-backend.patch
+          git apply .github/settings-backend.patch
+          git add backend
+          git commit -m "feat: implementa configurações e domínio de notificações"
+
+          git apply --check .github/settings-frontend.patch
+          git apply .github/settings-frontend.patch
+          git add frontend
+          git commit -m "feat: cria central de configurações e notificações"
+
+          git apply --check .github/settings-docs.patch
+          git apply .github/settings-docs.patch
+          git add docs
+          git commit -m "docs: documenta configurações e notificações"
+
+          git rm .github/settings-backend.patch .github/settings-frontend.patch .github/settings-docs.patch
+          git rm .github/workflows/audit-settings-notifications.yml
+          git commit -m "chore: remove arquivos temporários da implementação"
+          git push origin HEAD:feat/settings-notifications
