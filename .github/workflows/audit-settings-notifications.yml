@@ -6,13 +6,12 @@ on:
       - main
     paths:
       - .github/workflows/audit-settings-notifications.yml
-      - .github/patches/**
 
 permissions:
   contents: read
 
 jobs:
-  diagnose-patches:
+  export-fragments:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout da branch
@@ -22,19 +21,13 @@ jobs:
           fetch-depth: 1
           show-progress: false
 
-      - name: Gerar hashes dos fragmentos
-        shell: bash
-        run: |
-          report=/tmp/patch-diagnostic.txt
-          : > "$report"
-          sha256sum .github/patches/02-domain.part* >> "$report"
-          sha256sum .github/patches/04-front-settings.part* >> "$report"
-          sha256sum .github/patches/05-front-notifications.part* >> "$report"
-
-      - name: Publicar diagnóstico
+      - name: Publicar fragmentos divergentes
         uses: actions/upload-artifact@v4
         with:
-          name: settings-notifications-part-diagnostic
-          path: /tmp/patch-diagnostic.txt
+          name: settings-notifications-divergent-fragments
+          path: |
+            .github/patches/02-domain.part02
+            .github/patches/04-front-settings.part03
+            .github/patches/05-front-notifications.part01
           retention-days: 1
           if-no-files-found: error
