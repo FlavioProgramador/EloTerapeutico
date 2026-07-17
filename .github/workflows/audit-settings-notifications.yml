@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 jobs:
-  apply-bundles:
+  apply-patches:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout da branch
@@ -26,30 +26,47 @@ jobs:
         run: |
           set -euo pipefail
           required=(
-            .github/patches/bundle-backend.part10
-            .github/patches/bundle-frontend.part05
-            .github/patches/bundle-docs.part01
+            .github/patches/01-backend-settings.diff
+            .github/patches/02-notifications-domain.diff
+            .github/patches/03-notifications-services.diff
+            .github/patches/04-frontend-settings.diff
+            .github/patches/05-frontend-notifications.diff
+            .github/patches/06-docs.diff
           )
-          for part in "${required[@]}"; do
-            if [[ ! -f "$part" ]]; then
-              echo "Aguardando $part."
+          for patch in "${required[@]}"; do
+            if [[ ! -f "$patch" ]]; then
+              echo "Aguardando $patch."
               exit 0
             fi
           done
 
-          cat .github/patches/bundle-backend.part* | tar -xJf - -C .
-          cat .github/patches/bundle-frontend.part* | tar -xJf - -C .
-          cat .github/patches/bundle-docs.part* | tar -xJf - -C .
-
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+          git apply --check .github/patches/01-backend-settings.diff
+          git apply .github/patches/01-backend-settings.diff
           git add backend
-          git commit -m "feat: implementa configurações e domínio de notificações"
+          git commit -m "feat: implementa configurações persistentes"
 
+          git apply --check .github/patches/02-notifications-domain.diff
+          git apply .github/patches/02-notifications-domain.diff
+          git apply --check .github/patches/03-notifications-services.diff
+          git apply .github/patches/03-notifications-services.diff
+          git add backend
+          git commit -m "feat: implementa domínio e API de notificações"
+
+          git apply --check .github/patches/04-frontend-settings.diff
+          git apply .github/patches/04-frontend-settings.diff
           git add frontend
-          git commit -m "feat: cria central de configurações e notificações"
+          git commit -m "feat: conecta o módulo de configurações"
 
+          git apply --check .github/patches/05-frontend-notifications.diff
+          git apply .github/patches/05-frontend-notifications.diff
+          git add frontend
+          git commit -m "feat: cria central completa de notificações"
+
+          git apply --check .github/patches/06-docs.diff
+          git apply .github/patches/06-docs.diff
           git add docs
           git commit -m "docs: documenta configurações e notificações"
 
