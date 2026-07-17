@@ -1,0 +1,168 @@
+980fbc5..f1c4307 100644
+--- a/frontend/src/features/communications/types.ts
++++ b/frontend/src/features/communications/types.ts
+@@ -201,16 +201,56 @@ export interface ChannelTestResponse {
+   };
+ }
+ 
++export type NotificationCategory =
++  | "agenda"
++  | "patients"
++  | "records"
++  | "documents"
++  | "financial"
++  | "billing"
++  | "communications"
++  | "forms"
++  | "security"
++  | "system";
++
+ export interface InAppNotification {
+-  id: number;
++  public_id: string;
++  category: NotificationCategory;
++  category_display: string;
+   title: string;
+   message: string;
+   notification_type: string;
+-  priority: "low" | "normal" | "high";
++  priority: "low" | "normal" | "high" | "critical";
++  priority_display: string;
+   internal_url: string;
++  action_label: string;
++  metadata: Record<string, string | number | boolean | null>;
+   is_read: boolean;
+   read_at: string | null;
++  archived_at: string | null;
+   created_at: string;
++  expires_at: string | null;
++}
++
++export interface NotificationPreference {
++  in_app_enabled: boolean;
++  email_enabled: boolean;
++  whatsapp_enabled: boolean;
++  push_enabled: boolean;
++  quiet_hours_enabled: boolean;
++  quiet_hours_start: string | null;
++  quiet_hours_end: string | null;
++  timezone: string;
++  category_preferences: Partial<
++    Record<NotificationCategory, Partial<Record<"in_app" | "email" | "whatsapp" | "push", boolean>>>
++  >;
++  daily_digest_enabled: boolean;
++  updated_at: string;
++}
++
++export interface NotificationCategoryOption {
++  value: NotificationCategory;
++  label: string;
+ }
+ export interface PatientOption {
+   id: number;
+diff --git a/frontend/src/features/communications/use-communications.ts b/frontend/src/features/communications/use-communications.ts
+index db50ddc..e4c36e3 100644
+--- a/frontend/src/features/communications/use-communications.ts
++++ b/frontend/src/features/communications/use-communications.ts
+@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+ import { communicationsService } from "./communications.service";
+ import type {
+   CreateCommunicationPayload,
++  NotificationPreference,
+   UpdateChannelConfigurationPayload,
+ } from "./types";
+ 
+@@ -139,11 +140,15 @@ export function useRemoveCommunicationChannel() {
+   );
+ }
+ 
+-export function useNotifications(enabled = true) {
++export function useNotifications(
++  filters?: Record<string, string | number | boolean | undefined>,
++  enabled = true,
++) {
+   return useQuery({
+-    queryKey: ["communication-notifications"],
+-    queryFn: communicationsService.notifications,
++    queryKey: ["communication-notifications", filters],
++    queryFn: () => communicationsService.notifications(filters),
+     refetchInterval: enabled ? 60_000 : false,
++    refetchOnWindowFocus: true,
+     enabled,
+   });
+ }
+@@ -152,33 +157,58 @@ export function useUnreadNotificationsCount() {
+     queryKey: ["communication-notifications-unread"],
+     queryFn: communicationsService.unreadCount,
+     refetchInterval: 60_000,
++    refetchOnWindowFocus: true,
+   });
+ }
+-export function useMarkNotificationRead() {
++function useNotificationMutation<TInput, TOutput>(
++  mutationFn: (input: TInput) => Promise<TOutput>,
++) {
+   const queryClient = useQueryClient();
+   return useMutation({
+-    mutationFn: communicationsService.markNotificationRead,
++    mutationFn,
+     onSuccess: () => {
+-      queryClient.invalidateQueries({
+-        queryKey: ["communication-notifications"],
+-      });
+-      queryClient.invalidateQueries({
+-        queryKey: ["communication-notifications-unread"],
+-      });
++      queryClient.invalidateQueries({ queryKey: ["communication-notifications"] });
++      queryClient.invalidateQueries({ queryKey: ["communication-notifications-unread"] });
+     },
+   });
+ }
++export function useMarkNotificationRead() {
++  return useNotificationMutation(communicationsService.markNotificationRead);
++}
++export function useMarkNotificationUnread() {
++  return useNotificationMutation(communicationsService.markNotificationUnread);
++}
++export function useArchiveNotification() {
++  return useNotificationMutation(communicationsService.archiveNotification);
++}
+ export function useReadAllNotifications() {
++  return useNotificationMutation(() => communicationsService.readAllNotifications());
++}
++export function useArchiveReadNotifications() {
++  return useNotificationMutation(() => communicationsService.archiveReadNotifications());
++}
++export function useNotificationCategories() {
++  return useQuery({
++    queryKey: ["communication-notification-categories"],
++    queryFn: communicationsService.notificationCategories,
++    staleTime: 60 * 60 * 1000,
++  });
++}
++export function useNotificationPreferences() {
++  return useQuery({
++    queryKey: ["communication-notification-preferences"],
++    queryFn: communicationsService.notificationPreferences,
++  });
++}
++export function useUpdateNotificationPreferences() {
+   const queryClient = useQueryClient();
+   return useMutation({
+-    mutationFn: communicationsService.readAllNotifications,
+-    onSuccess: () => {
+-      queryClient.invalidateQueries({
+-        queryKey: ["communication-notifications"],
+-      });
+-      queryClient.invalidateQueries({
+-        queryKey: ["communication-notifications-unread"],
+-      });
++    mutationFn: (payload: Partial<NotificationPreference>) =>
++      communicationsService.updateNotificationPreferences(payload),
++    onSuccess: (data) => {
++      queryClient.setQueryData(["communication-notification-preferences"], data);
++      queryClient.invalidateQueries({ queryKey: ["communication-notifications"] });
++      queryClient.invalidateQueries({ queryKey: ["communication-notifications-unread"] });
+     },
+   });
+ }
