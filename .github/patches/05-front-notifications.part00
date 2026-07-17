@@ -1,0 +1,201 @@
+diff --git a/frontend/settings-notifications.test.mjs b/frontend/settings-notifications.test.mjs
+new file mode 100644
+index 0000000..5bb9885
+--- /dev/null
++++ b/frontend/settings-notifications.test.mjs
+@@ -0,0 +1,35 @@
++import assert from "node:assert/strict";
++import { readFile } from "node:fs/promises";
++import test from "node:test";
++
++async function source(path) {
++  return readFile(path, "utf8");
++}
++
++test("configurações usam services e BFF sem Web Storage", async () => {
++  const page = await source("./src/features/settings/settings-page.tsx");
++  const service = await source("./src/features/settings/settings.service.ts");
++
++  assert.match(page, /usePracticeSettings/);
++  assert.match(page, /useNotificationPreferences/);
++  assert.doesNotMatch(page, /api\.|axios|fetch\(/);
++  assert.doesNotMatch(page + service, /localStorage|sessionStorage/);
++  assert.match(service, /auth\/settings\//);
++  assert.match(service, /auth\/working-hours\//);
++  assert.match(service, /auth\/sessions\//);
++});
++
++test("central de notificações mantém ações e filtros no service", async () => {
++  const page = await source("./src/features/communications/notifications-page.tsx");
++  const service = await source("./src/features/communications/communications.service.ts");
++  const bell = await source("./src/features/communications/notification-bell.tsx");
++
++  assert.match(page, /Não lidas/);
++  assert.match(page, /Arquivadas/);
++  assert.match(page, /useArchiveNotification/);
++  assert.match(service, /unread-count/);
++  assert.match(service, /archive-read/);
++  assert.match(service, /notifications\/preferences/);
++  assert.match(bell, /99\+/);
++  assert.doesNotMatch(page + bell, /dangerouslySetInnerHTML/);
++});
+diff --git a/frontend/src/app/dashboard/notificacoes/page.tsx b/frontend/src/app/dashboard/notificacoes/page.tsx
+new file mode 100644
+index 0000000..a18c15f
+--- /dev/null
++++ b/frontend/src/app/dashboard/notificacoes/page.tsx
+@@ -0,0 +1,11 @@
++import type { Metadata } from "next";
++
++import { NotificationsPage } from "@/features/communications/notifications-page";
++
++export const metadata: Metadata = {
++  title: "Notificações | Elo Terapêutico",
++};
++
++export default function NotificacoesPage() {
++  return <NotificationsPage />;
++}
+diff --git a/frontend/src/features/communications/communications.service.ts b/frontend/src/features/communications/communications.service.ts
+index 7d58e21..6bb7ced 100644
+--- a/frontend/src/features/communications/communications.service.ts
++++ b/frontend/src/features/communications/communications.service.ts
+@@ -9,12 +9,14 @@ import type {
+   CommunicationTemplate,
+   CreateCommunicationPayload,
+   InAppNotification,
++  NotificationCategoryOption,
++  NotificationPreference,
+   Paginated,
+   PatientOption,
+   UpdateChannelConfigurationPayload,
+ } from "./types";
+ 
+-function params(input?: Record<string, string | number | undefined | null>) {
++function params(input?: Record<string, string | number | boolean | undefined | null>) {
+   return Object.fromEntries(
+     Object.entries(input ?? {}).filter(
+       ([, value]) => value !== undefined && value !== null && value !== "",
+@@ -139,11 +141,12 @@ export const communicationsService = {
+     );
+     return Array.isArray(data) ? data : data.results;
+   },
+-  async notifications() {
+-    const { data } = await api.get<
+-      Paginated<InAppNotification> | InAppNotification[]
+-    >("communications/notifications/", { params: { page_size: 10 } });
+-    return Array.isArray(data) ? data : data.results;
++  async notifications(filters?: Record<string, string | number | boolean | undefined>) {
++    const { data } = await api.get<Paginated<InAppNotification>>(
++      "communications/notifications/",
++      { params: params({ page_size: 20, ...filters }) },
++    );
++    return data;
+   },
+   async unreadCount() {
+     const { data } = await api.get<{ count: number }>(
+@@ -151,16 +154,53 @@ export const communicationsService = {
+     );
+     return data.count;
+   },
+-  async markNotificationRead(id: number) {
++  async markNotificationRead(id: string) {
+     const { data } = await api.post<InAppNotification>(
+       `communications/notifications/${id}/read/`,
+     );
+     return data;
+   },
++  async markNotificationUnread(id: string) {
++    const { data } = await api.post<InAppNotification>(
++      `communications/notifications/${id}/unread/`,
++    );
++    return data;
++  },
++  async archiveNotification(id: string) {
++    const { data } = await api.post<InAppNotification>(
++      `communications/notifications/${id}/archive/`,
++    );
++    return data;
++  },
+   async readAllNotifications() {
+     const { data } = await api.post<{ updated: number }>(
+       "communications/notifications/read-all/",
+     );
+     return data;
+   },
++  async archiveReadNotifications() {
++    const { data } = await api.post<{ updated: number }>(
++      "communications/notifications/archive-read/",
++    );
++    return data;
++  },
++  async notificationCategories() {
++    const { data } = await api.get<NotificationCategoryOption[]>(
++      "communications/notifications/categories/",
++    );
++    return data;
++  },
++  async notificationPreferences() {
++    const { data } = await api.get<NotificationPreference>(
++      "communications/notifications/preferences/",
++    );
++    return data;
++  },
++  async updateNotificationPreferences(payload: Partial<NotificationPreference>) {
++    const { data } = await api.patch<NotificationPreference>(
++      "communications/notifications/preferences/",
++      payload,
++    );
++    return data;
++  },
+ };
+diff --git a/frontend/src/features/communications/notification-bell.tsx b/frontend/src/features/communications/notification-bell.tsx
+index f0a4029..1659fb8 100644
+--- a/frontend/src/features/communications/notification-bell.tsx
++++ b/frontend/src/features/communications/notification-bell.tsx
+@@ -23,7 +23,7 @@ function formatNotificationDate(value: string) {
+ 
+ export function NotificationBell() {
+   const [open, setOpen] = useState(false);
+-  const notifications = useNotifications(open);
++  const notifications = useNotifications({ page_size: 8 }, open);
+   const unread = useUnreadNotificationsCount();
+   const markRead = useMarkNotificationRead();
+   const readAll = useReadAllNotifications();
+@@ -88,12 +88,12 @@ export function NotificationBell() {
+                   Não foi possível carregar as notificações.
+                 </p>
+               )}
+-              {!notifications.isLoading && notifications.data?.length === 0 && (
++              {!notifications.isLoading && notifications.data?.results.length === 0 && (
+                 <p className="p-8 text-center text-xs text-muted-foreground">
+                   Nenhuma notificação registrada.
+                 </p>
+               )}
+-              {notifications.data?.map((notification) => {
++              {notifications.data?.results.map((notification) => {
+                 const content = (
+                   <span className="block min-w-0">
+                     <span className="flex items-center gap-2">
+@@ -119,11 +119,11 @@ export function NotificationBell() {
+                 if (notification.internal_url)
+                   return (
+                     <Link
+-                      key={notification.id}
++                      key={notification.public_id}
+                       href={notification.internal_url}
+                       onClick={() => {
+                         if (!notification.is_read)
+-                          markRead.mutate(notification.id);
++                          markRead.mutate(notification.public_id);
+                         setOpen(false);
+                       }}
+                       className={className}
+@@ -133,10 +133,10 @@ export function NotificationBell() {
+                   );
+                 return (
+                   <button
+-                    key={notification.id}
++                    key={notification.public_id}
+                     type="button"
+                     onCl
