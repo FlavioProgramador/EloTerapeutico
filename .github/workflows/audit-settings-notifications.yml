@@ -26,10 +26,9 @@ jobs:
         run: |
           set -euo pipefail
           required=(
-            .github/patches/bundle-backend.part00
-            .github/patches/bundle-backend.part01
-            .github/patches/bundle-frontend.part00
-            .github/patches/bundle-docs.part00
+            .github/patches/bundle-backend.part10
+            .github/patches/bundle-frontend.part05
+            .github/patches/bundle-docs.part01
           )
           for part in "${required[@]}"; do
             if [[ ! -f "$part" ]]; then
@@ -38,9 +37,9 @@ jobs:
             fi
           done
 
-          cat .github/patches/bundle-backend.part* | base64 --decode | tar -xJf - -C .
-          cat .github/patches/bundle-frontend.part* | base64 --decode | tar -xJf - -C .
-          cat .github/patches/bundle-docs.part* | base64 --decode | tar -xJf - -C .
+          cat .github/patches/bundle-backend.part* | tar -xJf - -C .
+          cat .github/patches/bundle-frontend.part* | tar -xJf - -C .
+          cat .github/patches/bundle-docs.part* | tar -xJf - -C .
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
