@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useId } from "react";
 import { LockKeyhole } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,16 @@ export function ScheduleBlockModal({
     confirmConflicts: false,
   });
   const [error, setError] = useState("");
+
+  const baseId = useId();
+  const therapistId = `${baseId}-therapist`;
+  const dateId = `${baseId}-date`;
+  const startId = `${baseId}-start`;
+  const endId = `${baseId}-end`;
+  const reasonId = `${baseId}-reason`;
+  const recurrenceId = `${baseId}-recurrence`;
+  const notesId = `${baseId}-notes`;
+  const confirmConflictsId = `${baseId}-confirmConflicts`;
 
   useEffect(() => {
     if (!open) return;
@@ -94,8 +104,9 @@ export function ScheduleBlockModal({
         </div>
 
         {(user?.role === "admin" || user?.role === "secretary") && (
-          <Field label="Profissional">
+          <Field label="Profissional" htmlFor={therapistId}>
             <select
+              id={therapistId}
               value={form.therapist}
               onChange={(event) =>
                 setForm((current) => ({
@@ -115,8 +126,9 @@ export function ScheduleBlockModal({
           </Field>
         )}
 
-        <Field label="Data">
+        <Field label="Data" htmlFor={dateId}>
           <input
+            id={dateId}
             type="date"
             value={form.date}
             onChange={(event) =>
@@ -127,8 +139,9 @@ export function ScheduleBlockModal({
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Início">
+          <Field label="Início" htmlFor={startId}>
             <input
+              id={startId}
               type="time"
               value={form.start}
               onChange={(event) =>
@@ -140,8 +153,9 @@ export function ScheduleBlockModal({
               className={fieldClass}
             />
           </Field>
-          <Field label="Fim">
+          <Field label="Fim" htmlFor={endId}>
             <input
+              id={endId}
               type="time"
               value={form.end}
               onChange={(event) =>
@@ -152,8 +166,9 @@ export function ScheduleBlockModal({
           </Field>
         </div>
 
-        <Field label="Motivo">
+        <Field label="Motivo" htmlFor={reasonId}>
           <select
+            id={reasonId}
             value={form.reason}
             onChange={(event) =>
               setForm((current) => ({ ...current, reason: event.target.value }))
@@ -169,8 +184,9 @@ export function ScheduleBlockModal({
           </select>
         </Field>
 
-        <Field label="Recorrência do bloqueio">
+        <Field label="Recorrência do bloqueio" htmlFor={recurrenceId}>
           <select
+            id={recurrenceId}
             value={form.recurrence}
             onChange={(event) =>
               setForm((current) => ({
@@ -186,8 +202,9 @@ export function ScheduleBlockModal({
           </select>
         </Field>
 
-        <Field label="Motivo complementar (opcional)">
+        <Field label="Motivo complementar (opcional)" htmlFor={notesId}>
           <input
+            id={notesId}
             value={form.notes}
             onChange={(event) =>
               setForm((current) => ({ ...current, notes: event.target.value }))
@@ -197,8 +214,12 @@ export function ScheduleBlockModal({
           />
         </Field>
 
-        <label className="flex items-start gap-2 rounded-lg border border-border bg-secondary/20 p-3 text-xs">
+        <label
+          htmlFor={confirmConflictsId}
+          className="flex items-start gap-2 rounded-lg border border-border bg-secondary/20 p-3 text-xs cursor-pointer select-none"
+        >
           <input
+            id={confirmConflictsId}
             type="checkbox"
             checked={form.confirmConflicts}
             onChange={(event) =>
@@ -236,15 +257,19 @@ export function ScheduleBlockModal({
 
 function Field({
   label,
+  htmlFor,
   children,
 }: {
   label: string;
+  htmlFor?: string;
   children: React.ReactNode;
 }) {
   return (
-    <label className="block space-y-1.5">
-      <span className="text-xs font-semibold">{label}</span>
+    <div className="block space-y-1.5">
+      <label htmlFor={htmlFor} className="text-xs font-semibold text-foreground cursor-pointer select-none">
+        {label}
+      </label>
       {children}
-    </label>
+    </div>
   );
 }
