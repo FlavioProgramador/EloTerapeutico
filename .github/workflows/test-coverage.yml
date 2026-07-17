@@ -27,7 +27,7 @@ jobs:
       - run: pytest --cov-config=.coveragerc --cov=apps --cov=core --cov-report=term-missing --cov-report=xml --cov-report=html --cov-fail-under=80
       - run: python scripts/coverage_by_module.py
       - run: cat coverage-by-module.md >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
