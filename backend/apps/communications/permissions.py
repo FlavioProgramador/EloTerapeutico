@@ -12,6 +12,7 @@ from .api.v1.permissions import (
     CanSendCommunication,
     CanViewCommunicationLogs,
 )
+from .services import enforce_communication_access
 
 __all__ = [
     "CanAccessCommunications",
@@ -21,4 +22,5 @@ __all__ = [
     "CanRetryCommunication",
     "CanSendCommunication",
     "CanViewCommunicationLogs",
+    "enforce_communication_access",
 ]
