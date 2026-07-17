@@ -1,46 +1,6 @@
 from django.contrib import admin
 
-from .models import BillingOrder, FeatureUsage, Payment, Plan, PlanPrice, Subscription, WebhookEvent
-
-
-class PlanPriceInline(admin.TabularInline):
-    model = PlanPrice
-    extra = 0
-    fields = (
-        "name",
-        "slug",
-        "billing_interval",
-        "billing_model",
-        "total_amount",
-        "installments_enabled",
-        "max_installments",
-        "is_active",
-    )
-
-
-@admin.register(Plan)
-class PlanAdmin(admin.ModelAdmin):
-    list_display = ("name", "slug", "is_active", "max_patients")
-    list_filter = ("is_active", "has_financial", "has_reports", "has_ai")
-    search_fields = ("name", "slug", "description")
-    readonly_fields = ("created_at", "updated_at")
-    inlines = [PlanPriceInline]
-
-
-@admin.register(PlanPrice)
-class PlanPriceAdmin(admin.ModelAdmin):
-    list_display = (
-        "name",
-        "plan",
-        "billing_interval",
-        "billing_model",
-        "total_amount",
-        "max_installments",
-        "is_active",
-    )
-    list_filter = ("billing_interval", "billing_model", "is_active", "currency")
-    search_fields = ("name", "slug", "plan__name")
-    readonly_fields = ("created_at", "updated_at")
+from apps.billing.models import BillingOrder, Payment, Subscription
 
 
 @admin.register(BillingOrder)
@@ -55,7 +15,13 @@ class BillingOrderAdmin(admin.ModelAdmin):
         "installment_count",
         "created_at",
     )
-    list_filter = ("status", "billing_model", "billing_interval", "gateway_name", "created_at")
+    list_filter = (
+        "status",
+        "billing_model",
+        "billing_interval",
+        "gateway_name",
+        "created_at",
+    )
     search_fields = (
         "public_id",
         "user__email",
@@ -85,7 +51,13 @@ class SubscriptionAdmin(admin.ModelAdmin):
         "access_ends_at",
         "gateway_subscription_id",
     )
-    list_filter = ("status", "plan", "gateway_name", "cancel_at_period_end", "created_at")
+    list_filter = (
+        "status",
+        "plan",
+        "gateway_name",
+        "cancel_at_period_end",
+        "created_at",
+    )
     search_fields = (
         "user__email",
         "user__full_name",
@@ -116,7 +88,14 @@ class PaymentAdmin(admin.ModelAdmin):
         "due_date",
         "paid_at",
     )
-    list_filter = ("status", "billing_type", "currency", "gateway_name", "due_date", "created_at")
+    list_filter = (
+        "status",
+        "billing_type",
+        "currency",
+        "gateway_name",
+        "due_date",
+        "created_at",
+    )
     search_fields = (
         "user__email",
         "user__full_name",
@@ -149,37 +128,3 @@ class PaymentAdmin(admin.ModelAdmin):
         if obj and "status" in request.POST:
             return request.user.is_superuser
         return super().has_change_permission(request, obj)
-
-
-@admin.register(WebhookEvent)
-class WebhookEventAdmin(admin.ModelAdmin):
-    list_display = (
-        "gateway_name",
-        "event_type",
-        "event_id",
-        "status",
-        "attempt_count",
-        "received_at",
-        "processed_at",
-    )
-    list_filter = ("gateway_name", "event_type", "status", "received_at")
-    search_fields = ("event_id", "payload_hash", "last_error", "error_message")
-    readonly_fields = (
-        "gateway_name",
-        "event_id",
-        "event_type",
-        "payload_hash",
-        "payload",
-        "attempt_count",
-        "processed_at",
-        "received_at",
-        "updated_at",
-    )
-
-
-@admin.register(FeatureUsage)
-class FeatureUsageAdmin(admin.ModelAdmin):
-    list_display = ("user", "feature_key", "usage_count", "period_start", "period_end")
-    list_filter = ("feature_key", "period_start", "period_end")
-    search_fields = ("user__email", "user__full_name", "feature_key")
-    readonly_fields = ("created_at", "updated_at")

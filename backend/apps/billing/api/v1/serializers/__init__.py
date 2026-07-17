@@ -1,18 +1,14 @@
-"""Compatibilidade para imports antigos de serializers de billing.
-
-Novos imports devem utilizar ``apps.billing.api.v1.serializers``.
-"""
-
-from .api.v1.serializers import (
-    BillingOrderSerializer,
-    ChangePlanSerializer,
+from .catalog import PlanPriceSerializer, PlanSerializer
+from .checkout import (
     CheckoutCreateSerializer,
     CheckoutPreviewSerializer,
     CheckoutSerializer,
+)
+from .orders import BillingOrderSerializer
+from .payments import PaymentSerializer
+from .subscriptions import (
+    ChangePlanSerializer,
     CreateSubscriptionSerializer,
-    PaymentSerializer,
-    PlanPriceSerializer,
-    PlanSerializer,
     SubscriptionSerializer,
 )
 

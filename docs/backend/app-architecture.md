@@ -41,6 +41,8 @@ A estrutura é proporcional ao tamanho do app. Um app pequeno pode manter um ún
 
 Contêm entidades, relacionamentos, constraints, índices, managers, querysets e métodos curtos que pertencem ao estado da entidade. Models não chamam APIs externas, não conhecem HTTP e não executam tarefas assíncronas.
 
+Quando um app possui várias entidades, `models` deve ser um pacote dividido por contexto. O `models/__init__.py` expõe o contrato público sem alterar o app label, os nomes das tabelas ou as migrations históricas.
+
 ### Services
 
 Implementam casos de uso que alteram estado ou coordenam operações. Services recebem dados do domínio, usam transações quando necessário e não dependem de `Request`, `Response` ou serializers.
@@ -55,15 +57,15 @@ A camada `api/v1` contém serializers, permissions, filters, views e URLs autent
 
 ### Integrations
 
-Contêm contratos e implementações de serviços externos, como e-mail, WhatsApp, SMS e gateways. Exceções de bibliotecas externas devem ser convertidas em exceções próprias da integração.
+Contêm contratos e implementações de serviços externos, como e-mail, WhatsApp, SMS, gateways e processadores de webhook. Exceções de bibliotecas externas devem ser convertidas em exceções próprias da integração.
 
 ### Infrastructure
 
-Contém detalhes técnicos internos, como mensageria, armazenamento, locks, adapters e persistência específica. Regras de negócio não pertencem à infrastructure.
+Contém detalhes técnicos internos, como mensageria, armazenamento, locks, adapters e clients HTTP. Regras de negócio não pertencem à infrastructure.
 
 ### Tasks
 
-Tasks Celery são entradas assíncronas finas. Elas chamam services, preservam idempotência e mantêm nomes explícitos quando esses nomes fazem parte da configuração externa.
+Tasks Celery são entradas assíncronas finas. Elas chamam services ou integrações, preservam idempotência e mantêm nomes explícitos quando esses nomes fazem parte da configuração externa.
 
 ### Signals
 
@@ -82,7 +84,7 @@ Apps com vários models devem dividir o admin por domínio ou entidade. O `admin
 ```text
 API/views → serializers/permissions → services/selectors → models
 services → integrations/infrastructure
-signals/tasks/commands → services
+signals/tasks/commands → services/integrations
 ```
 
 Regras obrigatórias:
@@ -92,6 +94,7 @@ Regras obrigatórias:
 - selectors não importam views e não alteram estado;
 - tasks e signals não duplicam regras existentes em services;
 - integrações não importam views;
+- views autenticadas não acessam o ORM diretamente quando existe selector ou service apropriado;
 - imports com `*` são proibidos;
 - ciclos não devem ser escondidos com imports locais sem correção arquitetural.
 
@@ -107,11 +110,13 @@ from .api.v1.permissions import CanAccessCommunications
 __all__ = ["CanAccessCommunications"]
 ```
 
-Fachadas devem ser removidas apenas quando todos os consumidores estiverem migrados e a mudança puder ser feita sem quebrar contratos internos.
+Fachadas devem ser removidas apenas quando todos os consumidores estiverem migrados e a mudança puder ser feita sem quebrar contratos internos, configurações, imports de terceiros ou pontos de monkeypatch da suíte.
 
 ## Migrations históricas
 
 Arquivos importados por migrations históricas mantêm seu caminho original. No app `communications`, `migration_operations.py` permanece na raiz para garantir que bancos novos e migrations antigas continuem funcionando. Migrations aplicadas não devem ser reescritas por motivos puramente organizacionais.
+
+Mover um `models.py` para `models/` é permitido quando as classes continuam pertencendo ao mesmo app Django, com os mesmos nomes, campos, constraints, índices e tabelas.
 
 ## Como dividir arquivos
 
@@ -134,9 +139,11 @@ tests/
 - `integration`: banco, providers, tasks, signals e infrastructure;
 - `api`: rotas, autenticação, permissões e contratos HTTP.
 
+Além dos testes funcionais, apps complexos devem ter testes de importação, contratos de URL, nomes de tasks, fachadas de compatibilidade e ausência de módulos monolíticos removidos.
+
 ## Referência: communications
 
-O app `communications` é a referência para módulos de alta complexidade:
+O app `communications` é a referência para módulos orientados a comunicação e eventos:
 
 - API versionada em `api/v1` e endpoints públicos em `api/public`;
 - providers separados em `integrations/providers`;
@@ -146,6 +153,21 @@ O app `communications` é a referência para módulos de alta complexidade:
 - validators e admin organizados em pacotes;
 - arquivos antigos mantidos apenas quando necessários como fachadas de compatibilidade.
 
+## Referência: billing
+
+O app `billing` é a referência para módulos financeiros e integrações críticas:
+
+- models divididos por catálogo, contratação, assinatura, pagamento, webhook e uso;
+- API autenticada em `api/v1` e fluxos sem sessão em `api/public`;
+- serializers e views separados por caso de uso;
+- checkout e regras transacionais mantidos em services;
+- client HTTP do Asaas isolado em `infrastructure/payments/asaas`;
+- interpretação e persistência de webhooks em `integrations/webhooks/asaas`;
+- tasks de webhook e reconciliação separadas, com nomes Celery preservados;
+- admin dividido por contexto;
+- fachadas antigas mantidas para URLs, autenticação, cadastro, imports e testes existentes;
+- validações arquiteturais impedem o retorno de `models.py`, `admin.py` e `tasks.py` monolíticos.
+
 ## Criação de um novo app
 
 1. identifique as entidades e os casos de uso;
@@ -153,5 +175,6 @@ O app `communications` é a referência para módulos de alta complexidade:
 3. mantenha consultas reutilizáveis em selectors;
 4. mantenha alterações de estado em services;
 5. exponha a API por uma versão explícita;
-6. adicione testes de importação e fronteiras arquiteturais;
-7. documente qualquer exceção ao padrão.
+6. isole integrações externas e normalize suas exceções;
+7. adicione testes de importação e fronteiras arquiteturais;
+8. documente qualquer exceção ao padrão.
