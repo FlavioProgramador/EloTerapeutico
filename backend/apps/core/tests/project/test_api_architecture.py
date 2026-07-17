@@ -14,6 +14,15 @@ BACKEND_ROOT = Path(__file__).resolve().parents[4]
         "apps.core.fields",
         "apps.core.api.pagination",
         "apps.core.validators",
+        "apps.billing.models",
+        "apps.billing.api.v1.urls",
+        "apps.billing.api.v1.serializers",
+        "apps.billing.api.v1.views",
+        "apps.billing.api.v1.permissions",
+        "apps.billing.api.public.registration",
+        "apps.billing.integrations.webhooks.asaas",
+        "apps.billing.tasks",
+        "apps.billing.admin",
         "apps.communications.infrastructure.messaging.email",
         "apps.communications.api.v1.urls",
         "apps.communications.api.v1.serializers",
@@ -88,6 +97,7 @@ def test_backend_modules_import_without_cycles(module_name):
         "apps.forms.urls",
         "apps.financeiro.urls",
         "apps.reports.urls",
+        "apps.billing.urls",
         "apps.communications.urls",
         "apps.communications.urls_public",
     ],
@@ -102,6 +112,13 @@ def test_public_url_modules_keep_their_contract(public_module):
         "apps/agenda/api/models.py",
         "apps/agenda/api/serializers/__init__.py",
         "apps/agenda/api/views/__init__.py",
+        "apps/billing/models/__init__.py",
+        "apps/billing/api/v1/serializers/__init__.py",
+        "apps/billing/api/v1/views/__init__.py",
+        "apps/billing/api/v1/permissions/__init__.py",
+        "apps/billing/tasks/__init__.py",
+        "apps/billing/admin/__init__.py",
+        "apps/billing/integrations/webhooks/asaas/__init__.py",
         "apps/communications/api/v1/serializers/__init__.py",
         "apps/communications/api/v1/permissions/__init__.py",
         "apps/communications/integrations/providers/__init__.py",
@@ -138,6 +155,9 @@ def test_public_exports_are_explicit(relative_path):
         "apps/agenda/models.py",
         "apps/agenda/model_parts",
         "apps/agenda/services/core_services.py",
+        "apps/billing/admin.py",
+        "apps/billing/models.py",
+        "apps/billing/tasks.py",
         "apps/communications/admin.py",
         "apps/communications/selectors.py",
         "apps/communications/signals.py",
@@ -173,18 +193,60 @@ def test_moved_modules_do_not_return_to_app_root(relative_path):
     assert not (BACKEND_ROOT / relative_path).exists()
 
 
-def test_communications_compatibility_facades_remain_thin():
-    facade_paths = [
-        "apps/communications/channel_serializers.py",
-        "apps/communications/permissions.py",
-        "apps/communications/providers.py",
-        "apps/communications/serializers.py",
-        "apps/communications/urls.py",
-        "apps/communications/urls_public.py",
-    ]
-    for relative_path in facade_paths:
+def _assert_facades_are_thin(paths: list[str]) -> None:
+    for relative_path in paths:
         source = (BACKEND_ROOT / relative_path).read_text(encoding="utf-8")
         assert len(source.splitlines()) <= 80, relative_path
+
+
+def test_billing_compatibility_facades_remain_thin():
+    _assert_facades_are_thin(
+        [
+            "apps/billing/access_views.py",
+            "apps/billing/authentication.py",
+            "apps/billing/checkout_views.py",
+            "apps/billing/decorators.py",
+            "apps/billing/permissions.py",
+            "apps/billing/registration.py",
+            "apps/billing/serializers.py",
+            "apps/billing/urls.py",
+            "apps/billing/views.py",
+            "apps/billing/webhooks/asaas.py",
+        ]
+    )
+
+
+def test_billing_task_names_remain_public():
+    tasks = import_module("apps.billing.tasks")
+    assert tasks.process_webhook_event_task.name == (
+        "apps.billing.tasks.process_webhook_event"
+    )
+    assert tasks.dispatch_pending_webhook_events.name == (
+        "apps.billing.tasks.dispatch_pending_webhook_events"
+    )
+    assert tasks.reconcile_asaas_payments.name == (
+        "apps.billing.tasks.reconcile_asaas_payments"
+    )
+
+
+def test_billing_webhook_facade_preserves_patch_points():
+    module = import_module("apps.billing.webhooks.asaas")
+    assert callable(module.activate_subscription_from_payment)
+    assert callable(module.mark_subscription_past_due)
+    assert callable(module.handle_asaas_webhook)
+
+
+def test_communications_compatibility_facades_remain_thin():
+    _assert_facades_are_thin(
+        [
+            "apps/communications/channel_serializers.py",
+            "apps/communications/permissions.py",
+            "apps/communications/providers.py",
+            "apps/communications/serializers.py",
+            "apps/communications/urls.py",
+            "apps/communications/urls_public.py",
+        ]
+    )
 
 
 def test_communications_migration_operations_path_is_preserved():
