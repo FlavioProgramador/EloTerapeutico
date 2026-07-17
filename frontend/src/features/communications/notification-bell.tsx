@@ -23,7 +23,7 @@ function formatNotificationDate(value: string) {
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
-  const notifications = useNotifications(open);
+  const notifications = useNotifications({ page_size: 8 }, open);
   const unread = useUnreadNotificationsCount();
   const markRead = useMarkNotificationRead();
   const readAll = useReadAllNotifications();
@@ -88,12 +88,12 @@ export function NotificationBell() {
                   Não foi possível carregar as notificações.
                 </p>
               )}
-              {!notifications.isLoading && notifications.data?.length === 0 && (
+              {!notifications.isLoading && notifications.data?.results.length === 0 && (
                 <p className="p-8 text-center text-xs text-muted-foreground">
                   Nenhuma notificação registrada.
                 </p>
               )}
-              {notifications.data?.map((notification) => {
+              {notifications.data?.results.map((notification) => {
                 const content = (
                   <span className="block min-w-0">
                     <span className="flex items-center gap-2">
@@ -119,11 +119,11 @@ export function NotificationBell() {
                 if (notification.internal_url)
                   return (
                     <Link
-                      key={notification.id}
+                      key={notification.public_id}
                       href={notification.internal_url}
                       onClick={() => {
                         if (!notification.is_read)
-                          markRead.mutate(notification.id);
+                          markRead.mutate(notification.public_id);
                         setOpen(false);
                       }}
                       className={className}
@@ -133,10 +133,10 @@ export function NotificationBell() {
                   );
                 return (
                   <button
-                    key={notification.id}
+                    key={notification.public_id}
                     type="button"
                     onClick={() =>
-                      !notification.is_read && markRead.mutate(notification.id)
+                      !notification.is_read && markRead.mutate(notification.public_id)
                     }
                     className={className}
                   >
@@ -146,7 +146,7 @@ export function NotificationBell() {
               })}
             </div>
             <Link
-              href="/dashboard/comunicacoes/notificacoes"
+              href="/dashboard/notificacoes"
               onClick={() => setOpen(false)}
               className="block border-t border-border px-4 py-3 text-center text-xs font-semibold text-primary hover:bg-secondary"
             >

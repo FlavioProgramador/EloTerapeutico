@@ -201,16 +201,56 @@ export interface ChannelTestResponse {
   };
 }
 
+export type NotificationCategory =
+  | "agenda"
+  | "patients"
+  | "records"
+  | "documents"
+  | "financial"
+  | "billing"
+  | "communications"
+  | "forms"
+  | "security"
+  | "system";
+
 export interface InAppNotification {
-  id: number;
+  public_id: string;
+  category: NotificationCategory;
+  category_display: string;
   title: string;
   message: string;
   notification_type: string;
-  priority: "low" | "normal" | "high";
+  priority: "low" | "normal" | "high" | "critical";
+  priority_display: string;
   internal_url: string;
+  action_label: string;
+  metadata: Record<string, string | number | boolean | null>;
   is_read: boolean;
   read_at: string | null;
+  archived_at: string | null;
   created_at: string;
+  expires_at: string | null;
+}
+
+export interface NotificationPreference {
+  in_app_enabled: boolean;
+  email_enabled: boolean;
+  whatsapp_enabled: boolean;
+  push_enabled: boolean;
+  quiet_hours_enabled: boolean;
+  quiet_hours_start: string | null;
+  quiet_hours_end: string | null;
+  timezone: string;
+  category_preferences: Partial<
+    Record<NotificationCategory, Partial<Record<"in_app" | "email" | "whatsapp" | "push", boolean>>>
+  >;
+  daily_digest_enabled: boolean;
+  updated_at: string;
+}
+
+export interface NotificationCategoryOption {
+  value: NotificationCategory;
+  label: string;
 }
 export interface PatientOption {
   id: number;
