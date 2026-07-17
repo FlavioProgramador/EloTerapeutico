@@ -1,0 +1,43 @@
+name: Auditoria temporária de configurações
+
+on:
+  push:
+    branches:
+      - feat/settings-notifications
+    paths:
+      - .github/workflows/audit-settings-notifications.yml
+
+permissions:
+  contents: read
+
+jobs:
+  export-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Gerar inventário
+        shell: bash
+        run: |
+          set -euo pipefail
+          find frontend/src backend/apps backend/config docs -type f | sort > repository-inventory.txt
+          printf '\n## Branch\n' >> repository-inventory.txt
+          git rev-parse HEAD >> repository-inventory.txt
+
+      - name: Publicar fontes para auditoria
+        uses: actions/upload-artifact@v4
+        with:
+          name: settings-notifications-audit
+          path: |
+            repository-inventory.txt
+            frontend/src
+            frontend/package.json
+            frontend/package-lock.json
+            backend/apps
+            backend/config
+            backend/manage.py
+            backend/requirements.txt
+            docs
+          retention-days: 1
+          if-no-files-found: error
