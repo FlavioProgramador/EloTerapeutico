@@ -1,20 +1,5 @@
-from apps.billing.models import Payment
+"""Compatibilidade para constantes dos webhooks Asaas."""
 
-PAYMENT_STATUS_BY_EVENT = {
-    "PAYMENT_CREATED": Payment.Status.PENDING,
-    "PAYMENT_UPDATED": Payment.Status.PENDING,
-    "PAYMENT_AUTHORIZED": Payment.Status.AUTHORIZED,
-    "PAYMENT_CONFIRMED": Payment.Status.CONFIRMED,
-    "PAYMENT_RECEIVED": Payment.Status.RECEIVED,
-    "PAYMENT_OVERDUE": Payment.Status.OVERDUE,
-    "PAYMENT_DELETED": Payment.Status.CANCELED,
-    "PAYMENT_REFUNDED": Payment.Status.REFUNDED,
-    "PAYMENT_PARTIALLY_REFUNDED": Payment.Status.PARTIALLY_REFUNDED,
-    "PAYMENT_REFUND_IN_PROGRESS": Payment.Status.REFUND_IN_PROGRESS,
-    "PAYMENT_CHARGEBACK_REQUESTED": Payment.Status.CHARGEBACK,
-    "PAYMENT_CHARGEBACK_DISPUTE": Payment.Status.CHARGEBACK_DISPUTE,
-    "PAYMENT_RESTORED": Payment.Status.RESTORED,
-    "PAYMENT_AWAITING_RISK_ANALYSIS": Payment.Status.AWAITING_RISK_ANALYSIS,
-    "PAYMENT_APPROVED_BY_RISK_ANALYSIS": Payment.Status.CONFIRMED,
-    "PAYMENT_REPROVED_BY_RISK_ANALYSIS": Payment.Status.FAILED,
-}
+from apps.billing.integrations.asaas.webhooks.constants import PAYMENT_STATUS_BY_EVENT
+
+__all__ = ["PAYMENT_STATUS_BY_EVENT"]

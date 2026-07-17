@@ -1,10 +1,6 @@
-"""Compatibilidade para imports históricos das views de billing.
+"""Compatibilidade temporária para imports históricos das views de Billing."""
 
-A implementação canônica permanece em ``apps.billing.api.v1.views`` e
-``apps.billing.api.public.webhooks``.
-"""
-
-from apps.billing.api.public.webhooks import AsaasWebhookView
+from apps.billing.api.public.views import AsaasWebhookView
 from apps.billing.api.v1.views import (
     BillingIntegrationHealthView,
     BillingOrderDetailView,

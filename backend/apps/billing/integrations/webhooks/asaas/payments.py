@@ -1,56 +1,11 @@
-from __future__ import annotations
+"""Alias temporário para o módulo canônico de pagamentos do webhook Asaas.
 
-from django.utils import timezone
+O alias em ``sys.modules`` preserva patch points históricos sem duplicar
+implementação nem criar uma segunda referência independente das funções.
+"""
 
-from apps.billing.models import Payment, Subscription
-from apps.billing.services.orders import upsert_gateway_payment
-from apps.billing.services.subscriptions import (
-    activate_subscription_from_payment,
-    mark_subscription_past_due,
-)
+import sys
 
-from .constants import PAYMENT_STATUS_BY_EVENT
-from .orders import (
-    find_order,
-    subscription_for_order,
-    update_order_financial_status,
-)
+from apps.billing.integrations.asaas.webhooks import payments as _canonical
 
-
-def process_payment_event(event_type: str, payment_data: dict) -> str:
-    order = find_order(payment_data)
-    if not order:
-        return "retry: contratação local ainda não localizada"
-
-    subscription = subscription_for_order(order, payment_data)
-    normalized = dict(payment_data)
-    normalized["status"] = PAYMENT_STATUS_BY_EVENT.get(
-        event_type,
-        payment_data.get("status") or Payment.Status.PENDING,
-    )
-    payment = upsert_gateway_payment(
-        order=order,
-        payload=normalized,
-        subscription=subscription,
-        installment_count=order.installment_count,
-    )
-    update_order_financial_status(order)
-
-    if subscription and event_type in {
-        "PAYMENT_CONFIRMED",
-        "PAYMENT_RECEIVED",
-        "PAYMENT_APPROVED_BY_RISK_ANALYSIS",
-    }:
-        activate_subscription_from_payment(subscription, payment)
-    elif subscription and event_type == "PAYMENT_OVERDUE":
-        mark_subscription_past_due(subscription)
-    elif subscription and event_type in {
-        "PAYMENT_CHARGEBACK_REQUESTED",
-        "PAYMENT_REPROVED_BY_RISK_ANALYSIS",
-    }:
-        subscription.status = Subscription.Status.SUSPENDED
-        subscription.suspended_at = timezone.now()
-        subscription.save(
-            update_fields=["status", "suspended_at", "updated_at"]
-        )
-    return "processed"
+sys.modules[__name__] = _canonical

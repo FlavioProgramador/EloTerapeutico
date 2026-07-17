@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.billing.api.public.registration import PlanRegistrationView
+from apps.billing.api.public.views import PlanRegistrationView
 
 from .api.onboarding import OnboardingView
 from .api.views import (

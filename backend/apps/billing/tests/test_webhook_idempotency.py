@@ -4,8 +4,8 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from rest_framework.test import APIRequestFactory
 
+from apps.billing.api.public.views import AsaasWebhookView
 from apps.billing.models import Payment, Plan, Subscription, WebhookEvent
-from apps.billing.views import AsaasWebhookView
 
 WEBHOOK_TOKEN = "billing-idempotency-token"
 
@@ -63,5 +63,13 @@ class AsaasWebhookEventIdTests(TestCase):
 
         self.assertEqual(first_response.status_code, 200)
         self.assertEqual(second_response.status_code, 200)
-        self.assertEqual(WebhookEvent.objects.filter(event_id="evt_idempotency_123").count(), 1)
-        self.assertEqual(Payment.objects.filter(gateway_payment_id="pay_idempotency_123").count(), 1)
+        self.assertEqual(
+            WebhookEvent.objects.filter(event_id="evt_idempotency_123").count(),
+            1,
+        )
+        self.assertEqual(
+            Payment.objects.filter(
+                gateway_payment_id="pay_idempotency_123"
+            ).count(),
+            1,
+        )

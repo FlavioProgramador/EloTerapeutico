@@ -1,11 +1,11 @@
 """Compatibilidade para a integração de webhooks do Asaas.
 
-A implementação canônica está em
-``apps.billing.integrations.webhooks.asaas``.
+A implementação canônica está em ``apps.billing.integrations.asaas`` e em
+``apps.billing.integrations.asaas.webhooks``.
 """
 
-from apps.billing.infrastructure.payments.asaas.client import AsaasGateway
-from apps.billing.integrations.webhooks.asaas import (
+from apps.billing.integrations.asaas.client import AsaasGateway
+from apps.billing.integrations.asaas.webhooks import (
     PAYMENT_STATUS_BY_EVENT,
     handle_asaas_webhook,
     process_webhook_event,

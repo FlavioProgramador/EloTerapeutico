@@ -1,7 +1,8 @@
 from django.urls import path
 
+from apps.billing.api.public.urls import urlpatterns as public_urlpatterns
+
 from .views import (
-    AsaasWebhookView,
     BillingIntegrationHealthView,
     BillingOrderDetailView,
     BillingOrderListView,
@@ -101,9 +102,5 @@ urlpatterns = [
         BillingIntegrationHealthView.as_view(),
         name="billing-asaas-health",
     ),
-    path(
-        "webhooks/asaas/",
-        AsaasWebhookView.as_view(),
-        name="billing-webhook-asaas",
-    ),
+    *public_urlpatterns,
 ]
