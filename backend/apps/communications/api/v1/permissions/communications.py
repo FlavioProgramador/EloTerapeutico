@@ -3,7 +3,13 @@ from __future__ import annotations
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from rest_framework.permissions import BasePermission
 
-from apps.communications.services import enforce_communication_access
+
+def _enforce_access(owner) -> None:
+    """Resolve a fachada legada para preservar pontos de monkeypatch existentes."""
+
+    from apps.communications import permissions as compatibility_permissions
+
+    compatibility_permissions.enforce_communication_access(owner)
 
 
 class CanAccessCommunications(BasePermission):
@@ -13,7 +19,7 @@ class CanAccessCommunications(BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
         try:
-            enforce_communication_access(request.user)
+            _enforce_access(request.user)
         except DjangoPermissionDenied as exc:
             self.message = str(exc)
             return False
