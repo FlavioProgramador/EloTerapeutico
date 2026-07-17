@@ -1,0 +1,198 @@
+patch_communication
+ from apps.communications.services.scheduled_operations import schedule_operational_automations
+ 
+@@ -97,3 +103,76 @@ def cleanup_expired_public_tokens() -> int:
+     cutoff = timezone.now() - timedelta(days=retention_days)
+     deleted, _ = PublicCommunicationActionToken.objects.filter(expires_at__lt=cutoff).delete()
+     return deleted
++
++
++@shared_task(
++    bind=True,
++    name="apps.communications.tasks.send_notification_delivery",
++    acks_late=True,
++    reject_on_worker_lost=True,
++    max_retries=4,
++    soft_time_limit=60,
++    time_limit=90,
++)
++def send_notification_delivery(self, delivery_id: int) -> None:
++    delivery = NotificationDelivery.objects.select_related("notification__recipient").filter(pk=delivery_id).first()
++    if delivery is None or delivery.status in {NotificationDelivery.Status.SENT, NotificationDelivery.Status.DELIVERED, NotificationDelivery.Status.SKIPPED}:
++        return
++    delivery.status = NotificationDelivery.Status.PROCESSING
++    delivery.attempt_count += 1
++    delivery.last_error = ""
++    delivery.save(update_fields=["status", "attempt_count", "last_error", "updated_at"])
++    notification = delivery.notification
++    try:
++        if delivery.channel != NotificationDelivery.Channel.EMAIL:
++            delivery.status = NotificationDelivery.Status.SKIPPED
++            delivery.last_error = "Canal ainda não configurado."
++        elif not notification.recipient.email:
++            delivery.status = NotificationDelivery.Status.SKIPPED
++            delivery.last_error = "Destinatário sem e-mail cadastrado."
++        else:
++            sent = send_mail(
++                subject=notification.title,
++                message=f"{notification.message}\n\nAcesse o Elo Terapêutico para revisar.",
++                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
++                recipient_list=[notification.recipient.email],
++                fail_silently=False,
++            )
++            if sent != 1:
++                raise RuntimeError("backend_email_not_confirmed")
++            delivery.status = NotificationDelivery.Status.SENT
++            delivery.sent_at = timezone.now()
++            delivery.provider = "django_email"
++            delivery.last_error = ""
++        delivery.next_retry_at = None
++        delivery.save(update_fields=["status", "attempt_count", "provider", "sent_at", "next_retry_at", "last_error", "updated_at"])
++    except Exception as exc:
++        countdown = min(60 * (2 ** self.request.retries), 3600)
++        final = self.request.retries >= self.max_retries
++        delivery.status = NotificationDelivery.Status.FAILED if final else NotificationDelivery.Status.PENDING
++        delivery.failed_at = timezone.now() if final else None
++        delivery.next_retry_at = None if final else timezone.now() + timedelta(seconds=countdown)
++        delivery.last_error = "Falha temporária no envio da notificação."
++        delivery.save(update_fields=["status", "attempt_count", "failed_at", "next_retry_at", "last_error", "updated_at"])
++        if not final:
++            raise self.retry(exc=exc, countdown=countdown)
++        raise
++
++
++@shared_task(
++    name="apps.communications.tasks.cleanup_expired_notifications",
++    acks_late=True,
++    ignore_result=True,
++)
++def cleanup_expired_notifications() -> int:
++    now = timezone.now()
++    retention_days = max(int(getattr(settings, "NOTIFICATION_RETENTION_DAYS", 180)), 30)
++    cutoff = now - timedelta(days=retention_days)
++    queryset = InAppNotification.objects.filter(
++        expires_at__lt=now,
++        archived_at__isnull=True,
++    ) | InAppNotification.objects.filter(
++        archived_at__lt=cutoff,
++    )
++    updated = queryset.update(archived_at=now)
++    return updated
+diff --git a/backend/apps/communications/tests/test_notification_center.py b/backend/apps/communications/tests/test_notification_center.py
+new file mode 100644
+index 0000000..719a437
+--- /dev/null
++++ b/backend/apps/communications/tests/test_notification_center.py
+@@ -0,0 +1,137 @@
++from __future__ import annotations
++
++import pytest
++from django.urls import reverse
++from rest_framework.test import APIClient
++
++from apps.communications.models import InAppNotification, NotificationPreference
++from apps.communications.services.notifications import create_notification
++from apps.users.models import User
++
++pytestmark = pytest.mark.django_db
++
++
++def user(email: str) -> User:
++    return User.objects.create_user(
++        email=email,
++        password="SenhaForte123!",
++        full_name="Usuário Notificações",
++    )
++
++
++def authenticated_client(current_user: User) -> APIClient:
++    client = APIClient()
++    client.force_authenticate(current_user)
++    return client
++
++
++def create_item(owner: User, **kwargs) -> InAppNotification:
++    return InAppNotification.objects.create(
++        owner=owner,
++        recipient=owner,
++        category=kwargs.pop("category", InAppNotification.Category.SYSTEM),
++        title=kwargs.pop("title", "Aviso"),
++        message=kwargs.pop("message", "Mensagem administrativa"),
++        notification_type=kwargs.pop("notification_type", "system.notice"),
++        **kwargs,
++    )
++
++
++def test_notification_api_isolates_recipient_and_uses_public_id():
++    owner = user("notification-owner@example.test")
++    other = user("notification-other@example.test")
++    own_notification = create_item(owner)
++    other_notification = create_item(other, title="Outro usuário")
++    client = authenticated_client(owner)
++
++    listing = client.get("/api/v1/communications/notifications/")
++    detail = client.get(
++        f"/api/v1/communications/notifications/{own_notification.public_id}/"
++    )
++    forbidden_detail = client.get(
++        f"/api/v1/communications/notifications/{other_notification.public_id}/"
++    )
++
++    assert listing.status_code == 200
++    assert [item["public_id"] for item in listing.data["results"]] == [
++        str(own_notification.public_id)
++    ]
++    assert detail.status_code == 200
++    assert forbidden_detail.status_code == 404
++    assert "id" not in detail.data
++
++
++def test_read_unread_archive_and_bulk_actions():
++    owner = user("notification-actions@example.test")
++    first = create_item(owner)
++    second = create_item(owner, title="Segundo")
++    client = authenticated_client(owner)
++
++    assert client.post(
++        f"/api/v1/communications/notifications/{first.public_id}/read/"
++    ).status_code == 200
++    assert client.post(
++        f"/api/v1/communications/notifications/{first.public_id}/unread/"
++    ).status_code == 200
++    assert client.post("/api/v1/communications/notifications/read-all/").data["updated"] == 2
++    assert client.post("/api/v1/communications/notifications/archive-read/").data["updated"] == 2
++
++    first.refresh_from_db()
++    second.refresh_from_db()
++    assert first.archived_at is not None
++    assert second.archived_at is not None
++
++
++def test_preferences_are_private_and_whatsapp_cannot_be_enabled():
++    owner = user("notification-preferences@example.test")
++    other = user("notification-preferences-other@example.test")
++    NotificationPreference.objects.create(user=other, email_enabled=False)
++    client = authenticated_client(owner)
++
++    response = client.patch(
++        "/api/v1/communications/notifications/preferences/",
++        {
++            "email_enabled": False,
++            "category_preferences": {"agenda": {"in_app": True, "email": False}},
++        },
++        format="json",
++    )
++    invalid = client.patch(
++        "/api/v1/communications/notifications/preferences/",
++        {"whatsapp_enabled": True},
++        format="json",
++    )
++
++    assert response.status_code == 200
++    assert response.data["email_enabled"] is False
++    assert invalid.status_code == 400
++    assert NotificationPreference.objects.get(user=other).email_enabled is False
++
++
++def test_service_deduplicates_and_sanitizes_metadata():
++    owner = user(
