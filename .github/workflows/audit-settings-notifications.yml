@@ -1,4 +1,4 @@
-name: Aplicação temporária de configurações e notificações
+name: Diagnóstico temporário de configurações e notificações
 
 on:
   pull_request:
@@ -7,18 +7,12 @@ on:
     paths:
       - .github/workflows/audit-settings-notifications.yml
       - .github/patches/**
-  push:
-    branches:
-      - feat/settings-notifications
-    paths:
-      - .github/workflows/audit-settings-notifications.yml
-      - .github/patches/**
 
 permissions:
   contents: write
 
 jobs:
-  apply-patches:
+  diagnose-patches:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout da branch
@@ -26,26 +20,12 @@ jobs:
         with:
           ref: feat/settings-notifications
           fetch-depth: 0
+          show-progress: false
 
-      - name: Aplicar alterações organizadas
+      - name: Registrar diagnóstico na branch
         shell: bash
         run: |
-          set -euo pipefail
-          required=(
-            .github/patches/01-settings.part03
-            .github/patches/02-domain.part02
-            .github/patches/03-services.part04
-            .github/patches/04-front-settings.part04
-            .github/patches/05-front-notifications.part03
-            .github/patches/06-docs.part01
-          )
-          for part in "${required[@]}"; do
-            if [[ ! -f "$part" ]]; then
-              echo "Aguardando $part."
-              exit 0
-            fi
-          done
-
+          set -uo pipefail
           cat .github/patches/01-settings.part* > /tmp/01-settings.diff
           cat .github/patches/02-domain.part* > /tmp/02-domain.diff
           cat .github/patches/03-services.part* > /tmp/03-services.diff
@@ -53,37 +33,30 @@ jobs:
           cat .github/patches/05-front-notifications.part* > /tmp/05-front-notifications.diff
           cat .github/patches/06-docs.part* > /tmp/06-docs.diff
 
+          report=.github/patch-diagnostic.txt
+          : > "$report"
+          echo "expected b376adefe467cd5decd8b43ce705fce0ff01dbe0ecfae5dbd3a639c6cadc363f  /tmp/01-settings.diff" >> "$report"
+          echo "expected c111b9033349c90a07bf6344ce71f36b77dd9f94f807ae36a6ab6033e32afa94  /tmp/02-domain.diff" >> "$report"
+          echo "expected 0e6886936cc4656e6e4c1b7c905c04da92d3914fb2181ab4118e730c176ba76e  /tmp/03-services.diff" >> "$report"
+          echo "expected ecdb9bcd180a78fe85df5b5cb3fa397d902b04a5afcd035f58c3f3ac966d596d  /tmp/04-front-settings.diff" >> "$report"
+          echo "expected 40c3736127e897aa954850c6e2e60ca38a7b8d40cc90a5cbbcaba6a94a95593d  /tmp/05-front-notifications.diff" >> "$report"
+          echo "expected 21e890b3d48ef3199c7560dc71679b69ea3ac7f465e63c2d1ab278b7ec2f644e  /tmp/06-docs.diff" >> "$report"
+          echo >> "$report"
+          sha256sum /tmp/01-settings.diff /tmp/02-domain.diff /tmp/03-services.diff /tmp/04-front-settings.diff /tmp/05-front-notifications.diff /tmp/06-docs.diff >> "$report"
+          echo >> "$report"
+
+          for patch in /tmp/01-settings.diff /tmp/02-domain.diff /tmp/03-services.diff /tmp/04-front-settings.diff /tmp/05-front-notifications.diff /tmp/06-docs.diff; do
+            echo "CHECK $patch" >> "$report"
+            git apply --check --verbose "$patch" >> "$report" 2>&1
+            code=$?
+            echo "EXIT $code" >> "$report"
+            if [[ $code -ne 0 ]]; then
+              break
+            fi
+          done
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git apply --check /tmp/01-settings.diff
-          git apply /tmp/01-settings.diff
-          git add backend
-          git commit -m "feat: implementa configurações persistentes"
-
-          git apply --check /tmp/02-domain.diff
-          git apply /tmp/02-domain.diff
-          git apply --check /tmp/03-services.diff
-          git apply /tmp/03-services.diff
-          git add backend
-          git commit -m "feat: implementa domínio e API de notificações"
-
-          git apply --check /tmp/04-front-settings.diff
-          git apply /tmp/04-front-settings.diff
-          git add frontend
-          git commit -m "feat: conecta o módulo de configurações"
-
-          git apply --check /tmp/05-front-notifications.diff
-          git apply /tmp/05-front-notifications.diff
-          git add frontend
-          git commit -m "feat: cria central completa de notificações"
-
-          git apply --check /tmp/06-docs.diff
-          git apply /tmp/06-docs.diff
-          git add docs
-          git commit -m "docs: documenta configurações e notificações"
-
-          git rm -r .github/patches
-          git rm .github/workflows/audit-settings-notifications.yml
-          git commit -m "chore: remove arquivos temporários da implementação"
+          git add "$report"
+          git commit -m "chore: registra diagnóstico dos patches" || true
           git push origin HEAD:feat/settings-notifications
