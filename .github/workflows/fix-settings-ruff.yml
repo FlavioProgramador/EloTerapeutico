@@ -6,11 +6,6 @@ on:
       - feat/settings-notifications
     paths:
       - .github/workflows/fix-settings-ruff.yml
-  pull_request:
-    branches:
-      - main
-    paths:
-      - .github/workflows/fix-settings-ruff.yml
 
 permissions:
   contents: write
@@ -33,17 +28,16 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          path = Path('backend/apps/users/api/views.py')
-          content = path.read_text()
-          old = '''        from apps.audit.services.access_logging import log_access
-          from apps.audit.models import AuditLog
-'''
-          new = '''        from apps.audit.models import AuditLog
-          from apps.audit.services.access_logging import log_access
-'''
-          if old in content:
-              content = content.replace(old, new)
-          path.write_text(content)
+          path = Path("backend/apps/users/api/views.py")
+          lines = path.read_text().splitlines()
+          service_import = "        from apps.audit.services.access_logging import log_access"
+          model_import = "        from apps.audit.models import AuditLog"
+
+          service_index = lines.index(service_import)
+          model_index = lines.index(model_import)
+          if service_index < model_index:
+              lines[service_index], lines[model_index] = lines[model_index], lines[service_index]
+              path.write_text("\n".join(lines) + "\n")
           PY
 
           if git diff --quiet -- backend/apps/users/api/views.py; then
