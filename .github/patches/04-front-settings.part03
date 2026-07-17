@@ -1,0 +1,115 @@
+t: value })} />
++                  <Field label="Fim do silêncio" type="time" value={practice.quiet_hours_end ?? "07:00"} onChange={(value) => setPractice({ ...practice, quiet_hours_end: value })} />
++                </div>
++              )}
++              <label className="mt-4 block space-y-2"><span className="text-xs font-semibold">Política de comunicação</span><textarea value={practice.communication_policy} onChange={(event) => setPractice({ ...practice, communication_policy: event.target.value })} rows={5} className="w-full rounded-lg border border-border bg-background p-3 text-sm" /></label>
++              <div className="mt-5 flex justify-end"><Button onClick={savePractice}><Save className="mr-2 h-4 w-4" />Salvar comunicação</Button></div>
++            </Panel>
++          )}
++
++          {active === "notifications" && (
++            <Panel title="Preferências de notificações" description="O sistema funciona in-app e por e-mail. WhatsApp e push permanecem bloqueados até existir integração válida e consentimento.">
++              <div className="grid gap-3 sm:grid-cols-2">
++                <Toggle label="Notificações no sistema" checked={notificationPreferences.data.in_app_enabled} onChange={(checked) => updateNotificationPreferences.mutate({ in_app_enabled: checked })} />
++                <Toggle label="Notificações por e-mail" checked={notificationPreferences.data.email_enabled} onChange={(checked) => updateNotificationPreferences.mutate({ email_enabled: checked })} />
++                <Toggle label="WhatsApp" description="Indisponível até configurar um provedor oficial." checked={false} onChange={() => undefined} disabled />
++                <Toggle label="Push" description="Preparado no modelo, mas ainda sem cliente push registrado." checked={false} onChange={() => undefined} disabled />
++                <Toggle label="Horário de silêncio" checked={notificationPreferences.data.quiet_hours_enabled} onChange={(checked) => updateNotificationPreferences.mutate({ quiet_hours_enabled: checked })} />
++                <Toggle label="Resumo diário" checked={notificationPreferences.data.daily_digest_enabled} onChange={(checked) => updateNotificationPreferences.mutate({ daily_digest_enabled: checked })} />
++              </div>
++              <div className="mt-5 overflow-x-auto rounded-lg border border-border">
++                <table className="w-full min-w-[32rem] text-left text-xs">
++                  <thead className="bg-secondary"><tr><th className="px-4 py-3">Categoria</th><th className="px-4 py-3 text-center">No sistema</th><th className="px-4 py-3 text-center">E-mail</th></tr></thead>
++                  <tbody>
++                    {notificationCategories.map(([category, label]) => {
++                      const config = notificationPreferences.data.category_preferences[category] ?? {};
++                      return (
++                        <tr key={category} className="border-t border-border"><td className="px-4 py-3 font-semibold">{label}</td>{(["in_app", "email"] as const).map((channel) => (<td key={channel} className="px-4 py-3 text-center"><input type="checkbox" checked={config[channel] ?? (channel === "in_app" ? notificationPreferences.data.in_app_enabled : notificationPreferences.data.email_enabled)} onChange={(event) => updateNotificationPreferences.mutate({ category_preferences: { ...notificationPreferences.data.category_preferences, [category]: { ...config, [channel]: event.target.checked } } })} className="accent-primary" /></td>))}</tr>
++                      );
++                    })}
++                  </tbody>
++                </table>
++              </div>
++              <p className="mt-4 text-xs text-muted-foreground">Alertas críticos de segurança podem continuar visíveis dentro do sistema para proteger a conta.</p>
++            </Panel>
++          )}
++
++          {active === "security" && (
++            <div className="space-y-5">
++              <Panel title="Sessões ativas" description="Revogue dispositivos que você não reconhece. Tokens e identificadores internos não são exibidos.">
++                {sessionsQuery.isLoading ? <Skeleton className="h-40 w-full" /> : (
++                  <div className="space-y-2">
++                    {sessionsQuery.data?.map((session) => (
++                      <div key={session.public_id} className="flex flex-col gap-3 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold">{session.user_agent || "Dispositivo não identificado"}</p><p className="mt-1 text-xs text-muted-foreground">Última atividade: {new Date(session.last_seen_at).toLocaleString("pt-BR")}{session.is_current ? " · Sessão atual" : ""}</p></div><Button variant="outline" disabled={session.is_current || revokeSession.isPending} onClick={() => revokeSession.mutate(session.public_id)}>Encerrar</Button></div>
++                    ))}
++                  </div>
++                )}
++              </Panel>
++              <Panel title="Alterar senha" description="A alteração revoga todas as sessões existentes por segurança.">
++                <div className="grid gap-4 sm:grid-cols-3"><Field label="Senha atual" type="password" value={password.current_password} onChange={(value) => setPassword({ ...password, current_password: value })} /><Field label="Nova senha" type="password" value={password.new_password} onChange={(value) => setPassword({ ...password, new_password: value })} /><Field label="Confirmar nova senha" type="password" value={password.new_password_confirm} onChange={(value) => setPassword({ ...password, new_password_confirm: value })} /></div>
++                <div className="mt-5 flex justify-end"><Button onClick={changePassword}><KeyRound className="mr-2 h-4 w-4" />Alterar senha</Button></div>
++              </Panel>
++            </div>
++          )}
++
++          {active === "integrations" && (
++            <Panel title="Integrações" description="A saúde operacional das integrações permanece em uma rota administrativa dedicada.">
++              <Link href="/dashboard/configuracoes/integracoes" className="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Abrir integrações</Link>
++            </Panel>
++          )}
++        </div>
++      </div>
++    </div>
++  );
++}
+diff --git a/frontend/src/features/settings/settings.service.ts b/frontend/src/features/settings/settings.service.ts
+new file mode 100644
+index 0000000..d61221f
+--- /dev/null
++++ b/frontend/src/features/settings/settings.service.ts
+@@ -0,0 +1,67 @@
++import { api } from "@/lib/api";
++import type {
++  AuthSessionItem,
++  PracticeSettings,
++  SettingsProfile,
++  WorkingHour,
++} from "./types";
++
++export const settingsService = {
++  async profile() {
++    const { data } = await api.get<SettingsProfile>("auth/me/");
++    return data;
++  },
++  async updateProfile(payload: Partial<SettingsProfile>) {
++    const { data } = await api.patch<SettingsProfile>("auth/me/", payload);
++    return data;
++  },
++  async practice() {
++    const { data } = await api.get<PracticeSettings>("auth/settings/");
++    return data;
++  },
++  async updatePractice(payload: Partial<PracticeSettings>) {
++    const { data } = await api.patch<PracticeSettings>("auth/settings/", payload);
++    return data;
++  },
++  async workingHours() {
++    const { data } = await api.get<WorkingHour[] | { results: WorkingHour[] }>(
++      "auth/working-hours/",
++    );
++    return Array.isArray(data) ? data : data.results;
++  },
++  async saveWorkingHour(input: Omit<WorkingHour, "id" | "weekday_display"> & { id?: number }) {
++    const payload = {
++      weekday: input.weekday,
++      start_time: input.start_time,
++      end_time: input.end_time,
++      is_active: input.is_active,
++    };
++    if (input.id) {
++      const { data } = await api.patch<WorkingHour>(
++        `auth/working-hours/${input.id}/`,
++        payload,
++      );
++      return data;
++     
