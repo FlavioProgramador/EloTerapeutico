@@ -8,10 +8,7 @@ from celery import shared_task
 from django.utils import timezone
 
 from apps.communications.models import Communication
-from apps.communications.services.dispatch import (
-    claim_due_communications,
-    dispatch_communication,
-)
+from apps.communications.services.dispatch import dispatch_communication
 
 
 @shared_task(
@@ -64,7 +61,9 @@ def send_communication(self, communication_id: int) -> None:
     ignore_result=True,
 )
 def dispatch_due_communications() -> int:
-    communication_ids = claim_due_communications()
+    from apps.communications import tasks as compatibility_tasks
+
+    communication_ids = compatibility_tasks.claim_due_communications()
     published = 0
     for communication_id in communication_ids:
         try:
