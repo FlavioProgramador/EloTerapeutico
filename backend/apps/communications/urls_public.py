@@ -1,8 +1,5 @@
-from django.urls import path
+"""Fachada estável das rotas públicas de comunicações."""
 
-from .views import PublicCommunicationActionView
+from .api.public.urls import urlpatterns
 
-urlpatterns = [
-    path("actions/<str:token>/", PublicCommunicationActionView.as_view(), name="public-communication-action"),
-    path("actions/<str:token>/<str:action>/", PublicCommunicationActionView.as_view(), name="public-communication-action-submit"),
-]
+__all__ = ["urlpatterns"]
