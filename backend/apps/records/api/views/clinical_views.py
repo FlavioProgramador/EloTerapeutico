@@ -139,10 +139,14 @@ class PatientRecordSummaryView(ClinicalPatientMixin, APIView):
             .first()
         )
         previous_appointment = patient.appointments.filter(start_time__lt=now).order_by("-start_time").first()
-        goals = TreatmentGoal.objects.filter(
-            patient=patient,
-            status__in=[TreatmentGoal.Status.ACTIVE, TreatmentGoal.Status.PAUSED],
-        )[:4]
+        goals = (
+            TreatmentGoal.objects.filter(
+                patient=patient,
+                status__in=[TreatmentGoal.Status.ACTIVE, TreatmentGoal.Status.PAUSED],
+            )
+            .prefetch_related("evolutions")
+            .distinct()[:4]
+        )
         documents = ClinicalDocument.objects.filter(
             patient=patient,
             deleted_at__isnull=True,
@@ -177,7 +181,11 @@ class PatientRecordSummaryView(ClinicalPatientMixin, APIView):
                 if next_appointment
                 else None
             ),
-            "goals": TreatmentGoalSerializer(goals, many=True, context={"patient": patient}).data,
+            "goals": TreatmentGoalSerializer(
+                goals,
+                many=True,
+                context={"request": request, "patient": patient},
+            ).data,
             "recent_documents": ClinicalDocumentSerializer(
                 documents,
                 many=True,
@@ -415,7 +423,13 @@ class TreatmentGoalListCreateView(ClinicalPatientMixin, APIView):
         requested_status = request.query_params.get("status")
         if requested_status:
             queryset = queryset.filter(status=requested_status)
-        return Response(TreatmentGoalSerializer(queryset, many=True, context={"patient": patient}).data)
+        return Response(
+            TreatmentGoalSerializer(
+                queryset,
+                many=True,
+                context={"request": request, "patient": patient},
+            ).data
+        )
 
     def post(self, request, patient_id):
         patient = self.get_patient(patient_id)
@@ -439,6 +453,15 @@ class TreatmentGoalDetailView(ClinicalPatientMixin, APIView):
         goal = get_object_or_404(TreatmentGoal.objects.prefetch_related("evolutions"), pk=pk)
         self.get_patient(goal.patient_id)
         return goal
+
+    def get(self, request, pk):
+        goal = self.get_goal(pk)
+        return Response(
+            TreatmentGoalSerializer(
+                goal,
+                context={"request": request, "patient": goal.patient},
+            ).data
+        )
 
     def patch(self, request, pk):
         goal = self.get_goal(pk)
