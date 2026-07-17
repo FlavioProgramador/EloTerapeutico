@@ -1,4 +1,9 @@
-"""Integração canônica do Billing com o Asaas."""
+"""Integração canônica do Billing com o Asaas.
+
+O pacote raiz expõe apenas componentes sem efeitos colaterais de importação.
+Webhooks devem ser importados de ``apps.billing.integrations.asaas.webhooks``
+para evitar ciclos com os services de cobrança.
+"""
 
 from .client import AsaasGateway
 from .exceptions import (
@@ -9,11 +14,6 @@ from .exceptions import (
     AsaasValidationError,
 )
 from .security import REDACTED_VALUE, redact_sensitive_data
-from .webhooks import (
-    PAYMENT_STATUS_BY_EVENT,
-    handle_asaas_webhook,
-    process_webhook_event,
-)
 
 __all__ = [
     "AsaasAuthenticationError",
@@ -22,9 +22,6 @@ __all__ = [
     "AsaasGateway",
     "AsaasUnavailableError",
     "AsaasValidationError",
-    "PAYMENT_STATUS_BY_EVENT",
     "REDACTED_VALUE",
-    "handle_asaas_webhook",
-    "process_webhook_event",
     "redact_sensitive_data",
 ]
