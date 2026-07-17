@@ -19,48 +19,22 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: feat/settings-notifications
-          fetch-depth: 0
+          fetch-depth: 1
           show-progress: false
 
-      - name: Gerar diagnóstico
+      - name: Gerar hashes dos fragmentos
         shell: bash
         run: |
-          set -uo pipefail
-          cat .github/patches/01-settings.part* > /tmp/01-settings.diff
-          cat .github/patches/02-domain.part* > /tmp/02-domain.diff
-          cat .github/patches/03-services.part* > /tmp/03-services.diff
-          cat .github/patches/04-front-settings.part* > /tmp/04-front-settings.diff
-          cat .github/patches/05-front-notifications.part* > /tmp/05-front-notifications.diff
-          cat .github/patches/06-docs.part* > /tmp/06-docs.diff
-
           report=/tmp/patch-diagnostic.txt
           : > "$report"
-          echo "expected b376adefe467cd5decd8b43ce705fce0ff01dbe0ecfae5dbd3a639c6cadc363f  /tmp/01-settings.diff" >> "$report"
-          echo "expected c111b9033349c90a07bf6344ce71f36b77dd9f94f807ae36a6ab6033e32afa94  /tmp/02-domain.diff" >> "$report"
-          echo "expected 0e6886936cc4656e6e4c1b7c905c04da92d3914fb2181ab4118e730c176ba76e  /tmp/03-services.diff" >> "$report"
-          echo "expected ecdb9bcd180a78fe85df5b5cb3fa397d902b04a5afcd035f58c3f3ac966d596d  /tmp/04-front-settings.diff" >> "$report"
-          echo "expected 40c3736127e897aa954850c6e2e60ca38a7b8d40cc90a5cbbcaba6a94a95593d  /tmp/05-front-notifications.diff" >> "$report"
-          echo "expected 21e890b3d48ef3199c7560dc71679b69ea3ac7f465e63c2d1ab278b7ec2f644e  /tmp/06-docs.diff" >> "$report"
-          echo >> "$report"
-          sha256sum /tmp/01-settings.diff /tmp/02-domain.diff /tmp/03-services.diff /tmp/04-front-settings.diff /tmp/05-front-notifications.diff /tmp/06-docs.diff >> "$report"
-          echo >> "$report"
-
-          for patch in /tmp/01-settings.diff /tmp/02-domain.diff /tmp/03-services.diff /tmp/04-front-settings.diff /tmp/05-front-notifications.diff /tmp/06-docs.diff; do
-            echo "CHECK $patch" >> "$report"
-            git apply --check --verbose "$patch" >> "$report" 2>&1
-            code=$?
-            echo "EXIT $code" >> "$report"
-            if [[ $code -ne 0 ]]; then
-              break
-            fi
-          done
-          exit 0
+          sha256sum .github/patches/02-domain.part* >> "$report"
+          sha256sum .github/patches/04-front-settings.part* >> "$report"
+          sha256sum .github/patches/05-front-notifications.part* >> "$report"
 
       - name: Publicar diagnóstico
-        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: settings-notifications-patch-diagnostic
+          name: settings-notifications-part-diagnostic
           path: /tmp/patch-diagnostic.txt
           retention-days: 1
           if-no-files-found: error
