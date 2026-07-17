@@ -168,11 +168,8 @@ class EvolutionWorkspaceSerializer(serializers.ModelSerializer):
     content = serializers.CharField(required=False, allow_blank=True)
     created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
     is_editable = serializers.SerializerMethodField()
-    addenda_count = serializers.IntegerField(source="addenda.count", read_only=True)
-    attached_documents_count = serializers.IntegerField(
-        source="documents.count",
-        read_only=True,
-    )
+    addenda_count = serializers.IntegerField(read_only=True)
+    attached_documents_count = serializers.IntegerField(read_only=True)
     linked_goal_ids = serializers.PrimaryKeyRelatedField(
         source="treatment_goals",
         many=True,
