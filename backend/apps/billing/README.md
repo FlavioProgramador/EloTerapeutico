@@ -6,32 +6,44 @@ O app `billing` concentra catálogo comercial, checkout, contratações, assinat
 
 ```text
 billing/
-├── api/
-│   ├── v1/
-│   │   ├── serializers/
-│   │   ├── views/
-│   │   ├── permissions/
-│   │   ├── authentication.py
-│   │   ├── decorators.py
-│   │   └── urls.py
-│   └── public/
-│       ├── serializers/
-│       ├── registration.py
-│       └── webhooks.py
 ├── admin/
-├── integrations/
-│   └── webhooks/asaas/
+├── api/
+│   ├── legacy/
+│   │   ├── routes.py
+│   │   └── urls.py
+│   ├── public/
+│   │   ├── serializers/
+│   │   ├── registration.py
+│   │   └── webhooks.py
+│   └── v1/
+│       ├── permissions/
+│       ├── serializers/
+│       ├── views/
+│       ├── authentication.py
+│       ├── decorators.py
+│       └── urls.py
+├── authentication/
+├── checks/
 ├── infrastructure/
 │   └── payments/asaas/
+├── integrations/
+│   └── webhooks/asaas/
+├── management/commands/
+├── migrations/
 ├── models/
+├── security/
 ├── selectors/
 ├── services/
 ├── tasks/
+├── tests/
+├── views/
 ├── webhooks/
-├── management/commands/
-├── migrations/
-└── tests/
+├── __init__.py
+├── apps.py
+└── README.md
 ```
+
+A raiz possui somente os entrypoints obrigatórios `__init__.py`, `apps.py` e `README.md`. Implementações, compatibilidades e configurações ficam organizadas em pacotes.
 
 ## Models
 
@@ -58,9 +70,11 @@ A implementação canônica está em `api/v1`:
 - entitlement;
 - health check administrativo da integração.
 
-Endpoints públicos, como cadastro por plano e webhook do Asaas, estão em `api/public`.
+Endpoints sem autenticação de sessão ficam em `api/public`, incluindo cadastro por plano e webhook do Asaas.
 
-Os arquivos `views.py`, `checkout_views.py`, `access_views.py`, `serializers.py`, `permissions.py`, `authentication.py`, `decorators.py`, `registration.py` e `urls.py` permanecem como fachadas finas para preservar contratos internos existentes.
+A compatibilidade temporária do prefixo `/api/billing/` fica isolada em `api/legacy`. O prefixo canônico permanece `/api/v1/billing/`.
+
+Os pacotes `authentication/` e `views/` existem apenas para contratos internos que ainda usam os caminhos históricos. Não contêm regras de negócio.
 
 ## Checkout
 
@@ -82,7 +96,7 @@ A ativação do acesso não depende do frontend. A confirmação do gateway, rec
 
 ## Webhooks do Asaas
 
-A integração foi dividida em `integrations/webhooks/asaas`:
+A implementação está em `integrations/webhooks/asaas`:
 
 - `constants.py`: mapeamento de eventos para status;
 - `identifiers.py`: id e hash idempotente;
@@ -92,7 +106,14 @@ A integração foi dividida em `integrations/webhooks/asaas`:
 - `persistence.py`: persistência, retry e finalização dos eventos;
 - `processor.py`: orquestração e entrada do webhook.
 
-`webhooks/asaas.py` permanece como fachada para preservar imports e pontos de monkeypatch usados pela suíte histórica.
+`webhooks/asaas.py` permanece temporariamente como pacote de compatibilidade para pontos de patch históricos. Código novo deve importar `apps.billing.integrations.webhooks.asaas`.
+
+## Checks e segurança
+
+- `checks/`: validações de configuração executadas pelo Django;
+- `security/`: sanitização recursiva de credenciais, documentos e dados de pagamento.
+
+Essas responsabilidades não permanecem mais como arquivos soltos na raiz.
 
 ## Tasks
 
@@ -101,7 +122,7 @@ As tasks estão separadas em:
 - `tasks/webhooks.py`;
 - `tasks/reconciliation.py`.
 
-Os nomes públicos registrados no Celery foram preservados:
+Os nomes registrados no Celery foram preservados:
 
 ```text
 apps.billing.tasks.process_webhook_event
