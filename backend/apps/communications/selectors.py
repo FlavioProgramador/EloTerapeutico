@@ -33,7 +33,16 @@ def active_automations_for_event(user, event_type: str):
 
 
 def unread_notifications(user):
-    return InAppNotification.objects.filter(recipient=user, is_read=False).order_by("-created_at")
+    now = timezone.now()
+    return (
+        InAppNotification.objects.filter(
+            recipient=user,
+            is_read=False,
+            archived_at__isnull=True,
+        )
+        .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
+        .order_by("-created_at")
+    )
 
 
 def communication_dashboard(user, start_date=None, end_date=None):

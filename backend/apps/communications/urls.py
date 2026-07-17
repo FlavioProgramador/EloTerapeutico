@@ -10,6 +10,7 @@ from .views import (
     CommunicationViewSet,
     CommunicationWebhookView,
     InAppNotificationViewSet,
+    NotificationPreferenceView,
     PatientCommunicationPreferenceView,
 )
 
@@ -24,6 +25,7 @@ urlpatterns = [
     path("webhooks/<str:provider>/", CommunicationWebhookView.as_view(), name="communications-webhook"),
     path("dashboard/", CommunicationDashboardView.as_view(), name="communications-dashboard"),
     path("preferences/", CommunicationPreferenceListView.as_view(), name="communications-preferences"),
+    path("notifications/preferences/", NotificationPreferenceView.as_view(), name="notification-preferences"),
     path("preferences/patient/<int:patient_id>/", PatientCommunicationPreferenceView.as_view(), name="communications-patient-preference"),
     path("", include(router.urls)),
 ]

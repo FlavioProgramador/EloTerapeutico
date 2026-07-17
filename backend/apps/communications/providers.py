@@ -9,8 +9,9 @@ import httpx
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, get_connection
 from django.core.mail.backends.smtp import EmailBackend as SMTPEmailBackend
+from django.utils import timezone
 
-from .models import Communication, CommunicationChannelConfig, InAppNotification
+from .models import Communication, CommunicationChannelConfig
 
 
 class ProviderError(Exception):
@@ -76,26 +77,33 @@ class InAppProvider(CommunicationProvider):
         return None
 
     def send(self, communication, recipient) -> ProviderResult:
-        InAppNotification.objects.create(
+        from .services.notifications import create_notification
+
+        create_notification(
             owner=communication.owner,
             recipient=communication.owner,
             communication=communication,
             title=communication.subject or "Nova notificação",
             message=(communication.body or "")[:500],
-            notification_type=communication.category,
+            event_type=communication.source_event or communication.category,
             priority=communication.priority,
             internal_url=str(communication.metadata.get("internal_url", ""))[:500],
+            action_label="Abrir",
+            deduplication_key=f"communication:{communication.pk}",
         )
         return ProviderResult(success=True, status=Communication.Status.DELIVERED)
 
     def send_test(self, owner, destination: str | None = None) -> ProviderResult:
-        InAppNotification.objects.create(
+        from .services.notifications import create_notification
+
+        create_notification(
             owner=owner,
             recipient=owner,
-            communication=None,
             title="Teste do canal interno",
             message="A central de notificações do Elo Terapêutico está funcionando.",
-            notification_type="channel.test",
+            event_type="communications.channel_test",
+            category="communications",
+            deduplication_key=f"channel-test:{owner.pk}:{timezone.now():%Y%m%d%H%M}",
         )
         return ProviderResult(success=True, status=Communication.Status.DELIVERED)
 
