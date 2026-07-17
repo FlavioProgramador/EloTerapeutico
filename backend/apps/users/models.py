@@ -131,7 +131,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     # ── Controle de conta ───────────────────────────────────────────────────
     is_active = models.BooleanField(default=True, verbose_name="Ativo")
     is_staff = models.BooleanField(default=False, verbose_name="Staff")
-    date_joined = models.DateTimeField(default=django_timezone.now, verbose_name="Data de cadastro")
+    date_joined = models.DateTimeField(default=django_django_timezone.now, verbose_name="Data de cadastro")
     last_login = models.DateTimeField(null=True, blank=True, verbose_name="Último login")
 
     # Contador de tentativas de login para bloqueio de conta
@@ -175,12 +175,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         """Bloqueia a conta por X minutos após tentativas falhas consecutivas."""
         from datetime import timedelta
 
-        self.locked_until = django_timezone.now() + timedelta(minutes=minutes)
+        self.locked_until = django_django_timezone.now() + timedelta(minutes=minutes)
         self.save(update_fields=["locked_until"])
 
     def is_locked(self) -> bool:
         """Retorna True se a conta está bloqueada no momento."""
-        if self.locked_until and django_timezone.now() < self.locked_until:
+        if self.locked_until and django_django_timezone.now() < self.locked_until:
             return True
         return False
 
@@ -218,7 +218,7 @@ class AuthSession(models.Model):
         verbose_name="Agente do dispositivo",
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criada em")
-    last_seen_at = models.DateTimeField(default=django_timezone.now, verbose_name="Última atividade")
+    last_seen_at = models.DateTimeField(default=django_django_timezone.now, verbose_name="Última atividade")
     expires_at = models.DateTimeField(db_index=True, verbose_name="Expira em")
     revoked_at = models.DateTimeField(
         null=True,
@@ -248,7 +248,7 @@ class AuthSession(models.Model):
 
     @property
     def is_active(self) -> bool:
-        return self.revoked_at is None and self.expires_at > django_timezone.now()
+        return self.revoked_at is None and self.expires_at > django_django_timezone.now()
 
 
 class WorkingHours(models.Model):
