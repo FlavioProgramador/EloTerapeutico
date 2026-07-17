@@ -7,7 +7,15 @@ ROOT = Path(__file__).resolve().parents[4]
 BACKEND = ROOT / "backend"
 TEXT_SUFFIXES = {".py", ".toml", ".ini", ".yml", ".yaml", ".sh"}
 TEXT_FILENAMES = {"Dockerfile", "Makefile", "Procfile"}
-SKIP_PARTS = {".git", "node_modules", ".next", "dist", "build", ".venv", "venv"}
+SKIP_PARTS = {
+    ".git",
+    "node_modules",
+    ".next",
+    "dist",
+    "build",
+    ".venv",
+    "venv",
+}
 
 
 def iter_source_files():
@@ -61,6 +69,29 @@ def validate_removed_layer_paths(errors: list[str]) -> None:
             )
 
 
+def validate_thin_facades(
+    errors: list[str],
+    *,
+    app_name: str,
+    paths: list[Path],
+    max_lines: int = 80,
+) -> None:
+    for path in paths:
+        if not path.exists():
+            errors.append(
+                f"Fachada de compatibilidade de {app_name} ausente: "
+                f"{path.relative_to(ROOT)}"
+            )
+            continue
+        line_count = len(path.read_text(encoding="utf-8").splitlines())
+        if line_count > max_lines:
+            errors.append(
+                f"Fachada de compatibilidade de {app_name} contém "
+                f"implementação excessiva: {path.relative_to(ROOT)} "
+                f"({line_count} linhas)"
+            )
+
+
 def validate_communications_architecture(errors: list[str]) -> None:
     app_root = BACKEND / "apps" / "communications"
     required_paths = [
@@ -97,27 +128,18 @@ def validate_communications_architecture(errors: list[str]) -> None:
                 f"{path.relative_to(ROOT)}"
             )
 
-    compatibility_facades = [
-        app_root / "channel_serializers.py",
-        app_root / "permissions.py",
-        app_root / "providers.py",
-        app_root / "serializers.py",
-        app_root / "urls.py",
-        app_root / "urls_public.py",
-    ]
-    for path in compatibility_facades:
-        if not path.exists():
-            errors.append(
-                "Fachada de compatibilidade de communications ausente: "
-                f"{path.relative_to(ROOT)}"
-            )
-            continue
-        line_count = len(path.read_text(encoding="utf-8").splitlines())
-        if line_count > 80:
-            errors.append(
-                "Fachada de compatibilidade contém implementação excessiva: "
-                f"{path.relative_to(ROOT)} ({line_count} linhas)"
-            )
+    validate_thin_facades(
+        errors,
+        app_name="communications",
+        paths=[
+            app_root / "channel_serializers.py",
+            app_root / "permissions.py",
+            app_root / "providers.py",
+            app_root / "serializers.py",
+            app_root / "urls.py",
+            app_root / "urls_public.py",
+        ],
+    )
 
     tasks_init = app_root / "tasks" / "__init__.py"
     if tasks_init.exists():
@@ -138,11 +160,109 @@ def validate_communications_architecture(errors: list[str]) -> None:
                 )
 
 
+def validate_billing_architecture(errors: list[str]) -> None:
+    app_root = BACKEND / "apps" / "billing"
+    required_paths = [
+        app_root / "models" / "__init__.py",
+        app_root / "api" / "v1" / "urls.py",
+        app_root / "api" / "v1" / "serializers" / "__init__.py",
+        app_root / "api" / "v1" / "views" / "__init__.py",
+        app_root / "api" / "v1" / "permissions" / "__init__.py",
+        app_root / "api" / "public" / "registration.py",
+        app_root / "admin" / "__init__.py",
+        app_root / "tasks" / "__init__.py",
+        app_root
+        / "integrations"
+        / "webhooks"
+        / "asaas"
+        / "__init__.py",
+        app_root
+        / "infrastructure"
+        / "payments"
+        / "asaas"
+        / "client.py",
+        app_root / "selectors" / "catalog.py",
+        app_root / "selectors" / "orders.py",
+        app_root / "selectors" / "payments.py",
+        app_root / "services" / "checkout.py",
+        app_root / "services" / "orders.py",
+        app_root / "services" / "subscriptions.py",
+    ]
+    for path in required_paths:
+        if not path.exists():
+            errors.append(
+                "Estrutura obrigatória de billing ausente: "
+                f"{path.relative_to(ROOT)}"
+            )
+
+    for path in [
+        app_root / "models.py",
+        app_root / "admin.py",
+        app_root / "tasks.py",
+    ]:
+        if path.exists():
+            errors.append(
+                "Módulo monolítico de billing retornou à raiz: "
+                f"{path.relative_to(ROOT)}"
+            )
+
+    validate_thin_facades(
+        errors,
+        app_name="billing",
+        paths=[
+            app_root / "access_views.py",
+            app_root / "authentication.py",
+            app_root / "checkout_views.py",
+            app_root / "decorators.py",
+            app_root / "permissions.py",
+            app_root / "registration.py",
+            app_root / "serializers.py",
+            app_root / "urls.py",
+            app_root / "views.py",
+            app_root / "webhooks" / "asaas.py",
+        ],
+    )
+
+    tasks_init = app_root / "tasks" / "__init__.py"
+    if tasks_init.exists():
+        tasks_source = tasks_init.read_text(encoding="utf-8")
+        for task_name in {
+            "process_webhook_event_task",
+            "dispatch_pending_webhook_events",
+            "reconcile_asaas_payments",
+        }:
+            if task_name not in tasks_source:
+                errors.append(
+                    "Task de billing não é exportada para autodiscovery: "
+                    f"{task_name}"
+                )
+
+    canonical_views = app_root / "api" / "v1" / "views"
+    if canonical_views.exists():
+        for path in canonical_views.glob("*.py"):
+            content = path.read_text(encoding="utf-8")
+            if re.search(
+                r"(?m)^\s*(?:from|import) "
+                r"apps\.billing\.infrastructure(?:\.|\s|$)",
+                content,
+            ):
+                errors.append(
+                    "view de billing importa infrastructure diretamente: "
+                    f"{path.relative_to(ROOT)}"
+                )
+            if re.search(r"\b[A-Z][A-Za-z0-9_]*\.objects\b", content):
+                errors.append(
+                    "view de billing acessa ORM diretamente: "
+                    f"{path.relative_to(ROOT)}"
+                )
+
+
 def main() -> None:
     errors: list[str] = []
     validate_backend_root_directories(errors)
     validate_removed_layer_paths(errors)
     validate_communications_architecture(errors)
+    validate_billing_architecture(errors)
 
     forbidden_directories = [
         ROOT / "core",
@@ -158,13 +278,6 @@ def main() -> None:
     required = [
         BACKEND / "apps" / "core" / "apps.py",
         BACKEND / "config" / "settings" / "base.py",
-        BACKEND
-        / "apps"
-        / "billing"
-        / "infrastructure"
-        / "payments"
-        / "asaas"
-        / "client.py",
         BACKEND
         / "apps"
         / "communications"
@@ -212,31 +325,6 @@ def main() -> None:
             if re.search(pattern, content):
                 errors.append(f"{description}: {path.relative_to(ROOT)}")
 
-    billing_http_modules = [
-        BACKEND / "apps" / "billing" / "views.py",
-        BACKEND / "apps" / "billing" / "checkout_views.py",
-    ]
-    for path in billing_http_modules:
-        if not path.exists():
-            errors.append(
-                f"Módulo HTTP de billing ausente: {path.relative_to(ROOT)}"
-            )
-            continue
-        content = path.read_text(encoding="utf-8")
-        if re.search(
-            r"(?m)^\s*(?:from|import) infrastructure(?:\.|\s|$)",
-            content,
-        ):
-            errors.append(
-                "view de billing importa infrastructure diretamente: "
-                f"{path.relative_to(ROOT)}"
-            )
-        if re.search(r"\b[A-Z][A-Za-z0-9_]*\.objects\b", content):
-            errors.append(
-                "view de billing acessa ORM diretamente: "
-                f"{path.relative_to(ROOT)}"
-            )
-
     core_apps = []
     base_settings = BACKEND / "config" / "settings" / "base.py"
     if base_settings.exists():
@@ -248,7 +336,9 @@ def main() -> None:
         errors.append(f"Esperado exatamente um CoreConfig; encontrados: {core_apps}")
 
     if errors:
-        raise SystemExit("Falhas de arquitetura:\n- " + "\n- ".join(sorted(set(errors))))
+        raise SystemExit(
+            "Falhas de arquitetura:\n- " + "\n- ".join(sorted(set(errors)))
+        )
     print("Arquitetura do backend validada com sucesso.")
 
 
