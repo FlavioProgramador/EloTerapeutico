@@ -1,169 +1,80 @@
 # Arquitetura Frontend — Elo Terapêutico
 
-## Visão Geral
+> Esta referência permanece para compatibilidade com links antigos. A documentação principal está em [02 — Arquitetura / Frontend](../02-arquitetura/frontend.md) e [Componentização do frontend](../02-arquitetura/componentizacao-frontend.md).
 
-O frontend é construído em **Next.js 15+ (App Router)** com TypeScript, Tailwind CSS v4 e uma arquitetura **feature-based** que separa responsabilidades por domínio.
+## Stack atual
 
----
+- Next.js 16.2.9 com App Router;
+- React 19.2.4;
+- TypeScript 6;
+- Tailwind CSS 4;
+- TanStack Query 5;
+- Axios por meio do BFF;
+- React Hook Form e Zod nos fluxos que usam schema;
+- Radix UI, Lucide e Framer Motion.
 
-## Estrutura de Diretórios
+## Organização
 
-```
+```text
 frontend/src/
-├── app/                          # App Router (Next.js)
-│   ├── layout.tsx                # Root layout com Providers
-│   ├── page.tsx                  # Landing page pública
-│   ├── login/page.tsx            # Tela de login
-│   ├── register/page.tsx         # Tela de registro
-│   └── dashboard/
-│       ├── layout.tsx            # Layout do dashboard autenticado
-│       ├── page.tsx              # Dashboard principal (KPIs)
-│       ├── patients/page.tsx     # CRM de pacientes
-│       ├── agenda/page.tsx       # Calendário de consultas
-│       ├── records/page.tsx      # Prontuários/Evoluções
-│       └── financeiro/page.tsx   # Controle financeiro
-│
-├── components/
-│   ├── ui/                       # Design System base
-│   │   ├── button.tsx
-│   │   ├── card.tsx
-│   │   ├── input.tsx
-│   │   ├── modal.tsx
-│   │   ├── table.tsx
-│   │   ├── badge.tsx             # [NOVO] Badges de status tipados
-│   │   ├── skeleton.tsx          # [NOVO] Loading states estruturados
-│   │   └── empty-state.tsx       # [NOVO] Estados vazios contextuais
-│   └── navigation/               # Componentes de navegação
-│
-├── contexts/
-│   └── auth.tsx                  # AuthContext (estado global de autenticação)
-│
-├── features/                     # [NOVO] Feature-based modules
-│   ├── auth/
-│   │   ├── schemas/auth.schemas.ts
-│   │   └── services/auth.service.ts
-│   ├── patients/
-│   │   ├── hooks/use-patients.ts
-│   │   ├── schemas/patient.schemas.ts
-│   │   └── services/patients.service.ts
-│   ├── agenda/
-│   │   ├── hooks/use-agenda.ts
-│   │   ├── schemas/appointment.schemas.ts
-│   │   └── services/agenda.service.ts
-│   ├── records/
-│   │   ├── hooks/use-records.ts
-│   │   └── services/records.service.ts
-│   └── financeiro/
-│       ├── hooks/use-financeiro.ts
-│       ├── schemas/transaction.schemas.ts
-│       └── services/financeiro.service.ts
-│
-├── lib/
-│   ├── api.ts                    # Instância Axios + interceptores JWT
-│   └── utils.ts                  # [EXPANDIDO] Utilitários de frontend
-│
-├── providers/                    # [NOVO] Providers raiz
-│   ├── providers.tsx             # Providers unificados
-│   ├── query-client.ts           # Configuração TanStack Query
-│   └── theme-provider.tsx        # Dark mode (next-themes)
-│
-├── types/
-│   └── index.ts                  # [NOVO] Tipos TypeScript de domínio
-│
-├── constants/
-│   └── index.ts                  # [NOVO] Query Keys, labels, rotas
-│
-└── middleware.ts                 # RBAC + proteção de rotas
+├── app/          # rotas, layouts e endpoints BFF
+├── components/   # design system e componentes compartilhados
+├── contexts/     # contextos globais de interface
+├── features/     # módulos por domínio
+├── lib/          # cliente HTTP, sessão e utilitários
+├── providers/    # providers raiz
+└── types/        # contratos compartilhados
 ```
 
----
+Dentro de uma feature, componentes complexos são organizados como:
 
-## Stack Técnica
-
-| Camada | Tecnologia | Propósito |
-|--------|-----------|-----------|
-| Framework | Next.js 15 (App Router) | SSR, roteamento, layouts aninhados |
-| Linguagem | TypeScript | Tipagem fim-a-fim |
-| Estilização | Tailwind CSS v4 | Tokens de design, utilitários |
-| Estado do Servidor | TanStack Query v5 | Cache, sync, invalidação automática |
-| Formulários | React Hook Form + Zod | Validação declarativa com schemas |
-| Auth | JWT via cookies (httpOnly + sameSite) | Sessão segura |
-| Notificações | Sonner | Toasts acessíveis e não-bloqueantes |
-| Dark Mode | next-themes | Suporte a tema via CSS class |
-| Animações | Framer Motion | Micro-animações performáticas |
-| HTTP Client | Axios + interceptores | Auto-refresh de tokens JWT |
-
----
-
-## Fluxo de Dados
-
-```
-Componente/Page
-    │
-    ├── useQuery/useMutation (TanStack Query)
-    │       │
-    │       └── Feature Hook (ex: usePatients)
-    │               │
-    │               └── Service (ex: patientsService.list)
-    │                       │
-    │                       └── api (Axios instance)
-    │                               │
-    │                               └── Django REST API
-    │
-    └── useForm + zodResolver (React Hook Form)
-            │
-            └── Zod Schema (validação client-side)
+```text
+componente de composição
+→ controller ou hook de fluxo
+→ service
+→ cliente HTTP /api/backend/
+→ BFF Next.js
+→ Django REST Framework
 ```
 
----
+Seções visuais não chamam APIs diretamente. Regras puras, formatação e montagem de payload ficam em utilitários ou controllers da feature.
 
-## Padrões de Código
+## Sessão e BFF
 
-### Query Keys
-Todas as queries usam as constantes de `@/constants`:
+O cliente Axios usa `/api/backend/`. O BFF mantém tokens em cookies HttpOnly e encaminha autenticação ao backend. Métodos inseguros usam CSRF e o navegador não adiciona `Authorization`.
 
-```typescript
-// Nunca use strings literais:
-// ❌ useQuery({ queryKey: ["patients"] })
+Não é permitido:
 
-// ✅ Use as constantes:
-useQuery({ queryKey: QUERY_KEYS.patients })
-useQuery({ queryKey: QUERY_KEYS.patient(id) })
+- armazenar tokens em `localStorage` ou `sessionStorage`;
+- usar role da interface como autorização definitiva;
+- contornar o BFF com um cliente HTTP paralelo;
+- persistir conteúdo clínico no navegador.
+
+## TanStack Query
+
+TanStack Query mantém dados remotos, cache e invalidação. Estado local é reservado para campos ainda não enviados, etapa ativa, abertura de modal e feedback transitório.
+
+Após mutations, invalide somente as chaves afetadas. Componentes de linha, célula ou seção não devem iniciar chamadas remotas por conta própria.
+
+## Componentização verificada
+
+A refatoração atual separa os seguintes fluxos:
+
+- agendamento de consulta;
+- editor de evolução clínica;
+- checkout de assinatura.
+
+Os arquivos principais atuam como composição; controllers coordenam o fluxo; componentes locais representam seções coesas.
+
+## Qualidade
+
+```bash
+npm ci
+npm run lint
+npm run typecheck
+npm test
+npm run test:auth
+npm run build
 ```
 
-### Invalidação de Cache
-Após mutações, invalide apenas as queries afetadas:
-
-```typescript
-// ✅ Invalida lista + item específico
-queryClient.invalidateQueries({ queryKey: QUERY_KEYS.patients });
-queryClient.invalidateQueries({ queryKey: QUERY_KEYS.patient(id) });
-```
-
-### Error Handling
-Use `extractApiError` de `@/lib/utils` para extrair mensagens de erro da API DRF:
-
-```typescript
-onError: (error) => {
-  toast.error(extractApiError(error));
-}
-```
-
----
-
-## Segurança
-
-- **RBAC**: Middleware Next.js valida role do usuário por cookie
-- **JWT**: Access token (30min) + Refresh token (7d) armazenados em cookies `sameSite: lax`
-- **Auto-refresh**: Interceptor Axios renova silenciosamente tokens expirados
-- **LGPD**: Campos clínicos sensíveis são criptografados no backend (Fernet)
-
----
-
-## Acessibilidade (WCAG AA)
-
-- Todos os inputs têm `aria-label` ou `label` associado
-- Erros de formulário usam `aria-describedby` + `role="alert"`
-- Modais usam `role="dialog"` com `aria-modal="true"`
-- Botões de ícone têm `aria-label` descritivo
-- Empty states e skeletons têm `role="status"`
+Testes estruturais complementam os testes funcionais para impedir que chamadas remotas e regras sensíveis voltem aos componentes de composição.

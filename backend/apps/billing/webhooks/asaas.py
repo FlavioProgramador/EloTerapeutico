@@ -62,7 +62,7 @@ def _legacy_order_for_subscription(gateway_subscription_id: str | None) -> Billi
         return None
     subscription = (
         Subscription.objects.select_related("plan", "billing_order")
-        .filter(gateway_subscription_id=gateway_subription_id)
+        .filter(gateway_subscription_id=gateway_subscription_id)
         .first()
     )
     if not subscription:
