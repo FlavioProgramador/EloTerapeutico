@@ -1,6 +1,12 @@
 name: Aplicação temporária de configurações e notificações
 
 on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/audit-settings-notifications.yml
+      - .github/patches/**
   push:
     branches:
       - feat/settings-notifications
