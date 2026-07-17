@@ -6,8 +6,8 @@ import pytest
 from django.test import override_settings
 from django.urls import reverse
 
-from apps.billing.legacy_route import legacy_billing_route_enabled
-from apps.billing.legacy_urls import DEFAULT_SUNSET, SUCCESSOR_PATH
+from apps.billing.api.legacy.routes import legacy_billing_route_enabled
+from apps.billing.api.legacy.urls import DEFAULT_SUNSET, SUCCESSOR_PATH
 
 pytestmark = pytest.mark.django_db
 
@@ -47,7 +47,9 @@ def test_openapi_publishes_only_canonical_billing_prefix(api_client):
     assert "/api/billing/plans/" not in paths
 
 
-@override_settings(BILLING_LEGACY_ROUTE_SUNSET="Mon, 01 Mar 2027 00:00:00 GMT")
+@override_settings(
+    BILLING_LEGACY_ROUTE_SUNSET="Mon, 01 Mar 2027 00:00:00 GMT"
+)
 def test_legacy_route_allows_controlled_sunset_configuration(api_client):
     response = api_client.get(reverse("legacy-billing-plans"))
 
