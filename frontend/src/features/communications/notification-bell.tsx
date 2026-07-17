@@ -66,7 +66,7 @@ export function NotificationBell() {
               <button
                 type="button"
                 disabled={!count || readAll.isPending}
-                onClick={() => readAll.mutate()}
+                onClick={() => readAll.mutate(undefined)}
                 className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-semibold text-primary transition hover:bg-primary/10 disabled:opacity-50"
               >
                 {readAll.isPending ? (
