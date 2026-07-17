@@ -1,4 +1,6 @@
-from django.urls import include, path
+from django.urls import path
+
+from apps.billing.api.public.urls import urlpatterns as public_urlpatterns
 
 from .views import (
     BillingIntegrationHealthView,
@@ -100,5 +102,5 @@ urlpatterns = [
         BillingIntegrationHealthView.as_view(),
         name="billing-asaas-health",
     ),
-    path("", include("apps.billing.api.public.urls")),
+    *public_urlpatterns,
 ]
