@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { useTheme } from "next-themes";
 import {
   ChevronDown,
@@ -117,22 +118,22 @@ export function Header({ className }: HeaderProps) {
                 </div>
 
                 <div className="p-1.5">
-                  <button
-                    type="button"
+                  <Link
+                    href="/dashboard/configuracoes"
                     onClick={() => setIsProfileOpen(false)}
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs text-muted-foreground transition hover:bg-secondary hover:text-foreground"
                   >
                     <User className="h-4 w-4" />
                     Meu perfil
-                  </button>
-                  <button
-                    type="button"
+                  </Link>
+                  <Link
+                    href="/dashboard/configuracoes"
                     onClick={() => setIsProfileOpen(false)}
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs text-muted-foreground transition hover:bg-secondary hover:text-foreground"
                   >
                     <Settings className="h-4 w-4" />
                     Configurações
-                  </button>
+                  </Link>
                 </div>
 
                 <div className="border-t border-border p-1.5">
