@@ -148,6 +148,7 @@ class PatientRecordSummaryView(ClinicalPatientMixin, APIView):
                 patient=patient,
                 status__in=[TreatmentGoal.Status.ACTIVE, TreatmentGoal.Status.PAUSED],
             )
+            .select_related("created_by")
             .prefetch_related("evolutions")
             .distinct()[:4]
         )
@@ -155,7 +156,7 @@ class PatientRecordSummaryView(ClinicalPatientMixin, APIView):
             patient=patient,
             deleted_at__isnull=True,
             is_archived=False,
-        )[:4]
+        ).select_related("evolution", "uploaded_by")[:4]
 
         payload = {
             "patient": {
