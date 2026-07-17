@@ -6,9 +6,9 @@ on:
       - feat/settings-notifications
     paths:
       - .github/workflows/audit-settings-notifications.yml
-      - .github/settings-backend.patch
-      - .github/settings-frontend.patch
-      - .github/settings-docs.patch
+      - .github/settings-backend.patch.gz.b64
+      - .github/settings-frontend.patch.gz.b64
+      - .github/settings-docs.patch.gz.b64
 
 permissions:
   contents: write
@@ -27,30 +27,34 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ ! -f .github/settings-backend.patch || ! -f .github/settings-frontend.patch || ! -f .github/settings-docs.patch ]]; then
+          if [[ ! -f .github/settings-backend.patch.gz.b64 || ! -f .github/settings-frontend.patch.gz.b64 || ! -f .github/settings-docs.patch.gz.b64 ]]; then
             echo "Aguardando todos os patches."
             exit 0
           fi
 
+          base64 --decode .github/settings-backend.patch.gz.b64 | gzip --decompress > /tmp/settings-backend.patch
+          base64 --decode .github/settings-frontend.patch.gz.b64 | gzip --decompress > /tmp/settings-frontend.patch
+          base64 --decode .github/settings-docs.patch.gz.b64 | gzip --decompress > /tmp/settings-docs.patch
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git apply --check .github/settings-backend.patch
-          git apply .github/settings-backend.patch
+          git apply --check /tmp/settings-backend.patch
+          git apply /tmp/settings-backend.patch
           git add backend
           git commit -m "feat: implementa configurações e domínio de notificações"
 
-          git apply --check .github/settings-frontend.patch
-          git apply .github/settings-frontend.patch
+          git apply --check /tmp/settings-frontend.patch
+          git apply /tmp/settings-frontend.patch
           git add frontend
           git commit -m "feat: cria central de configurações e notificações"
 
-          git apply --check .github/settings-docs.patch
-          git apply .github/settings-docs.patch
+          git apply --check /tmp/settings-docs.patch
+          git apply /tmp/settings-docs.patch
           git add docs
           git commit -m "docs: documenta configurações e notificações"
 
-          git rm .github/settings-backend.patch .github/settings-frontend.patch .github/settings-docs.patch
+          git rm .github/settings-backend.patch.gz.b64 .github/settings-frontend.patch.gz.b64 .github/settings-docs.patch.gz.b64
           git rm .github/workflows/audit-settings-notifications.yml
           git commit -m "chore: remove arquivos temporários da implementação"
           git push origin HEAD:feat/settings-notifications
