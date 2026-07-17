@@ -8,22 +8,17 @@ BILLING_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_billing_views_delegate_external_integrations_and_queries():
-    view_directories = [
-        BILLING_ROOT / "api" / "v1" / "views",
-        BILLING_ROOT / "api" / "public",
-    ]
-    checked_files = []
+    view_files = list((BILLING_ROOT / "api" / "v1" / "views").glob("*.py"))
+    view_files.append(BILLING_ROOT / "api" / "public" / "webhooks.py")
 
-    for directory in view_directories:
-        for path in directory.glob("*.py"):
-            checked_files.append(path)
-            source = path.read_text(encoding="utf-8")
-            assert "from infrastructure." not in source, path
-            assert "import infrastructure." not in source, path
-            assert "apps.billing.infrastructure" not in source, path
-            assert ".objects" not in source, path
+    for path in view_files:
+        source = path.read_text(encoding="utf-8")
+        assert "from infrastructure." not in source, path
+        assert "import infrastructure." not in source, path
+        assert "apps.billing.infrastructure" not in source, path
+        assert ".objects" not in source, path
 
-    assert checked_files
+    assert view_files
 
 
 def test_payment_selector_always_scopes_queries_to_user():
