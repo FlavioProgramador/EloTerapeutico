@@ -51,7 +51,19 @@ jobs:
           cache-dependency-path: backend/requirements.txt
       - run: python -m pip install -r requirements.txt
       - run: python apps/core/quality/check_backend_architecture.py
-      - run: python manage.py check
+      - name: Django system check
+        shell: bash
+        run: |
+          set -o pipefail
+          python manage.py check 2>&1 | tee django-check.log
+      - name: Publicar diagnóstico do Django check
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: billing-django-check
+          path: backend/django-check.log
+          if-no-files-found: ignore
+          retention-days: 7
       - run: python manage.py makemigrations --check --dry-run
       - run: python manage.py migrate --noinput
       - run: pytest apps/billing/tests -q --tb=short
