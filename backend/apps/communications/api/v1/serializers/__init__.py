@@ -1,18 +1,22 @@
+from .automations import (
+    CommunicationAutomationRunSerializer,
+    CommunicationAutomationSerializer,
+)
 from .channels import CommunicationChannelConfigSerializer
 from .communications import (
     CommunicationAttemptSerializer,
-    CommunicationAutomationRunSerializer,
-    CommunicationAutomationSerializer,
     CommunicationCreateSerializer,
     CommunicationDetailSerializer,
     CommunicationDraftUpdateSerializer,
     CommunicationListSerializer,
-    CommunicationPreferenceSerializer,
     CommunicationRecipientSerializer,
-    CommunicationTemplateSerializer,
+)
+from .notifications import (
     InAppNotificationSerializer,
     NotificationPreferenceSerializer,
 )
+from .preferences import CommunicationPreferenceSerializer
+from .templates import CommunicationTemplateSerializer
 
 __all__ = [
     "CommunicationAttemptSerializer",
