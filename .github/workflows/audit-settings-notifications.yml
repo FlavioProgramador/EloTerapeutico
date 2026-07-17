@@ -1,4 +1,4 @@
-name: Aplicação temporária de configurações e notificações
+name: Diagnóstico temporário de aplicação
 
 on:
   pull_request:
@@ -8,10 +8,10 @@ on:
       - .github/workflows/audit-settings-notifications.yml
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  apply-patches:
+  diagnose-apply:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout da branch
@@ -21,16 +21,14 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
-      - name: Corrigir fragmentos e validar integridade
+      - name: Reconstruir patches
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
-
           domain = Path('.github/patches/02-domain.part02')
           domain.write_bytes(domain.read_bytes() + b' ]\n')
-
           for filename in (
               '.github/patches/04-front-settings.part03',
               '.github/patches/05-front-notifications.part01',
@@ -38,10 +36,9 @@ jobs:
               path = Path(filename)
               content = path.read_bytes()
               if not content.endswith(b' '):
-                  raise SystemExit(f'Fragmento sem espaço final esperado: {filename}')
+                  raise SystemExit(filename)
               path.write_bytes(content[:-1])
           PY
-
           cat .github/patches/01-settings.part* > /tmp/01-settings.diff
           cat .github/patches/02-domain.part* > /tmp/02-domain.diff
           cat .github/patches/03-services.part* > /tmp/03-services.diff
@@ -49,48 +46,34 @@ jobs:
           cat .github/patches/05-front-notifications.part* > /tmp/05-front-notifications.diff
           cat .github/patches/06-docs.part* > /tmp/06-docs.diff
 
-          echo 'b376adefe467cd5decd8b43ce705fce0ff01dbe0ecfae5dbd3a639c6cadc363f  /tmp/01-settings.diff' | sha256sum -c -
-          echo 'c111b9033349c90a07bf6344ce71f36b77dd9f94f807ae36a6ab6033e32afa94  /tmp/02-domain.diff' | sha256sum -c -
-          echo '0e6886936cc4656e6e4c1b7c905c04da92d3914fb2181ab4118e730c176ba76e  /tmp/03-services.diff' | sha256sum -c -
-          echo 'ecdb9bcd180a78fe85df5b5cb3fa397d902b04a5afcd035f58c3f3ac966d596d  /tmp/04-front-settings.diff' | sha256sum -c -
-          echo '40c3736127e897aa954850c6e2e60ca38a7b8d40cc90a5cbbcaba6a94a95593d  /tmp/05-front-notifications.diff' | sha256sum -c -
-          echo '21e890b3d48ef3199c7560dc71679b69ea3ac7f465e63c2d1ab278b7ec2f644e  /tmp/06-docs.diff' | sha256sum -c -
-
-      - name: Aplicar alterações e publicar commits
+      - name: Testar aplicação sequencial
         shell: bash
         run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          set +e
+          report=/tmp/apply-diagnostic.txt
+          : > "$report"
+          for patch in /tmp/01-settings.diff /tmp/02-domain.diff /tmp/03-services.diff /tmp/04-front-settings.diff /tmp/05-front-notifications.diff /tmp/06-docs.diff; do
+            echo "===== $patch =====" >> "$report"
+            git apply --check --verbose "$patch" >> "$report" 2>&1
+            code=$?
+            echo "CHECK_EXIT=$code" >> "$report"
+            if [[ $code -ne 0 ]]; then
+              break
+            fi
+            git apply "$patch" >> "$report" 2>&1
+            code=$?
+            echo "APPLY_EXIT=$code" >> "$report"
+            if [[ $code -ne 0 ]]; then
+              break
+            fi
+          done
+          git status --short >> "$report"
+          exit 0
 
-          git apply --check /tmp/01-settings.diff
-          git apply /tmp/01-settings.diff
-          git add backend
-          git commit -m 'feat: implementa configurações persistentes'
-
-          git apply --check /tmp/02-domain.diff
-          git apply /tmp/02-domain.diff
-          git apply --check /tmp/03-services.diff
-          git apply /tmp/03-services.diff
-          git add backend
-          git commit -m 'feat: implementa domínio e API de notificações'
-
-          git apply --check /tmp/04-front-settings.diff
-          git apply /tmp/04-front-settings.diff
-          git add frontend
-          git commit -m 'feat: conecta o módulo de configurações'
-
-          git apply --check /tmp/05-front-notifications.diff
-          git apply /tmp/05-front-notifications.diff
-          git add frontend
-          git commit -m 'feat: cria central completa de notificações'
-
-          git apply --check /tmp/06-docs.diff
-          git apply /tmp/06-docs.diff
-          git add docs
-          git commit -m 'docs: documenta configurações e notificações'
-
-          git rm -r .github/patches
-          git rm .github/workflows/audit-settings-notifications.yml
-          git commit -m 'chore: remove arquivos temporários da implementação'
-          git push origin HEAD:feat/settings-notifications
+      - name: Publicar diagnóstico
+        uses: actions/upload-artifact@v4
+        with:
+          name: settings-notifications-apply-diagnostic
+          path: /tmp/apply-diagnostic.txt
+          retention-days: 1
+          if-no-files-found: error
