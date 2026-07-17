@@ -15,12 +15,28 @@ def test_billing_canonical_packages_exist():
         BILLING_ROOT / "integrations" / "asaas" / "client.py",
         BILLING_ROOT / "integrations" / "asaas" / "exceptions.py",
         BILLING_ROOT / "integrations" / "asaas" / "security.py",
-        BILLING_ROOT / "integrations" / "asaas" / "webhooks" / "processor.py",
-        BILLING_ROOT / "integrations" / "asaas" / "webhooks" / "payments.py",
-        BILLING_ROOT / "integrations" / "asaas" / "webhooks" / "subscriptions.py",
+        BILLING_ROOT
+        / "integrations"
+        / "asaas"
+        / "webhooks"
+        / "processor.py",
+        BILLING_ROOT
+        / "integrations"
+        / "asaas"
+        / "webhooks"
+        / "payments.py",
+        BILLING_ROOT
+        / "integrations"
+        / "asaas"
+        / "webhooks"
+        / "subscriptions.py",
     ]
 
-    missing = [str(path.relative_to(BILLING_ROOT)) for path in required_paths if not path.exists()]
+    missing = [
+        str(path.relative_to(BILLING_ROOT))
+        for path in required_paths
+        if not path.exists()
+    ]
     assert not missing, f"Caminhos canônicos ausentes: {missing}"
 
 
@@ -34,9 +50,21 @@ def test_asaas_package_root_has_no_eager_webhook_import():
 
 def test_legacy_billing_facades_remain_thin():
     facades_with_limits = {
-        BILLING_ROOT / "infrastructure" / "payments" / "asaas" / "client.py": 20,
-        BILLING_ROOT / "integrations" / "webhooks" / "asaas" / "__init__.py": 60,
-        BILLING_ROOT / "integrations" / "webhooks" / "asaas" / "payments.py": 20,
+        BILLING_ROOT
+        / "infrastructure"
+        / "payments"
+        / "asaas"
+        / "client.py": 20,
+        BILLING_ROOT
+        / "integrations"
+        / "webhooks"
+        / "asaas"
+        / "__init__.py": 60,
+        BILLING_ROOT
+        / "integrations"
+        / "webhooks"
+        / "asaas"
+        / "payments.py": 20,
         BILLING_ROOT / "api" / "public" / "registration.py": 20,
         BILLING_ROOT / "api" / "public" / "webhooks.py": 20,
         BILLING_ROOT / "authentication" / "__init__.py": 20,
@@ -54,10 +82,11 @@ def test_legacy_billing_facades_remain_thin():
 
 
 def test_public_billing_urls_are_flattened_into_v1_contract():
-    source = (BILLING_ROOT / "api" / "v1" / "urls.py").read_text(encoding="utf-8")
+    urls_path = BILLING_ROOT / "api" / "v1" / "urls.py"
+    source = urls_path.read_text(encoding="utf-8")
 
     assert "public_urlpatterns" in source
-    assert '*public_urlpatterns' in source
+    assert "*public_urlpatterns" in source
     assert 'include("apps.billing.api.public.urls")' not in source
 
 
@@ -70,4 +99,7 @@ def test_canonical_client_is_the_only_full_asaas_client():
     assert len(canonical.read_text(encoding="utf-8").splitlines()) > 100
     compatibility_source = compatibility.read_text(encoding="utf-8")
     assert "class AsaasGateway" not in compatibility_source
-    assert "from apps.billing.integrations.asaas.client import" in compatibility_source
+    assert (
+        "from apps.billing.integrations.asaas.client import"
+        in compatibility_source
+    )
