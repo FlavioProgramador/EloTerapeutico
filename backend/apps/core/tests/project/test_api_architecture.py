@@ -15,6 +15,16 @@ BACKEND_ROOT = Path(__file__).resolve().parents[4]
         "apps.core.api.pagination",
         "apps.core.validators",
         "apps.communications.infrastructure.messaging.email",
+        "apps.communications.api.v1.urls",
+        "apps.communications.api.v1.serializers",
+        "apps.communications.api.v1.permissions",
+        "apps.communications.api.public.urls",
+        "apps.communications.integrations.providers",
+        "apps.communications.selectors",
+        "apps.communications.signals",
+        "apps.communications.tasks",
+        "apps.communications.validators",
+        "apps.communications.admin",
         "apps.users.api.serializers",
         "apps.users.api.views",
         "apps.users.services.password_reset",
@@ -78,6 +88,8 @@ def test_backend_modules_import_without_cycles(module_name):
         "apps.forms.urls",
         "apps.financeiro.urls",
         "apps.reports.urls",
+        "apps.communications.urls",
+        "apps.communications.urls_public",
     ],
 )
 def test_public_url_modules_keep_their_contract(public_module):
@@ -90,6 +102,14 @@ def test_public_url_modules_keep_their_contract(public_module):
         "apps/agenda/api/models.py",
         "apps/agenda/api/serializers/__init__.py",
         "apps/agenda/api/views/__init__.py",
+        "apps/communications/api/v1/serializers/__init__.py",
+        "apps/communications/api/v1/permissions/__init__.py",
+        "apps/communications/integrations/providers/__init__.py",
+        "apps/communications/selectors/__init__.py",
+        "apps/communications/tasks/__init__.py",
+        "apps/communications/signals/__init__.py",
+        "apps/communications/validators/__init__.py",
+        "apps/communications/admin/__init__.py",
         "apps/documents/models/__init__.py",
         "apps/documents/selectors/__init__.py",
         "apps/documents/services/__init__.py",
@@ -118,6 +138,11 @@ def test_public_exports_are_explicit(relative_path):
         "apps/agenda/models.py",
         "apps/agenda/model_parts",
         "apps/agenda/services/core_services.py",
+        "apps/communications/admin.py",
+        "apps/communications/selectors.py",
+        "apps/communications/signals.py",
+        "apps/communications/tasks.py",
+        "apps/communications/validators.py",
         "apps/documents/models.py",
         "apps/documents/model_parts",
         "apps/documents/services/core_services.py",
@@ -146,3 +171,24 @@ def test_public_exports_are_explicit(relative_path):
 )
 def test_moved_modules_do_not_return_to_app_root(relative_path):
     assert not (BACKEND_ROOT / relative_path).exists()
+
+
+def test_communications_compatibility_facades_remain_thin():
+    facade_paths = [
+        "apps/communications/channel_serializers.py",
+        "apps/communications/permissions.py",
+        "apps/communications/providers.py",
+        "apps/communications/serializers.py",
+        "apps/communications/urls.py",
+        "apps/communications/urls_public.py",
+    ]
+    for relative_path in facade_paths:
+        source = (BACKEND_ROOT / relative_path).read_text(encoding="utf-8")
+        assert len(source.splitlines()) <= 80, relative_path
+
+
+def test_communications_migration_operations_path_is_preserved():
+    path = BACKEND_ROOT / "apps/communications/migration_operations.py"
+    assert path.exists()
+    module = import_module("apps.communications.migration_operations")
+    assert hasattr(module, "CreateModelIfNotExists")
