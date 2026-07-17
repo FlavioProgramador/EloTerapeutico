@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 jobs:
-  apply-patches:
+  apply-bundles:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout da branch
@@ -26,15 +26,10 @@ jobs:
         run: |
           set -euo pipefail
           required=(
-            .github/patches/backend.part01
-            .github/patches/backend.part02
-            .github/patches/backend.part03
-            .github/patches/backend.part04
-            .github/patches/backend.part05
-            .github/patches/frontend.part01
-            .github/patches/frontend.part02
-            .github/patches/frontend.part03
-            .github/patches/docs.part01
+            .github/patches/bundle-backend.part00
+            .github/patches/bundle-backend.part01
+            .github/patches/bundle-frontend.part00
+            .github/patches/bundle-docs.part00
           )
           for part in "${required[@]}"; do
             if [[ ! -f "$part" ]]; then
@@ -43,25 +38,19 @@ jobs:
             fi
           done
 
-          cat .github/patches/backend.part* | base64 --decode | xz --decompress > /tmp/settings-backend.patch
-          cat .github/patches/frontend.part* | base64 --decode | xz --decompress > /tmp/settings-frontend.patch
-          cat .github/patches/docs.part* | base64 --decode | xz --decompress > /tmp/settings-docs.patch
+          cat .github/patches/bundle-backend.part* | base64 --decode | tar -xJf - -C .
+          cat .github/patches/bundle-frontend.part* | base64 --decode | tar -xJf - -C .
+          cat .github/patches/bundle-docs.part* | base64 --decode | tar -xJf - -C .
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git apply --check /tmp/settings-backend.patch
-          git apply /tmp/settings-backend.patch
           git add backend
           git commit -m "feat: implementa configurações e domínio de notificações"
 
-          git apply --check /tmp/settings-frontend.patch
-          git apply /tmp/settings-frontend.patch
           git add frontend
           git commit -m "feat: cria central de configurações e notificações"
 
-          git apply --check /tmp/settings-docs.patch
-          git apply /tmp/settings-docs.patch
           git add docs
           git commit -m "docs: documenta configurações e notificações"
 
