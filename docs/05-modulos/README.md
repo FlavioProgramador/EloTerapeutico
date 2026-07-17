@@ -17,6 +17,8 @@ Cada página reúne finalidade, situação, entidades, regras, API, frontend, pe
 | Billing/assinatura | [billing](billing/README.md) | ✅ |
 | Auditoria | [auditoria](auditoria/README.md) | ✅ |
 | Administração | [administracao](administracao/README.md) | ✅ |
+| Configurações | [configuracoes](configuracoes.md) | ✅ |
+| Notificações | [notificacoes](notificacoes.md) | ✅ |
 
 Não há módulo de clínica/tenant explícito. Consulte [limitações](../01-visao-geral/limitacoes.md).
 

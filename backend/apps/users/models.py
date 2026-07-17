@@ -7,7 +7,7 @@ import uuid
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from apps.core.validators import validate_crp, validate_phone
 
@@ -35,6 +35,16 @@ class User(AbstractBaseUser, PermissionsMixin):
         choices=Role.choices,
         default=Role.THERAPIST,
         verbose_name="Papel no sistema",
+    )
+    display_name = models.CharField(
+        max_length=120,
+        blank=True,
+        verbose_name="Nome de exibição",
+    )
+    profession = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Profissão",
     )
     specialty = models.CharField(
         max_length=100,
@@ -84,6 +94,16 @@ class User(AbstractBaseUser, PermissionsMixin):
         default=0,
         verbose_name="Valor padrão da sessão (R$)",
     )
+    default_modality = models.CharField(
+        max_length=20,
+        choices=[("in_person", "Presencial"), ("online", "Online"), ("hybrid", "Híbrido")],
+        default="in_person",
+        verbose_name="Modalidade padrão",
+    )
+    timezone = models.CharField(max_length=64, default="America/Sao_Paulo")
+    language = models.CharField(max_length=10, default="pt-BR")
+    date_format = models.CharField(max_length=20, default="DD/MM/YYYY")
+    time_format = models.CharField(max_length=10, default="24h")
 
     # ── Ciclo de vida da conta ──────────────────────────────────────────────
     terms_accepted_at = models.DateTimeField(
@@ -111,7 +131,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     # ── Controle de conta ───────────────────────────────────────────────────
     is_active = models.BooleanField(default=True, verbose_name="Ativo")
     is_staff = models.BooleanField(default=False, verbose_name="Staff")
-    date_joined = models.DateTimeField(default=timezone.now, verbose_name="Data de cadastro")
+    date_joined = models.DateTimeField(default=django_timezone.now, verbose_name="Data de cadastro")
     last_login = models.DateTimeField(null=True, blank=True, verbose_name="Último login")
 
     # Contador de tentativas de login para bloqueio de conta
@@ -155,12 +175,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         """Bloqueia a conta por X minutos após tentativas falhas consecutivas."""
         from datetime import timedelta
 
-        self.locked_until = timezone.now() + timedelta(minutes=minutes)
+        self.locked_until = django_timezone.now() + timedelta(minutes=minutes)
         self.save(update_fields=["locked_until"])
 
     def is_locked(self) -> bool:
         """Retorna True se a conta está bloqueada no momento."""
-        if self.locked_until and timezone.now() < self.locked_until:
+        if self.locked_until and django_timezone.now() < self.locked_until:
             return True
         return False
 
@@ -198,7 +218,7 @@ class AuthSession(models.Model):
         verbose_name="Agente do dispositivo",
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criada em")
-    last_seen_at = models.DateTimeField(default=timezone.now, verbose_name="Última atividade")
+    last_seen_at = models.DateTimeField(default=django_timezone.now, verbose_name="Última atividade")
     expires_at = models.DateTimeField(db_index=True, verbose_name="Expira em")
     revoked_at = models.DateTimeField(
         null=True,
@@ -228,7 +248,7 @@ class AuthSession(models.Model):
 
     @property
     def is_active(self) -> bool:
-        return self.revoked_at is None and self.expires_at > timezone.now()
+        return self.revoked_at is None and self.expires_at > django_timezone.now()
 
 
 class WorkingHours(models.Model):
@@ -262,3 +282,48 @@ class WorkingHours(models.Model):
 
     def __str__(self):
         return f"{self.therapist.full_name} – {self.get_weekday_display()} {self.start_time}–{self.end_time}"
+
+
+class PracticeSettings(models.Model):
+    """Preferências institucionais, de agenda e comunicação da conta proprietária."""
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="practice_settings",
+    )
+    trade_name = models.CharField(max_length=160, blank=True)
+    document = models.CharField(max_length=32, blank=True)
+    phone = models.CharField(max_length=20, blank=True, validators=[validate_phone])
+    email = models.EmailField(blank=True)
+    address = models.JSONField(default=dict, blank=True)
+    timezone = models.CharField(max_length=64, default="America/Sao_Paulo")
+    currency = models.CharField(max_length=3, default="BRL")
+
+    appointment_interval_minutes = models.PositiveSmallIntegerField(default=0)
+    minimum_booking_notice_hours = models.PositiveSmallIntegerField(default=0)
+    cancellation_notice_hours = models.PositiveSmallIntegerField(default=24)
+    allow_overbooking = models.BooleanField(default=False)
+    consider_holidays = models.BooleanField(default=False)
+    reminders_enabled = models.BooleanField(default=True)
+    reminder_minutes = models.PositiveIntegerField(default=1440)
+
+    internal_communications_enabled = models.BooleanField(default=True)
+    message_preview_enabled = models.BooleanField(default=True)
+    auto_mark_read = models.BooleanField(default=False)
+    mentions_enabled = models.BooleanField(default=True)
+    notify_mentions = models.BooleanField(default=True)
+    quiet_hours_enabled = models.BooleanField(default=False)
+    quiet_hours_start = models.TimeField(null=True, blank=True)
+    quiet_hours_end = models.TimeField(null=True, blank=True)
+    communication_policy = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Configurações da prática"
+        verbose_name_plural = "Configurações das práticas"
+
+    def __str__(self) -> str:
+        return f"Configurações de {self.user.email}"

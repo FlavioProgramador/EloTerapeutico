@@ -110,6 +110,11 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(hour=3, minute=15),
         "options": {"queue": "communications"},
     },
+    "communications-cleanup-notifications": {
+        "task": "apps.communications.tasks.cleanup_expired_notifications",
+        "schedule": crontab(hour=3, minute=30),
+        "options": {"queue": "communications"},
+    },
     "billing-dispatch-webhooks": {
         "task": "apps.billing.tasks.dispatch_pending_webhook_events",
         "schedule": env.int("BILLING_WEBHOOK_DISPATCH_INTERVAL_SECONDS", default=15),  # noqa: F405

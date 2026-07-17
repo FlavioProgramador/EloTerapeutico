@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from apps.agenda.models import Appointment, Room
 from apps.patients.models import Patient
-from apps.users.models import WorkingHours
+from apps.users.models import PracticeSettings, WorkingHours
 
 
 def available_slots(*, therapist, target_date, duration: int, patient_id=None, room_id=None) -> list[dict[str, str]]:
@@ -24,6 +24,9 @@ def available_slots(*, therapist, target_date, duration: int, patient_id=None, r
     patient = Patient.objects.filter(pk=patient_id, therapist=therapist, deleted_at__isnull=True).first()
     room = Room.objects.filter(pk=room_id, therapist=therapist, is_active=True).first()
     slots: list[dict[str, str]] = []
+    practice = PracticeSettings.objects.filter(user=therapist).first()
+    interval = practice.appointment_interval_minutes if practice else 0
+    minimum_start = timezone.now() + timedelta(hours=practice.minimum_booking_notice_hours if practice else 0)
 
     while current + timedelta(minutes=duration) <= day_end:
         end = current + timedelta(minutes=duration)
@@ -35,7 +38,8 @@ def available_slots(*, therapist, target_date, duration: int, patient_id=None, r
             room=room,
         )
         if (
-            not conflicts["therapist"]
+            current >= minimum_start
+            and (bool(practice and practice.allow_overbooking) or not conflicts["therapist"])
             and not conflicts["room"]
             and not conflicts["block"]
             and (not patient or not conflicts["patient"])
@@ -48,5 +52,5 @@ def available_slots(*, therapist, target_date, duration: int, patient_id=None, r
                     "end_datetime": end.isoformat(),
                 }
             )
-        current = end
+        current = end + timedelta(minutes=interval)
     return slots

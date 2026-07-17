@@ -15,7 +15,6 @@ from ..models import (
     CommunicationAttempt,
     CommunicationChannelConfig,
     CommunicationRecipient,
-    InAppNotification,
 )
 from ..providers import (
     InvalidRecipient,
@@ -161,15 +160,20 @@ def dispatch_communication(communication_id: int) -> Communication:
             communication.delivered_at = now
     elif final_status == Communication.Status.FAILED:
         communication.failed_at = now
-        InAppNotification.objects.create(
+        from .notifications import create_notification
+
+        create_notification(
             owner=communication.owner,
             recipient=communication.owner,
             communication=communication,
             title="Falha no envio de comunicação",
             message="Não foi possível enviar uma comunicação. Revise o canal e tente novamente.",
-            notification_type="communication.failed",
-            priority=InAppNotification.Priority.HIGH,
+            event_type="communications.failed",
+            category="communications",
+            priority="high",
             internal_url=f"/dashboard/comunicacoes/{communication.public_id}",
+            action_label="Revisar comunicação",
+            deduplication_key=f"communication-failed:{communication.pk}",
         )
     elif any_retry:
         communication.queued_at = now

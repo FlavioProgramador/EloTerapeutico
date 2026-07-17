@@ -9,12 +9,14 @@ import type {
   CommunicationTemplate,
   CreateCommunicationPayload,
   InAppNotification,
+  NotificationCategoryOption,
+  NotificationPreference,
   Paginated,
   PatientOption,
   UpdateChannelConfigurationPayload,
 } from "./types";
 
-function params(input?: Record<string, string | number | undefined | null>) {
+function params(input?: Record<string, string | number | boolean | undefined | null>) {
   return Object.fromEntries(
     Object.entries(input ?? {}).filter(
       ([, value]) => value !== undefined && value !== null && value !== "",
@@ -139,11 +141,12 @@ export const communicationsService = {
     );
     return Array.isArray(data) ? data : data.results;
   },
-  async notifications() {
-    const { data } = await api.get<
-      Paginated<InAppNotification> | InAppNotification[]
-    >("communications/notifications/", { params: { page_size: 10 } });
-    return Array.isArray(data) ? data : data.results;
+  async notifications(filters?: Record<string, string | number | boolean | undefined>) {
+    const { data } = await api.get<Paginated<InAppNotification>>(
+      "communications/notifications/",
+      { params: params({ page_size: 20, ...filters }) },
+    );
+    return data;
   },
   async unreadCount() {
     const { data } = await api.get<{ count: number }>(
@@ -151,15 +154,52 @@ export const communicationsService = {
     );
     return data.count;
   },
-  async markNotificationRead(id: number) {
+  async markNotificationRead(id: string) {
     const { data } = await api.post<InAppNotification>(
       `communications/notifications/${id}/read/`,
+    );
+    return data;
+  },
+  async markNotificationUnread(id: string) {
+    const { data } = await api.post<InAppNotification>(
+      `communications/notifications/${id}/unread/`,
+    );
+    return data;
+  },
+  async archiveNotification(id: string) {
+    const { data } = await api.post<InAppNotification>(
+      `communications/notifications/${id}/archive/`,
     );
     return data;
   },
   async readAllNotifications() {
     const { data } = await api.post<{ updated: number }>(
       "communications/notifications/read-all/",
+    );
+    return data;
+  },
+  async archiveReadNotifications() {
+    const { data } = await api.post<{ updated: number }>(
+      "communications/notifications/archive-read/",
+    );
+    return data;
+  },
+  async notificationCategories() {
+    const { data } = await api.get<NotificationCategoryOption[]>(
+      "communications/notifications/categories/",
+    );
+    return data;
+  },
+  async notificationPreferences() {
+    const { data } = await api.get<NotificationPreference>(
+      "communications/notifications/preferences/",
+    );
+    return data;
+  },
+  async updateNotificationPreferences(payload: Partial<NotificationPreference>) {
+    const { data } = await api.patch<NotificationPreference>(
+      "communications/notifications/preferences/",
+      payload,
     );
     return data;
   },

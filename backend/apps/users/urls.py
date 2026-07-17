@@ -13,6 +13,7 @@ from .api.views import (
     MeView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
+    PracticeSettingsView,
     SafeTokenRefreshView,
     WorkingHoursDetailView,
     WorkingHoursListCreateView,
@@ -50,6 +51,7 @@ urlpatterns = [
         name="auth-password-reset-confirm",
     ),
     path("me/", MeView.as_view(), name="user-me"),
+    path("settings/", PracticeSettingsView.as_view(), name="user-settings"),
     path("onboarding/", OnboardingView.as_view(), name="user-onboarding"),
     path(
         "working-hours/",

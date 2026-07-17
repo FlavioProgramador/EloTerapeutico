@@ -13,7 +13,7 @@ from apps.documents.models import GeneratedDocument
 from apps.financeiro.models import FinancialTransaction
 from apps.forms.models import FormSubmission
 
-from .models import PublicCommunicationActionToken
+from .models import NotificationPreference, PublicCommunicationActionToken
 from .selectors import active_automations_for_event
 from .services import (
     cancel_pending_for_source,
@@ -170,5 +170,21 @@ def bootstrap_user_communications(sender, instance, created, **kwargs):
     def bootstrap():
         ensure_default_channels(instance)
         ensure_default_automations(instance)
+        NotificationPreference.objects.get_or_create(
+            user=instance,
+            defaults={"timezone": getattr(instance, "timezone", "America/Sao_Paulo")},
+        )
+        from apps.users.models import PracticeSettings
+
+        PracticeSettings.objects.get_or_create(
+            user=instance,
+            defaults={
+                "trade_name": instance.clinic_name,
+                "phone": instance.phone,
+                "email": instance.email,
+                "address": instance.professional_address,
+                "timezone": getattr(instance, "timezone", "America/Sao_Paulo"),
+            },
+        )
 
     transaction.on_commit(bootstrap)

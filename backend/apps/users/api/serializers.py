@@ -12,7 +12,7 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.utils import get_md5_hash_password
 
-from ..models import AuthSession, User, WorkingHours
+from ..models import AuthSession, PracticeSettings, User, WorkingHours
 from ..services.sessions import (
     issue_token_pair,
     revoke_all_user_sessions,
@@ -157,14 +157,23 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "id",
             "email",
             "full_name",
+            "display_name",
+            "profession",
             "role",
             "specialty",
             "crp_number",
             "bio",
             "phone",
             "avatar",
+            "clinic_name",
+            "professional_address",
             "default_session_duration",
             "default_session_value",
+            "default_modality",
+            "timezone",
+            "language",
+            "date_format",
+            "time_format",
             "date_joined",
             "last_login",
         ]
@@ -176,14 +185,78 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             "full_name",
+            "display_name",
+            "profession",
             "specialty",
             "crp_number",
             "bio",
             "phone",
             "avatar",
+            "clinic_name",
+            "professional_address",
             "default_session_duration",
             "default_session_value",
+            "default_modality",
+            "timezone",
+            "language",
+            "date_format",
+            "time_format",
         ]
+
+    def validate_default_session_duration(self, value):
+        if value < 15 or value > 240:
+            raise serializers.ValidationError("A duração deve estar entre 15 e 240 minutos.")
+        return value
+
+
+class PracticeSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PracticeSettings
+        fields = [
+            "trade_name",
+            "document",
+            "phone",
+            "email",
+            "address",
+            "timezone",
+            "currency",
+            "appointment_interval_minutes",
+            "minimum_booking_notice_hours",
+            "cancellation_notice_hours",
+            "allow_overbooking",
+            "consider_holidays",
+            "reminders_enabled",
+            "reminder_minutes",
+            "internal_communications_enabled",
+            "message_preview_enabled",
+            "auto_mark_read",
+            "mentions_enabled",
+            "notify_mentions",
+            "quiet_hours_enabled",
+            "quiet_hours_start",
+            "quiet_hours_end",
+            "communication_policy",
+            "updated_at",
+        ]
+        read_only_fields = ["updated_at"]
+
+    def validate(self, attrs):
+        enabled = attrs.get("quiet_hours_enabled", getattr(self.instance, "quiet_hours_enabled", False))
+        start = attrs.get("quiet_hours_start", getattr(self.instance, "quiet_hours_start", None))
+        end = attrs.get("quiet_hours_end", getattr(self.instance, "quiet_hours_end", None))
+        if enabled and (start is None or end is None):
+            raise serializers.ValidationError({"quiet_hours_start": "Informe o início e o fim do horário de silêncio."})
+        return attrs
+
+    def validate_appointment_interval_minutes(self, value):
+        if value > 180:
+            raise serializers.ValidationError("O intervalo não pode ultrapassar 180 minutos.")
+        return value
+
+    def validate_reminder_minutes(self, value):
+        if value > 43200:
+            raise serializers.ValidationError("A antecedência não pode ultrapassar 30 dias.")
+        return value
 
 
 class AuthSessionSerializer(serializers.ModelSerializer):
@@ -325,6 +398,7 @@ __all__ = [
     "LoginSerializer",
     "PasswordResetConfirmSerializer",
     "PasswordResetRequestSerializer",
+    "PracticeSettingsSerializer",
     "RegisterSerializer",
     "SafeTokenRefreshSerializer",
     "UserProfileSerializer",

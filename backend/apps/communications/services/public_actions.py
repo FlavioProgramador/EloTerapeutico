@@ -4,7 +4,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from ..models import InAppNotification, PublicCommunicationActionToken
+from ..models import PublicCommunicationActionToken
 from .automations import cancel_pending_for_source
 
 
@@ -89,14 +89,19 @@ def submit_public_form(raw_token: str, answers: dict[str, object]) -> dict[str, 
     submission.save(update_fields=["status", "submitted_at", "submitted_by", "updated_at"])
     token.used_at = now
     token.save(update_fields=["used_at"])
-    InAppNotification.objects.create(
+    from .notifications import create_notification
+
+    create_notification(
         owner=token.owner,
         recipient=token.owner,
         title="Formulário respondido",
         message="Um formulário foi respondido. Abra o módulo de Formulários para revisar.",
-        notification_type="form.submitted",
-        priority=InAppNotification.Priority.NORMAL,
+        event_type="forms.submitted",
+        category="forms",
+        priority="normal",
         internal_url=f"/dashboard/formularios?submission={submission.pk}",
+        action_label="Revisar formulário",
+        deduplication_key=f"form-submitted:{submission.pk}",
     )
     cancel_pending_for_source(owner=token.owner, source_event_prefix="form.", source_object_type="forms.FormSubmission", source_object_id=str(submission.pk))
     return {"status": "success", "action": "form-submit", "clinic_name": token.owner.clinic_name or "Elo Terapêutico"}
@@ -130,14 +135,19 @@ def handle_public_action(raw_token: str, action: str):
     else:
         title = "Paciente solicitou reagendamento"
         notification_type = "appointment.reschedule_requested"
-    InAppNotification.objects.create(
+    from .notifications import create_notification
+
+    create_notification(
         owner=token.owner,
         recipient=token.owner,
         title=title,
         message="Uma ação foi registrada para uma consulta. Abra a agenda para revisar.",
-        notification_type=notification_type,
-        priority=InAppNotification.Priority.HIGH,
+        event_type=notification_type,
+        category="agenda",
+        priority="high",
         internal_url=f"/dashboard/agenda?appointment={appointment.pk}",
+        action_label="Abrir agenda",
+        deduplication_key=f"{notification_type}:{appointment.pk}",
     )
     token.used_at = now
     token.save(update_fields=["used_at"])

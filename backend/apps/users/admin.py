@@ -5,7 +5,7 @@ from unfold.admin import ModelAdmin
 
 from apps.audit.services.access_logging import AuditLog, log_access
 
-from .models import AuthSession, User, WorkingHours
+from .models import AuthSession, PracticeSettings, User, WorkingHours
 from .services.sessions import revoke_all_user_sessions
 
 
@@ -49,12 +49,13 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
 
     fieldsets = (
         ("Credenciais", {"fields": ("email", "password")}),
-        ("Dados pessoais", {"fields": ("full_name", "phone", "avatar", "bio")}),
+        ("Dados pessoais", {"fields": ("full_name", "display_name", "phone", "avatar", "bio")}),
         (
             "Perfil profissional",
             {
                 "fields": (
                     "role",
+                    "profession",
                     "specialty",
                     "crp_number",
                     "clinic_name",
@@ -64,7 +65,7 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
         ),
         (
             "Configurações de agenda",
-            {"fields": ("default_session_duration", "default_session_value")},
+            {"fields": ("default_session_duration", "default_session_value", "default_modality", "timezone", "language", "date_format", "time_format")},
         ),
         (
             "Ciclo de vida da conta",
@@ -204,3 +205,11 @@ class WorkingHoursAdmin(ModelAdmin):
         ("Terapeuta", {"fields": ("therapist",)}),
         ("Horário", {"fields": ("weekday", "start_time", "end_time", "is_active")}),
     )
+
+
+@admin.register(PracticeSettings)
+class PracticeSettingsAdmin(ModelAdmin):
+    list_display = ["user", "trade_name", "timezone", "currency", "internal_communications_enabled", "updated_at"]
+    search_fields = ["user__email", "user__full_name", "trade_name", "document"]
+    list_filter = ["internal_communications_enabled", "reminders_enabled", "allow_overbooking", "quiet_hours_enabled"]
+    list_select_related = ["user"]

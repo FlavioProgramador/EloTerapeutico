@@ -2,7 +2,7 @@ from .automations import CommunicationAutomationViewSet
 from .channels import CommunicationChannelViewSet
 from .communications import CommunicationViewSet
 from .dashboard import CommunicationDashboardView
-from .notifications import InAppNotificationViewSet
+from .notifications import InAppNotificationViewSet, NotificationPreferenceView
 from .preferences import CommunicationPreferenceListView, PatientCommunicationPreferenceView
 from .public_actions import PublicCommunicationActionView
 from .templates import CommunicationTemplateViewSet
