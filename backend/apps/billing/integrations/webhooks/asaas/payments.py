@@ -1,13 +1,11 @@
-"""Compatibilidade para processamento de pagamentos via webhook Asaas."""
+"""Alias temporário para o módulo canônico de pagamentos do webhook Asaas.
 
-from apps.billing.integrations.asaas.webhooks.payments import process_payment_event
-from apps.billing.services.subscriptions import (
-    activate_subscription_from_payment,
-    mark_subscription_past_due,
-)
+O alias em ``sys.modules`` preserva patch points históricos sem duplicar
+implementação nem criar uma segunda referência independente das funções.
+"""
 
-__all__ = [
-    "activate_subscription_from_payment",
-    "mark_subscription_past_due",
-    "process_payment_event",
-]
+import sys
+
+from apps.billing.integrations.asaas.webhooks import payments as _canonical
+
+sys.modules[__name__] = _canonical
