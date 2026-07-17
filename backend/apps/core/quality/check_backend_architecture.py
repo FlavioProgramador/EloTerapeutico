@@ -169,8 +169,15 @@ def validate_billing_architecture(errors: list[str]) -> None:
         app_root / "api" / "v1" / "views" / "__init__.py",
         app_root / "api" / "v1" / "permissions" / "__init__.py",
         app_root / "api" / "public" / "registration.py",
+        app_root / "api" / "public" / "webhooks.py",
+        app_root / "api" / "legacy" / "routes.py",
+        app_root / "api" / "legacy" / "urls.py",
         app_root / "admin" / "__init__.py",
+        app_root / "authentication" / "__init__.py",
+        app_root / "checks" / "__init__.py",
+        app_root / "security" / "__init__.py",
         app_root / "tasks" / "__init__.py",
+        app_root / "views" / "__init__.py",
         app_root
         / "integrations"
         / "webhooks"
@@ -195,30 +202,47 @@ def validate_billing_architecture(errors: list[str]) -> None:
                 f"{path.relative_to(ROOT)}"
             )
 
-    for path in [
-        app_root / "models.py",
-        app_root / "admin.py",
-        app_root / "tasks.py",
-    ]:
+    forbidden_root_files = [
+        "access_views.py",
+        "admin.py",
+        "authentication.py",
+        "checkout_views.py",
+        "checks.py",
+        "decorators.py",
+        "legacy_route.py",
+        "legacy_urls.py",
+        "models.py",
+        "permissions.py",
+        "registration.py",
+        "security.py",
+        "serializers.py",
+        "tasks.py",
+        "urls.py",
+        "views.py",
+    ]
+    for filename in forbidden_root_files:
+        path = app_root / filename
         if path.exists():
             errors.append(
-                "Módulo monolítico de billing retornou à raiz: "
-                f"{path.relative_to(ROOT)}"
+                "Arquivo de implementação ou compatibilidade retornou à raiz de "
+                f"billing: {path.relative_to(ROOT)}"
             )
+
+    allowed_root_files = {"__init__.py", "apps.py", "README.md"}
+    for path in app_root.iterdir():
+        if not path.is_file() or path.name in allowed_root_files:
+            continue
+        errors.append(
+            "Arquivo inesperado na raiz de billing: "
+            f"{path.relative_to(ROOT)}. Organize-o em uma camada/pasta."
+        )
 
     validate_thin_facades(
         errors,
         app_name="billing",
         paths=[
-            app_root / "access_views.py",
-            app_root / "authentication.py",
-            app_root / "checkout_views.py",
-            app_root / "decorators.py",
-            app_root / "permissions.py",
-            app_root / "registration.py",
-            app_root / "serializers.py",
-            app_root / "urls.py",
-            app_root / "views.py",
+            app_root / "authentication" / "__init__.py",
+            app_root / "views" / "__init__.py",
             app_root / "webhooks" / "asaas.py",
         ],
     )

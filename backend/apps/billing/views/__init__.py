@@ -1,10 +1,11 @@
-"""Compatibilidade para imports antigos das views de billing.
+"""Compatibilidade para imports históricos das views de billing.
 
-Novos imports devem utilizar ``apps.billing.api.v1.views``.
+A implementação canônica permanece em ``apps.billing.api.v1.views`` e
+``apps.billing.api.public.webhooks``.
 """
 
-from .api.v1.views import (
-    AsaasWebhookView,
+from apps.billing.api.public.webhooks import AsaasWebhookView
+from apps.billing.api.v1.views import (
     BillingIntegrationHealthView,
     BillingOrderDetailView,
     BillingOrderListView,
@@ -24,19 +25,19 @@ from .api.v1.views import (
     ResumeSubscriptionView,
     ScheduleCancellationView,
 )
-from .api.v1.views.common import (
+from apps.billing.api.v1.views.common import (
     checkout_response_payload as _checkout_response_payload,
 )
-from .api.v1.views.common import (
+from apps.billing.api.v1.views.common import (
     gateway_error_response as _gateway_error_response,
 )
-from .api.v1.views.common import (
+from apps.billing.api.v1.views.common import (
     public_checkout_data as _public_checkout_data,
 )
-from .api.v1.views.common import (
+from apps.billing.api.v1.views.common import (
     service_checkout_data as _service_checkout_data,
 )
-from .api.v1.views.common import (
+from apps.billing.api.v1.views.common import (
     validation_error_response as _validation_error_response,
 )
 

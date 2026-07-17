@@ -1,9 +1,13 @@
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
-from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularRedocView,
+    SpectacularSwaggerView,
+)
 
-from apps.billing.legacy_route import legacy_billing_route_enabled
+from apps.billing.api.legacy.routes import legacy_billing_route_enabled
 
 api_v1_patterns = [
     path("auth/", include("apps.users.urls")),
@@ -14,7 +18,7 @@ api_v1_patterns = [
     path("documents/", include("apps.documents.urls")),
     path("reports/", include("apps.reports.urls")),
     path("forms/", include("apps.forms.urls")),
-    path("billing/", include("apps.billing.urls")),
+    path("billing/", include("apps.billing.api.v1.urls")),
     path("communications/", include("apps.communications.urls")),
     path("public/communications/", include("apps.communications.urls_public")),
 ]
@@ -39,14 +43,24 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/", include(api_v1_patterns)),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
-    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
-    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+    path(
+        "api/docs/",
+        SpectacularSwaggerView.as_view(url_name="schema"),
+        name="swagger-ui",
+    ),
+    path(
+        "api/redoc/",
+        SpectacularRedocView.as_view(url_name="schema"),
+        name="redoc",
+    ),
     path("api/health/", include("apps.users.health_urls")),
     path("health/", include("apps.core.health_urls")),
 ]
 
 if legacy_billing_route_enabled():
-    urlpatterns.append(path("api/billing/", include("apps.billing.legacy_urls")))
+    urlpatterns.append(
+        path("api/billing/", include("apps.billing.api.legacy.urls"))
+    )
 
 if settings.DEBUG and "debug_toolbar" in settings.INSTALLED_APPS:
     import debug_toolbar

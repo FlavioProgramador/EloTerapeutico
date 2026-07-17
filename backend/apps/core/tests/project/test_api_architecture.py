@@ -20,6 +20,13 @@ BACKEND_ROOT = Path(__file__).resolve().parents[4]
         "apps.billing.api.v1.views",
         "apps.billing.api.v1.permissions",
         "apps.billing.api.public.registration",
+        "apps.billing.api.public.webhooks",
+        "apps.billing.api.legacy.routes",
+        "apps.billing.api.legacy.urls",
+        "apps.billing.authentication",
+        "apps.billing.checks",
+        "apps.billing.security",
+        "apps.billing.views",
         "apps.billing.integrations.webhooks.asaas",
         "apps.billing.tasks",
         "apps.billing.admin",
@@ -97,7 +104,8 @@ def test_backend_modules_import_without_cycles(module_name):
         "apps.forms.urls",
         "apps.financeiro.urls",
         "apps.reports.urls",
-        "apps.billing.urls",
+        "apps.billing.api.v1.urls",
+        "apps.billing.api.legacy.urls",
         "apps.communications.urls",
         "apps.communications.urls_public",
     ],
@@ -116,8 +124,13 @@ def test_public_url_modules_keep_their_contract(public_module):
         "apps/billing/api/v1/serializers/__init__.py",
         "apps/billing/api/v1/views/__init__.py",
         "apps/billing/api/v1/permissions/__init__.py",
+        "apps/billing/api/legacy/__init__.py",
+        "apps/billing/authentication/__init__.py",
+        "apps/billing/checks/__init__.py",
+        "apps/billing/security/__init__.py",
         "apps/billing/tasks/__init__.py",
         "apps/billing/admin/__init__.py",
+        "apps/billing/views/__init__.py",
         "apps/billing/integrations/webhooks/asaas/__init__.py",
         "apps/communications/api/v1/serializers/__init__.py",
         "apps/communications/api/v1/permissions/__init__.py",
@@ -155,9 +168,22 @@ def test_public_exports_are_explicit(relative_path):
         "apps/agenda/models.py",
         "apps/agenda/model_parts",
         "apps/agenda/services/core_services.py",
+        "apps/billing/access_views.py",
         "apps/billing/admin.py",
+        "apps/billing/authentication.py",
+        "apps/billing/checkout_views.py",
+        "apps/billing/checks.py",
+        "apps/billing/decorators.py",
+        "apps/billing/legacy_route.py",
+        "apps/billing/legacy_urls.py",
         "apps/billing/models.py",
+        "apps/billing/permissions.py",
+        "apps/billing/registration.py",
+        "apps/billing/security.py",
+        "apps/billing/serializers.py",
         "apps/billing/tasks.py",
+        "apps/billing/urls.py",
+        "apps/billing/views.py",
         "apps/communications/admin.py",
         "apps/communications/selectors.py",
         "apps/communications/signals.py",
@@ -199,18 +225,17 @@ def _assert_facades_are_thin(paths: list[str]) -> None:
         assert len(source.splitlines()) <= 80, relative_path
 
 
-def test_billing_compatibility_facades_remain_thin():
+def test_billing_root_contains_only_entrypoint_files():
+    app_root = BACKEND_ROOT / "apps/billing"
+    root_files = {path.name for path in app_root.iterdir() if path.is_file()}
+    assert root_files == {"README.md", "__init__.py", "apps.py"}
+
+
+def test_billing_compatibility_packages_remain_thin():
     _assert_facades_are_thin(
         [
-            "apps/billing/access_views.py",
-            "apps/billing/authentication.py",
-            "apps/billing/checkout_views.py",
-            "apps/billing/decorators.py",
-            "apps/billing/permissions.py",
-            "apps/billing/registration.py",
-            "apps/billing/serializers.py",
-            "apps/billing/urls.py",
-            "apps/billing/views.py",
+            "apps/billing/authentication/__init__.py",
+            "apps/billing/views/__init__.py",
             "apps/billing/webhooks/asaas.py",
         ]
     )

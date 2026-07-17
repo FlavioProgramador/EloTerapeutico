@@ -7,9 +7,6 @@ from typing import Any
 
 REDACTED_VALUE = "[REDACTED]"
 
-# As chaves são normalizadas removendo pontuação e convertendo para minúsculas.
-# A lista é deliberadamente conservadora para evitar persistir credenciais,
-# documentos fiscais e dados de pagamento em JSONs de auditoria/diagnóstico.
 _SENSITIVE_KEYS = frozenset(
     {
         "accesstoken",
@@ -41,11 +38,7 @@ def _normalize_key(key: object) -> str:
 
 
 def redact_sensitive_data(value: Any) -> Any:
-    """Cria uma cópia recursiva de ``value`` com campos sensíveis mascarados.
-
-    O objeto recebido não é alterado, permitindo que o payload original continue
-    disponível somente durante o processamento em memória.
-    """
+    """Retorna uma cópia recursiva com campos sensíveis mascarados."""
 
     if isinstance(value, dict):
         sanitized: dict[Any, Any] = {}
@@ -63,3 +56,6 @@ def redact_sensitive_data(value: Any) -> Any:
         return tuple(redact_sensitive_data(item) for item in value)
 
     return value
+
+
+__all__ = ["REDACTED_VALUE", "redact_sensitive_data"]

@@ -4,6 +4,10 @@ from django.utils import timezone
 
 from apps.billing.models import Payment, Subscription
 from apps.billing.services.orders import upsert_gateway_payment
+from apps.billing.services.subscriptions import (
+    activate_subscription_from_payment,
+    mark_subscription_past_due,
+)
 
 from .constants import PAYMENT_STATUS_BY_EVENT
 from .orders import (
@@ -32,21 +36,14 @@ def process_payment_event(event_type: str, payment_data: dict) -> str:
     )
     update_order_financial_status(order)
 
-    # A resolução pela fachada preserva os pontos de monkeypatch históricos
-    # usados pelos testes e por extensões internas do projeto.
-    from apps.billing.webhooks import asaas as compatibility_webhook
-
     if subscription and event_type in {
         "PAYMENT_CONFIRMED",
         "PAYMENT_RECEIVED",
         "PAYMENT_APPROVED_BY_RISK_ANALYSIS",
     }:
-        compatibility_webhook.activate_subscription_from_payment(
-            subscription,
-            payment,
-        )
+        activate_subscription_from_payment(subscription, payment)
     elif subscription and event_type == "PAYMENT_OVERDUE":
-        compatibility_webhook.mark_subscription_past_due(subscription)
+        mark_subscription_past_due(subscription)
     elif subscription and event_type in {
         "PAYMENT_CHARGEBACK_REQUESTED",
         "PAYMENT_REPROVED_BY_RISK_ANALYSIS",

@@ -1,3 +1,5 @@
+"""System checks do app Billing."""
+
 from django.conf import settings
 from django.core.checks import Error, Tags, Warning, register
 
@@ -33,8 +35,14 @@ def check_asaas_configuration(app_configs, **kwargs):
         issues.append(
             issue_class(
                 "ASAAS_BASE_URL não corresponde a um endpoint oficial suportado.",
-                hint="Use https://api-sandbox.asaas.com/v3 ou https://api.asaas.com/v3.",
+                hint=(
+                    "Use https://api-sandbox.asaas.com/v3 ou "
+                    "https://api.asaas.com/v3."
+                ),
                 id="billing.W002" if settings.DEBUG else "billing.E002",
             )
         )
     return issues
+
+
+__all__ = ["check_asaas_configuration"]

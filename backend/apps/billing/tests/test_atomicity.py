@@ -8,7 +8,10 @@ from django.utils import timezone
 from rest_framework.test import APIRequestFactory
 
 from apps.billing.models import Payment, Plan, Subscription, WebhookEvent
-from apps.billing.services.subscriptions import create_subscription_for_user, get_current_subscription
+from apps.billing.services.subscriptions import (
+    create_subscription_for_user,
+    get_current_subscription,
+)
 from apps.billing.views import AsaasWebhookView
 
 WEBHOOK_TOKEN = "billing-atomicity-token"
@@ -56,7 +59,8 @@ class AsaasWebhookAtomicityTests(TestCase):
         }
 
         with patch(
-            "apps.billing.webhooks.asaas.activate_subscription_from_payment",
+            "apps.billing.integrations.webhooks.asaas.payments."
+            "activate_subscription_from_payment",
             side_effect=RuntimeError("falha simulada"),
         ):
             response = self.post_webhook(payload)
@@ -65,10 +69,17 @@ class AsaasWebhookAtomicityTests(TestCase):
         self.subscription.refresh_from_db()
         event = WebhookEvent.objects.get(event_id="evt_atomic_rollback")
         self.assertEqual(self.subscription.status, Subscription.Status.PENDING)
-        self.assertFalse(Payment.objects.filter(gateway_payment_id="pay_atomic_rollback").exists())
+        self.assertFalse(
+            Payment.objects.filter(
+                gateway_payment_id="pay_atomic_rollback"
+            ).exists()
+        )
         self.assertFalse(event.processed)
         self.assertIsNone(event.processed_at)
-        self.assertEqual(event.error_message, "Falha interna ao processar o evento.")
+        self.assertEqual(
+            event.error_message,
+            "Falha interna ao processar o evento.",
+        )
 
     @override_settings(ASAAS_WEBHOOK_TOKEN=WEBHOOK_TOKEN, ASAAS_API_KEY="")
     def test_confirmed_and_received_events_activate_same_payment_once(self):
@@ -97,7 +108,9 @@ class AsaasWebhookAtomicityTests(TestCase):
                     "id": "pay_atomic_once",
                     "subscription": "sub_atomicidade",
                     "value": 89.9,
-                    "paymentDate": (confirmed_at + timedelta(days=1)).isoformat(),
+                    "paymentDate": (
+                        confirmed_at + timedelta(days=1)
+                    ).isoformat(),
                 },
             }
         )
@@ -107,9 +120,18 @@ class AsaasWebhookAtomicityTests(TestCase):
         self.subscription.refresh_from_db()
         payment = Payment.objects.get(gateway_payment_id="pay_atomic_once")
         self.assertEqual(payment.status, Payment.Status.RECEIVED)
-        self.assertEqual(self.subscription.current_period_start, original_period_start)
-        self.assertEqual(self.subscription.current_period_end, original_period_end)
-        self.assertEqual(self.subscription.metadata["last_activated_payment_id"], "pay_atomic_once")
+        self.assertEqual(
+            self.subscription.current_period_start,
+            original_period_start,
+        )
+        self.assertEqual(
+            self.subscription.current_period_end,
+            original_period_end,
+        )
+        self.assertEqual(
+            self.subscription.metadata["last_activated_payment_id"],
+            "pay_atomic_once",
+        )
 
     @override_settings(ASAAS_WEBHOOK_TOKEN=WEBHOOK_TOKEN, ASAAS_API_KEY="")
     def test_out_of_order_created_event_does_not_downgrade_received_payment(self):
@@ -159,40 +181,69 @@ class SubscriptionProvisioningAtomicityTests(TransactionTestCase):
         class GatewayProbe:
             def create_customer(self, user, checkout_data):
                 if connection.in_atomic_block:
-                    raise AssertionError("create_customer executado dentro de transaction.atomic")
+                    raise AssertionError(
+                        "create_customer executado dentro de transaction.atomic"
+                    )
                 return {"id": "cus_atomic"}
 
-            def create_subscription(self, user, plan, checkout_data, customer_id):
+            def create_subscription(
+                self,
+                user,
+                plan,
+                checkout_data,
+                customer_id,
+            ):
                 if connection.in_atomic_block:
-                    raise AssertionError("create_subscription executado dentro de transaction.atomic")
+                    raise AssertionError(
+                        "create_subscription executado dentro de "
+                        "transaction.atomic"
+                    )
                 return {"id": "sub_atomic", "status": "PENDING"}
 
             def cancel_subscription(self, subscription_id):
                 return None
 
-        with patch("apps.billing.services.subscriptions.get_gateway", return_value=GatewayProbe()):
+        with patch(
+            "apps.billing.services.subscriptions.get_gateway",
+            return_value=GatewayProbe(),
+        ):
             subscription = create_subscription_for_user(self.user, self.plan)
 
         self.assertEqual(subscription.gateway_customer_id, "cus_atomic")
         self.assertEqual(subscription.gateway_subscription_id, "sub_atomic")
-        self.assertEqual(subscription.metadata["provisioning_status"], "COMPLETED")
+        self.assertEqual(
+            subscription.metadata["provisioning_status"],
+            "COMPLETED",
+        )
 
     def test_gateway_failure_leaves_no_blocking_pending_subscription(self):
         class FailingGateway:
             def create_customer(self, user, checkout_data):
                 return {"id": "cus_failure"}
 
-            def create_subscription(self, user, plan, checkout_data, customer_id):
+            def create_subscription(
+                self,
+                user,
+                plan,
+                checkout_data,
+                customer_id,
+            ):
                 raise RuntimeError("gateway indisponível")
 
             def cancel_subscription(self, subscription_id):
                 return None
 
-        with patch("apps.billing.services.subscriptions.get_gateway", return_value=FailingGateway()):
+        with patch(
+            "apps.billing.services.subscriptions.get_gateway",
+            return_value=FailingGateway(),
+        ):
             with self.assertRaises(RuntimeError):
                 create_subscription_for_user(self.user, self.plan)
 
         subscription = Subscription.objects.get(user=self.user)
         self.assertEqual(subscription.status, Subscription.Status.CANCELED)
-        self.assertEqual(subscription.metadata["provisioning_status"], "FAILED")
+        self.assertEqual(
+            subscription.metadata["provisioning_status"],
+            "FAILED",
+        )
         self.assertIsNone(get_current_subscription(self.user))
