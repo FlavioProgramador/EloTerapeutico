@@ -1,6 +1,9 @@
-"""Compatibilidade para a autenticação com entitlement de billing."""
+"""Compatibilidade para a autenticação com entitlement de billing.
 
-from apps.billing.api.v1.authentication import (
+Novas configurações devem usar ``apps.billing.api.authentication``.
+"""
+
+from apps.billing.api.authentication import (
     SubscriptionJWTAuthentication,
     SubscriptionRequired,
 )

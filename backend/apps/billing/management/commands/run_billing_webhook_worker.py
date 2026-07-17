@@ -6,7 +6,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.billing.integrations.webhooks.asaas import process_webhook_event
+from apps.billing.integrations.asaas.webhooks import process_webhook_event
 from apps.billing.models import WebhookEvent
 
 

@@ -1,5 +1,3 @@
-from apps.billing.api.public.webhooks import AsaasWebhookView
-
 from .catalog import PlanListView, PlanPriceListView
 from .checkout import CheckoutCreateView, CheckoutPreviewView
 from .entitlements import EntitlementStatusView
@@ -21,7 +19,6 @@ from .subscriptions import (
 )
 
 __all__ = [
-    "AsaasWebhookView",
     "BillingIntegrationHealthView",
     "BillingOrderDetailView",
     "BillingOrderListView",

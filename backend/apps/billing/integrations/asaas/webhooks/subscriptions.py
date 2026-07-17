@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from django.utils import timezone
 
+from apps.billing.integrations.asaas.security import redact_sensitive_data
 from apps.billing.models import BillingOrder, Subscription
-from apps.billing.security import redact_sensitive_data
 
 
 def process_subscription_event(

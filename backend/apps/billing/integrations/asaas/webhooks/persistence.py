@@ -6,8 +6,8 @@ from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.billing.integrations.asaas.security import redact_sensitive_data
 from apps.billing.models import WebhookEvent
-from apps.billing.security import redact_sensitive_data
 
 
 def persist_webhook_event(

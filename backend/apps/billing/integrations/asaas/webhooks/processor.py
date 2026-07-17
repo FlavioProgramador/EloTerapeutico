@@ -6,7 +6,7 @@ import os
 from django.conf import settings
 from django.db import transaction
 
-from apps.billing.infrastructure.payments.asaas.client import AsaasGateway
+from apps.billing.integrations.asaas.client import AsaasGateway
 from apps.billing.models import WebhookEvent
 
 from .identifiers import event_id, payload_hash
