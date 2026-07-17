@@ -20,7 +20,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from ..models import AuthSession, User, WorkingHours
+from ..models import AuthSession, PracticeSettings, User, WorkingHours
 from ..services.sessions import (
     SESSION_CLAIM,
     active_sessions_for_user,
@@ -35,6 +35,7 @@ from .serializers import (
     LoginSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
+    PracticeSettingsSerializer,
     RegisterSerializer,
     SafeTokenRefreshSerializer,
     UserProfileSerializer,
@@ -232,6 +233,38 @@ class MeView(generics.RetrieveUpdateAPIView):
         return UserProfileSerializer
 
 
+
+
+@extend_schema(tags=["users"], responses=PracticeSettingsSerializer)
+class PracticeSettingsView(generics.RetrieveUpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = PracticeSettingsSerializer
+
+    def get_object(self):
+        settings_obj, _ = PracticeSettings.objects.get_or_create(
+            user=self.request.user,
+            defaults={
+                "trade_name": self.request.user.clinic_name,
+                "phone": self.request.user.phone,
+                "email": self.request.user.email,
+                "address": self.request.user.professional_address,
+                "timezone": self.request.user.timezone,
+            },
+        )
+        return settings_obj
+
+    def perform_update(self, serializer):
+        obj = serializer.save()
+        from apps.audit.services.access_logging import log_access
+        from apps.audit.models import AuditLog
+
+        log_access(
+            self.request,
+            AuditLog.Action.UPDATE,
+            obj=obj,
+            obj_repr=f"users.PracticeSettings#{obj.pk} action=settings_updated",
+        )
+
 @extend_schema(tags=["users"])
 class WorkingHoursListCreateView(generics.ListCreateAPIView):
     serializer_class = WorkingHoursSerializer
@@ -356,6 +389,7 @@ __all__ = [
     "MeView",
     "PasswordResetConfirmView",
     "PasswordResetRequestView",
+    "PracticeSettingsView",
     "RegisterView",
     "SafeTokenRefreshView",
     "WorkingHoursDetailView",

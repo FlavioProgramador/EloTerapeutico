@@ -1,4 +1,5 @@
 # mypy: ignore-errors
+from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -9,7 +10,7 @@ from rest_framework import serializers
 from apps.agenda.models import Appointment, AppointmentRecurrence, PatientPackage, Room
 from apps.agenda.services import create_appointment, update_appointment
 from apps.patients.models import Patient
-from apps.users.models import WorkingHours
+from apps.users.models import PracticeSettings, WorkingHours
 
 User = get_user_model()
 
@@ -58,6 +59,9 @@ class AppointmentValidationMixin:
             participants=participants,
             exclude_id=exclude_id,
         )
+        practice = PracticeSettings.objects.filter(user=therapist).first()
+        if practice and practice.allow_overbooking:
+            conflicts["therapist"] = False
         self._raise_conflict_error(conflicts)
 
     def _validate_business_rules(self, attrs):
@@ -84,6 +88,17 @@ class AppointmentValidationMixin:
             raise serializers.ValidationError({"end_time": "O término deve ser posterior ao início."})
         if start and start < timezone.now() and not self.context["request"].user.is_admin_role:
             raise serializers.ValidationError({"start_time": "Não é possível agendar no passado."})
+        practice = PracticeSettings.objects.filter(user=therapist).first()
+        if (
+            start
+            and practice
+            and practice.minimum_booking_notice_hours
+            and not self.context["request"].user.is_admin_role
+            and start < timezone.now() + timedelta(hours=practice.minimum_booking_notice_hours)
+        ):
+            raise serializers.ValidationError(
+                {"start_time": f"O agendamento exige {practice.minimum_booking_notice_hours}h de antecedência."}
+            )
         if modality == Appointment.Modality.ONLINE and room:
             raise serializers.ValidationError({"room": "Consultas online não utilizam sala física."})
         if room and room.therapist_id != therapist.id:

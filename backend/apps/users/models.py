@@ -36,6 +36,16 @@ class User(AbstractBaseUser, PermissionsMixin):
         default=Role.THERAPIST,
         verbose_name="Papel no sistema",
     )
+    display_name = models.CharField(
+        max_length=120,
+        blank=True,
+        verbose_name="Nome de exibição",
+    )
+    profession = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Profissão",
+    )
     specialty = models.CharField(
         max_length=100,
         blank=True,
@@ -84,6 +94,16 @@ class User(AbstractBaseUser, PermissionsMixin):
         default=0,
         verbose_name="Valor padrão da sessão (R$)",
     )
+    default_modality = models.CharField(
+        max_length=20,
+        choices=[("in_person", "Presencial"), ("online", "Online"), ("hybrid", "Híbrido")],
+        default="in_person",
+        verbose_name="Modalidade padrão",
+    )
+    timezone = models.CharField(max_length=64, default="America/Sao_Paulo")
+    language = models.CharField(max_length=10, default="pt-BR")
+    date_format = models.CharField(max_length=20, default="DD/MM/YYYY")
+    time_format = models.CharField(max_length=10, default="24h")
 
     # ── Ciclo de vida da conta ──────────────────────────────────────────────
     terms_accepted_at = models.DateTimeField(
@@ -262,3 +282,48 @@ class WorkingHours(models.Model):
 
     def __str__(self):
         return f"{self.therapist.full_name} – {self.get_weekday_display()} {self.start_time}–{self.end_time}"
+
+
+class PracticeSettings(models.Model):
+    """Preferências institucionais, de agenda e comunicação da conta proprietária."""
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="practice_settings",
+    )
+    trade_name = models.CharField(max_length=160, blank=True)
+    document = models.CharField(max_length=32, blank=True)
+    phone = models.CharField(max_length=20, blank=True, validators=[validate_phone])
+    email = models.EmailField(blank=True)
+    address = models.JSONField(default=dict, blank=True)
+    timezone = models.CharField(max_length=64, default="America/Sao_Paulo")
+    currency = models.CharField(max_length=3, default="BRL")
+
+    appointment_interval_minutes = models.PositiveSmallIntegerField(default=0)
+    minimum_booking_notice_hours = models.PositiveSmallIntegerField(default=0)
+    cancellation_notice_hours = models.PositiveSmallIntegerField(default=24)
+    allow_overbooking = models.BooleanField(default=False)
+    consider_holidays = models.BooleanField(default=False)
+    reminders_enabled = models.BooleanField(default=True)
+    reminder_minutes = models.PositiveIntegerField(default=1440)
+
+    internal_communications_enabled = models.BooleanField(default=True)
+    message_preview_enabled = models.BooleanField(default=True)
+    auto_mark_read = models.BooleanField(default=False)
+    mentions_enabled = models.BooleanField(default=True)
+    notify_mentions = models.BooleanField(default=True)
+    quiet_hours_enabled = models.BooleanField(default=False)
+    quiet_hours_start = models.TimeField(null=True, blank=True)
+    quiet_hours_end = models.TimeField(null=True, blank=True)
+    communication_policy = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Configurações da prática"
+        verbose_name_plural = "Configurações das práticas"
+
+    def __str__(self) -> str:
+        return f"Configurações de {self.user.email}"
