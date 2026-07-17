@@ -4,7 +4,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.billing.webhooks.asaas import handle_asaas_webhook
+from apps.billing.integrations.webhooks.asaas import handle_asaas_webhook
 
 
 class AsaasWebhookView(APIView):
