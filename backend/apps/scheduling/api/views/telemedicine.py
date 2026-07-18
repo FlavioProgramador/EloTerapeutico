@@ -1,13 +1,26 @@
-from django.shortcuts import get_object_or_404
+from django.db.models import Q
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.agenda.api.serializers import AppointmentReminderSerializer, TelemedicineRoomSerializer
-from apps.agenda.models import AppointmentReminder, TelemedicineRoom
 from apps.audit.services.access_logging import AuditLog, log_access
+from apps.scheduling.api.v1.serializers import (
+    AppointmentReminderSerializer,
+    TelemedicineRoomSerializer,
+)
+from apps.scheduling.exceptions import TelemedicineUnavailableError
+from apps.scheduling.selectors.resources import (
+    appointment_reminders_queryset,
+    telemedicine_rooms_queryset,
+)
+from apps.scheduling.selectors.telemedicine import get_telemedicine_room_by_token
+from apps.scheduling.services.telemedicine import (
+    cancel_appointment_reminder,
+    open_telemedicine_room,
+    regenerate_telemedicine_links,
+)
 
 from .base import ScopedAgendaMixin
 
@@ -17,18 +30,14 @@ class TelemedicineRoomViewSet(ScopedAgendaMixin, viewsets.ReadOnlyModelViewSet):
     ordering = ["appointment__start_time"]
 
     def get_queryset(self):
-        queryset = TelemedicineRoom.objects.select_related(
-            "appointment",
-            "appointment__patient",
-            "appointment__therapist",
+        queryset = self.scope_queryset(
+            telemedicine_rooms_queryset(),
+            therapist_field="appointment__therapist",
         )
-        queryset = self.scope_queryset(queryset, therapist_field="appointment__therapist")
         search = self.request.query_params.get("search", "").strip()
         status_value = self.request.query_params.get("status", "").strip()
         date_value = self.request.query_params.get("date", "").strip()
         if search:
-            from django.db.models import Q
-
             queryset = queryset.filter(
                 Q(appointment__patient__full_name__icontains=search)
                 | Q(appointment__patient__social_name__icontains=search)
@@ -43,8 +52,10 @@ class TelemedicineRoomViewSet(ScopedAgendaMixin, viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="regenerate-link")
     def regenerate_link(self, request, pk=None):
-        room = self.get_object()
-        room.regenerate_tokens()
+        room = regenerate_telemedicine_links(
+            actor=request.user,
+            room=self.get_object(),
+        )
         log_access(
             request,
             AuditLog.Action.UPDATE,
@@ -55,14 +66,16 @@ class TelemedicineRoomViewSet(ScopedAgendaMixin, viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="open-room")
     def open_room(self, request, pk=None):
-        room = self.get_object()
-        if not room.is_accessible:
+        try:
+            room = open_telemedicine_room(
+                actor=request.user,
+                room=self.get_object(),
+            )
+        except TelemedicineUnavailableError as exc:
             return Response(
-                {"detail": "A sala não está disponível."},
+                {"detail": str(exc)},
                 status=status.HTTP_410_GONE,
             )
-        room.status = TelemedicineRoom.Status.IN_PROGRESS
-        room.save(update_fields=["status", "updated_at"])
         log_access(
             request,
             AuditLog.Action.VIEW,
@@ -77,14 +90,17 @@ class AppointmentReminderViewSet(ScopedAgendaMixin, viewsets.ReadOnlyModelViewSe
     serializer_class = AppointmentReminderSerializer
 
     def get_queryset(self):
-        queryset = AppointmentReminder.objects.select_related("appointment", "appointment__therapist")
-        return self.scope_queryset(queryset, therapist_field="appointment__therapist")
+        return self.scope_queryset(
+            appointment_reminders_queryset(),
+            therapist_field="appointment__therapist",
+        )
 
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
-        reminder = self.get_object()
-        reminder.status = AppointmentReminder.Status.CANCELLED
-        reminder.save(update_fields=["status", "updated_at"])
+        reminder = cancel_appointment_reminder(
+            actor=request.user,
+            reminder=self.get_object(),
+        )
         log_access(
             request,
             AuditLog.Action.UPDATE,
@@ -101,16 +117,11 @@ class TelemedicineAccessView(APIView):
 
     def get(self, request, role, token):
         if role not in {"patient", "professional"}:
-            return Response({"detail": "Papel inválido."}, status=status.HTTP_404_NOT_FOUND)
-        token_field = "patient_token" if role == "patient" else "professional_token"
-        room = get_object_or_404(
-            TelemedicineRoom.objects.select_related(
-                "appointment",
-                "appointment__patient",
-                "appointment__therapist",
-            ),
-            **{token_field: token},
-        )
+            return Response(
+                {"detail": "Papel inválido."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        room = get_telemedicine_room_by_token(role=role, token=token)
         if not room.is_accessible:
             return Response(
                 {"detail": "A sala expirou ou foi revogada."},
@@ -119,7 +130,9 @@ class TelemedicineAccessView(APIView):
         if role == "professional":
             user = request.user
             if not user.is_authenticated or not (
-                user.is_admin_role or user.is_secretary or user.id == room.appointment.therapist_id
+                user.is_admin_role
+                or user.is_secretary
+                or user.id == room.appointment.therapist_id
             ):
                 return Response(
                     {"detail": "Autenticação profissional obrigatória."},

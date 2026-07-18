@@ -53,7 +53,11 @@ class Appointment(models.Model):
         related_name="appointments",
         verbose_name="Paciente",
     )
-    participants = models.ManyToManyField("patients.Patient", blank=True, related_name="group_appointments")
+    participants = models.ManyToManyField(
+        "patients.Patient",
+        blank=True,
+        related_name="group_appointments",
+    )
     therapist = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -74,7 +78,11 @@ class Appointment(models.Model):
         default=Status.SCHEDULED,
         db_index=True,
     )
-    modality = models.CharField(max_length=20, choices=Modality.choices, default=Modality.IN_PERSON)
+    modality = models.CharField(
+        max_length=20,
+        choices=Modality.choices,
+        default=Modality.IN_PERSON,
+    )
     appointment_type = models.CharField(
         max_length=30,
         choices=AppointmentType.choices,
@@ -92,10 +100,20 @@ class Appointment(models.Model):
         verbose_name="Observações do agendamento",
         help_text="Observações visíveis para o terapeuta e secretária.",
     )
-    cancellation_reason = models.TextField(blank=True, verbose_name="Motivo do cancelamento")
+    cancellation_reason = models.TextField(
+        blank=True,
+        verbose_name="Motivo do cancelamento",
+    )
     session_value = models.DecimalField(max_digits=10, decimal_places=2)
-    origin = models.CharField(max_length=20, choices=Origin.choices, default=Origin.MANUAL)
-    is_recurring = models.BooleanField(default=False, verbose_name="Consulta recorrente")
+    origin = models.CharField(
+        max_length=20,
+        choices=Origin.choices,
+        default=Origin.MANUAL,
+    )
+    is_recurring = models.BooleanField(
+        default=False,
+        verbose_name="Consulta recorrente",
+    )
     recurrence_rule = models.CharField(
         max_length=20,
         blank=True,
@@ -147,18 +165,30 @@ class Appointment(models.Model):
         verbose_name_plural = "Consultas"
         ordering = ["-start_time"]
         indexes = [
-            models.Index(fields=["therapist", "start_time"], name="idx_appt_therapist_start"),
-            models.Index(fields=["patient", "start_time"], name="idx_appt_patient_start"),
+            models.Index(
+                fields=["therapist", "start_time"],
+                name="idx_appt_therapist_start",
+            ),
+            models.Index(
+                fields=["patient", "start_time"],
+                name="idx_appt_patient_start",
+            ),
             models.Index(fields=["status"], name="idx_appt_status"),
             models.Index(fields=["room", "start_time"], name="appt_room_start_idx"),
-            models.Index(fields=["recurrence", "start_time"], name="appt_rec_start_idx"),
+            models.Index(
+                fields=["recurrence", "start_time"],
+                name="appt_rec_start_idx",
+            ),
         ]
         constraints = [
             models.CheckConstraint(
                 condition=Q(end_time__gt=models.F("start_time")),
                 name="appt_end_after_start",
             ),
-            models.CheckConstraint(condition=Q(session_value__gte=0), name="appt_value_non_negative"),
+            models.CheckConstraint(
+                condition=Q(session_value__gte=0),
+                name="appt_value_non_negative",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -184,46 +214,38 @@ class Appointment(models.Model):
         participants=None,
         exclude_id=None,
     ) -> dict[str, bool]:
-        base = cls.active_queryset().filter(
-            start_time__lt=end_time,
-            end_time__gt=start_time,
-        )
-        if exclude_id:
-            base = base.exclude(pk=exclude_id)
+        """Compatibilidade: delega a consulta para o selector canônico."""
 
-        participant_ids = [getattr(p, "pk", p) for p in (participants or [])]
-        patient_query = Q()
-        has_patient_filter = patient is not None or bool(participant_ids)
-        if patient is not None:
-            patient_query = Q(patient=patient) | Q(participants=patient)
-        if participant_ids:
-            participant_query = Q(patient_id__in=participant_ids) | Q(participants__id__in=participant_ids)
-            patient_query |= participant_query
+        from apps.scheduling.selectors.conflicts import get_appointment_conflicts
 
-        from .support import ScheduleBlock
-
-        return {
-            "therapist": base.filter(therapist=therapist).exists(),
-            "patient": has_patient_filter and base.filter(patient_query).distinct().exists(),
-            "room": bool(room and base.filter(room=room).exists()),
-            "block": ScheduleBlock.objects.filter(
-                therapist=therapist,
-                start_time__lt=end_time,
-                end_time__gt=start_time,
-                is_active=True,
-            ).exists(),
-        }
+        return get_appointment_conflicts(
+            therapist=therapist,
+            patient=patient,
+            start_time=start_time,
+            end_time=end_time,
+            room=room,
+            participants=participants,
+            exclude_appointment_id=exclude_id,
+        ).as_dict()
 
     @classmethod
-    def check_conflict(cls, therapist, start_time, end_time, exclude_id=None) -> bool:
-        queryset = cls.active_queryset().filter(
+    def check_conflict(
+        cls,
+        therapist,
+        start_time,
+        end_time,
+        exclude_id=None,
+    ) -> bool:
+        from apps.scheduling.selectors.conflicts import get_appointment_conflicts
+
+        result = get_appointment_conflicts(
             therapist=therapist,
-            start_time__lt=end_time,
-            end_time__gt=start_time,
+            patient=None,
+            start_time=start_time,
+            end_time=end_time,
+            exclude_appointment_id=exclude_id,
         )
-        if exclude_id is not None:
-            queryset = queryset.exclude(pk=exclude_id)
-        return queryset.exists()
+        return result.therapist
 
     def clean(self):
         super().clean()
@@ -238,5 +260,8 @@ class Appointment(models.Model):
 
     def save(self, *args, **kwargs):
         if self.start_time and self.end_time:
-            self.duration_minutes = max(int((self.end_time - self.start_time).total_seconds() // 60), 1)
+            self.duration_minutes = max(
+                int((self.end_time - self.start_time).total_seconds() // 60),
+                1,
+            )
         super().save(*args, **kwargs)

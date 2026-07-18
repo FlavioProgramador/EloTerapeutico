@@ -9,18 +9,24 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from apps.agenda.exceptions import CompletedAppointmentDeletionError
-from apps.agenda.models import (
+from apps.scheduling.exceptions import CompletedAppointmentDeletionError
+from apps.scheduling.integrations.finance import (
+    cancel_appointment_transaction,
+    create_appointment_transaction,
+)
+from apps.scheduling.models import (
     Appointment,
     AppointmentRecurrence,
     PackageSession,
     PatientPackage,
     TelemedicineRoom,
 )
-from apps.agenda.services.financial_sync import cancel_financial_transaction, create_financial_transaction
-from apps.agenda.services.packages import release_package_session, sync_package_session_status
-from apps.agenda.services.recurrences import generate_recurrence_appointments
-from apps.agenda.services.resources import create_appointment_resources
+from apps.scheduling.services.packages import (
+    release_package_session,
+    sync_package_session_status,
+)
+from apps.scheduling.services.recurrences import generate_recurrence_appointments
+from apps.scheduling.services.resources import create_appointment_resources
 
 User = get_user_model()
 
@@ -35,7 +41,9 @@ def _raise_conflict_error(conflicts: dict[str, bool]) -> None:
         "block": "bloqueio de agenda",
     }
     active = [labels[key] for key, value in conflicts.items() if value]
-    raise ValidationError({"start_time": f"Conflito de horário com: {', '.join(active)}."})
+    raise ValidationError(
+        {"start_time": f"Conflito de horário com: {', '.join(active)}."}
+    )
 
 
 def _validate_locked_conflicts(
@@ -69,17 +77,24 @@ def create_appointment(*, actor, validated_data: dict) -> Appointment:
     weekdays = validated_data.pop("recurrence_weekdays", [])
     ends_on = validated_data.pop("recurrence_ends_on", None)
     max_occurrences = validated_data.pop("recurrence_max_occurrences", None)
-    conflict_strategy = validated_data.pop("recurrence_conflict_strategy", "error")
+    conflict_strategy = validated_data.pop(
+        "recurrence_conflict_strategy",
+        "error",
+    )
     package = validated_data.get("package")
     validated_data["created_by"] = actor
     validated_data["updated_by"] = actor
 
-    therapist = User.objects.select_for_update().get(pk=validated_data["therapist"].pk)
+    therapist = User.objects.select_for_update().get(
+        pk=validated_data["therapist"].pk
+    )
     validated_data["therapist"] = therapist
     if package:
         package = PatientPackage.objects.select_for_update().get(pk=package.pk)
         if not package.can_consume():
-            raise ValidationError({"package": "O pacote está sem saldo, expirado ou inativo."})
+            raise ValidationError(
+                {"package": "O pacote está sem saldo, expirado ou inativo."}
+            )
         validated_data["package"] = package
 
     _validate_locked_conflicts(
@@ -104,9 +119,17 @@ def create_appointment(*, actor, validated_data: dict) -> Appointment:
             ends_on=ends_on,
             max_occurrences=max_occurrences or 12,
             start_time=local_start.time().replace(tzinfo=None),
-            duration_minutes=int((validated_data["end_time"] - validated_data["start_time"]).total_seconds() // 60),
+            duration_minutes=int(
+                (
+                    validated_data["end_time"] - validated_data["start_time"]
+                ).total_seconds()
+                // 60
+            ),
             timezone_name=str(timezone.get_current_timezone()),
-            modality=validated_data.get("modality", Appointment.Modality.IN_PERSON),
+            modality=validated_data.get(
+                "modality",
+                Appointment.Modality.IN_PERSON,
+            ),
             appointment_type=validated_data.get(
                 "appointment_type",
                 Appointment.AppointmentType.PSYCHOTHERAPY,
@@ -138,10 +161,19 @@ def create_appointment(*, actor, validated_data: dict) -> Appointment:
 
 
 @transaction.atomic
-def update_appointment(*, actor, appointment: Appointment, validated_data: dict) -> Appointment:
+def update_appointment(
+    *,
+    actor,
+    appointment: Appointment,
+    validated_data: dict,
+) -> Appointment:
     appointment = Appointment.objects.select_for_update().get(pk=appointment.pk)
     participants = validated_data.pop("participants", None)
-    effective_participants = participants if participants is not None else list(appointment.participants.all())
+    effective_participants = (
+        participants
+        if participants is not None
+        else list(appointment.participants.all())
+    )
     therapist = validated_data.get("therapist", appointment.therapist)
     therapist = User.objects.select_for_update().get(pk=therapist.pk)
     validated_data["therapist"] = therapist
@@ -182,32 +214,60 @@ def update_appointment(*, actor, appointment: Appointment, validated_data: dict)
         if package_session:
             package_session.scheduled_for = appointment.start_time
             package_session.status = PackageSession.Status.RESCHEDULED
-            package_session.save(update_fields=["scheduled_for", "status", "updated_at"])
+            package_session.save(
+                update_fields=["scheduled_for", "status", "updated_at"]
+            )
     return appointment
 
 
 @transaction.atomic
-def update_appointment_status(*, actor, appointment: Appointment, validated_data: dict) -> Appointment:
+def update_appointment_status(
+    *,
+    actor,
+    appointment: Appointment,
+    validated_data: dict,
+) -> Appointment:
     appointment = Appointment.objects.select_for_update().get(pk=appointment.pk)
     new_status = validated_data.get("status", appointment.status)
-    cancellation_reason = validated_data.get("cancellation_reason", appointment.cancellation_reason)
+    cancellation_reason = validated_data.get(
+        "cancellation_reason",
+        appointment.cancellation_reason,
+    )
     if appointment.status == Appointment.Status.CANCELLED:
-        raise ValidationError({"status": "Uma consulta cancelada não pode ser reativada diretamente."})
-    if appointment.status in {Appointment.Status.COMPLETED, Appointment.Status.MISSED}:
-        raise ValidationError({"status": "Uma sessão finalizada não pode voltar para um estado anterior."})
-    if new_status == Appointment.Status.CANCELLED and not (cancellation_reason or "").strip():
-        raise ValidationError({"cancellation_reason": "Informe o motivo do cancelamento."})
+        raise ValidationError(
+            {"status": "Uma consulta cancelada não pode ser reativada diretamente."}
+        )
+    if appointment.status in {
+        Appointment.Status.COMPLETED,
+        Appointment.Status.MISSED,
+    }:
+        raise ValidationError(
+            {"status": "Uma sessão finalizada não pode voltar para um estado anterior."}
+        )
+    if new_status == Appointment.Status.CANCELLED and not (
+        cancellation_reason or ""
+    ).strip():
+        raise ValidationError(
+            {"cancellation_reason": "Informe o motivo do cancelamento."}
+        )
 
     appointment.status = new_status
     appointment.cancellation_reason = cancellation_reason
     appointment.updated_by = actor
-    appointment.save(update_fields=["status", "cancellation_reason", "updated_by", "updated_at"])
+    appointment.save(
+        update_fields=[
+            "status",
+            "cancellation_reason",
+            "updated_by",
+            "updated_at",
+        ]
+    )
     sync_package_session_status(appointment)
     if new_status == Appointment.Status.CONFIRMED:
-        create_financial_transaction(appointment=appointment)
+        create_appointment_transaction(appointment=appointment)
     elif new_status == Appointment.Status.CANCELLED:
         release_package_session(appointment)
-        cancel_financial_transaction(appointment=appointment)
+        cancel_appointment_transaction(appointment=appointment)
         try:
             appointment.telemedicine_room.revoke()
         except TelemedicineRoom.DoesNotExist:
@@ -216,14 +276,27 @@ def update_appointment_status(*, actor, appointment: Appointment, validated_data
 
 
 @transaction.atomic
-def cancel_appointment_for_deletion(*, actor, appointment: Appointment) -> Appointment:
+def cancel_appointment_for_deletion(
+    *,
+    actor,
+    appointment: Appointment,
+) -> Appointment:
     appointment = Appointment.objects.select_for_update().get(pk=appointment.pk)
     if appointment.status == Appointment.Status.COMPLETED:
-        raise CompletedAppointmentDeletionError("Consultas realizadas não podem ser excluídas.")
+        raise CompletedAppointmentDeletionError(
+            "Consultas realizadas não podem ser excluídas."
+        )
     appointment.status = Appointment.Status.CANCELLED
     appointment.cancellation_reason = "Cancelada por exclusão administrativa."
     appointment.updated_by = actor
-    appointment.save(update_fields=["status", "cancellation_reason", "updated_by", "updated_at"])
+    appointment.save(
+        update_fields=[
+            "status",
+            "cancellation_reason",
+            "updated_by",
+            "updated_at",
+        ]
+    )
     release_package_session(appointment)
-    cancel_financial_transaction(appointment=appointment)
+    cancel_appointment_transaction(appointment=appointment)
     return appointment

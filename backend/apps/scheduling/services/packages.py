@@ -8,38 +8,39 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from apps.agenda.models import Appointment, AppointmentRecurrence, PackageSession, PatientPackage
-from apps.agenda.services.recurrences import generate_recurrence_appointments
-from apps.agenda.services.resources import create_appointment_resources
+from apps.scheduling.integrations.finance import create_package_transaction
+from apps.scheduling.models import (
+    Appointment,
+    AppointmentRecurrence,
+    PackageSession,
+    PatientPackage,
+)
+from apps.scheduling.services.recurrences import generate_recurrence_appointments
+from apps.scheduling.services.resources import create_appointment_resources
 
 
 @transaction.atomic
 def create_patient_package(*, actor, validated_data: dict) -> PatientPackage:
     auto_schedule = validated_data.pop("auto_schedule", False)
     first_at = validated_data.pop("first_appointment_at", None)
-    frequency = validated_data.pop("frequency", AppointmentRecurrence.Frequency.WEEKLY)
+    frequency = validated_data.pop(
+        "frequency",
+        AppointmentRecurrence.Frequency.WEEKLY,
+    )
     weekdays = validated_data.pop("weekdays", [])
     duration = validated_data.pop("duration_minutes", 50)
     modality = validated_data.pop("modality", Appointment.Modality.IN_PERSON)
-    appointment_type = validated_data.pop("appointment_type", Appointment.AppointmentType.PSYCHOTHERAPY)
+    appointment_type = validated_data.pop(
+        "appointment_type",
+        Appointment.AppointmentType.PSYCHOTHERAPY,
+    )
     room = validated_data.pop("room", None)
     remind = validated_data.pop("send_whatsapp_reminder", False)
     validated_data["created_by"] = actor
     package = PatientPackage.objects.create(**validated_data)
 
     if package.generate_charge:
-        from apps.financeiro.models import FinancialTransaction
-
-        FinancialTransaction.objects.create(
-            therapist=package.therapist,
-            patient=package.patient,
-            transaction_type=FinancialTransaction.TransactionType.INCOME,
-            category=FinancialTransaction.Category.SUBSCRIPTION,
-            amount=package.total_value,
-            payment_status=FinancialTransaction.PaymentStatus.PENDING,
-            due_date=package.valid_from,
-            description=f"Pacote {package.name}",
-        )
+        create_package_transaction(package=package)
 
     if auto_schedule and first_at:
         rule = AppointmentRecurrence.objects.create(
@@ -65,7 +66,9 @@ def create_patient_package(*, actor, validated_data: dict) -> PatientPackage:
             room=room,
         )
         if any(conflicts.values()):
-            raise ValidationError({"first_appointment_at": "A primeira sessão possui conflito."})
+            raise ValidationError(
+                {"first_appointment_at": "A primeira sessão possui conflito."}
+            )
         first = Appointment.objects.create(
             patient=package.patient,
             therapist=package.therapist,
@@ -82,7 +85,11 @@ def create_patient_package(*, actor, validated_data: dict) -> PatientPackage:
             created_by=actor,
             updated_by=actor,
         )
-        create_appointment_resources(first, send_whatsapp_reminder=remind, package=package)
+        create_appointment_resources(
+            first,
+            send_whatsapp_reminder=remind,
+            package=package,
+        )
         generate_recurrence_appointments(
             rule,
             first_appointment=first,
@@ -125,3 +132,10 @@ def sync_package_session_status(appointment: Appointment) -> None:
     }
     package_session.status = mapping[appointment.status]
     package_session.save(update_fields=["status", "updated_at"])
+
+
+__all__ = [
+    "create_patient_package",
+    "release_package_session",
+    "sync_package_session_status",
+]
