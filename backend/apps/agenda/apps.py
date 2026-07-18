@@ -1,9 +1,9 @@
 """Configuração legada que aponta para o app canônico ``scheduling``."""
 
-from apps.scheduling.apps import SchedulingConfig
+from apps.scheduling import apps as scheduling_apps
 
 
-class AgendaConfig(SchedulingConfig):
+class AgendaConfig(scheduling_apps.SchedulingConfig):
     """Alias de compatibilidade para instalações que ainda usam ``apps.agenda``."""
 
 
