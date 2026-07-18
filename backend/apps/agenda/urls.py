@@ -1,5 +1,5 @@
-"""Compatibilidade: rotas movidas para `apps.agenda.api.urls`."""
+"""Compatibilidade para o prefixo histórico da Agenda."""
 
-from .api.urls import urlpatterns
+from apps.scheduling.api.legacy.urls import urlpatterns
 
 __all__ = ["urlpatterns"]

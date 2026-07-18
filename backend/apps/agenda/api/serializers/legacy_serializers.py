@@ -1,6 +1,6 @@
-"""Serializers públicos da agenda."""
+"""Compatibilidade para serializers da API v1 de scheduling."""
 
-from apps.agenda.api.serializers import (
+from apps.scheduling.api.v1.serializers import (
     AppointmentCreateSerializer,
     AppointmentDetailSerializer,
     AppointmentListSerializer,

@@ -1,6 +1,6 @@
-"""Models usados pela camada HTTP da agenda."""
+"""Compatibilidade para models usados pela camada HTTP."""
 
-from ..models import (
+from apps.scheduling.models import (
     Appointment,
     AppointmentRecurrence,
     PatientPackage,

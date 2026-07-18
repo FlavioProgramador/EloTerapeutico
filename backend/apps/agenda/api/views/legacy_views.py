@@ -1,15 +1,13 @@
-"""Views públicas da agenda."""
+"""Compatibilidade para os ViewSets públicos de scheduling."""
 
-from apps.agenda.api.views.appointments import AppointmentViewSet
-from apps.agenda.api.views.operations import (
+from apps.scheduling.api.v1.views import (
+    AppointmentRecurrenceViewSet,
+    AppointmentReminderViewSet,
+    AppointmentViewSet,
     PackageSessionViewSet,
     PatientPackageViewSet,
     RoomViewSet,
     ScheduleBlockViewSet,
-)
-from apps.agenda.api.views.recurrences import AppointmentRecurrenceViewSet
-from apps.agenda.api.views.telemedicine import (
-    AppointmentReminderViewSet,
     TelemedicineAccessView,
     TelemedicineRoomViewSet,
 )

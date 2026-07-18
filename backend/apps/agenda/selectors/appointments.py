@@ -1,21 +1,5 @@
-"""Selectors de consultas da Agenda."""
+"""Compatibilidade para selectors de consultas."""
 
-from django.db.models import QuerySet
+from apps.scheduling.selectors.appointments import appointment_queryset
 
-from apps.agenda.models import Appointment
-
-
-def appointment_queryset(*, include_details: bool = False) -> QuerySet[Appointment]:
-    queryset = Appointment.objects.select_related(
-        "patient",
-        "therapist",
-        "room",
-        "recurrence",
-        "package",
-        "telemedicine_room",
-        "evolution",
-        "evolution__clinical_data",
-    )
-    if include_details:
-        queryset = queryset.prefetch_related("participants", "reminders")
-    return queryset
+__all__ = ["appointment_queryset"]
