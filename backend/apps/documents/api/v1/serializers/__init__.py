@@ -1,14 +1,11 @@
-"""Fachada temporária dos serializers públicos de documentos."""
-
-from apps.documents.api.v1.serializers import (
-    DocumentTemplateListSerializer,
-    DocumentTemplateSerializer,
+from .document_templates import DocumentTemplateListSerializer, DocumentTemplateSerializer
+from .generated_documents import (
     GeneratedDocumentCreateSerializer,
     GeneratedDocumentDetailSerializer,
     GeneratedDocumentDraftUpdateSerializer,
     GeneratedDocumentListSerializer,
-    TemplatePreviewRequestSerializer,
 )
+from .previews import TemplatePreviewRequestSerializer
 
 __all__ = [
     "DocumentTemplateListSerializer",

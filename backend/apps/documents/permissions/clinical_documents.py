@@ -1,10 +1,6 @@
-"""Permissões específicas de documentos clínicos."""
+"""Alias temporário para a permission canônica de documentos clínicos."""
 
-from rest_framework.permissions import IsAuthenticated
+import sys
+from importlib import import_module
 
-
-class IsClinicalDocumentUser(IsAuthenticated):
-    """Impede que secretárias acessem conteúdo clínico documental."""
-
-    def has_permission(self, request, view):
-        return super().has_permission(request, view) and not request.user.is_secretary
+sys.modules[__name__] = import_module("apps.documents.api.v1.permissions.clinical_documents")

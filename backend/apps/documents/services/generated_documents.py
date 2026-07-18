@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from typing import Any
 
 from django.db import IntegrityError, models, transaction
 
 from apps.documents.exceptions import DocumentDomainError
 from apps.documents.models import DocumentTemplate, GeneratedDocument
 from apps.documents.selectors import find_by_idempotency_key
-from apps.documents.services.access import ensure_patient_access, ensure_template_access
+from apps.documents.services.access import ensure_document_access, ensure_patient_access, ensure_template_access
 from apps.documents.services.placeholders import (
     build_document_context,
     render_safe_markdown,
@@ -24,6 +25,24 @@ from apps.patients.models import Patient
 class GeneratedDocumentResult:
     document: GeneratedDocument
     created: bool
+
+
+@dataclass(frozen=True)
+class DocumentRemovalResult:
+    """Resultado da política de remoção de um documento gerado."""
+
+    object_id: int
+    archived: bool
+    document: GeneratedDocument | None
+
+
+@dataclass(frozen=True)
+class DocumentDownload:
+    """Arquivo validado e preparado para resposta HTTP privada."""
+
+    file: Any
+    filename: str
+    content_type: str = "application/pdf"
 
 
 @transaction.atomic
@@ -93,7 +112,14 @@ def create_generated_document(
 
 
 @transaction.atomic
-def update_document_draft(*, document: GeneratedDocument, validated_data: dict) -> GeneratedDocument:
+def update_document_draft(
+    *,
+    document: GeneratedDocument,
+    validated_data: dict,
+    actor=None,
+) -> GeneratedDocument:
+    if actor is not None:
+        ensure_document_access(actor=actor, document=document)
     if document.status != GeneratedDocument.Status.DRAFT:
         raise DocumentDomainError("Somente documentos em rascunho podem ser editados.")
     for field, value in validated_data.items():
@@ -105,13 +131,30 @@ def update_document_draft(*, document: GeneratedDocument, validated_data: dict) 
 
 
 @transaction.atomic
-def archive_document(*, document: GeneratedDocument) -> GeneratedDocument:
+def archive_document(*, document: GeneratedDocument, actor=None) -> GeneratedDocument:
+    if actor is not None:
+        ensure_document_access(actor=actor, document=document)
     document.archive()
     return document
 
 
 @transaction.atomic
-def cancel_document(*, document: GeneratedDocument) -> GeneratedDocument:
+def remove_or_archive_document(*, actor, document: GeneratedDocument) -> DocumentRemovalResult:
+    """Exclui rascunhos sem arquivo e arquiva documentos com histórico."""
+
+    ensure_document_access(actor=actor, document=document)
+    object_id = document.pk
+    if document.status == GeneratedDocument.Status.DRAFT and not document.pdf_file:
+        document.delete()
+        return DocumentRemovalResult(object_id=object_id, archived=False, document=None)
+    archived = archive_document(actor=actor, document=document)
+    return DocumentRemovalResult(object_id=object_id, archived=True, document=archived)
+
+
+@transaction.atomic
+def cancel_document(*, document: GeneratedDocument, actor=None) -> GeneratedDocument:
+    if actor is not None:
+        ensure_document_access(actor=actor, document=document)
     if document.status not in (
         GeneratedDocument.Status.DRAFT,
         GeneratedDocument.Status.FAILED,
@@ -120,3 +163,16 @@ def cancel_document(*, document: GeneratedDocument) -> GeneratedDocument:
     document.status = GeneratedDocument.Status.CANCELLED
     document.save(update_fields=["status", "updated_at"])
     return document
+
+
+def prepare_document_download(*, actor, document: GeneratedDocument) -> DocumentDownload:
+    """Valida acesso e disponibilidade antes de abrir o arquivo privado."""
+
+    ensure_document_access(actor=actor, document=document)
+    if document.status != GeneratedDocument.Status.COMPLETED or not document.pdf_file:
+        raise DocumentDomainError("O arquivo ainda não está disponível.")
+    document.pdf_file.open("rb")
+    return DocumentDownload(
+        file=document.pdf_file,
+        filename=f"{document.document_number}.pdf",
+    )

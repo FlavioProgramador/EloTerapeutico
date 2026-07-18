@@ -1,19 +1,5 @@
-from django.urls import include, path
-from rest_framework.routers import DefaultRouter
+"""Fachada temporária para as URLs canônicas da API v1."""
 
-from apps.documents.views import (
-    DocumentLibraryViewSet,
-    DocumentTemplateViewSet,
-    GeneratedDocumentViewSet,
-    PlaceholderListView,
-)
+from apps.documents.api.v1.urls import urlpatterns
 
-router = DefaultRouter()
-router.register("templates", DocumentTemplateViewSet, basename="document-template")
-router.register("library", DocumentLibraryViewSet, basename="document-library")
-router.register("generated", GeneratedDocumentViewSet, basename="generated-document")
-
-urlpatterns = [
-    path("placeholders/", PlaceholderListView.as_view(), name="document-placeholders"),
-    path("", include(router.urls)),
-]
+__all__ = ["urlpatterns"]

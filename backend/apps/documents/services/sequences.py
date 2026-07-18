@@ -1,11 +1,15 @@
 """Sequenciamento transacional de documentos."""
 
+from django.db import transaction
 from django.utils import timezone
 
 from apps.documents.models import DocumentSequence
 
 
+@transaction.atomic
 def reserve_document_number(*, owner) -> str:
+    """Reserva o próximo número anual do profissional com bloqueio pessimista."""
+
     year = timezone.localdate().year
     sequence, _ = DocumentSequence.objects.select_for_update().get_or_create(
         owner=owner,

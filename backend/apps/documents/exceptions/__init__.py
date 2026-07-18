@@ -1,8 +1,5 @@
-"""Exceções de domínio do módulo de documentos."""
+"""Exceções públicas do domínio documental."""
 
-
-class DocumentDomainError(Exception):
-    """Erro de domínio seguro para exposição pela API."""
-
+from .domain import DocumentDomainError
 
 __all__ = ["DocumentDomainError"]
