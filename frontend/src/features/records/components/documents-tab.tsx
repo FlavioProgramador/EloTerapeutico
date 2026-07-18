@@ -1,6 +1,6 @@
 "use client";
 
-import { DragEvent, useEffect, useMemo, useRef, useState } from "react";
+import { DragEvent, useEffect, useMemo, useRef, useState, useId } from "react";
 import {
   Archive,
   ChevronLeft,
@@ -77,6 +77,12 @@ export function DocumentsTab({
   const [selectedId, setSelectedId] = useState<number | null>(
     documents[0]?.id ?? null,
   );
+
+  const baseId = useId();
+  const uploadCategoryId = `${baseId}-upload-category`;
+  const uploadDescriptionId = `${baseId}-upload-description`;
+  const editCategoryId = `${baseId}-edit-category`;
+  const editDescriptionId = `${baseId}-edit-description`;
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [page, setPage] = useState(1);
@@ -247,7 +253,7 @@ export function DocumentsTab({
             </select>
             <button
               type="button"
-              className="grid h-9 w-9 place-items-center rounded-md border border-border bg-background text-muted-foreground hover:bg-secondary"
+              className="grid h-9 w-9 place-items-center rounded-md border border-border bg-background text-muted-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
               title="Filtros aplicados por nome e categoria"
               aria-label="Filtros adicionais"
             >
@@ -358,8 +364,8 @@ export function DocumentsTab({
                                     document,
                                   );
                                 }}
-                                className="rounded-md p-1.5 text-sky-300 hover:bg-sky-500/10"
-                                aria-label="Baixar documento"
+                                className="rounded-md p-1.5 text-sky-300 hover:bg-sky-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+                                aria-label={`Baixar documento ${document.original_name}`}
                               >
                                 <Download className="h-3.5 w-3.5" />
                               </button>
@@ -369,15 +375,15 @@ export function DocumentsTab({
                                   event.stopPropagation();
                                   openMetadataEditor(document);
                                 }}
-                                className="rounded-md p-1.5 text-emerald-300 hover:bg-emerald-500/10"
-                                aria-label="Editar dados do documento"
+                                className="rounded-md p-1.5 text-emerald-300 hover:bg-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+                                aria-label={`Editar dados do documento ${document.original_name}`}
                               >
                                 <Pencil className="h-3.5 w-3.5" />
                               </button>
                               <button
                                 type="button"
-                                className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary"
-                                aria-label="Mais ações"
+                                className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+                                aria-label={`Mais ações para ${document.original_name}`}
                               >
                                 <MoreHorizontal className="h-3.5 w-3.5" />
                               </button>
@@ -403,7 +409,7 @@ export function DocumentsTab({
                     onClick={() =>
                       setPage((current) => Math.max(1, current - 1))
                     }
-                    className="grid h-7 w-7 place-items-center rounded-md border border-border disabled:opacity-40"
+                    className="grid h-7 w-7 place-items-center rounded-md border border-border disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                     aria-label="Página anterior"
                   >
                     <ChevronLeft className="h-3.5 w-3.5" />
@@ -417,7 +423,7 @@ export function DocumentsTab({
                     onClick={() =>
                       setPage((current) => Math.min(totalPages, current + 1))
                     }
-                    className="grid h-7 w-7 place-items-center rounded-md border border-border disabled:opacity-40"
+                    className="grid h-7 w-7 place-items-center rounded-md border border-border disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                     aria-label="Próxima página"
                   >
                     <ChevronRight className="h-3.5 w-3.5" />
@@ -621,7 +627,7 @@ export function DocumentsTab({
                       current.filter((item) => item !== file),
                     )
                   }
-                  className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary"
+                  className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                   aria-label={`Remover ${file.name}`}
                 >
                   <X className="h-3.5 w-3.5" />
@@ -632,12 +638,15 @@ export function DocumentsTab({
         )}
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <label className="space-y-1 text-xs font-semibold text-muted-foreground">
-            Categoria
+          <div className="space-y-1">
+            <label htmlFor={uploadCategoryId} className="text-xs font-semibold text-muted-foreground block">
+              Categoria
+            </label>
             <select
+              id={uploadCategoryId}
               value={category}
               onChange={(event) => setCategory(event.target.value)}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground"
+              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             >
               {categories.slice(1).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -645,16 +654,19 @@ export function DocumentsTab({
                 </option>
               ))}
             </select>
-          </label>
-          <label className="space-y-1 text-xs font-semibold text-muted-foreground">
-            Descrição
+          </div>
+          <div className="space-y-1">
+            <label htmlFor={uploadDescriptionId} className="text-xs font-semibold text-muted-foreground block">
+              Descrição
+            </label>
             <input
+              id={uploadDescriptionId}
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="Descrição opcional"
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground"
+              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             />
-          </label>
+          </div>
         </div>
 
         <div className="mt-5 flex justify-end gap-2 border-t border-border pt-4">
@@ -680,12 +692,15 @@ export function DocumentsTab({
         className="max-w-lg"
       >
         <div className="space-y-4">
-          <label className="space-y-1 text-xs font-semibold text-muted-foreground">
-            Categoria
+          <div className="space-y-1">
+            <label htmlFor={editCategoryId} className="text-xs font-semibold text-muted-foreground block">
+              Categoria
+            </label>
             <select
+              id={editCategoryId}
               value={editCategory}
               onChange={(event) => setEditCategory(event.target.value)}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground"
+              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             >
               {categories.slice(1).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -693,16 +708,19 @@ export function DocumentsTab({
                 </option>
               ))}
             </select>
-          </label>
-          <label className="space-y-1 text-xs font-semibold text-muted-foreground">
-            Descrição
+          </div>
+          <div className="space-y-1">
+            <label htmlFor={editDescriptionId} className="text-xs font-semibold text-muted-foreground block">
+              Descrição
+            </label>
             <textarea
+              id={editDescriptionId}
               rows={4}
               value={editDescription}
               onChange={(event) => setEditDescription(event.target.value)}
-              className="w-full rounded-md border border-border bg-background p-3 text-xs text-foreground"
+              className="w-full rounded-md border border-border bg-background p-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             />
-          </label>
+          </div>
         </div>
         <div className="mt-5 flex justify-end gap-2 border-t border-border pt-4">
           <Button variant="ghost" onClick={() => setEditingDocument(null)}>
