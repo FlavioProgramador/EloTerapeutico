@@ -1,8 +1,15 @@
-from .appointments import Appointment
-from .packages import PatientPackage
-from .remote import AppointmentReminder, TelemedicineRoom
-from .rooms import AppointmentRecurrence, Room
-from .support import PackageSession, ScheduleBlock
+"""Fachada de compatibilidade para os models de ``apps.scheduling``."""
+
+from apps.scheduling.models import (
+    Appointment,
+    AppointmentRecurrence,
+    AppointmentReminder,
+    PackageSession,
+    PatientPackage,
+    Room,
+    ScheduleBlock,
+    TelemedicineRoom,
+)
 
 __all__ = [
     "Appointment",
