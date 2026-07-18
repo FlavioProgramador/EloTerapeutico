@@ -58,6 +58,7 @@ def _validate_removed_monoliths(errors: list[str]) -> None:
         CORE / "admin_unfold.py",
         CORE / "exceptions.py",
         CORE / "fields.py",
+        CORE / "health.py",
         CORE / "health_urls.py",
         CORE / "validators.py",
     ]
@@ -70,7 +71,6 @@ def _validate_compatibility_facades(errors: list[str]) -> None:
     facades = [
         CORE / "admin_dashboard.py",
         CORE / "admin_sql.py",
-        CORE / "health.py",
     ]
     for path in facades:
         if not path.exists():

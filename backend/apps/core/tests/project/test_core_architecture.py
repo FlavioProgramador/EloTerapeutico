@@ -47,6 +47,7 @@ def test_core_architecture_rule_accepts_current_tree():
         "admin_unfold.py",
         "exceptions.py",
         "fields.py",
+        "health.py",
         "health_urls.py",
         "validators.py",
     ],
@@ -60,7 +61,6 @@ def test_core_monoliths_do_not_return_to_root(relative_path: str):
     [
         "admin_dashboard.py",
         "admin_sql.py",
-        "health.py",
     ],
 )
 def test_core_compatibility_facades_remain_thin(relative_path: str):
