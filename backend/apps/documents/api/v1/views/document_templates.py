@@ -7,7 +7,6 @@ from rest_framework.response import Response
 from apps.audit.services.access_logging import AuditLog, log_access
 from apps.documents.exceptions import DocumentDomainError
 from apps.documents.filters import DocumentTemplateFilter
-from apps.documents.models import DocumentTemplate
 from apps.documents.permissions import IsClinicalDocumentUser
 from apps.documents.selectors import library_templates, owned_templates
 from apps.documents.serializers import (
@@ -21,6 +20,7 @@ from apps.documents.services import (
     deactivate_template,
     duplicate_template,
     import_library_template,
+    remove_or_archive_template,
 )
 
 
@@ -58,23 +58,23 @@ class DocumentTemplateViewSet(viewsets.ModelViewSet):
         )
 
     def destroy(self, request, *args, **kwargs):
-        template = self.get_object()
-        if template.generated_documents.exists() or template.source_library_template_id:
-            archive_template(template=template)
+        result = remove_or_archive_template(
+            actor=request.user,
+            template=self.get_object(),
+        )
+        if result.archived and result.template is not None:
             log_access(
                 request,
                 AuditLog.Action.UPDATE,
-                obj=template,
-                obj_repr=f"Template de documento #{template.pk} arquivado",
+                obj=result.template,
+                obj_repr=f"Template de documento #{result.object_id} arquivado",
             )
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        log_access(
-            request,
-            AuditLog.Action.DELETE,
-            obj=template,
-            obj_repr=f"Template de documento #{template.pk} excluído",
-        )
-        template.delete()
+        else:
+            log_access(
+                request,
+                AuditLog.Action.DELETE,
+                obj_repr=f"Template de documento #{result.object_id} excluído",
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["post"])
@@ -94,7 +94,10 @@ class DocumentTemplateViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def archive(self, request, public_id=None):
-        template = archive_template(template=self.get_object())
+        template = archive_template(
+            actor=request.user,
+            template=self.get_object(),
+        )
         log_access(
             request,
             AuditLog.Action.UPDATE,

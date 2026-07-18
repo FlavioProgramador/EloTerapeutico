@@ -1,23 +1,32 @@
 from .document_templates import (
+    TemplateRemovalResult,
     activate_template,
     archive_template,
     create_template,
     deactivate_template,
     duplicate_template,
     import_library_template,
+    remove_or_archive_template,
     update_template,
 )
 from .generated_documents import (
+    DocumentDownload,
+    DocumentRemovalResult,
     GeneratedDocumentResult,
     archive_document,
     cancel_document,
     create_generated_document,
+    prepare_document_download,
+    remove_or_archive_document,
     update_document_draft,
 )
 from .pdf_generation import generate_pdf
 
 __all__ = [
+    "DocumentDownload",
+    "DocumentRemovalResult",
     "GeneratedDocumentResult",
+    "TemplateRemovalResult",
     "activate_template",
     "archive_document",
     "archive_template",
@@ -28,6 +37,9 @@ __all__ = [
     "duplicate_template",
     "generate_pdf",
     "import_library_template",
+    "prepare_document_download",
+    "remove_or_archive_document",
+    "remove_or_archive_template",
     "update_document_draft",
     "update_template",
 ]

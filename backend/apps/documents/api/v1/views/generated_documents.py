@@ -8,7 +8,6 @@ from rest_framework.response import Response
 from apps.audit.services.access_logging import AuditLog, log_access
 from apps.documents.exceptions import DocumentDomainError
 from apps.documents.filters import GeneratedDocumentFilter
-from apps.documents.models import GeneratedDocument
 from apps.documents.permissions import IsClinicalDocumentUser
 from apps.documents.selectors import generated_documents_for_owner
 from apps.documents.serializers import (
@@ -17,7 +16,13 @@ from apps.documents.serializers import (
     GeneratedDocumentDraftUpdateSerializer,
     GeneratedDocumentListSerializer,
 )
-from apps.documents.services import archive_document, cancel_document, generate_pdf
+from apps.documents.services import (
+    archive_document,
+    cancel_document,
+    generate_pdf,
+    prepare_document_download,
+    remove_or_archive_document,
+)
 
 
 class GeneratedDocumentViewSet(viewsets.ModelViewSet):
@@ -72,25 +77,30 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
             obj=document,
             obj_repr=f"Rascunho de documento #{document.pk} atualizado",
         )
-        return Response(GeneratedDocumentDetailSerializer(document).data)
+        return Response(
+            GeneratedDocumentDetailSerializer(
+                document,
+                context=self.get_serializer_context(),
+            ).data
+        )
 
     def destroy(self, request, *args, **kwargs):
-        document = self.get_object()
-        if document.status == GeneratedDocument.Status.DRAFT and not document.pdf_file:
-            log_access(
-                request,
-                AuditLog.Action.DELETE,
-                obj=document,
-                obj_repr=f"Rascunho de documento #{document.pk} excluído",
-            )
-            document.delete()
-        else:
-            archive_document(document=document)
+        result = remove_or_archive_document(
+            actor=request.user,
+            document=self.get_object(),
+        )
+        if result.archived and result.document is not None:
             log_access(
                 request,
                 AuditLog.Action.UPDATE,
-                obj=document,
-                obj_repr=f"Documento #{document.pk} arquivado",
+                obj=result.document,
+                obj_repr=f"Documento #{result.object_id} arquivado",
+            )
+        else:
+            log_access(
+                request,
+                AuditLog.Action.DELETE,
+                obj_repr=f"Rascunho de documento #{result.object_id} excluído",
             )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -107,14 +117,24 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
             obj=document,
             obj_repr=f"PDF do documento #{document.pk} gerado",
         )
-        return Response(GeneratedDocumentDetailSerializer(document).data)
+        return Response(
+            GeneratedDocumentDetailSerializer(
+                document,
+                context=self.get_serializer_context(),
+            ).data
+        )
 
     @action(detail=True, methods=["get"])
     def download(self, request, public_id=None):
         document = self.get_object()
-        if document.status != GeneratedDocument.Status.COMPLETED or not document.pdf_file:
+        try:
+            download = prepare_document_download(
+                actor=request.user,
+                document=document,
+            )
+        except DocumentDomainError as exc:
             return Response(
-                {"detail": "O arquivo ainda não está disponível."},
+                {"detail": str(exc)},
                 status=status.HTTP_409_CONFLICT,
             )
         log_access(
@@ -123,12 +143,11 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
             obj=document,
             obj_repr=f"PDF do documento #{document.pk} baixado",
         )
-        document.pdf_file.open("rb")
         response = FileResponse(
-            document.pdf_file,
+            download.file,
             as_attachment=True,
-            filename=f"{document.document_number}.pdf",
-            content_type="application/pdf",
+            filename=download.filename,
+            content_type=download.content_type,
         )
         response["Cache-Control"] = "private, no-store, max-age=0"
         response["X-Content-Type-Options"] = "nosniff"
@@ -136,19 +155,30 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def archive(self, request, public_id=None):
-        document = archive_document(document=self.get_object())
+        document = archive_document(
+            actor=request.user,
+            document=self.get_object(),
+        )
         log_access(
             request,
             AuditLog.Action.UPDATE,
             obj=document,
             obj_repr=f"Documento #{document.pk} arquivado",
         )
-        return Response(GeneratedDocumentDetailSerializer(document).data)
+        return Response(
+            GeneratedDocumentDetailSerializer(
+                document,
+                context=self.get_serializer_context(),
+            ).data
+        )
 
     @action(detail=True, methods=["post"])
     def cancel(self, request, public_id=None):
         try:
-            document = cancel_document(document=self.get_object())
+            document = cancel_document(
+                actor=request.user,
+                document=self.get_object(),
+            )
         except DocumentDomainError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         log_access(
@@ -157,4 +187,9 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
             obj=document,
             obj_repr=f"Documento #{document.pk} cancelado",
         )
-        return Response(GeneratedDocumentDetailSerializer(document).data)
+        return Response(
+            GeneratedDocumentDetailSerializer(
+                document,
+                context=self.get_serializer_context(),
+            ).data
+        )

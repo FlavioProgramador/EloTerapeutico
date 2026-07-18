@@ -2,12 +2,28 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from django.db import transaction
 
 from apps.documents.exceptions import DocumentDomainError
 from apps.documents.models import DocumentTemplate
 from apps.documents.selectors import find_imported_template, template_name_exists
 from apps.documents.services.access import ensure_template_access
+
+
+@dataclass(frozen=True)
+class TemplateRemovalResult:
+    """Resultado da política de remoção de um template."""
+
+    object_id: int
+    archived: bool
+    template: DocumentTemplate | None
+
+
+def _ensure_owned_template(*, actor, template: DocumentTemplate) -> None:
+    if template.is_library_template or template.owner_id != actor.id:
+        raise DocumentDomainError("Template não autorizado.")
 
 
 def _available_template_name(*, owner, base_name: str) -> str:
@@ -32,6 +48,7 @@ def create_template(*, actor, validated_data: dict) -> DocumentTemplate:
 
 @transaction.atomic
 def update_template(*, actor, template: DocumentTemplate, validated_data: dict) -> DocumentTemplate:
+    _ensure_owned_template(actor=actor, template=template)
     for field, value in validated_data.items():
         setattr(template, field, value)
     template.updated_by = actor
@@ -96,13 +113,32 @@ def duplicate_template(*, actor, template: DocumentTemplate) -> DocumentTemplate
 
 
 @transaction.atomic
-def archive_template(*, template: DocumentTemplate) -> DocumentTemplate:
+def archive_template(*, template: DocumentTemplate, actor=None) -> DocumentTemplate:
+    if actor is not None:
+        _ensure_owned_template(actor=actor, template=template)
+        template.updated_by = actor
     template.archive()
+    if actor is not None:
+        template.save(update_fields=["updated_by", "updated_at"])
     return template
 
 
 @transaction.atomic
+def remove_or_archive_template(*, actor, template: DocumentTemplate) -> TemplateRemovalResult:
+    """Exclui templates sem histórico e arquiva os que precisam ser preservados."""
+
+    _ensure_owned_template(actor=actor, template=template)
+    object_id = template.pk
+    if template.generated_documents.exists() or template.source_library_template_id:
+        archived = archive_template(actor=actor, template=template)
+        return TemplateRemovalResult(object_id=object_id, archived=True, template=archived)
+    template.delete()
+    return TemplateRemovalResult(object_id=object_id, archived=False, template=None)
+
+
+@transaction.atomic
 def activate_template(*, actor, template: DocumentTemplate) -> DocumentTemplate:
+    _ensure_owned_template(actor=actor, template=template)
     template.status = DocumentTemplate.Status.ACTIVE
     template.archived_at = None
     template.updated_by = actor
@@ -112,6 +148,7 @@ def activate_template(*, actor, template: DocumentTemplate) -> DocumentTemplate:
 
 @transaction.atomic
 def deactivate_template(*, actor, template: DocumentTemplate) -> DocumentTemplate:
+    _ensure_owned_template(actor=actor, template=template)
     template.status = DocumentTemplate.Status.INACTIVE
     template.updated_by = actor
     template.save(update_fields=["status", "updated_by", "updated_at"])

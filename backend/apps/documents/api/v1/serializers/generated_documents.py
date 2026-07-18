@@ -125,6 +125,10 @@ class GeneratedDocumentDraftUpdateSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         try:
-            return update_document_draft(document=instance, validated_data=validated_data)
+            return update_document_draft(
+                actor=self.context["request"].user,
+                document=instance,
+                validated_data=validated_data,
+            )
         except DocumentDomainError as exc:
             raise serializers.ValidationError(str(exc)) from exc
