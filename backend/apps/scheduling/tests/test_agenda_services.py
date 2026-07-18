@@ -5,10 +5,10 @@ from unittest.mock import patch
 from django.test import TestCase
 from django.utils import timezone
 
-from apps.agenda.models import Appointment, AppointmentRecurrence, Room, ScheduleBlock
-from apps.agenda.selectors import available_slots
-from apps.agenda.services import create_schedule_block, end_recurrence
 from apps.patients.models import Patient
+from apps.scheduling.models import Appointment, AppointmentRecurrence, Room, ScheduleBlock
+from apps.scheduling.selectors import available_slots
+from apps.scheduling.services import create_schedule_block, end_recurrence
 from apps.users.models import User, WorkingHours
 
 

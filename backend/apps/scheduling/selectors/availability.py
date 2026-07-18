@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 
 from django.utils import timezone
 
-from apps.agenda.models import Appointment, Room
 from apps.patients.models import Patient
+from apps.scheduling.models import Appointment, Room
 from apps.users.models import PracticeSettings, WorkingHours
 
 

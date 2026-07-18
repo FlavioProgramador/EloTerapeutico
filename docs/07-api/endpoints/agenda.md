@@ -1,6 +1,6 @@
 # Endpoints — Agenda
 
-Base: `/api/v1/agenda/`.
+Base canônica: `/api/v1/scheduling/`. O prefixo `/api/v1/agenda/` permanece como alias temporário de compatibilidade.
 
 Routers:
 

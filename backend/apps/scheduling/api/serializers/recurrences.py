@@ -1,7 +1,7 @@
 from django.utils import timezone
 from rest_framework import serializers
 
-from apps.agenda.models import Appointment, AppointmentRecurrence
+from apps.scheduling.models import Appointment, AppointmentRecurrence
 
 
 class AppointmentRecurrenceSerializer(serializers.ModelSerializer):

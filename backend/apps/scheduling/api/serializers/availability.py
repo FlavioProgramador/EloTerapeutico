@@ -1,9 +1,9 @@
 from django.utils import timezone
 from rest_framework import serializers
 
-from apps.agenda.models import Appointment, ScheduleBlock
-from apps.agenda.selectors import available_slots
-from apps.agenda.services import create_schedule_block
+from apps.scheduling.models import Appointment, ScheduleBlock
+from apps.scheduling.selectors import available_slots
+from apps.scheduling.services import create_schedule_block
 
 
 class ScheduleBlockSerializer(serializers.ModelSerializer):

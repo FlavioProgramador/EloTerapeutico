@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.agenda.models import Appointment, TelemedicineRoom
+from apps.scheduling.models import Appointment, TelemedicineRoom
 
 from .summary import (
     AppointmentReminderSerializer,

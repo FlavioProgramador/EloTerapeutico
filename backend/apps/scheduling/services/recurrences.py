@@ -10,9 +10,9 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from apps.agenda.exceptions import InvalidRecurrenceScopeError, RecurrenceConflictError
-from apps.agenda.models import Appointment, AppointmentRecurrence, PatientPackage, Room
-from apps.agenda.services.resources import create_appointment_resources
+from apps.scheduling.exceptions import InvalidRecurrenceScopeError, RecurrenceConflictError
+from apps.scheduling.models import Appointment, AppointmentRecurrence, PatientPackage, Room
+from apps.scheduling.services.resources import create_appointment_resources
 
 
 def add_months(value: date, months: int) -> date:

@@ -1,6 +1,6 @@
 """Serializers públicos da agenda."""
 
-from apps.agenda.api.serializers import (
+from apps.scheduling.api.serializers import (
     AppointmentCreateSerializer,
     AppointmentDetailSerializer,
     AppointmentListSerializer,

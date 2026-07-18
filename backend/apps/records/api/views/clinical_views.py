@@ -38,7 +38,6 @@ except (ImportError, OSError):
                     f.write(dummy_pdf)
 
 
-from apps.agenda.models import Appointment
 from apps.audit.services.access_logging import AuditLog, log_access
 from apps.patients.models import Patient
 from apps.patients.services.access_control import can_access_patient
@@ -58,6 +57,7 @@ from apps.records.treatment_models import (
     ClinicalFormResponse,
     TreatmentGoal,
 )
+from apps.scheduling.models import Appointment
 
 
 class RecordPagination(PageNumberPagination):

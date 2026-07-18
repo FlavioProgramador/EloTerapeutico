@@ -7,11 +7,11 @@ from django.db.models import Count
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
-from apps.agenda.models import Appointment
 from apps.patients.models import Patient
 from apps.reports.selectors import appointments_for_period
 from apps.reports.services.periods import iter_months, label_month, month_key, page_queryset, resolve_period
 from apps.reports.services.value_formatting import decimal_to_number, insurance_label
+from apps.scheduling.models import Appointment
 
 
 def serialize_appointment(appointment: Appointment) -> dict[str, Any]:

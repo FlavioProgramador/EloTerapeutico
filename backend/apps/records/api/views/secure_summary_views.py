@@ -7,7 +7,6 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework.response import Response
 
-from apps.agenda.models import Appointment
 from apps.records.api.serializers.clinical_serializers import (
     ClinicalDocumentSerializer,
     TreatmentGoalSerializer,
@@ -16,6 +15,7 @@ from apps.records.api.views.clinical_views import PatientRecordSummaryView
 from apps.records.models import Evolution
 from apps.records.services.evolution_security import has_explicit_records_permission
 from apps.records.treatment_models import ClinicalDocument, TreatmentGoal
+from apps.scheduling.models import Appointment
 
 
 class SecurePatientRecordSummaryView(PatientRecordSummaryView):

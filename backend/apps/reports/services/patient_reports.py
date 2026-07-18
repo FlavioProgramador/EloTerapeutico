@@ -8,10 +8,10 @@ from django.db.models import Count, Max, Q
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
-from apps.agenda.models import Appointment
 from apps.patients.models import Patient
 from apps.reports.selectors import patients_for_owner
 from apps.reports.services.periods import iter_months, label_month, month_key, page_queryset, resolve_period, safe_int
+from apps.scheduling.models import Appointment
 
 
 def serialize_patient_risk(patient: Patient, threshold: int) -> dict[str, Any]:

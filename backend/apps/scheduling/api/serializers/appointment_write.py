@@ -7,9 +7,9 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from rest_framework import serializers
 
-from apps.agenda.models import Appointment, AppointmentRecurrence, PatientPackage, Room
-from apps.agenda.services import create_appointment, update_appointment
 from apps.patients.models import Patient
+from apps.scheduling.models import Appointment, AppointmentRecurrence, PatientPackage, Room
+from apps.scheduling.services import create_appointment, update_appointment
 from apps.users.models import PracticeSettings, WorkingHours
 
 User = get_user_model()

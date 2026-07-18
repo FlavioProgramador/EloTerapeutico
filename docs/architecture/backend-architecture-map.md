@@ -110,7 +110,7 @@ backend/
         └── tests/
 ```
 
-`apps.agenda.api` permanece como contrato público porque seus imports são cobertos por testes de arquitetura. O diretório contém somente adaptação HTTP; os casos de uso foram transferidos para `apps.agenda.services`.
+`apps.scheduling.api` permanece como contrato público porque seus imports são cobertos por testes de arquitetura. O diretório contém somente adaptação HTTP; os casos de uso foram transferidos para `apps.scheduling.services`.
 
 ## Apps e responsabilidades consolidadas
 

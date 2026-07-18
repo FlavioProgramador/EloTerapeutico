@@ -11,11 +11,11 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q, Sum
 from django.utils import timezone
 
-from apps.agenda.models import Appointment
 from apps.documents.models import GeneratedDocument
 from apps.financeiro.models import FinancialTransaction
 from apps.patients.models import Patient
 from apps.records.models import Evolution
+from apps.scheduling.models import Appointment
 
 
 def _next_month_start(current_date):

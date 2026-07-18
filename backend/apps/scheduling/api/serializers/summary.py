@@ -2,8 +2,8 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from apps.agenda.models import AppointmentReminder, PackageSession, Room, TelemedicineRoom
 from apps.patients.models import Patient
+from apps.scheduling.models import AppointmentReminder, PackageSession, Room, TelemedicineRoom
 
 User = get_user_model()
 

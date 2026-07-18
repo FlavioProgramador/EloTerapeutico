@@ -6,11 +6,11 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework.test import APIRequestFactory
 
-from apps.agenda.api.serializers import AppointmentCreateSerializer, AppointmentStatusUpdateSerializer
-from apps.agenda.api.views.appointments import AppointmentViewSet
-from apps.agenda.models import Appointment
 from apps.financeiro.models import FinancialTransaction
 from apps.patients.models import Patient
+from apps.scheduling.api.serializers import AppointmentCreateSerializer, AppointmentStatusUpdateSerializer
+from apps.scheduling.api.views.appointments import AppointmentViewSet
+from apps.scheduling.models import Appointment
 from apps.users.models import User
 
 

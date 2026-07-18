@@ -4,7 +4,7 @@ from datetime import timedelta
 
 from django.db import transaction
 
-from apps.agenda.models import ScheduleBlock
+from apps.scheduling.models import ScheduleBlock
 
 
 @transaction.atomic

@@ -12,8 +12,8 @@ from django.db.models import (
 )
 from django.utils import timezone
 
-from apps.agenda.models import Appointment
 from apps.records.models import Anamnesis, Evolution
+from apps.scheduling.models import Appointment
 
 
 def annotate_essential(queryset):

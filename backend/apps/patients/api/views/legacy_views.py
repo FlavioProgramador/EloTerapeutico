@@ -126,7 +126,7 @@ class PatientViewSet(AuditLogMixin, viewsets.ModelViewSet):
         appointment_count = 0
         last_session_date = None
         try:
-            from apps.agenda.models import Appointment
+            from apps.scheduling.models import Appointment
 
             appointments_qs = Appointment.objects.filter(patient=patient)
             appointment_count = appointments_qs.count()

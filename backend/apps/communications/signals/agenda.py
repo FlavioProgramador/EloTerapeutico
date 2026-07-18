@@ -5,13 +5,13 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-from apps.agenda.models import Appointment
 from apps.communications.models import PublicCommunicationActionToken
 from apps.communications.services import (
     cancel_pending_for_source,
     emit_domain_event,
     issue_appointment_action_links,
 )
+from apps.scheduling.models import Appointment
 
 from .common import capture_previous, has_active_automation
 

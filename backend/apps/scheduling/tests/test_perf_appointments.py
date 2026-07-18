@@ -6,10 +6,10 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.agenda.models import Appointment
 from apps.patients.models import Patient
 from apps.records.extended_models import EvolutionClinicalData
 from apps.records.models import Evolution
+from apps.scheduling.models import Appointment
 from apps.users.models import User
 
 

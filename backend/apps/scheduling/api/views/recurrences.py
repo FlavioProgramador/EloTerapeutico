@@ -5,20 +5,20 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.agenda.api.filters import RecurrenceFilter
-from apps.agenda.api.serializers import (
+from apps.audit.services.access_logging import AuditLog, log_access
+from apps.scheduling.api.filters import RecurrenceFilter
+from apps.scheduling.api.serializers import (
     AppointmentDetailSerializer,
     AppointmentRecurrenceSerializer,
     AppointmentUpdateSerializer,
 )
-from apps.agenda.exceptions import InvalidRecurrenceScopeError, RecurrenceConflictError
-from apps.agenda.models import AppointmentRecurrence
-from apps.agenda.services import (
+from apps.scheduling.exceptions import InvalidRecurrenceScopeError, RecurrenceConflictError
+from apps.scheduling.models import AppointmentRecurrence
+from apps.scheduling.services import (
     apply_bulk_recurrence_change,
     end_recurrence,
     set_recurrence_status,
 )
-from apps.audit.services.access_logging import AuditLog, log_access
 
 from .base import ScopedAgendaMixin
 

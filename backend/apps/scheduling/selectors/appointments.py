@@ -2,7 +2,7 @@
 
 from django.db.models import QuerySet
 
-from apps.agenda.models import Appointment
+from apps.scheduling.models import Appointment
 
 
 def appointment_queryset(*, include_details: bool = False) -> QuerySet[Appointment]:

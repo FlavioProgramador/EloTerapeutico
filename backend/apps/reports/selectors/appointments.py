@@ -4,7 +4,7 @@ from datetime import date
 
 from django.db.models import QuerySet
 
-from apps.agenda.models import Appointment
+from apps.scheduling.models import Appointment
 
 
 def appointments_for_period(*, owner, start: date, end: date) -> QuerySet[Appointment]:

@@ -4,8 +4,8 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from rest_framework import serializers
 
-from apps.agenda.models import Appointment, AppointmentRecurrence, PatientPackage, Room
-from apps.agenda.services import create_patient_package
+from apps.scheduling.models import Appointment, AppointmentRecurrence, PatientPackage, Room
+from apps.scheduling.services import create_patient_package
 
 from .summary import PackageSessionSerializer
 

@@ -1,14 +1,14 @@
 """Views públicas da agenda."""
 
-from apps.agenda.api.views.appointments import AppointmentViewSet
-from apps.agenda.api.views.operations import (
+from apps.scheduling.api.views.appointments import AppointmentViewSet
+from apps.scheduling.api.views.operations import (
     PackageSessionViewSet,
     PatientPackageViewSet,
     RoomViewSet,
     ScheduleBlockViewSet,
 )
-from apps.agenda.api.views.recurrences import AppointmentRecurrenceViewSet
-from apps.agenda.api.views.telemedicine import (
+from apps.scheduling.api.views.recurrences import AppointmentRecurrenceViewSet
+from apps.scheduling.api.views.telemedicine import (
     AppointmentReminderViewSet,
     TelemedicineAccessView,
     TelemedicineRoomViewSet,

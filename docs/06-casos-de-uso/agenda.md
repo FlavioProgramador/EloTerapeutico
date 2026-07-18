@@ -41,7 +41,7 @@ Paciente, participantes, profissional, horários, modalidade, notas e valor.
 Notas são administrativas; querysets devem ser isolados; tokens de telemedicina são secretos.
 
 ## Endpoints relacionados
-`/api/v1/agenda/appointments/` e recursos auxiliares.
+`/api/v1/scheduling/appointments/` e recursos auxiliares.
 
 ## Testes relacionados
 `test_agenda_complete.py`, testes de telemedicina e performance.

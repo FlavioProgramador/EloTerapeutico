@@ -5,7 +5,7 @@ from datetime import timedelta
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from apps.agenda.models import Appointment, AppointmentReminder, PackageSession, PatientPackage, TelemedicineRoom
+from apps.scheduling.models import Appointment, AppointmentReminder, PackageSession, PatientPackage, TelemedicineRoom
 
 
 def mask_phone(value: str) -> str:

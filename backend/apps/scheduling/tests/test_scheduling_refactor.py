@@ -1,6 +1,6 @@
 from django.apps import apps
-from django.urls import resolve, reverse
 from django.test import SimpleTestCase
+from django.urls import resolve, reverse
 
 from apps.agenda.models import Appointment as LegacyAppointment
 from apps.scheduling.models import Appointment

@@ -46,7 +46,7 @@ async function listAppointmentPage(filters?: AppointmentFilters) {
   const query = buildParams(filters as Record<string, unknown>);
   const response = await api.get<
     PaginatedAgendaResponse<AgendaAppointment> | AgendaAppointment[]
-  >(`agenda/appointments/${query ? `?${query}` : ""}`);
+  >(`scheduling/appointments/${query ? `?${query}` : ""}`);
   return normalizePage(response.data);
 }
 
@@ -63,13 +63,13 @@ export const agendaService = {
   appointments: {
     list: listAppointmentPage,
     get: async (id: number) =>
-      (await api.get<AgendaAppointment>(`agenda/appointments/${id}/`)).data,
+      (await api.get<AgendaAppointment>(`scheduling/appointments/${id}/`)).data,
     create: async (payload: CreateAppointmentPayload) =>
-      (await api.post<AgendaAppointment>("agenda/appointments/", payload)).data,
+      (await api.post<AgendaAppointment>("scheduling/appointments/", payload)).data,
     update: async (id: number, payload: Partial<CreateAppointmentPayload>) =>
       (
         await api.patch<AgendaAppointment>(
-          `agenda/appointments/${id}/`,
+          `scheduling/appointments/${id}/`,
           payload,
         )
       ).data,
@@ -80,7 +80,7 @@ export const agendaService = {
     ) =>
       (
         await api.post<AgendaAppointment>(
-          `agenda/appointments/${id}/${action}/`,
+          `scheduling/appointments/${id}/${action}/`,
           payload || {},
         )
       ).data,
@@ -90,12 +90,12 @@ export const agendaService = {
     ) =>
       (
         await api.post<AgendaAppointment>(
-          `agenda/appointments/${id}/reschedule/`,
+          `scheduling/appointments/${id}/reschedule/`,
           payload,
         )
       ).data,
     remove: async (id: number) => {
-      await api.delete(`agenda/appointments/${id}/`);
+      await api.delete(`scheduling/appointments/${id}/`);
     },
     checkAvailability: async (payload: {
       date: string;
@@ -106,13 +106,13 @@ export const agendaService = {
     }) =>
       (
         await api.post<TimeSlot[]>(
-          "agenda/appointments/check-availability/",
+          "scheduling/appointments/check-availability/",
           payload,
         )
       ).data,
     exportUrl: (filters?: AppointmentFilters) => {
       const query = buildParams(filters as Record<string, unknown>);
-      return `agenda/appointments/export/${query ? `?${query}` : ""}`;
+      return `scheduling/appointments/export/${query ? `?${query}` : ""}`;
     },
   },
 
@@ -120,7 +120,7 @@ export const agendaService = {
     list: async () => {
       const response = await api.get<
         AgendaRoom[] | PaginatedAgendaResponse<AgendaRoom>
-      >("agenda/rooms/?page_size=100");
+      >("scheduling/rooms/?page_size=100");
       return Array.isArray(response.data)
         ? response.data
         : response.data.results;
@@ -131,17 +131,17 @@ export const agendaService = {
     list: async (filters?: Record<string, unknown>) => {
       const query = buildParams(filters);
       const response = await api.get<PaginatedAgendaResponse<ScheduleBlock>>(
-        `agenda/schedule-blocks/${query ? `?${query}` : ""}`,
+        `scheduling/schedule-blocks/${query ? `?${query}` : ""}`,
       );
       return normalizePage(response.data);
     },
     create: async (payload: CreateScheduleBlockPayload) =>
-      (await api.post<ScheduleBlock>("agenda/schedule-blocks/", payload)).data,
+      (await api.post<ScheduleBlock>("scheduling/schedule-blocks/", payload)).data,
     update: async (id: number, payload: Partial<CreateScheduleBlockPayload>) =>
-      (await api.patch<ScheduleBlock>(`agenda/schedule-blocks/${id}/`, payload))
+      (await api.patch<ScheduleBlock>(`scheduling/schedule-blocks/${id}/`, payload))
         .data,
     remove: async (id: number) => {
-      await api.delete(`agenda/schedule-blocks/${id}/`);
+      await api.delete(`scheduling/schedule-blocks/${id}/`);
     },
   },
 
@@ -150,20 +150,20 @@ export const agendaService = {
       const query = buildParams(filters);
       const response = await api.get<
         PaginatedAgendaResponse<AppointmentRecurrence>
-      >(`agenda/appointment-recurrences/${query ? `?${query}` : ""}`);
+      >(`scheduling/appointment-recurrences/${query ? `?${query}` : ""}`);
       return normalizePage(response.data);
     },
     update: async (id: number, payload: Record<string, unknown>) =>
       (
         await api.patch<AppointmentRecurrence>(
-          `agenda/appointment-recurrences/${id}/`,
+          `scheduling/appointment-recurrences/${id}/`,
           payload,
         )
       ).data,
     action: async (id: number, action: "pause" | "reactivate" | "end") =>
       (
         await api.post<AppointmentRecurrence>(
-          `agenda/appointment-recurrences/${id}/${action}/`,
+          `scheduling/appointment-recurrences/${id}/${action}/`,
           {},
         )
       ).data,
@@ -177,7 +177,7 @@ export const agendaService = {
     ) =>
       (
         await api.post(
-          `agenda/appointment-recurrences/${id}/apply-change/`,
+          `scheduling/appointment-recurrences/${id}/apply-change/`,
           payload,
         )
       ).data,
@@ -187,36 +187,36 @@ export const agendaService = {
     list: async (filters?: Record<string, unknown>) => {
       const query = buildParams(filters);
       const response = await api.get<PaginatedAgendaResponse<PatientPackage>>(
-        `agenda/patient-packages/${query ? `?${query}` : ""}`,
+        `scheduling/patient-packages/${query ? `?${query}` : ""}`,
       );
       return normalizePage(response.data);
     },
     create: async (payload: CreatePackagePayload) =>
-      (await api.post<PatientPackage>("agenda/patient-packages/", payload))
+      (await api.post<PatientPackage>("scheduling/patient-packages/", payload))
         .data,
     update: async (id: number, payload: Partial<CreatePackagePayload>) =>
       (
         await api.patch<PatientPackage>(
-          `agenda/patient-packages/${id}/`,
+          `scheduling/patient-packages/${id}/`,
           payload,
         )
       ).data,
     addSession: async (id: number, payload: CreateAppointmentPayload) =>
       (
         await api.post<AgendaAppointment>(
-          `agenda/patient-packages/${id}/add-session/`,
+          `scheduling/patient-packages/${id}/add-session/`,
           payload,
         )
       ).data,
     action: async (id: number, action: "cancel" | "renew", payload = {}) =>
       (
         await api.post<PatientPackage>(
-          `agenda/patient-packages/${id}/${action}/`,
+          `scheduling/patient-packages/${id}/${action}/`,
           payload,
         )
       ).data,
     removeSession: async (sessionId: number) => {
-      await api.delete(`agenda/package-sessions/${sessionId}/`);
+      await api.delete(`scheduling/package-sessions/${sessionId}/`);
     },
   },
 
@@ -224,21 +224,21 @@ export const agendaService = {
     list: async (filters?: Record<string, unknown>) => {
       const query = buildParams(filters);
       const response = await api.get<PaginatedAgendaResponse<TelemedicineRoom>>(
-        `agenda/telemedicine/${query ? `?${query}` : ""}`,
+        `scheduling/telemedicine/${query ? `?${query}` : ""}`,
       );
       return normalizePage(response.data);
     },
     regenerate: async (id: number) =>
       (
         await api.post<TelemedicineRoom>(
-          `agenda/telemedicine/${id}/regenerate-link/`,
+          `scheduling/telemedicine/${id}/regenerate-link/`,
           {},
         )
       ).data,
     open: async (id: number) =>
       (
         await api.post<{ professional_link: string }>(
-          `agenda/telemedicine/${id}/open-room/`,
+          `scheduling/telemedicine/${id}/open-room/`,
           {},
         )
       ).data,
