@@ -9,10 +9,13 @@ BACKEND = Path(__file__).resolve().parents[3]
 if str(BACKEND) not in sys.path:
     sys.path.insert(0, str(BACKEND))
 
-from apps.core.quality.legacy_backend_architecture import main as validate_existing_architecture
+from apps.core.quality.legacy_backend_architecture import (
+    main as validate_existing_architecture,
+)
 from apps.core.quality.rules import (
     validate_core_architecture,
     validate_documents_architecture,
+    validate_scheduling_architecture,
 )
 
 
@@ -22,9 +25,11 @@ def main() -> None:
     errors: list[str] = []
     validate_core_architecture(errors)
     validate_documents_architecture(errors)
+    validate_scheduling_architecture(errors)
     if errors:
         raise SystemExit(
-            "Falhas de arquitetura do backend:\n- " + "\n- ".join(sorted(set(errors)))
+            "Falhas de arquitetura do backend:\n- "
+            + "\n- ".join(sorted(set(errors)))
         )
     validate_existing_architecture()
 
