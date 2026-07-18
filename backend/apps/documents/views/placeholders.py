@@ -1,14 +1,6 @@
-"""View de placeholders documentais disponíveis."""
+"""Alias temporário para a view canônica de placeholders."""
 
-from rest_framework.response import Response
-from rest_framework.views import APIView
+import sys
+from importlib import import_module
 
-from apps.documents.permissions import IsClinicalDocumentUser
-from apps.documents.services.placeholders import list_placeholders
-
-
-class PlaceholderListView(APIView):
-    permission_classes = [IsClinicalDocumentUser]
-
-    def get(self, request):
-        return Response(list_placeholders())
+sys.modules[__name__] = import_module("apps.documents.api.v1.views.placeholders")

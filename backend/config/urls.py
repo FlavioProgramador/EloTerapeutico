@@ -15,7 +15,7 @@ api_v1_patterns = [
     path("records/", include("apps.records.urls")),
     path("agenda/", include("apps.agenda.urls")),
     path("financeiro/", include("apps.financeiro.urls")),
-    path("documents/", include("apps.documents.urls")),
+    path("documents/", include("apps.documents.api.v1.urls")),
     path("reports/", include("apps.reports.urls")),
     path("forms/", include("apps.forms.urls")),
     path("billing/", include("apps.billing.api.v1.urls")),
