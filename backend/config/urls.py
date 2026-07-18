@@ -54,7 +54,7 @@ urlpatterns = [
         name="redoc",
     ),
     path("api/health/", include("apps.users.health_urls")),
-    path("health/", include("apps.core.health_urls")),
+    path("health/", include("apps.core.api.urls")),
 ]
 
 if legacy_billing_route_enabled():
