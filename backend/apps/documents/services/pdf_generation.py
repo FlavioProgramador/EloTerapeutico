@@ -10,7 +10,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.documents.exceptions import DocumentDomainError
-from apps.documents.infrastructure.pdf import render_html_to_pdf
+from apps.documents.infrastructure.pdf.renderer import HTML, render_html_to_pdf
 from apps.documents.models import GeneratedDocument
 from apps.documents.services.access import ensure_document_access
 from apps.documents.services.placeholders import render_safe_markdown
@@ -85,7 +85,10 @@ def generate_pdf(*, document: GeneratedDocument, actor) -> GeneratedDocument:
 
     try:
         document = GeneratedDocument.objects.get(pk=document.pk)
-        pdf_bytes = render_html_to_pdf(build_document_html(document))
+        pdf_bytes = render_html_to_pdf(
+            build_document_html(document),
+            renderer_cls=HTML,
+        )
     except Exception as exc:
         GeneratedDocument.objects.filter(pk=document.pk).update(
             status=GeneratedDocument.Status.FAILED,

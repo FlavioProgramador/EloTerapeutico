@@ -34,7 +34,7 @@ except (ImportError, OSError):
             return dummy_pdf
 
 
-def render_html_to_pdf(html_content: str) -> bytes:
+def render_html_to_pdf(html_content: str, *, renderer_cls=HTML) -> bytes:
     """Converte HTML previamente sanitizado em bytes de PDF."""
 
-    return HTML(string=html_content).write_pdf()
+    return renderer_cls(string=html_content).write_pdf()
