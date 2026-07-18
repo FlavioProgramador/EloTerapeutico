@@ -162,3 +162,39 @@ def test_evolution_viewset_admin_edit_blocked(admin_user, owner, patient):
     assert response.status_code == 403
     ev.refresh_from_db()
     assert ev.content == "Original note"
+
+
+@pytest.mark.django_db
+def test_anamnesis_put_cannot_reassign_patient(owner, patient):
+    """
+    Regression: Ensure that PUT/PATCH cannot reassign the patient of an existing anamnesis.
+    """
+    # Create another patient owned by owner
+    other_patient = Patient.objects.create(
+        full_name="Other Patient",
+        therapist=owner,
+        status=Patient.Status.ACTIVE,
+    )
+
+    anamnesis = Anamnesis.objects.create(
+        patient=patient,
+        chief_complaint="Complaint A",
+        created_by=owner,
+    )
+
+    client = APIClient()
+    client.force_authenticate(owner)
+
+    url = f"/api/v1/records/patients/{patient.id}/anamnesis/"
+
+    # Try PUT request reassigning patient_id to other_patient
+    response = client.put(url, {
+        "patient_id": other_patient.id,
+        "chief_complaint": "Modified Complaint",
+    }, format="json")
+
+    assert response.status_code == 400
+    assert "patient_id" in response.data["error"]["details"]
+
+    anamnesis.refresh_from_db()
+    assert anamnesis.patient == patient

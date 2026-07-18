@@ -82,9 +82,16 @@ class AnamnesisSerializer(serializers.ModelSerializer):
         """
         Valida que a anamnese não está sendo criada para um paciente
         sem que o usuário tenha permissão de acesso.
+        E impede a alteração de paciente em uma anamnese existente.
         """
         request = self.context.get("request")
         patient = attrs.get("patient")
+
+        if self.instance and patient and patient != self.instance.patient:
+            raise serializers.ValidationError(
+                {"patient_id": "Não é permitido alterar o paciente de uma anamnese existente."}
+            )
+
         if request and patient and not can_access_patient(request.user, patient):
             raise serializers.ValidationError(
                 {"patient_id": "Você não tem permissão para criar anamnese para este paciente."}
