@@ -1,7 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from apps.documents.views import (
+from .views import (
     DocumentLibraryViewSet,
     DocumentTemplateViewSet,
     GeneratedDocumentViewSet,

@@ -7,13 +7,7 @@ from rest_framework.response import Response
 from apps.audit.services.access_logging import AuditLog, log_access
 from apps.documents.exceptions import DocumentDomainError
 from apps.documents.filters import DocumentTemplateFilter
-from apps.documents.permissions import IsClinicalDocumentUser
 from apps.documents.selectors import library_templates, owned_templates
-from apps.documents.serializers import (
-    DocumentTemplateListSerializer,
-    DocumentTemplateSerializer,
-    TemplatePreviewRequestSerializer,
-)
 from apps.documents.services import (
     activate_template,
     archive_template,
@@ -21,6 +15,13 @@ from apps.documents.services import (
     duplicate_template,
     import_library_template,
     remove_or_archive_template,
+)
+
+from ..permissions import IsClinicalDocumentUser
+from ..serializers import (
+    DocumentTemplateListSerializer,
+    DocumentTemplateSerializer,
+    TemplatePreviewRequestSerializer,
 )
 
 

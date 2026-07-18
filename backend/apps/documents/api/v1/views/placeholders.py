@@ -3,8 +3,9 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.documents.permissions import IsClinicalDocumentUser
 from apps.documents.services.placeholders import list_placeholders
+
+from ..permissions import IsClinicalDocumentUser
 
 
 class PlaceholderListView(APIView):

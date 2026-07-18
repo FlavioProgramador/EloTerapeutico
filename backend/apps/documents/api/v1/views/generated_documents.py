@@ -8,20 +8,21 @@ from rest_framework.response import Response
 from apps.audit.services.access_logging import AuditLog, log_access
 from apps.documents.exceptions import DocumentDomainError
 from apps.documents.filters import GeneratedDocumentFilter
-from apps.documents.permissions import IsClinicalDocumentUser
 from apps.documents.selectors import generated_documents_for_owner
-from apps.documents.serializers import (
-    GeneratedDocumentCreateSerializer,
-    GeneratedDocumentDetailSerializer,
-    GeneratedDocumentDraftUpdateSerializer,
-    GeneratedDocumentListSerializer,
-)
 from apps.documents.services import (
     archive_document,
     cancel_document,
     generate_pdf,
     prepare_document_download,
     remove_or_archive_document,
+)
+
+from ..permissions import IsClinicalDocumentUser
+from ..serializers import (
+    GeneratedDocumentCreateSerializer,
+    GeneratedDocumentDetailSerializer,
+    GeneratedDocumentDraftUpdateSerializer,
+    GeneratedDocumentListSerializer,
 )
 
 
