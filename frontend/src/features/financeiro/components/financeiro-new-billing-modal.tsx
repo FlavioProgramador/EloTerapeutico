@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useId } from "react";
 import { Check, Info } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,14 @@ export function FinanceiroNewBillingModal({
   const [sendWhatsApp, setSendWhatsApp] = useState(false);
   const [valueBase, setValueBase] = useState<"session" | "patient">("session");
   const [selectedSessions, setSelectedSessions] = useState<number[]>([]);
+
+  const baseId = useId();
+  const patientSelectId = `${baseId}-patient`;
+  const dueDateId = `${baseId}-due-date`;
+  const paymentLinkId = `${baseId}-payment-link`;
+  const paymentLinkHintId = `${baseId}-payment-link-hint`;
+  const notesId = `${baseId}-notes`;
+  const sendWhatsAppCheckboxId = `${baseId}-send-whatsapp`;
 
   useEffect(() => {
     if (open) {
@@ -102,13 +110,14 @@ export function FinanceiroNewBillingModal({
     >
       <div className="space-y-6 pt-2">
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold">Paciente</label>
+          <label htmlFor={patientSelectId} className="text-sm font-semibold">Paciente</label>
           <select
+            id={patientSelectId}
             value={patientId}
             onChange={(e) =>
               setPatientId(e.target.value ? Number(e.target.value) : "")
             }
-            className="flex h-10 w-full rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="flex h-10 w-full rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
             <option value="">Selecione um paciente</option>
             {patients.map((p) => (
@@ -256,8 +265,9 @@ export function FinanceiroNewBillingModal({
         )}
 
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold">Vencimento</label>
+          <label htmlFor={dueDateId} className="text-sm font-semibold">Vencimento</label>
           <Input
+            id={dueDateId}
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
@@ -265,24 +275,25 @@ export function FinanceiroNewBillingModal({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold">
-            Link de pagamento (opcional)
-          </label>
+          <label htmlFor={paymentLinkId} className="text-sm font-semibold">Link de pagamento (opcional)</label>
           <Input
+            id={paymentLinkId}
             type="url"
             placeholder="https://"
             value={paymentLink}
+            aria-describedby={paymentLinkHintId}
             onChange={(e) => setPaymentLink(e.target.value)}
           />
-          <p className="text-xs text-muted-foreground mt-1">
+          <p id={paymentLinkHintId} className="text-xs text-muted-foreground mt-1">
             Se informado, será incluído na cobrança via WhatsApp em vez dos
             dados bancários.
           </p>
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold">Observações</label>
+          <label htmlFor={notesId} className="text-sm font-semibold">Observações</label>
           <Textarea
+            id={notesId}
             placeholder="Ex: Referente às sessões de janeiro/2026"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -291,8 +302,9 @@ export function FinanceiroNewBillingModal({
           />
         </div>
 
-        <label className="flex items-center gap-2 cursor-pointer pt-2">
+        <label htmlFor={sendWhatsAppCheckboxId} className="flex items-center gap-2 cursor-pointer pt-2 select-none">
           <input
+            id={sendWhatsAppCheckboxId}
             type="checkbox"
             checked={sendWhatsApp}
             onChange={(e) => setSendWhatsApp(e.target.checked)}
