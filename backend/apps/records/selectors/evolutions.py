@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from django.db.models import Count, Prefetch, Q
 
-from apps.agenda.models import Appointment
+from apps.scheduling.models import Appointment
 
 from ..models import ClinicalDocument, Evolution
 

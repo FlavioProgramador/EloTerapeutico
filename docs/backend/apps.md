@@ -75,7 +75,7 @@ Responsabilidades:
 
 Services centralizam criação, atualização, versionamento e arquivamento. Selectors aplicam autoria, confidencialidade e escopo clínico antes de retornar conteúdo.
 
-## `apps.agenda`
+## `apps.scheduling`
 
 Responsabilidades:
 

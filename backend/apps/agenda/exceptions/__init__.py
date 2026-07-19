@@ -1,25 +1,21 @@
-"""Exceções de domínio da Agenda."""
+"""Compatibilidade para exceções movidas para scheduling."""
 
-
-class AgendaDomainError(Exception):
-    """Erro controlado do domínio de agenda."""
-
-
-class CompletedAppointmentDeletionError(AgendaDomainError):
-    """Consulta realizada não pode ser cancelada por exclusão administrativa."""
-
-
-class InvalidRecurrenceScopeError(AgendaDomainError):
-    """Escopo de alteração de recorrência inválido."""
-
-
-class RecurrenceConflictError(AgendaDomainError):
-    """Alteração de recorrência causaria conflito de horário."""
-
+from apps.scheduling.exceptions import (
+    AgendaDomainError,
+    CompletedAppointmentDeletionError,
+    CompletedPackageSessionRemovalError,
+    InvalidRecurrenceScopeError,
+    RecurrenceConflictError,
+    SchedulingDomainError,
+    TelemedicineUnavailableError,
+)
 
 __all__ = [
     "AgendaDomainError",
     "CompletedAppointmentDeletionError",
+    "CompletedPackageSessionRemovalError",
     "InvalidRecurrenceScopeError",
     "RecurrenceConflictError",
+    "SchedulingDomainError",
+    "TelemedicineUnavailableError",
 ]

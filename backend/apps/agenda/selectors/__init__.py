@@ -1,4 +1,15 @@
-from .appointments import appointment_queryset
-from .availability import available_slots
+"""Compatibilidade para selectors movidos para ``apps.scheduling``."""
 
-__all__ = ["appointment_queryset", "available_slots"]
+from apps.scheduling.selectors import (
+    AppointmentConflictResult,
+    appointment_queryset,
+    available_slots,
+    get_appointment_conflicts,
+)
+
+__all__ = [
+    "AppointmentConflictResult",
+    "appointment_queryset",
+    "available_slots",
+    "get_appointment_conflicts",
+]

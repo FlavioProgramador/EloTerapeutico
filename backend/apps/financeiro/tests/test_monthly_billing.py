@@ -5,9 +5,9 @@ import pytest
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from apps.agenda.models import Appointment
 from apps.financeiro.models import FinancialTransaction
 from apps.patients.models import Patient
+from apps.scheduling.models import Appointment
 from apps.users.models import User
 
 

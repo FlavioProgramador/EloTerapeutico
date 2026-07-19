@@ -8,7 +8,6 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
-from apps.agenda.models import Appointment
 from apps.records.extended_models import EvolutionClinicalData, EvolutionVersion
 from apps.records.models import Evolution
 from apps.records.models.templates import ClinicalEvolutionTemplate
@@ -19,6 +18,7 @@ from apps.records.services.evolution_security import (
     validate_session_date,
 )
 from apps.records.treatment_models import ClinicalDocument
+from apps.scheduling.models import Appointment
 
 CLINICAL_TEXT_FIELDS = (
     "emotional_state",

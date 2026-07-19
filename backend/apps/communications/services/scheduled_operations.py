@@ -6,7 +6,6 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from apps.agenda.models import PatientPackage
 from apps.communications.models import PublicCommunicationActionToken
 from apps.communications.selectors import active_automations_for_event
 from apps.communications.services.automations import emit_domain_event
@@ -14,6 +13,7 @@ from apps.communications.services.public_actions import issue_document_access_li
 from apps.documents.models import GeneratedDocument
 from apps.financeiro.models import FinancialTransaction
 from apps.forms.models import FormSubmission
+from apps.scheduling.models import PatientPackage
 
 
 def schedule_operational_automations(

@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.agenda.models import Appointment
+from apps.scheduling.models import Appointment
 
 from ...models import FinancialTransaction
 

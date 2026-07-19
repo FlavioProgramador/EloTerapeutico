@@ -17,7 +17,7 @@ Rotas de compatibilidade de billing também existem em `/api/billing/`. Novas in
 | `/api/v1/auth/` | Autenticação, credenciais e perfil |
 | `/api/v1/patients/` | Pacientes e responsáveis |
 | `/api/v1/records/` | Prontuário e exportações clínicas |
-| `/api/v1/agenda/` | Consultas, recorrências, salas e pacotes |
+| `/api/v1/scheduling/` | Consultas, recorrências, salas e pacotes |
 | `/api/v1/financeiro/` | Financeiro operacional do terapeuta |
 | `/api/v1/documents/` | Templates e documentos gerados |
 | `/api/v1/reports/` | Indicadores e exportações |
@@ -194,3 +194,5 @@ Mudanças na documentação não devem alterar:
 - filtros;
 - permissions;
 - comportamento de idempotência.
+
+> Compatibilidade: `/api/v1/agenda/` continua disponível temporariamente e aponta para a mesma API de scheduling.

@@ -82,7 +82,7 @@ Exemplos atuais:
 - `apps.documents.selectors.generated_documents`
 - `apps.reports.selectors.appointments`
 - `apps.reports.selectors.financial_transactions`
-- `apps.agenda.selectors.appointments`
+- `apps.scheduling.selectors.appointments`
 - `apps.patients.selectors.patients`
 - `apps.financeiro.selectors.transactions`
 
@@ -97,9 +97,9 @@ Exemplos atuais:
 - `apps.documents.services.document_templates`
 - `apps.documents.services.generated_documents`
 - `apps.documents.services.pdf_generation`
-- `apps.agenda.services.appointments`
-- `apps.agenda.services.packages`
-- `apps.agenda.services.recurrences`
+- `apps.scheduling.services.appointments`
+- `apps.scheduling.services.packages`
+- `apps.scheduling.services.recurrences`
 - `apps.reports.services.financial_reports`
 - `apps.financeiro.services.payments`
 

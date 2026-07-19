@@ -7,8 +7,8 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.agenda.models import Appointment, TelemedicineRoom
 from apps.patients.models import Patient
+from apps.scheduling.models import Appointment, TelemedicineRoom
 from apps.users.models import User
 
 

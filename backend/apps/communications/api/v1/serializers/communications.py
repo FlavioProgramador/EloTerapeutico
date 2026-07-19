@@ -6,7 +6,6 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers
 
-from apps.agenda.models import Appointment
 from apps.communications.models import (
     Communication,
     CommunicationAttempt,
@@ -16,6 +15,7 @@ from apps.communications.models import (
 from apps.communications.services import create_communication
 from apps.communications.validators import plain_text_to_safe_html
 from apps.patients.models import Patient
+from apps.scheduling.models import Appointment
 
 
 class CommunicationRecipientSerializer(serializers.ModelSerializer):

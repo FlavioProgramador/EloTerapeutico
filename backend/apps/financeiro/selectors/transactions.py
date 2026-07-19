@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from django.db.models import Sum
 
-from apps.agenda.models import Appointment
+from apps.scheduling.models import Appointment
 
 from ..models import FinancialTransaction
 

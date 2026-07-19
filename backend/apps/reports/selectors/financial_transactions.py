@@ -4,8 +4,8 @@ from datetime import date
 
 from django.db.models import Q, QuerySet
 
-from apps.agenda.models import PatientPackage
 from apps.financeiro.models import FinancialTransaction, MonthlySubscription
+from apps.scheduling.models import PatientPackage
 
 
 def transactions_for_period(*, owner, start: date, end: date) -> QuerySet[FinancialTransaction]:

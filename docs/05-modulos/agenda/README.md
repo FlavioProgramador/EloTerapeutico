@@ -37,7 +37,7 @@ Modalidades: presencial, online e híbrida. Tipos incluem avaliação, psicotera
 
 ## API
 
-Prefixo `/api/v1/agenda/`:
+Prefixo canônico `/api/v1/scheduling/` (com `/api/v1/agenda/` como alias temporário):
 
 - `appointments/`;
 - `appointment-recurrences/`;

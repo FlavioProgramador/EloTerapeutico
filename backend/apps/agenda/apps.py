@@ -1,19 +1,10 @@
-"""
-apps/agenda/apps.py
-Configuração do app de agenda de consultas.
-"""
+"""Configuração legada que aponta para o app canônico ``scheduling``."""
 
-from django.apps import AppConfig
+from apps.scheduling import apps as scheduling_apps
 
 
-class AgendaConfig(AppConfig):
-    """Configuração do app de Agenda."""
+class AgendaConfig(scheduling_apps.SchedulingConfig):
+    """Alias de compatibilidade para instalações que ainda usam ``apps.agenda``."""
 
-    default_auto_field = "django.db.models.BigAutoField"
-    name = "apps.agenda"
-    verbose_name = "Agenda"
 
-    def ready(self):
-        """Importa os signals ao inicializar o app."""
-        # Importação lazy para registrar os signals
-        import apps.agenda.signals  # noqa: F401
+__all__ = ["AgendaConfig"]

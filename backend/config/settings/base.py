@@ -231,7 +231,7 @@ LOCAL_APPS = [
     "apps.users",
     "apps.patients",
     "apps.records",
-    "apps.agenda",
+    "apps.scheduling.apps.SchedulingConfig",
     "apps.financeiro",
     "apps.documents",
     "apps.reports",
