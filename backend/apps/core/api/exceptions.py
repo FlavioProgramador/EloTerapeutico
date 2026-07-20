@@ -56,7 +56,7 @@ def custom_exception_handler(exc, context):
                 "error": {
                     "code": "VALIDATION_ERROR",
                     "message": _validation_error_message(exc),
-                    "details": None,
+                    "details": _validation_error_details(exc),
                 }
             },
             status=status.HTTP_400_BAD_REQUEST,
@@ -143,6 +143,18 @@ def _validation_error_message(exc: ValidationError) -> str:
     if messages:
         return str(messages[0])
     return "Os dados enviados são inválidos."
+
+
+def _validation_error_details(exc: ValidationError) -> dict | None:
+    """Normaliza erros Django sem expor representação interna da exceção."""
+
+    message_dict = getattr(exc, "message_dict", None)
+    if message_dict:
+        return {
+            str(field): [str(message) for message in messages]
+            for field, messages in message_dict.items()
+        }
+    return None
 
 
 def _view_name(context) -> str:
