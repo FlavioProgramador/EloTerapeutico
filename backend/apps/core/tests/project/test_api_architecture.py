@@ -76,12 +76,12 @@ BACKEND_ROOT = Path(__file__).resolve().parents[4]
         "apps.forms.services.submissions",
         "apps.forms.serializers",
         "apps.forms.views",
-        "apps.financeiro.api.transaction_viewset",
-        "apps.financeiro.api.urls",
-        "apps.financeiro.models",
-        "apps.financeiro.selectors.transactions",
-        "apps.financeiro.services.exports",
-        "apps.financeiro.services.payments",
+        "apps.finances.api.v1.views",
+        "apps.finances.api.v1.urls",
+        "apps.finances.models",
+        "apps.finances.selectors",
+        "apps.finances.services.exports",
+        "apps.finances.services.payments",
         "apps.reports.selectors.appointments",
         "apps.reports.selectors.financial_transactions",
         "apps.reports.services.appointment_reports",
@@ -102,7 +102,7 @@ def test_backend_modules_import_without_cycles(module_name):
         "apps.scheduling.urls",
         "apps.documents.urls",
         "apps.forms.urls",
-        "apps.financeiro.urls",
+        "apps.finances.api.v1.urls",
         "apps.reports.urls",
         "apps.billing.api.v1.urls",
         "apps.billing.api.legacy.urls",
@@ -149,6 +149,13 @@ def test_public_url_modules_keep_their_contract(public_module):
         "apps/forms/views/__init__.py",
         "apps/reports/selectors/__init__.py",
         "apps/reports/services/__init__.py",
+        "apps/finances/models/__init__.py",
+        "apps/finances/selectors/__init__.py",
+        "apps/finances/services/__init__.py",
+        "apps/finances/admin/__init__.py",
+        "apps/finances/api/v1/serializers/__init__.py",
+        "apps/finances/api/v1/views/__init__.py",
+        "apps/finances/api/v1/permissions/__init__.py",
         "apps/reports/views/__init__.py",
         "apps/users/api/serializers.py",
         "apps/users/api/views.py",
@@ -190,8 +197,8 @@ def test_public_exports_are_explicit(relative_path):
         "apps/forms/model_parts",
         "apps/forms/api/serializers/forms_serializers.py",
         "apps/forms/api/views/forms_views.py",
-        "apps/financeiro/models.py",
-        "apps/financeiro/model_parts",
+        "apps/finances/models.py",
+        "apps/finances/model_parts",
         "apps/patients/models.py",
         "apps/patients/model_parts",
         "apps/reports/services/core_services.py",
@@ -201,9 +208,9 @@ def test_public_exports_are_explicit(relative_path):
         "apps/patients/export_actions.py",
         "apps/patients/form_actions.py",
         "apps/patients/invite_actions.py",
-        "apps/financeiro/views.py",
-        "apps/financeiro/serializers.py",
-        "apps/financeiro/filters.py",
+        "apps/finances/views.py",
+        "apps/finances/serializers.py",
+        "apps/finances/filters.py",
         "apps/records/evolution_flow_views.py",
         "apps/records/evolution_flow_views_v2.py",
         "apps/records/evolution_flow_serializers_v2.py",
@@ -258,3 +265,15 @@ def test_billing_webhook_facade_preserves_patch_points():
     module = import_module("apps.billing.webhooks.asaas")
     assert callable(module.activate_subscription_from_payment)
     assert callable(module.mark_subscription_past_due)
+
+
+def test_legacy_financeiro_package_is_removed():
+    assert not (BACKEND_ROOT / "apps/financeiro").exists()
+    with pytest.raises(ModuleNotFoundError):
+        import_module("apps.financeiro")
+
+
+def test_finances_root_contains_only_entrypoint_files():
+    app_root = BACKEND_ROOT / "apps/finances"
+    root_files = {path.name for path in app_root.iterdir() if path.is_file()}
+    assert root_files == {"README.md", "__init__.py", "apps.py"}
