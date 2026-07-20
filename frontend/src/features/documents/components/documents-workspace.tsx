@@ -164,6 +164,9 @@ function EmptyState({
   );
 }
 
+const focusRingClass =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2";
+
 export function DocumentsWorkspace() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -377,7 +380,7 @@ export function DocumentsWorkspace() {
               type="button"
               onClick={() => navigate(item.value)}
               aria-current={active ? "page" : undefined}
-              className={`relative flex shrink-0 items-center gap-2 px-4 py-3 text-xs font-semibold transition ${
+              className={`relative flex shrink-0 items-center gap-2 px-4 py-3 text-xs font-semibold transition ${focusRingClass} ${
                 active
                   ? "text-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -400,13 +403,13 @@ export function DocumentsWorkspace() {
             value={search}
             onChange={(event) => updateSearch(event.target.value)}
             placeholder="Buscar por nome, paciente ou número..."
-            className={`${fieldClass} w-full pl-9`}
+            className={`${fieldClass} w-full pl-9 ${focusRingClass}`}
             aria-label="Buscar documentos"
           />
         </div>
         <div className="flex flex-wrap gap-2">
           <select
-            className={fieldClass}
+            className={`${fieldClass} ${focusRingClass}`}
             value={typeFilter}
             onChange={(event) => {
               setTypeFilter(event.target.value);
@@ -422,7 +425,7 @@ export function DocumentsWorkspace() {
             <option value="consent">Consentimento</option>
           </select>
           <select
-            className={fieldClass}
+            className={`${fieldClass} ${focusRingClass}`}
             value={statusFilter}
             onChange={(event) => {
               setStatusFilter(event.target.value);
@@ -441,7 +444,7 @@ export function DocumentsWorkspace() {
           </select>
           {(tab === "templates" || tab === "evolution" || libraryOpen) && (
             <input
-              className={`${fieldClass} w-40`}
+              className={`${fieldClass} w-40 ${focusRingClass}`}
               value={specialtyFilter}
               onChange={(event) => {
                 setSpecialtyFilter(event.target.value);
@@ -461,7 +464,7 @@ export function DocumentsWorkspace() {
               <button
                 type="button"
                 onClick={() => navigate("templates")}
-                className="mb-2 inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                className={`mb-2 inline-flex items-center gap-1 rounded-md p-1 text-xs font-semibold text-muted-foreground hover:text-foreground ${focusRingClass}`}
               >
                 <ChevronLeft className="h-4 w-4" /> Voltar aos templates
               </button>
@@ -641,7 +644,7 @@ export function DocumentsWorkspace() {
                             <button
                               type="button"
                               onClick={() => showTemplatePreview(template)}
-                              className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                              className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground ${focusRingClass}`}
                               aria-label={`Visualizar ${template.name}`}
                             >
                               <Eye className="h-4 w-4" />
@@ -649,7 +652,7 @@ export function DocumentsWorkspace() {
                             <button
                               type="button"
                               onClick={() => openTemplateEditor(template)}
-                              className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                              className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground ${focusRingClass}`}
                               aria-label={`Editar ${template.name}`}
                             >
                               <Edit3 className="h-4 w-4" />
@@ -662,7 +665,7 @@ export function DocumentsWorkspace() {
                                   action: "duplicate",
                                 })
                               }
-                              className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                              className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground ${focusRingClass}`}
                               aria-label={`Duplicar ${template.name}`}
                             >
                               <Copy className="h-4 w-4" />
@@ -678,7 +681,7 @@ export function DocumentsWorkspace() {
                                       : "activate",
                                 })
                               }
-                              className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                              className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground ${focusRingClass}`}
                               aria-label={
                                 template.status === "active"
                                   ? "Inativar template"
@@ -705,7 +708,7 @@ export function DocumentsWorkspace() {
                                   });
                                 }
                               }}
-                              className="rounded-md p-2 text-muted-foreground hover:bg-danger/10 hover:text-danger"
+                              className={`rounded-md p-2 text-muted-foreground hover:bg-danger/10 hover:text-danger ${focusRingClass}`}
                               aria-label={`Arquivar ${template.name}`}
                             >
                               <Archive className="h-4 w-4" />
@@ -813,7 +816,7 @@ export function DocumentsWorkspace() {
                             <button
                               type="button"
                               onClick={() => showDocumentDetail(document)}
-                              className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                              className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground ${focusRingClass}`}
                               aria-label={`Visualizar ${document.title}`}
                             >
                               <Eye className="h-4 w-4" />
@@ -828,7 +831,7 @@ export function DocumentsWorkspace() {
                                     action: "generate",
                                   })
                                 }
-                                className="rounded-md p-2 text-primary hover:bg-primary/10"
+                                className={`rounded-md p-2 text-primary hover:bg-primary/10 ${focusRingClass}`}
                                 aria-label={`Gerar PDF de ${document.title}`}
                               >
                                 <RefreshCw className="h-4 w-4" />
@@ -847,7 +850,7 @@ export function DocumentsWorkspace() {
                                     toast.error(extractApiError(error));
                                   }
                                 }}
-                                className="rounded-md p-2 text-emerald-300 hover:bg-emerald-500/10"
+                                className={`rounded-md p-2 text-emerald-300 hover:bg-emerald-500/10 ${focusRingClass}`}
                                 aria-label={`Baixar ${document.title}`}
                               >
                                 <Download className="h-4 w-4" />
@@ -868,7 +871,7 @@ export function DocumentsWorkspace() {
                                     });
                                   }
                                 }}
-                                className="rounded-md p-2 text-muted-foreground hover:bg-danger/10 hover:text-danger"
+                                className={`rounded-md p-2 text-muted-foreground hover:bg-danger/10 hover:text-danger ${focusRingClass}`}
                                 aria-label={`Arquivar ${document.title}`}
                               >
                                 <Archive className="h-4 w-4" />
@@ -989,7 +992,7 @@ export function DocumentsWorkspace() {
                                   setEvolutionModalOpen(true);
                                 }}
                                 disabled={template.is_system}
-                                className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-40"
+                                className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-40 ${focusRingClass}`}
                                 aria-label={`Editar ${template.name}`}
                               >
                                 <Edit3 className="h-4 w-4" />
@@ -1002,7 +1005,7 @@ export function DocumentsWorkspace() {
                                     action: "duplicate",
                                   })
                                 }
-                                className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                                className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground ${focusRingClass}`}
                                 aria-label={`Duplicar ${template.name}`}
                               >
                                 <Copy className="h-4 w-4" />
@@ -1018,7 +1021,7 @@ export function DocumentsWorkspace() {
                                         : "activate",
                                     })
                                   }
-                                  className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                                  className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground ${focusRingClass}`}
                                   aria-label={
                                     template.is_active ? "Inativar" : "Ativar"
                                   }
@@ -1045,7 +1048,7 @@ export function DocumentsWorkspace() {
                                       });
                                     }
                                   }}
-                                  className="rounded-md p-2 text-muted-foreground hover:bg-danger/10 hover:text-danger"
+                                  className={`rounded-md p-2 text-muted-foreground hover:bg-danger/10 hover:text-danger ${focusRingClass}`}
                                   aria-label={`Arquivar ${template.name}`}
                                 >
                                   <Archive className="h-4 w-4" />
@@ -1194,7 +1197,7 @@ function Pagination({
         type="button"
         disabled={page <= 1}
         onClick={() => onChange(page - 1)}
-        className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-card disabled:opacity-40"
+        className={`grid h-9 w-9 place-items-center rounded-lg border border-border bg-card disabled:opacity-40 ${focusRingClass}`}
         aria-label="Página anterior"
       >
         <ChevronLeft className="h-4 w-4" />
@@ -1206,7 +1209,7 @@ function Pagination({
         type="button"
         disabled={page >= totalPages}
         onClick={() => onChange(page + 1)}
-        className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-card disabled:opacity-40"
+        className={`grid h-9 w-9 place-items-center rounded-lg border border-border bg-card disabled:opacity-40 ${focusRingClass}`}
         aria-label="Próxima página"
       >
         <ChevronRight className="h-4 w-4" />
