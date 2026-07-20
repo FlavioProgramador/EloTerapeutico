@@ -1,27 +1,28 @@
 # Scheduling
 
-O app `scheduling` concentra o domínio de agenda e agendamentos do Elo Terapêutico.
-Ele substitui o antigo pacote Python `apps.agenda`, mantendo os contratos históricos
-do Django e da API.
+O app `scheduling` é o pacote Python oficial do domínio de calendário e agendamentos do Elo Terapêutico. Ele concentra consultas, recorrências, bloqueios, disponibilidade, salas, pacotes, telemedicina, lembretes e integrações relacionadas.
 
-## Nome do pacote e app label
+## Pacote Python e app label
 
-O contrato desta migração é:
+O contrato atual é:
 
 ```text
 Pacote Python: apps.scheduling
 App label Django: agenda
+Nome visual: Agenda
 ```
 
-O `SchedulingConfig` declara:
+O `SchedulingConfig` deve permanecer assim:
 
 ```python
-name = "apps.scheduling"
-label = "agenda"
+class SchedulingConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.scheduling"
+    label = "agenda"
+    verbose_name = "Agenda"
 ```
 
-A diferença é intencional. O pacote interno passa a seguir a nomenclatura inglesa
-do projeto, enquanto o label histórico permanece para preservar:
+O pacote legado `apps.agenda` foi removido. O label `agenda` continua intencionalmente porque preserva:
 
 - tabelas `agenda_*`;
 - migrations aplicadas;
@@ -31,8 +32,7 @@ do projeto, enquanto o label histórico permanece para preservar:
 - URLs do Django Admin em `/admin/agenda/`;
 - identificadores persistidos por integrações.
 
-Não altere o label para `scheduling` sem um projeto específico de migração de banco,
-permissões e dados históricos.
+Não altere o label para `scheduling` sem um projeto específico de migração de banco, permissões, ContentTypes e dados históricos.
 
 ## Entidades
 
@@ -53,8 +53,7 @@ O domínio gerencia:
 scheduling/
 ├── admin/             # Django Admin separado por entidade
 ├── api/
-│   ├── legacy/        # alias HTTP temporário
-│   └── v1/            # contratos HTTP canônicos
+│   └── v1/            # contratos HTTP oficiais
 ├── exceptions/        # erros controlados do domínio
 ├── integrations/      # fronteiras com outros módulos
 ├── migrations/        # histórico do app label agenda
@@ -86,22 +85,15 @@ View → Scheduling Service → Scheduling Integration → Outro domínio
 
 ## API
 
-A rota canônica é:
+A única rota oficial é:
 
 ```text
 /api/v1/scheduling/
 ```
 
-Durante a transição, a rota abaixo permanece como alias:
+A rota `/api/v1/agenda/` foi removida e deve retornar `404`.
 
-```text
-/api/v1/agenda/
-```
-
-Os dois prefixos apontam para os mesmos ViewSets. O alias antigo não deve receber
-implementação própria.
-
-Recursos preservados:
+Recursos disponíveis:
 
 - `appointments/`;
 - `appointment-recurrences/`;
@@ -115,24 +107,18 @@ Recursos preservados:
 
 ## Consultas e conflitos
 
-Consultas reutilizáveis ficam em `selectors/`. A detecção de conflitos está
-centralizada em `selectors/conflicts.py` e considera:
+Consultas reutilizáveis ficam em `selectors/`. A detecção de conflitos está centralizada em `selectors/conflicts.py` e considera:
 
 - profissional;
 - paciente e participantes;
 - sala física;
 - bloqueios de horário.
 
-`Appointment.conflict_details()` continua disponível por compatibilidade, mas apenas
-delega ao selector canônico.
+`Appointment.conflict_details()` continua disponível apenas como delegação ao selector canônico.
 
 ## Services e concorrência
 
-Services controlam criação, atualização, mudança de status, recorrências, pacotes,
-telemedicina e lembretes.
-
-Operações concorrentes usam `transaction.atomic` e, quando necessário,
-`select_for_update`, especialmente em:
+Services controlam criação, atualização, mudança de status, recorrências, pacotes, telemedicina e lembretes. Operações concorrentes usam `transaction.atomic` e, quando necessário, `select_for_update`, especialmente em:
 
 - criação e atualização de consultas;
 - consumo e liberação de pacote;
@@ -143,20 +129,15 @@ Operações concorrentes usam `transaction.atomic` e, quando necessário,
 
 ## Pacotes
 
-O saldo nunca deve ficar negativo. Pacote, paciente, profissional e consulta devem
-pertencer ao mesmo escopo. Cancelamentos e remoções de sessão são casos de uso
-transacionais e não devem ser implementados em views.
+O saldo nunca deve ficar negativo. Pacote, paciente, profissional e consulta devem pertencer ao mesmo escopo. Cancelamentos e remoções de sessão são casos de uso transacionais e não devem ser implementados em views.
 
 ## Telemedicina
 
-Tokens de paciente e profissional são distintos, imprevisíveis e revogáveis. Eles não
-devem aparecer em logs nem ser exibidos no Django Admin. Views públicas validam papel,
-expiração e revogação antes de retornar dados da sessão.
+Tokens de paciente e profissional são distintos, imprevisíveis e revogáveis. Eles não devem aparecer em logs nem ser exibidos no Django Admin. Views públicas validam papel, expiração e revogação antes de retornar dados da sessão.
 
 ## Financeiro
 
-A fronteira com o app `financeiro` fica em `integrations/finance.py`. Scheduling informa
-o evento de negócio; regras financeiras permanecem no domínio financeiro.
+A fronteira com o app `financeiro` fica em `integrations/finance.py`. Scheduling informa o evento de negócio; regras financeiras permanecem no domínio financeiro.
 
 A integração preserva:
 
@@ -167,22 +148,9 @@ A integração preserva:
 
 ## Comunicações
 
-Imports Python devem usar `apps.scheduling`. Identificadores históricos persistidos,
-como `agenda.Appointment`, continuam válidos enquanto não houver data migration
-específica.
+Imports Python devem usar `apps.scheduling`. Identificadores históricos persistidos, como `agenda.Appointment`, permanecem válidos porque utilizam o app label, não o nome do pacote Python.
 
-## Compatibilidade
-
-`apps.agenda` é uma camada temporária de compatibilidade. Ela não possui migrations,
-models ou regras próprias. Código novo não deve importar esse pacote.
-
-Antes de remover a compatibilidade, confirme que:
-
-- nenhum consumidor usa `apps.agenda`;
-- o frontend usa `/api/v1/scheduling/`;
-- integrações externas deixaram de usar `/api/v1/agenda/`;
-- patch points históricos foram migrados;
-- documentação e OpenAPI não anunciam o caminho antigo como canônico.
+O módulo técnico de signals usa `apps.communications.signals.scheduling`. O nome visual “Agenda” pode continuar na interface.
 
 ## Validação
 
@@ -197,18 +165,17 @@ ruff check .
 python manage.py spectacular --file schema.yml --validate
 ```
 
-## Checklist antes de adicionar código ao scheduling
+## Checklist antes de adicionar código
 
+- O import usa `apps.scheduling`?
+- A rota usa `/api/v1/scheduling/`?
 - A operação é leitura ou alteração de estado?
 - Uma leitura reutilizável está em selector?
 - Uma alteração coordenada está em service?
 - Todas as relações recebidas estão escopadas pelo ator?
-- Existe risco de conflito de horário?
-- Existe risco de concorrência?
+- Existe risco de conflito de horário ou concorrência?
 - Um pacote precisa ser bloqueado com `select_for_update`?
 - A operação afeta financeiro ou comunicações?
 - A view está acessando ORM ou alterando model diretamente?
-- O serializer usa algum queryset global sem escopo?
 - O app label `agenda` e as tabelas históricas foram preservados?
-- A rota antiga realmente precisa continuar disponível?
 - Existem testes entre dois profissionais diferentes?

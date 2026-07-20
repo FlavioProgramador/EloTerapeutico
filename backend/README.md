@@ -27,7 +27,7 @@ backend/
 │   ├── users/
 │   ├── patients/
 │   ├── records/
-│   ├── agenda/
+│   ├── scheduling/
 │   ├── financeiro/
 │   ├── documents/
 │   ├── reports/
@@ -44,6 +44,8 @@ backend/
 ├── requirements.txt
 └── .env.example
 ```
+
+O domínio de calendário usa exclusivamente o pacote Python `apps.scheduling`. O app label histórico do Django permanece como `agenda` para preservar tabelas, migrations, permissões, ContentTypes e relações persistidas.
 
 As regras transacionais ficam em `services/`; consultas reutilizáveis e sensíveis ao proprietário ficam em `selectors/`, managers ou querysets; a adaptação HTTP fica em views, serializers, filters e permissions.
 
@@ -119,6 +121,8 @@ Grupos principais da API:
 - `/api/v1/communications/`;
 - `/api/v1/public/communications/`.
 
+A antiga rota `/api/v1/agenda/` não é registrada. Consumidores devem usar `/api/v1/scheduling/`.
+
 ## Workers sem Docker
 
 Em terminais separados:
@@ -159,5 +163,3 @@ O último comando depende do comando de management fornecido pelo drf-spectacula
 ## Documentação detalhada
 
 Consulte [`../docs/backend/README.md`](../docs/backend/README.md) para arquitetura, apps, API, autenticação, permissões, isolamento de dados, prontuário, billing, integrações, tarefas assíncronas, variáveis de ambiente, testes e troubleshooting.
-
-> Compatibilidade: `/api/v1/agenda/` continua disponível temporariamente e aponta para a mesma API de scheduling.
