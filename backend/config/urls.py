@@ -14,7 +14,7 @@ api_v1_patterns = [
     path("patients/", include("apps.patients.urls")),
     path("records/", include("apps.records.urls")),
     path("scheduling/", include("apps.scheduling.api.v1.urls")),
-    path("financeiro/", include("apps.financeiro.urls")),
+    path("finances/", include("apps.finances.api.v1.urls")),
     path("documents/", include("apps.documents.api.v1.urls")),
     path("reports/", include("apps.reports.urls")),
     path("forms/", include("apps.forms.urls")),
