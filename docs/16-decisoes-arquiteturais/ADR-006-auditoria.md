@@ -10,7 +10,7 @@ Aceita.
 Ações sobre dados sensíveis precisam de rastreabilidade sem duplicar prontuário em logs.
 
 ## Decisão
-Usar `AuditLog` com ação, usuário, horário, IP, user agent e referência genérica. Impedir update/delete no model e registrar representação técnica mínima.
+Usar `AuditLog` com ação, usuário, horário, IP, user agent e referência genérica. Impedir mutações no model e no QuerySet, centralizar a escrita em services e registrar representação técnica mínima.
 
 ## Alternativas consideradas
 Motivação inferida. Alternativas: event log externo, SIEM, CDC ou auditoria somente de infraestrutura.
@@ -22,7 +22,7 @@ Motivação inferida. Alternativas: event log externo, SIEM, CDC ou auditoria so
 - IP de proxy controlado.
 
 ## Consequências negativas
-- falha é fail-open;
+- política padrão é fail-open, com fail-closed explícito quando necessário;
 - cobertura depende da instrumentação;
 - administrador do banco pode alterar;
 - banco cresce sem retenção.
@@ -31,6 +31,6 @@ Motivação inferida. Alternativas: event log externo, SIEM, CDC ou auditoria so
 Ação sensível sem log, log indisponível ou confiança incorreta em proxy. Produção pode exigir trilha externa append-only.
 
 ## Referências no código
-`apps/audit/models.py`, `core/audit.py`.
+`apps/audit/models/audit_logs.py`, `apps/audit/services/events.py`, `apps/audit/integrations/drf.py`.
 
 [Voltar](README.md)
