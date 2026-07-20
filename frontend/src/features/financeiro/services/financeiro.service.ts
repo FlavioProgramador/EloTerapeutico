@@ -13,6 +13,8 @@ import type {
   TransactionType,
 } from "@/types";
 
+const FINANCES_API_PREFIX = "finances";
+
 export interface TransactionFilters {
   transaction_type?: "income" | "expense";
   payment_status?: string;
@@ -157,7 +159,7 @@ export const financeiroService = {
 
     const response = await api.get<
       FinancialTransactionApi[] | PaginatedResponse<FinancialTransactionApi>
-    >(`financeiro/?${params.toString()}`);
+    >(`${FINANCES_API_PREFIX}/?${params.toString()}`);
     const results = Array.isArray(response.data)
       ? response.data
       : response.data.results || [];
@@ -169,7 +171,7 @@ export const financeiroService = {
    */
   getById: async (id: number): Promise<FinancialTransaction> => {
     const response = await api.get<FinancialTransactionApi>(
-      `financeiro/${id}/`,
+      `${FINANCES_API_PREFIX}/${id}/`,
     );
     return toAppTransaction(response.data);
   },
@@ -181,9 +183,12 @@ export const financeiroService = {
     year: number,
     month: number,
   ): Promise<FinancialSummary> => {
-    const response = await api.get<FinancialSummary>("financeiro/summary/", {
-      params: { year, month },
-    });
+    const response = await api.get<FinancialSummary>(
+      `${FINANCES_API_PREFIX}/summary/`,
+      {
+        params: { year, month },
+      },
+    );
     return response.data;
   },
 
@@ -194,7 +199,7 @@ export const financeiroService = {
     data: CreateTransactionPayload,
   ): Promise<FinancialTransaction> => {
     const response = await api.post<FinancialTransactionApi>(
-      "financeiro/",
+      `${FINANCES_API_PREFIX}/`,
       toApiPayload(data),
     );
     return toAppTransaction(response.data);
@@ -208,7 +213,7 @@ export const financeiroService = {
     data: Partial<CreateTransactionPayload>,
   ): Promise<FinancialTransaction> => {
     const response = await api.patch<FinancialTransactionApi>(
-      `financeiro/${id}/`,
+      `${FINANCES_API_PREFIX}/${id}/`,
       toApiPatchPayload(data),
     );
     return toAppTransaction(response.data);
@@ -223,7 +228,7 @@ export const financeiroService = {
     paidAt?: string,
   ): Promise<FinancialTransaction> => {
     const response = await api.patch<FinancialTransactionApi>(
-      `financeiro/${id}/pay/`,
+      `${FINANCES_API_PREFIX}/${id}/pay/`,
       {
         payment_method: paymentMethod,
         paid_at: paidAt ?? new Date().toISOString(),
@@ -236,7 +241,7 @@ export const financeiroService = {
    * Deleta uma transação.
    */
   delete: async (id: number): Promise<void> => {
-    await api.delete(`financeiro/${id}/`);
+    await api.delete(`${FINANCES_API_PREFIX}/${id}/`);
   },
 
   /**
@@ -244,7 +249,7 @@ export const financeiroService = {
    */
   cancel: async (id: number): Promise<FinancialTransaction> => {
     const response = await api.post<FinancialTransactionApi>(
-      `financeiro/${id}/cancel/`,
+      `${FINANCES_API_PREFIX}/${id}/cancel/`,
     );
     return toAppTransaction(response.data);
   },
@@ -254,7 +259,7 @@ export const financeiroService = {
    */
   refund: async (id: number): Promise<FinancialTransaction> => {
     const response = await api.post<FinancialTransactionApi>(
-      `financeiro/${id}/refund/`,
+      `${FINANCES_API_PREFIX}/${id}/refund/`,
     );
     return toAppTransaction(response.data);
   },
@@ -271,9 +276,10 @@ export const financeiroService = {
     if (filters?.category) params.set("category", filters.category);
     if (filters?.patient) params.set("patient", filters.patient);
 
-    const response = await api.get(`financeiro/export/?${params.toString()}`, {
-      responseType: "blob",
-    });
+    const response = await api.get(
+      `${FINANCES_API_PREFIX}/export/?${params.toString()}`,
+      { responseType: "blob" },
+    );
     return response.data as unknown as Blob;
   },
 
@@ -299,7 +305,7 @@ export const financeiroService = {
         end_time: string;
         session_value: string;
       }>
-    >("financeiro/unbilled-appointments/");
+    >(`${FINANCES_API_PREFIX}/unbilled-appointments/`);
     return response.data;
   },
 };

@@ -8,7 +8,7 @@ from typing import Any
 from django.db.models import DecimalField, ExpressionWrapper, F, Sum
 from django.utils import timezone
 
-from apps.financeiro.models import FinancialTransaction
+from apps.finances.models import FinancialTransaction
 from apps.patients.models import Patient
 from apps.reports.selectors import (
     active_packages_for_owner,

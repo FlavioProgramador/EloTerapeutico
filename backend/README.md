@@ -28,7 +28,7 @@ backend/
 │   ├── patients/
 │   ├── records/
 │   ├── scheduling/
-│   ├── financeiro/
+│   ├── finances/
 │   ├── documents/
 │   ├── reports/
 │   ├── forms/
@@ -47,56 +47,9 @@ backend/
 
 O domínio de calendário usa exclusivamente o pacote Python `apps.scheduling`. O app label histórico do Django permanece como `agenda` para preservar tabelas, migrations, permissões, ContentTypes e relações persistidas.
 
-As regras transacionais ficam em `services/`; consultas reutilizáveis e sensíveis ao proprietário ficam em `selectors/`, managers ou querysets; a adaptação HTTP fica em views, serializers, filters e permissions.
+O domínio financeiro usa exclusivamente `apps.finances`; o app label histórico permanece `financeiro`.
 
-## Configuração sem Docker
-
-```bash
-cd backend
-python -m venv .venv
-```
-
-Linux/macOS:
-
-```bash
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-cp .env.example .env
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py runserver 0.0.0.0:8000
-```
-
-Windows PowerShell:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-Copy-Item .env.example .env
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py runserver 0.0.0.0:8000
-```
-
-## Execução com Docker
-
-Na raiz do repositório:
-
-```bash
-cp .env.example .env
-# configure POSTGRES_PASSWORD, SECRET_KEY, JWT_SECRET e FIELD_ENCRYPTION_KEY
-docker compose up --build
-```
-
-Serviços principais:
-
-- `backend`: API na porta `8000`;
-- `db`: PostgreSQL 15 exposto apenas em `127.0.0.1:5432`;
-- `worker`: processa exportações clínicas persistidas;
-- `communications-worker`: processa a fila persistente de comunicações;
-- `communications-scheduler`: agenda automações, retentativas e limpeza de tokens.
+As regras transacionais ficam em `services/`; consultas reutilizáveis e sensíveis ao proprietário ficam em `selectors`, managers ou querysets; a adaptação HTTP fica em views, serializers, filters e permissions.
 
 ## API e documentação interativa
 
@@ -113,28 +66,13 @@ Grupos principais da API:
 - `/api/v1/patients/`;
 - `/api/v1/records/`;
 - `/api/v1/scheduling/`;
-- `/api/v1/financeiro/`;
+- `/api/v1/finances/`;
 - `/api/v1/documents/`;
 - `/api/v1/reports/`;
 - `/api/v1/forms/`;
 - `/api/v1/billing/`;
 - `/api/v1/communications/`;
 - `/api/v1/public/communications/`.
-
-A antiga rota `/api/v1/agenda/` não é registrada. Consumidores devem usar `/api/v1/scheduling/`.
-
-## Workers sem Docker
-
-Em terminais separados:
-
-```bash
-cd backend
-python manage.py run_export_worker
-python manage.py process_communications --sleep 5
-python manage.py schedule_communication_automations
-python manage.py retry_failed_communications
-python manage.py cleanup_expired_communication_tokens
-```
 
 ## Testes e qualidade
 
@@ -148,18 +86,10 @@ mypy .
 python manage.py spectacular --file schema.yml --validate
 ```
 
-O último comando depende do comando de management fornecido pelo drf-spectacular instalado no ambiente.
-
 ## Regras de segurança
 
 - nunca registre conteúdo clínico integral em logs ou auditoria;
 - resolva pacientes, consultas, documentos e cobranças no escopo do usuário autenticado;
 - valide relações recebidas no payload contra o mesmo proprietário;
 - use transações e bloqueio de linha em mudanças de estado concorrentes;
-- valide assinatura ou token de webhooks antes de processar eventos;
-- não reutilize segredos entre Django, JWT, criptografia de campos e webhooks;
 - não versione arquivos `.env`, bancos locais, mídias privadas ou credenciais.
-
-## Documentação detalhada
-
-Consulte [`../docs/backend/README.md`](../docs/backend/README.md) para arquitetura, apps, API, autenticação, permissões, isolamento de dados, prontuário, billing, integrações, tarefas assíncronas, variáveis de ambiente, testes e troubleshooting.

@@ -1,5 +1,7 @@
 import { api } from "@/lib/api";
 
+const FINANCES_API_PREFIX = "finances";
+
 export interface FinancialDashboardSummary {
   start_date: string;
   end_date: string;
@@ -55,7 +57,7 @@ export interface CreateMonthlySubscription {
 export const financeiroDashboardService = {
   summary: async (startDate: string, endDate: string) => {
     const response = await api.get<FinancialDashboardSummary>(
-      "financeiro/summary/",
+      `${FINANCES_API_PREFIX}/summary/`,
       {
         params: { start_date: startDate, end_date: endDate },
       },
@@ -63,10 +65,13 @@ export const financeiroDashboardService = {
     return response.data;
   },
   generateCharges: async (appointmentIds: number[], dueDate: string) => {
-    const response = await api.post("financeiro/generate-monthly-charges/", {
-      appointment_ids: appointmentIds,
-      due_date: dueDate,
-    });
+    const response = await api.post(
+      `${FINANCES_API_PREFIX}/generate-monthly-charges/`,
+      {
+        appointment_ids: appointmentIds,
+        due_date: dueDate,
+      },
+    );
     return response.data as {
       created_count: number;
       created: number[];
@@ -75,7 +80,7 @@ export const financeiroDashboardService = {
   },
   subscriptions: async (status?: string) => {
     const response = await api.get<MonthlySubscription[]>(
-      "financeiro/subscriptions/",
+      `${FINANCES_API_PREFIX}/subscriptions/`,
       {
         params: status && status !== "all" ? { status } : undefined,
       },
@@ -84,7 +89,7 @@ export const financeiroDashboardService = {
   },
   createSubscription: async (payload: CreateMonthlySubscription) => {
     const response = await api.post<MonthlySubscription>(
-      "financeiro/subscriptions/",
+      `${FINANCES_API_PREFIX}/subscriptions/`,
       payload,
     );
     return response.data;
@@ -94,7 +99,7 @@ export const financeiroDashboardService = {
     status: MonthlySubscription["status"],
   ) => {
     const response = await api.post<MonthlySubscription>(
-      `financeiro/subscriptions/${id}/status/`,
+      `${FINANCES_API_PREFIX}/subscriptions/${id}/status/`,
       { status },
     );
     return response.data;

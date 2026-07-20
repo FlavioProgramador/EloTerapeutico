@@ -11,7 +11,8 @@ from apps.communications.selectors import active_automations_for_event
 from apps.communications.services.automations import emit_domain_event
 from apps.communications.services.public_actions import issue_document_access_link, issue_form_access_link
 from apps.documents.models import GeneratedDocument
-from apps.financeiro.models import FinancialTransaction
+from apps.finances.models import FinancialTransaction
+from apps.finances.selectors import transactions_requiring_reminder
 from apps.forms.models import FormSubmission
 from apps.scheduling.models import PatientPackage
 
@@ -27,15 +28,7 @@ def schedule_operational_automations(
     now = timezone.now()
     counters = {"finance": 0, "forms": 0, "documents": 0, "packages": 0}
 
-    transactions = FinancialTransaction.objects.filter(
-        transaction_type=FinancialTransaction.TransactionType.INCOME,
-        payment_status__in=[
-            FinancialTransaction.PaymentStatus.PENDING,
-            FinancialTransaction.PaymentStatus.PARTIAL,
-        ],
-        patient__isnull=False,
-        due_date__isnull=False,
-    ).select_related("therapist", "patient")
+    transactions = transactions_requiring_reminder(today=today, due_limit=due_limit)
     for financial_transaction in transactions.iterator(chunk_size=200):
         if financial_transaction.due_date < today:
             event_type = "financial.payment_overdue"
@@ -48,7 +41,7 @@ def schedule_operational_automations(
             event_type=event_type,
             patient=financial_transaction.patient,
             financial_transaction=financial_transaction,
-            source_object_type="financeiro.FinancialTransaction",
+            source_object_type=FinancialTransaction._meta.label,
             source_object_id=str(financial_transaction.pk),
             variables={
                 "payment_amount": f"R$ {financial_transaction.outstanding_amount:.2f}",

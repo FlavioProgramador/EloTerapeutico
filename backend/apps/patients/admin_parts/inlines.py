@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 from unfold.admin import TabularInline
 
-from apps.financeiro.models import FinancialTransaction
+from apps.finances.models import FinancialTransaction
 from apps.records.models import Evolution
 from apps.scheduling.models import Appointment
 

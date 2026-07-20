@@ -145,7 +145,7 @@ class PatientViewSet(AuditLogMixin, viewsets.ModelViewSet):
 
         total_paid = 0
         try:
-            from apps.financeiro.models import FinancialTransaction
+            from apps.finances.models import FinancialTransaction
 
             total_paid = (
                 FinancialTransaction.objects.filter(

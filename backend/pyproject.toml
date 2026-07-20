@@ -63,9 +63,6 @@ module = [
     "apps.records.api.evolution_attachment_list_views",
     "apps.records.api.evolution_attachment_detail_views",
     "apps.patients.form_serializers",
-    "apps.financeiro.api.actions.states",
-    "apps.financeiro.api.actions.payments",
-    "apps.financeiro.api.actions.lists",
     "apps.scheduling.serializer_parts.*",
     "apps.users.api.serializers",
     "apps.patients.api.views",
@@ -84,6 +81,9 @@ module = [
     "apps.patients.api.views.*",
     "apps.scheduling.services.*",
     "apps.scheduling.api.views.*",
+    "apps.finances.api.v1.views.*",
+    "apps.finances.api.v1.serializers.*",
+    "apps.finances.services.*",
     "apps.scheduling.api.serializers.*",
     "apps.documents.services.*",
     "apps.documents.api.views.*",
@@ -99,9 +99,7 @@ module = [
     "apps.records.api.evolution_serializer_fields",
     "apps.patients.workspace_serializers",
     "apps.forms.serializers",
-    "apps.financeiro.serializers.transactions",
-    "apps.financeiro.api.actions.summaries",
-    "apps.financeiro.api.actions.reports"
+    "apps.finances.api.v1.serializers.financial_transactions",
 ]
 ignore_errors = true
 

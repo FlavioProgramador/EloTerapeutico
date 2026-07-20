@@ -109,7 +109,7 @@ def _validate_v1_views(errors: list[str]) -> None:
             errors.append(f"View v1 acessa ORM diretamente: {_relative(path)}")
         if ".save(" in source or ".delete(" in source:
             errors.append(f"View v1 altera model diretamente: {_relative(path)}")
-        if "apps.financeiro" in source or "apps.communications" in source:
+        if "apps.finances" in source or "apps.communications" in source:
             errors.append(
                 f"View v1 importa integração externa diretamente: {_relative(path)}"
             )

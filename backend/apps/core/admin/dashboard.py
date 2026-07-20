@@ -12,7 +12,7 @@ from django.db.models import Q, Sum
 from django.utils import timezone
 
 from apps.documents.models import GeneratedDocument
-from apps.financeiro.models import FinancialTransaction
+from apps.finances.models import FinancialTransaction
 from apps.patients.models import Patient
 from apps.records.models import Evolution
 from apps.scheduling.models import Appointment

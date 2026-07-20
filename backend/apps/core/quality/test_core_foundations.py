@@ -10,8 +10,9 @@ from rest_framework.exceptions import MethodNotAllowed
 from apps.core.api.pagination import StandardResultsPagination
 from apps.core.exceptions import custom_exception_handler
 from apps.documents.models import DocumentTemplate, GeneratedDocument
-from apps.financeiro.models import FinancialTransaction
-from apps.financeiro.selectors.transactions import transactions_accessible_to
+from apps.finances.models import FinancialTransaction
+from apps.finances.selectors import transactions_accessible_to
+from apps.finances.services import register_payment
 from apps.patients.models import Patient
 from apps.records.models import Evolution
 from apps.scheduling.models import Appointment
@@ -168,12 +169,12 @@ def test_financial_partial_payment_and_tenant_scope(therapist_user, admin_user):
         due_date=date.today(),
     )
 
-    own.pay(amount=Decimal("40.00"))
+    register_payment(financial_transaction=own, payment_method="pix", amount=Decimal("40.00"))
     own.refresh_from_db()
     assert own.payment_status == FinancialTransaction.PaymentStatus.PARTIAL
     assert own.outstanding_amount == Decimal("60.00")
 
-    own.pay()
+    register_payment(financial_transaction=own, payment_method="pix")
     own.refresh_from_db()
     assert own.payment_status == FinancialTransaction.PaymentStatus.PAID
     assert own.outstanding_amount == Decimal("0.00")

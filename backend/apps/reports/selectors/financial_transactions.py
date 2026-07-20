@@ -1,38 +1,26 @@
-"""Selectors de transações e recorrências financeiras para relatórios."""
+"""Selectors financeiros consumidos pelo módulo de relatórios."""
 
-from datetime import date
-
-from django.db.models import Q, QuerySet
-
-from apps.financeiro.models import FinancialTransaction, MonthlySubscription
+from apps.finances.selectors import (
+    active_monthly_subscriptions_for,
+    transactions_for_owner,
+    transactions_for_owner_period,
+)
 from apps.scheduling.models import PatientPackage
 
 
-def transactions_for_period(*, owner, start: date, end: date) -> QuerySet[FinancialTransaction]:
-    return (
-        FinancialTransaction.objects.filter(therapist=owner)
-        .filter(
-            Q(due_date__range=(start, end))
-            | Q(paid_at__date__range=(start, end))
-            | Q(created_at__date__range=(start, end))
-        )
-        .select_related("patient")
-    )
+def transactions_for_period(*, owner, start, end):
+    return transactions_for_owner_period(owner=owner, start=start, end=end)
 
 
-def all_transactions_for_owner(*, owner) -> QuerySet[FinancialTransaction]:
-    return FinancialTransaction.objects.filter(therapist=owner).select_related("patient")
+def all_transactions_for_owner(*, owner):
+    return transactions_for_owner(owner=owner)
 
 
-def active_subscriptions_for_owner(*, owner) -> QuerySet[MonthlySubscription]:
-    return MonthlySubscription.objects.filter(
-        therapist=owner,
-        status=MonthlySubscription.Status.ACTIVE,
-    )
+def active_subscriptions_for_owner(*, owner):
+    return active_monthly_subscriptions_for(owner=owner)
 
 
-def active_packages_for_owner(*, owner) -> QuerySet[PatientPackage]:
+def active_packages_for_owner(*, owner):
     return PatientPackage.objects.filter(
-        therapist=owner,
-        status=PatientPackage.Status.ACTIVE,
+        therapist=owner, status=PatientPackage.Status.ACTIVE
     )

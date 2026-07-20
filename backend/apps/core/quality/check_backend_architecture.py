@@ -15,6 +15,7 @@ from apps.core.quality.legacy_backend_architecture import (
 from apps.core.quality.rules import (
     validate_core_architecture,
     validate_documents_architecture,
+    validate_finances_architecture,
     validate_scheduling_architecture,
 )
 
@@ -25,6 +26,7 @@ def main() -> None:
     errors: list[str] = []
     validate_core_architecture(errors)
     validate_documents_architecture(errors)
+    validate_finances_architecture(errors)
     validate_scheduling_architecture(errors)
     if errors:
         raise SystemExit(
