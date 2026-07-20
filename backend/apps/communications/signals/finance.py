@@ -10,7 +10,7 @@ from apps.communications.services import (
     cancel_pending_for_source,
     emit_domain_event,
 )
-from apps.financeiro.models import FinancialTransaction
+from apps.finances.models import FinancialTransaction
 
 from .common import capture_previous
 
@@ -54,7 +54,7 @@ def enqueue_financial_communications(sender, instance, created, **kwargs):
                 event_type="financial.payment_created",
                 patient=instance.patient,
                 financial_transaction=instance,
-                source_object_type="financeiro.FinancialTransaction",
+                source_object_type=FinancialTransaction._meta.label,
                 source_object_id=source_id,
                 variables=variables,
                 event_version=version,
@@ -64,7 +64,7 @@ def enqueue_financial_communications(sender, instance, created, **kwargs):
                 cancel_pending_for_source(
                     owner=instance.therapist,
                     source_event_prefix="financial.",
-                    source_object_type="financeiro.FinancialTransaction",
+                    source_object_type=FinancialTransaction._meta.label,
                     source_object_id=source_id,
                 )
                 emit_domain_event(
@@ -72,7 +72,7 @@ def enqueue_financial_communications(sender, instance, created, **kwargs):
                     event_type="financial.payment_confirmed",
                     patient=instance.patient,
                     financial_transaction=instance,
-                    source_object_type="financeiro.FinancialTransaction",
+                    source_object_type=FinancialTransaction._meta.label,
                     source_object_id=source_id,
                     variables=variables,
                     event_version=version,
@@ -84,7 +84,7 @@ def enqueue_financial_communications(sender, instance, created, **kwargs):
                 cancel_pending_for_source(
                     owner=instance.therapist,
                     source_event_prefix="financial.",
-                    source_object_type="financeiro.FinancialTransaction",
+                    source_object_type=FinancialTransaction._meta.label,
                     source_object_id=source_id,
                 )
 
