@@ -42,4 +42,5 @@ def test_admin_requires_explicit_view_permission():
     model_admin = AuditLogAdmin(AuditLog, admin.site)
     assert model_admin.has_view_permission(request) is False
     user.user_permissions.add(Permission.objects.get(codename="view_auditlog"))
+    request.user = User.objects.get(pk=user.pk)
     assert model_admin.has_view_permission(request) is True
