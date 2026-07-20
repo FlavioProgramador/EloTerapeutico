@@ -1,10 +1,20 @@
+"""Modelo append-only da trilha de auditoria."""
+
+from __future__ import annotations
+
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.utils import timezone
 
+from apps.audit.exceptions import AuditLogImmutableError
+
+from .querysets import AuditLogManager
+
 
 class AuditLog(models.Model):
+    """Evidência imutável de uma operação sensível concluída ou observada."""
+
     class Action(models.TextChoices):
         VIEW = "VIEW", "Visualizou"
         CREATE = "CREATE", "Criou"
@@ -40,11 +50,13 @@ class AuditLog(models.Model):
         max_length=200,
         blank=True,
         verbose_name="Representação do objeto",
-        help_text="Descrição legível do objeto no momento do log.",
+        help_text="Identificador técnico seguro do objeto no momento do evento.",
     )
 
+    objects = AuditLogManager()
+
     class Meta:
-        db_table = "users_auditlog"  # Maintain backward compatibility with the existing table
+        db_table = "users_auditlog"
         verbose_name = "Log de Auditoria"
         verbose_name_plural = "Logs de Auditoria"
         ordering = ["-timestamp"]
@@ -53,13 +65,20 @@ class AuditLog(models.Model):
             models.Index(fields=["content_type", "object_id"]),
         ]
 
-    def __str__(self):
-        return f"[{self.timestamp:%d/%m/%Y %H:%M}] {self.user} - {self.action} - {self.object_repr}"
+    def __str__(self) -> str:
+        return f"[{self.timestamp:%d/%m/%Y %H:%M}] {self.action} - {self.object_repr}"
 
     def save(self, *args, **kwargs):
-        if self.pk:
-            raise PermissionError("Logs de auditoria são imutáveis e não podem ser alterados.")
-        super().save(*args, **kwargs)
+        if not self._state.adding:
+            raise AuditLogImmutableError(
+                "Logs de auditoria são append-only e não podem ser alterados."
+            )
+        return super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        raise PermissionError("Logs de auditoria são imutáveis e não podem ser deletados.")
+        raise AuditLogImmutableError(
+            "Logs de auditoria são append-only e não podem ser removidos."
+        )
+
+
+__all__ = ["AuditLog"]

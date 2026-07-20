@@ -1,1 +1,3 @@
-"""App de auditoria."""
+"""Domínio de auditoria."""
+
+__all__: list[str] = []
