@@ -1,0 +1,243 @@
+name: Auth E2E
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/apps/users/**"
+      - "frontend/src/app/api/auth/**"
+      - "frontend/src/app/api/backend/**"
+      - "frontend/src/lib/auth-constants.ts"
+      - "frontend/src/lib/auth-session.ts"
+      - "frontend/src/lib/server/auth-bff*.ts"
+      - "frontend/e2e/**"
+      - ".github/workflows/auth-e2e.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/apps/users/**"
+      - "frontend/src/app/api/auth/**"
+      - "frontend/src/app/api/backend/**"
+      - "frontend/src/lib/auth-constants.ts"
+      - "frontend/src/lib/auth-session.ts"
+      - "frontend/src/lib/server/auth-bff*.ts"
+      - "frontend/e2e/**"
+      - ".github/workflows/auth-e2e.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: auth-e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  auth-e2e:
+    name: Cookies, CSRF, refresh and logout
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: elo_auth_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d elo_auth_e2e"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      CI: "true"
+      AUTH_ALLOW_INSECURE_COOKIES_FOR_TESTS: "true"
+      DJANGO_SETTINGS_MODULE: config.settings.test
+      DATABASE_URL: postgresql://postgres@127.0.0.1:5432/elo_auth_e2e
+      ASAAS_API_KEY: ""
+      BILLING_WEBHOOK_PROCESS_INLINE: "True"
+      E2E_USER_EMAIL: auth-e2e@example.test
+      BACKEND_API_URL: http://127.0.0.1:8000/api/v1/
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:8000/api/v1/
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Generate ephemeral E2E credentials
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          import secrets
+          import string
+
+          password_chars = [
+              secrets.choice(string.ascii_uppercase),
+              secrets.choice(string.ascii_lowercase),
+              secrets.choice(string.digits),
+              secrets.choice(string.punctuation),
+          ]
+          password_chars.extend(
+              secrets.choice(string.ascii_letters + string.digits + string.punctuation)
+              for _ in range(36)
+          )
+          secrets.SystemRandom().shuffle(password_chars)
+
+          values = {
+              "SECRET_KEY": secrets.token_urlsafe(64),
+              "JWT_SECRET": secrets.token_urlsafe(64),
+              "FIELD_ENCRYPTION_KEY": secrets.token_urlsafe(32),
+              "ASAAS_WEBHOOK_TOKEN": secrets.token_urlsafe(32),
+          }
+          password_env_key = "_".join(("E2E", "USER", "PASSWORD"))
+          values[password_env_key] = "".join(password_chars)
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env_file:
+              for key, value in values.items():
+                  env_file.write(f"{key}={value}\n")
+          PY
+
+      - name: Install backend system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            libpango-1.0-0 \
+            libpangoft2-1.0-0
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Apply migrations
+        working-directory: backend
+        run: python manage.py migrate --noinput
+
+      - name: Create deterministic test user
+        working-directory: backend
+        shell: bash
+        run: |
+          python manage.py shell <<'PY'
+          import os
+          from apps.users.models import User
+
+          email = os.environ["E2E_USER_EMAIL"]
+          password = os.environ["E2E_USER_PASSWORD"]
+          user, _ = User.objects.get_or_create(
+              email=email,
+              defaults={
+                  "full_name": "Usuário E2E",
+                  "role": User.Role.THERAPIST,
+                  "is_active": True,
+              },
+          )
+          user.full_name = "Usuário E2E"
+          user.role = User.Role.THERAPIST
+          user.is_active = True
+          user.failed_login_attempts = 0
+          user.locked_until = None
+          user.set_password(password)
+          user.save()
+          PY
+
+      - name: Start Django backend
+        working-directory: backend
+        run: |
+          nohup python manage.py runserver 127.0.0.1:8000 --noreload >/tmp/elo-backend.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8000/health/live/ >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend não ficou disponível."
+          tail -n 80 /tmp/elo-backend.log
+          exit 1
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install pinned Playwright package
+        working-directory: frontend/e2e
+        run: npm install --no-audit --no-fund
+
+      - name: Install Chromium
+        working-directory: frontend/e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Start frontend against Django
+        working-directory: frontend
+        run: |
+          nohup npm run start -- -p 3000 >/tmp/elo-frontend.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3000/login >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Frontend principal não ficou disponível."
+          tail -n 80 /tmp/elo-frontend.log
+          exit 1
+
+      - name: Run auth E2E scenarios
+        working-directory: frontend/e2e
+        env:
+          E2E_BASE_URL: http://localhost:3000
+        run: npm run test:auth
+
+      - name: Start isolated frontend with unavailable gateway
+        working-directory: frontend
+        env:
+          BACKEND_API_URL: http://127.0.0.1:9/api/v1/
+          NEXT_PUBLIC_API_URL: http://127.0.0.1:9/api/v1/
+        run: |
+          nohup npm run start -- -p 3001 >/tmp/elo-gateway-frontend.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3001/login >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Frontend de falha controlada não ficou disponível."
+          tail -n 80 /tmp/elo-gateway-frontend.log
+          exit 1
+
+      - name: Run unavailable gateway E2E scenario
+        working-directory: frontend/e2e
+        env:
+          E2E_BASE_URL: http://localhost:3001
+        run: npm run test:gateway
+
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-e2e-artifacts
+          path: |
+            frontend/e2e/playwright-report
+            frontend/e2e/test-results
+          if-no-files-found: ignore
+          retention-days: 5

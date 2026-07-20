@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
@@ -31,7 +32,7 @@ def create_communication(
     template=None,
     subject: str = "",
     body: str = "",
-    variables: dict[str, object] | None = None,
+    variables: Mapping[str, object] | None = None,
     scheduled_at=None,
     priority: str = Communication.Priority.NORMAL,
     recipient_type: str | None = None,
@@ -39,7 +40,7 @@ def create_communication(
     source_event: str = "",
     source_object_type: str = "",
     source_object_id: str = "",
-    metadata: dict[str, object] | None = None,
+    metadata: Mapping[str, object] | None = None,
     draft: bool = False,
     controlled_destination: str | None = None,
 ):
@@ -80,7 +81,7 @@ def create_communication(
         if config is None or not config.is_active or config.connection_status != CommunicationChannelConfig.ConnectionStatus.CONFIGURED:
             raise CommunicationBlocked("Este canal ainda não está configurado e ativo.")
 
-    variables_payload = build_default_variables(owner, patient, appointment)
+    variables_payload: dict[str, object] = build_default_variables(owner, patient, appointment)
     variables_payload.update(variables or {})
     if template is not None:
         if template.owner_id not in {None, owner.pk}:

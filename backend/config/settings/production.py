@@ -1,5 +1,7 @@
 """Settings de produção para Azure App Service e containers."""
 
+from typing import Any, cast
+
 from django.core.exceptions import ImproperlyConfigured
 
 from apps.core.admin_sql_config import configure_unfold_navigation
@@ -16,7 +18,7 @@ ADMIN_SQL_EXPLORER_ENABLED = False
 ADMIN_SQL_EXPLORER_DATABASE_ALIAS = "default"
 ADMIN_SQL_EXPLORER_MAX_ROWS = 100
 ADMIN_SQL_EXPLORER_TIMEOUT_MS = 2_000
-ADMIN_SQL_EXPLORER_ALLOWED_TABLES = []
+ADMIN_SQL_EXPLORER_ALLOWED_TABLES: list[str] = []
 ADMIN_SQL_EXPLORER_PERMISSION = "core.use_sql_explorer"
 configure_unfold_navigation(UNFOLD, enabled=False)  # noqa: F405
 
@@ -89,16 +91,19 @@ DATABASES["default"].update(
 
 # Redis é obrigatório em produção para cache, rate limit e Celery.
 _redis_url = env("REDIS_URL")  # noqa: F405
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": _redis_url,
-        "OPTIONS": {
-            "socket_connect_timeout": 5,
-            "socket_timeout": 5,
-        },
-    }
-}
+CACHES = cast(
+    dict[str, dict[str, Any]],
+    {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": _redis_url,
+            "OPTIONS": {
+                "socket_connect_timeout": 5,
+                "socket_timeout": 5,
+            },
+        }
+    },
+)
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=_redis_url)  # noqa: F405
 CELERY_RESULT_BACKEND = env(  # noqa: F405
     "CELERY_RESULT_BACKEND",
@@ -108,7 +113,7 @@ CELERY_RESULT_BACKEND = env(  # noqa: F405
 # Arquivos estáticos e mídia privada
 INSTALLED_APPS = ["whitenoise.runserver_nostatic"] + INSTALLED_APPS  # noqa: F405
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa: F405
-STORAGES = {
+STORAGES: dict[str, dict[str, Any]] = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },

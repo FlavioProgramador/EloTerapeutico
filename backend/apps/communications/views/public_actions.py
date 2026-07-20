@@ -17,7 +17,7 @@ from .common import _rate_limit
 
 class PublicCommunicationActionView(APIView):
     permission_classes = [AllowAny]
-    authentication_classes = []
+    authentication_classes: list[type] = []
 
     def get(self, request, token, action=None):
         token_fingerprint = hashlib.sha256(token.encode()).hexdigest()[:16]

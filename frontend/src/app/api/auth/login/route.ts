@@ -24,42 +24,42 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       headers: createBackendHeaders(request),
       body: await request.text(),
     });
-  } catch (err: any) {
-    return NextResponse.json(
-      { 
-        error: "DEBUG_FETCH_FAILED", 
-        message: err?.message, 
-        cause: err?.cause?.message, 
-        stack: err?.stack,
-        url: process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || "fallback"
-      }, 
-      { status: 502 }
-    );
+  } catch (error: unknown) {
+    return gatewayUnavailableResponse(request, error);
   }
 
   const payload = await parseBackendJson(backendResponse);
   if (!payload) {
-     return NextResponse.json({ 
-       error: "DEBUG_PAYLOAD_NULL", 
-       status: backendResponse.status,
-       statusText: backendResponse.statusText,
-       contentType: backendResponse.headers.get("content-type") 
-     }, { status: 502 });
+    return gatewayUnavailableResponse(
+      request,
+      new Error("INVALID_AUTH_UPSTREAM_RESPONSE"),
+    );
   }
 
   if (!backendResponse.ok) {
     return NextResponse.json(payload, {
       status: backendResponse.status,
-      headers: { "cache-control": "no-store" },
+      headers: {
+        "cache-control": "no-store",
+        "x-content-type-options": "nosniff",
+      },
     });
   }
 
   const tokens = extractTokenPair(payload);
-  if (!tokens) return gatewayUnavailableResponse();
+  if (!tokens) {
+    return gatewayUnavailableResponse(
+      request,
+      new Error("AUTH_TOKENS_MISSING_FROM_UPSTREAM"),
+    );
+  }
 
   const response = NextResponse.json(withoutTokenFields(payload), {
     status: backendResponse.status,
-    headers: { "cache-control": "no-store" },
+    headers: {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff",
+    },
   });
   setAuthCookies(response, tokens);
   return response;

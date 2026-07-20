@@ -34,7 +34,7 @@ PROVIDERS: dict[str, CommunicationProvider] = {
     ),
 }
 
-PROVIDER_FACTORIES = {
+PROVIDER_FACTORIES: dict[tuple[str, str], type[CommunicationProvider]] = {
     (Communication.Channel.IN_APP, "in_app"): InAppProvider,
     (Communication.Channel.EMAIL, "django_email"): EmailProvider,
     (Communication.Channel.EMAIL, "smtp"): SMTPEmailProvider,
@@ -54,7 +54,6 @@ def get_provider(
     except KeyError as exc:
         raise ProviderNotConfigured("Canal não suportado.") from exc
 
-    # Mantém a possibilidade de injetar providers nos testes sem chamadas externas.
     if fallback.name != DEFAULT_PROVIDER_NAMES.get(channel):
         return fallback
     if config is None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from urllib.parse import urlparse
 
 from django.core.exceptions import ValidationError
@@ -70,7 +71,7 @@ def validate_template_text(subject: str, body: str) -> list[str]:
     return sorted(variables)
 
 
-def render_template_text(value: str, variables: dict[str, object]) -> str:
+def render_template_text(value: str, variables: Mapping[str, object]) -> str:
     allowed = {
         key: str(variable_value)
         for key, variable_value in variables.items()

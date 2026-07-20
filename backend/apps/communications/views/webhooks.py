@@ -17,7 +17,7 @@ from .common import _rate_limit
 
 class CommunicationWebhookView(APIView):
     permission_classes = [AllowAny]
-    authentication_classes = []
+    authentication_classes: list[type] = []
 
     def post(self, request, provider):
         _rate_limit(f"webhook:{provider}", limit=240, window_seconds=60)

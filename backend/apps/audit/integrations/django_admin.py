@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 from apps.audit.models import AuditLog
 from apps.audit.services import record_audit_event
 
@@ -32,7 +34,7 @@ class AuditReadOnlyAdminMixin:
         return False
 
     def changelist_view(self, request, extra_context=None):
-        response = super().changelist_view(request, extra_context=extra_context)
+        response = cast(Any, super()).changelist_view(request, extra_context=extra_context)
         if getattr(response, "status_code", 500) < 400:
             record_audit_event(
                 action=AuditLog.Action.VIEW,
@@ -46,7 +48,7 @@ class AuditReadOnlyAdminMixin:
         return response
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
-        response = super().change_view(
+        response = cast(Any, super()).change_view(
             request,
             object_id,
             form_url=form_url,

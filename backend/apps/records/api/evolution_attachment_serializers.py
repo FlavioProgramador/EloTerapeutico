@@ -13,12 +13,28 @@ class EvolutionAttachmentSerializer(BaseEvolutionAttachmentSerializer):
     scan_status = serializers.CharField(read_only=True)
     scan_status_display = serializers.CharField(source="get_scan_status_display", read_only=True)
 
-    class Meta(BaseEvolutionAttachmentSerializer.Meta):
-        fields = BaseEvolutionAttachmentSerializer.Meta.fields + (
+    class Meta:
+        model = BaseEvolutionAttachmentSerializer.Meta.model
+        fields = (
+            "id",
+            "file",
+            "original_name",
+            "content_type",
+            "size_bytes",
+            "created_at",
+            "download_url",
+            "preview_url",
             "scan_status",
             "scan_status_display",
         )
-        read_only_fields = BaseEvolutionAttachmentSerializer.Meta.read_only_fields + (
+        read_only_fields = (
+            "id",
+            "original_name",
+            "content_type",
+            "size_bytes",
+            "created_at",
+            "download_url",
+            "preview_url",
             "scan_status",
             "scan_status_display",
         )

@@ -161,17 +161,22 @@ def create_checkout_order(
             and operational.billing_order_id is None
             and (operational.metadata or {}).get("awaiting_checkout")
         )
+        operational_order = (
+            operational.billing_order
+            if operational and operational.billing_order_id
+            else None
+        )
         if operational and operational.status == Subscription.Status.PENDING and not registration_pending:
             details: dict[str, Any] = {}
-            if operational.billing_order_id:
-                details["order_public_id"] = str(operational.billing_order.public_id)
+            if operational_order is not None:
+                details["order_public_id"] = str(operational_order.public_id)
             raise CheckoutAlreadyPendingError(details=details)
         if (
             operational
             and not registration_pending
             and operational.status != Subscription.Status.TRIALING
-            and operational.billing_order_id
-            and operational.billing_order.plan_price_id == plan_price.pk
+            and operational_order is not None
+            and operational_order.plan_price_id == plan_price.pk
         ):
             raise CheckoutSamePlanError()
 

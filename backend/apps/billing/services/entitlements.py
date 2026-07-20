@@ -169,7 +169,7 @@ def get_entitlement(user, *, now=None) -> EntitlementDecision:
             onboarding_required=onboarding_required,
         )
 
-    code_map = {
+    code_map: dict[str, tuple[str, str, str]] = {
         Subscription.Status.PENDING: (
             "PAYMENT_PENDING",
             "A assinatura ainda aguarda confirmação do pagamento.",

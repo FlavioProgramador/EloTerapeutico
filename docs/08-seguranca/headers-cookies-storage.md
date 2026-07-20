@@ -18,6 +18,7 @@ O navegador não recebe nem lê access token ou refresh token. O Next.js atua co
 ```text
 Navegador
 → Route Handler /api/auth ou /api/backend
+→ Authorization Bearer adicionado no servidor
 → Django REST Framework
 ```
 
@@ -25,9 +26,9 @@ Cookies usados pelo BFF:
 
 | Cookie | Acesso JavaScript | Finalidade |
 | --- | --- | --- |
-| `elo_access` | Não (`HttpOnly`) | access token de curta duração |
-| `elo_refresh` | Não (`HttpOnly`) | refresh token rotativo |
-| `elo_csrf` | Sim | double-submit token para requisições mutáveis |
+| `elo_access` | Não (`HttpOnly`) | Access token de curta duração |
+| `elo_refresh` | Não (`HttpOnly`) | Refresh token rotativo |
+| `elo_csrf` | Sim | Double-submit token para requisições mutáveis; não é credencial de autenticação |
 
 Regras aplicadas:
 
@@ -39,11 +40,31 @@ Regras aplicadas:
 - respostas de login, cadastro e refresh são sanitizadas;
 - `Authorization` é adicionado somente no servidor Next.js;
 - requests `POST`, `PUT`, `PATCH` e `DELETE` autenticados exigem `X-CSRF-Token`;
+- cookie e header CSRF são comparados em tempo constante;
 - endpoints públicos de autenticação validam `Origin` e `Sec-Fetch-Site`;
 - o proxy genérico bloqueia login, refresh e logout;
-- nenhuma credencial é persistida em `localStorage`.
+- nenhuma credencial é persistida em `localStorage`, `sessionStorage` ou IndexedDB;
+- logout remove os três cookies com `Max-Age=0` e data expirada.
 
 A presença do cookie no middleware serve apenas para navegação. Validade da sessão, role, tenant, assinatura e permissão de objeto são confirmados pelo Django.
+
+### Falhas do gateway
+
+Falhas de conexão, timeout, DNS, payload inválido ou exceção inesperada não podem expor URL interna, mensagem original, causa, stack ou corpo do upstream.
+
+Contrato público:
+
+```json
+{
+  "error": {
+    "code": "AUTH_GATEWAY_UNAVAILABLE",
+    "message": "O serviço de autenticação está temporariamente indisponível."
+  },
+  "request_id": "identificador-seguro"
+}
+```
+
+O log interno contém somente evento, request ID sanitizado e tipo da exceção. Headers, cookies, tokens, credenciais e payloads completos são proibidos.
 
 ### Variáveis do frontend
 
@@ -54,6 +75,15 @@ Consulte `frontend/.env.example`:
 - `AUTH_REFRESH_COOKIE_MAX_AGE`.
 
 No Docker, `BACKEND_API_URL` deve apontar para o nome interno do serviço, não para `localhost` do navegador.
+
+### Validação automatizada
+
+```bash
+cd frontend
+npm run test:auth
+```
+
+O workflow `.github/workflows/auth-e2e.yml` usa PostgreSQL e aplicações reais para validar cookies HttpOnly, CSRF, rotação, blacklist, logout e resposta segura de gateway. Traces e screenshots são publicados somente em falha; vídeos, logs de cookies e dumps de banco não são artefatos.
 
 ### Risco residual
 

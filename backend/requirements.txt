@@ -13,6 +13,7 @@ django-filter>=24.1,<24.2
 django-environ>=0.14.0,<0.15
 httpx>=0.28,<0.29
 python-dateutil>=2.9,<3.0
+types-python-dateutil>=2.9,<3.0
 sqlparse>=0.5.5,<0.6
 
 # Processamento assíncrono e broker

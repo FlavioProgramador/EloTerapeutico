@@ -10,12 +10,34 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: django-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
-    name: Backend checks
+    name: Backend checks with PostgreSQL
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: elo_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d elo_ci"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
     env:
-      DATABASE_URL: sqlite:///ci.sqlite3
+      DJANGO_SETTINGS_MODULE: config.settings.test
+      DATABASE_URL: postgresql://postgres@127.0.0.1:5432/elo_ci
+      ASAAS_API_KEY: ""
+      BILLING_WEBHOOK_PROCESS_INLINE: "True"
 
     defaults:
       run:
@@ -34,6 +56,24 @@ jobs:
             backend/requirements.txt
             backend/requirements-prod.txt
 
+      - name: Generate ephemeral CI credentials
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          import secrets
+
+          values = {
+              "SECRET_KEY": secrets.token_urlsafe(64),
+              "JWT_SECRET": secrets.token_urlsafe(64),
+              "FIELD_ENCRYPTION_KEY": secrets.token_urlsafe(32),
+              "ASAAS_WEBHOOK_TOKEN": secrets.token_urlsafe(32),
+          }
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env_file:
+              for key, value in values.items():
+                  env_file.write(f"{key}={value}\n")
+          PY
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -45,9 +85,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
-
-      - name: Prepare CI environment
-        run: cp .env.example .env
 
       - name: Validate backend architecture
         run: python apps/core/quality/check_backend_architecture.py
@@ -61,20 +98,28 @@ jobs:
           set -o pipefail
           python manage.py makemigrations --check --dry-run 2>&1 | tee migration-output.txt
 
-      - name: Apply migrations
+      - name: Apply migrations on PostgreSQL
         run: python manage.py migrate --noinput
 
-      - name: Run pre-commit checks (Linting & Quality)
-        working-directory: .
-        run: echo "Pre-commit is validated locally; backend CI continues with Django checks and tests."
-
-      - name: Run tests
+      - name: Run Ruff gate
         shell: bash
         run: |
           set -o pipefail
-          pytest --cov=apps --cov-report=term-missing --cov-report=xml 2>&1 | tee pytest-output.txt
+          ruff check . 2>&1 | tee ruff-output.txt
 
-      - name: Upload coverage and test reports
+      - name: Run mypy gate
+        shell: bash
+        run: |
+          set -o pipefail
+          mypy . 2>&1 | tee mypy-output.txt
+
+      - name: Run tests on PostgreSQL
+        shell: bash
+        run: |
+          set -o pipefail
+          pytest --create-db --cov=apps --cov-report=term-missing --cov-report=xml 2>&1 | tee pytest-output.txt
+
+      - name: Upload backend reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -83,5 +128,7 @@ jobs:
             backend/coverage.xml
             backend/pytest-output.txt
             backend/migration-output.txt
+            backend/ruff-output.txt
+            backend/mypy-output.txt
           if-no-files-found: ignore
           retention-days: 7

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from datetime import time as clock_time
 from datetime import timezone as datetime_timezone
@@ -35,7 +36,15 @@ DEFAULT_AUTOMATION_BLUEPRINTS = [
 
 
 def _automation_delay(automation: CommunicationAutomation) -> timedelta:
-    return {CommunicationAutomation.DelayUnit.MINUTES: timedelta(minutes=automation.delay_value), CommunicationAutomation.DelayUnit.HOURS: timedelta(hours=automation.delay_value), CommunicationAutomation.DelayUnit.DAYS: timedelta(days=automation.delay_value)}[automation.delay_unit]
+    return {CommunicationAutomation.DelayUnit.MINUTES: timedelta(minutes=automation.delay_value), CommunicationAutomation.DelayUnit.HOURS: timedelta(hours=automation.delay_value), CommunicationAutomation.DelayUnit.DAYS: timedelta(days=automation.delay_value)}[CommunicationAutomation.DelayUnit(automation.delay_unit)]
+
+
+def _ordered_compare(current: object, expected: object, *, greater: bool) -> bool:
+    if isinstance(current, (int, float)) and isinstance(expected, (int, float)):
+        return current > expected if greater else current < expected
+    if isinstance(current, str) and isinstance(expected, str):
+        return current > expected if greater else current < expected
+    return False
 
 
 def _condition_matches(condition: dict[str, object], context: dict[str, object]) -> bool:
@@ -54,9 +63,9 @@ def _condition_matches(condition: dict[str, object], context: dict[str, object])
     if operator == "is_not_empty":
         return not (current is None or current == "" or current == [] or current == {})
     if operator == "greater_than":
-        return current is not None and current > expected
+        return _ordered_compare(current, expected, greater=True)
     if operator == "less_than":
-        return current is not None and current < expected
+        return _ordered_compare(current, expected, greater=False)
     return False
 
 
@@ -88,7 +97,7 @@ def _respect_delivery_window(value, automation: CommunicationAutomation, prefere
     return local.astimezone(UTC)
 
 
-def _automation_context(patient=None, appointment=None, extra=None) -> dict[str, object]:
+def _automation_context(patient=None, appointment=None, extra: Mapping[str, object] | None = None) -> dict[str, object]:
     context = dict(extra or {})
     if patient is not None:
         context.update({"patient_has_email": bool(patient.email), "patient_has_whatsapp": bool(patient.whatsapp or patient.phone), "patient_status": patient.status})
@@ -97,7 +106,7 @@ def _automation_context(patient=None, appointment=None, extra=None) -> dict[str,
     return context
 
 
-def emit_domain_event(*, owner, event_type: str, patient=None, appointment=None, form_submission=None, document=None, financial_transaction=None, source_object_type: str = "", source_object_id: str = "", variables: dict[str, object] | None = None, event_version: str = "1") -> list[Communication]:
+def emit_domain_event(*, owner, event_type: str, patient=None, appointment=None, form_submission=None, document=None, financial_transaction=None, source_object_type: str = "", source_object_id: str = "", variables: Mapping[str, object] | None = None, event_version: str = "1") -> list[Communication]:
     created: list[Communication] = []
     context = _automation_context(patient, appointment, variables)
     for automation in active_automations_for_event(owner, event_type):

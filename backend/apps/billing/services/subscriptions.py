@@ -167,8 +167,8 @@ def cancel_subscription(user) -> Subscription:
         locked.cancel_at_period_end = False
         locked.canceled_at = timezone.now()
         locked.save(update_fields=["status", "cancel_at_period_end", "canceled_at", "updated_at"])
-        if locked.billing_order_id:
-            order = locked.billing_order
+        order = locked.billing_order if locked.billing_order_id else None
+        if order is not None:
             order.status = order.Status.CANCELED
             order.canceled_at = timezone.now()
             order.save(update_fields=["status", "canceled_at", "updated_at"])

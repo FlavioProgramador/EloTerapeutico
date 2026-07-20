@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any, cast
+
 from rest_framework import serializers
 
 from apps.communications.models import CommunicationChannelConfig
@@ -68,7 +70,7 @@ class CommunicationChannelConfigSerializer(serializers.ModelSerializer):
         return get_configured_secret_state(obj)
 
     def get_available_providers(self, obj):
-        return get_channel_catalog(obj.channel)["providers"]
+        return cast(dict[str, Any], get_channel_catalog(obj.channel))["providers"]
 
     def get_missing_fields(self, obj):
         return get_missing_configuration_fields(obj)

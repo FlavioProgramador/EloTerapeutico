@@ -30,7 +30,7 @@ def sql_explorer_urlpatterns():
     if not getattr(settings, "ADMIN_SQL_EXPLORER_ENABLED", False):
         return []
 
-    from apps.core.admin_sql import sql_explorer_view, sql_schema_view
+    from apps.core.admin.sql import sql_explorer_view, sql_schema_view
 
     return [
         path("admin/sql-explorer/", sql_explorer_view, name="sql_explorer"),

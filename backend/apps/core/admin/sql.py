@@ -133,7 +133,8 @@ def _allowed_tables() -> frozenset[str]:
 def _permission_parts() -> tuple[str, str]:
     configured = str(getattr(settings, "ADMIN_SQL_EXPLORER_PERMISSION", DEFAULT_PERMISSION))
     if "." not in configured:
-        return DEFAULT_PERMISSION.split(".", 1)
+        app_label, codename = DEFAULT_PERMISSION.split(".", 1)
+        return app_label, codename
     app_label, codename = configured.split(".", 1)
     return app_label, codename
 
@@ -346,8 +347,6 @@ def execute_read_only_query(
             truncated = len(fetched) > max_rows
             rows = fetched[:max_rows]
 
-        # Mesmo uma SELECT permitida termina em rollback para descartar qualquer
-        # estado transacional acidental de funções/extensões do banco.
         transaction.set_rollback(True, using=database_alias)
 
     return columns, rows, truncated

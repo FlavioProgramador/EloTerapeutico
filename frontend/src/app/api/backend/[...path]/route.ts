@@ -33,24 +33,41 @@ const PUBLIC_ORIGIN_ONLY_PATHS = new Set([
 ]);
 
 async function registrationResponse(
+  request: NextRequest,
   backendResponse: Response,
 ): Promise<NextResponse> {
   const payload = await parseBackendJson(backendResponse);
-  if (!payload) return gatewayUnavailableResponse();
+  if (!payload) {
+    return gatewayUnavailableResponse(
+      request,
+      new Error("INVALID_REGISTER_PROXY_RESPONSE"),
+    );
+  }
 
   if (!backendResponse.ok) {
     return NextResponse.json(payload, {
       status: backendResponse.status,
-      headers: { "cache-control": "no-store" },
+      headers: {
+        "cache-control": "no-store",
+        "x-content-type-options": "nosniff",
+      },
     });
   }
 
   const tokens = extractTokenPair(payload);
-  if (!tokens) return gatewayUnavailableResponse();
+  if (!tokens) {
+    return gatewayUnavailableResponse(
+      request,
+      new Error("REGISTER_PROXY_TOKENS_MISSING"),
+    );
+  }
 
   const response = NextResponse.json(withoutTokenFields(payload), {
     status: backendResponse.status,
-    headers: { "cache-control": "no-store" },
+    headers: {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff",
+    },
   });
   setAuthCookies(response, tokens);
   return response;
@@ -71,7 +88,13 @@ async function proxyRequest(
           message: "A rota solicitada não está disponível neste canal.",
         },
       },
-      { status: 404 },
+      {
+        status: 404,
+        headers: {
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
+        },
+      },
     );
   }
 
@@ -99,11 +122,11 @@ async function proxyRequest(
       request.nextUrl.search,
     );
     if (normalizedLowerPath === "auth/register") {
-      return registrationResponse(backendResponse);
+      return registrationResponse(request, backendResponse);
     }
     return backendResponseToNext(backendResponse);
-  } catch (error: any) {
-    return gatewayUnavailableResponse(error);
+  } catch (error: unknown) {
+    return gatewayUnavailableResponse(request, error);
   }
 }
 
