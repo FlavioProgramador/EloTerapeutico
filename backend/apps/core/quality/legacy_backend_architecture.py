@@ -321,8 +321,8 @@ def main() -> None:
         / "document_templates.py",
         BACKEND / "apps" / "reports" / "services" / "financial_reports.py",
         BACKEND / "apps" / "reports" / "selectors" / "appointments.py",
-        BACKEND / "apps" / "agenda" / "services" / "appointments.py",
-        BACKEND / "apps" / "agenda" / "selectors" / "appointments.py",
+        BACKEND / "apps" / "scheduling" / "services" / "appointments.py",
+        BACKEND / "apps" / "scheduling" / "selectors" / "appointments.py",
     ]
     for path in required:
         if not path.exists():
@@ -331,6 +331,12 @@ def main() -> None:
     banned_patterns = {
         r"(?m)^\s*from core(?:\.|\s+import)": "import legado from core",
         r"(?m)^\s*import core(?:\.|\s|$)": "import legado import core",
+        r"(?m)^\s*from apps\.agenda(?:\.|\s+import)": (
+            "import legado from apps.agenda"
+        ),
+        r"(?m)^\s*import apps\.agenda(?:\.|\s|$)": (
+            "import legado import apps.agenda"
+        ),
         r"elo_terapeutico\.": "referência ao pacote de configuração antigo",
         r"apps\.billing\.services\.gateways\.asaas": (
             "client Asaas no domínio billing"
