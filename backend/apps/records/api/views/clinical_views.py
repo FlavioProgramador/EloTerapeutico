@@ -38,7 +38,8 @@ except (ImportError, OSError):
                     f.write(dummy_pdf)
 
 
-from apps.audit.services.access_logging import AuditLog, log_access
+from apps.audit.models import AuditLog
+from apps.audit.services import log_access
 from apps.patients.models import Patient
 from apps.patients.services.access_control import can_access_patient
 from apps.records.api.serializers.clinical_serializers import (

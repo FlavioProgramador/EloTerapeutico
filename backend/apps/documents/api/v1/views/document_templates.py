@@ -4,7 +4,8 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.audit.services.access_logging import AuditLog, log_access
+from apps.audit.models import AuditLog
+from apps.audit.services import log_access
 from apps.documents.exceptions import DocumentDomainError
 from apps.documents.filters import DocumentTemplateFilter
 from apps.documents.selectors import library_templates, owned_templates

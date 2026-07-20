@@ -256,7 +256,7 @@ class PracticeSettingsView(generics.RetrieveUpdateAPIView):
     def perform_update(self, serializer):
         obj = serializer.save()
         from apps.audit.models import AuditLog
-        from apps.audit.services.access_logging import log_access
+        from apps.audit.services import log_access
 
         log_access(
             self.request,

@@ -4,7 +4,8 @@ from django.conf import settings
 from django.contrib import admin, messages
 from unfold.admin import ModelAdmin
 
-from apps.audit.services.access_logging import AuditLog, log_access
+from apps.audit.models import AuditLog
+from apps.audit.services import log_access
 from apps.records.tasks import scan_clinical_document
 from apps.records.treatment_models import ClinicalDocument
 

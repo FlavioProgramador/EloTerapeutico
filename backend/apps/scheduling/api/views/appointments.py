@@ -6,7 +6,9 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
 
-from apps.audit.services.access_logging import AuditLog, AuditLogMixin, log_access
+from apps.audit.integrations import AuditLogMixin
+from apps.audit.models import AuditLog
+from apps.audit.services import log_access
 from apps.scheduling.api.v1.filters import AppointmentFilter
 from apps.scheduling.api.v1.serializers import (
     AppointmentCreateSerializer,
@@ -63,6 +65,7 @@ class AppointmentViewSet(AuditLogMixin, ScopedAgendaMixin, viewsets.ModelViewSet
 
     def perform_update(self, serializer):
         serializer.save(updated_by=self.request.user)
+        self._record_instance(AuditLog.Action.UPDATE, serializer.instance, on_commit=True)
 
     def destroy(self, request, *args, **kwargs):
         appointment = self.get_object()

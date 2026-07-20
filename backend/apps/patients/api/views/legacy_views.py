@@ -12,7 +12,8 @@ from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.audit.services.access_logging import AuditLogMixin
+from apps.audit.integrations import AuditLogMixin
+from apps.audit.models import AuditLog
 from apps.billing.services.features import enforce_patient_limit
 from apps.patients.api.filters import PatientFilter
 from apps.patients.api.serializers.legacy_serializers import (
@@ -79,10 +80,12 @@ class PatientViewSet(AuditLogMixin, viewsets.ModelViewSet):
             serializer.save(therapist=self.request.user)
         else:
             serializer.save()
+        self._record_instance(AuditLog.Action.CREATE, serializer.instance, on_commit=True)
 
     def perform_destroy(self, instance):
         """DELETE arquiva o cadastro por exclusão lógica."""
         instance.soft_delete()
+        self._record_instance(AuditLog.Action.DELETE, instance, on_commit=True)
 
     @action(detail=True, methods=["post"], url_path="deactivate")
     def deactivate(self, request, pk=None):
