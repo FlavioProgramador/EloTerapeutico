@@ -8,7 +8,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[5]
 BACKEND = ROOT / "backend"
 SCHEDULING = BACKEND / "apps" / "scheduling"
-LEGACY_AGENDA = BACKEND / "apps" / "agenda"
 
 
 def _relative(path: Path) -> str:
@@ -22,7 +21,6 @@ def _validate_required_paths(errors: list[str]) -> None:
         SCHEDULING / "admin" / "__init__.py",
         SCHEDULING / "admin" / "appointments.py",
         SCHEDULING / "api" / "v1" / "urls.py",
-        SCHEDULING / "api" / "legacy" / "urls.py",
         SCHEDULING / "api" / "v1" / "filters" / "__init__.py",
         SCHEDULING / "api" / "v1" / "permissions" / "scheduling.py",
         SCHEDULING / "api" / "v1" / "serializers" / "__init__.py",
@@ -68,31 +66,24 @@ def _validate_root(errors: list[str]) -> None:
             )
 
 
-def _validate_legacy_package(errors: list[str]) -> None:
-    if (LEGACY_AGENDA / "migrations").exists():
-        errors.append("apps.agenda não pode manter migrations após a renomeação")
-    if (LEGACY_AGENDA / "signals.py").exists():
-        errors.append("Placeholder apps.agenda.signals.py não deve existir")
+def _validate_removed_compatibility(errors: list[str]) -> None:
+    removed_package = BACKEND / "apps" / "agenda"
+    removed_api = SCHEDULING / "api" / "legacy"
 
-    facade_roots = [
-        LEGACY_AGENDA / "admin.py",
-        LEGACY_AGENDA / "apps.py",
-        LEGACY_AGENDA / "urls.py",
-        LEGACY_AGENDA / "models",
-        LEGACY_AGENDA / "services",
-        LEGACY_AGENDA / "selectors",
-        LEGACY_AGENDA / "exceptions",
-        LEGACY_AGENDA / "api",
-    ]
-    for root in facade_roots:
-        paths = [root] if root.is_file() else list(root.rglob("*.py")) if root.exists() else []
-        for path in paths:
-            line_count = len(path.read_text(encoding="utf-8").splitlines())
-            if line_count > 80:
-                errors.append(
-                    "Fachada de compatibilidade de agenda contém implementação "
-                    f"excessiva: {_relative(path)} ({line_count} linhas)"
-                )
+    if removed_package.exists():
+        errors.append("O pacote Python legado backend/apps/agenda deve permanecer removido")
+    if removed_api.exists():
+        errors.append("A API legada apps.scheduling.api.legacy deve permanecer removida")
+
+    import_pattern = re.compile(
+        r"(?m)^\s*(?:from\s+apps\.agenda\b|import\s+apps\.agenda\b)"
+    )
+    for path in BACKEND.rglob("*.py"):
+        if "migrations" in path.parts:
+            continue
+        source = path.read_text(encoding="utf-8")
+        if import_pattern.search(source):
+            errors.append(f"Import do pacote removido apps.agenda: {_relative(path)}")
 
 
 def _validate_routes(errors: list[str]) -> None:
@@ -100,10 +91,12 @@ def _validate_routes(errors: list[str]) -> None:
     source = path.read_text(encoding="utf-8") if path.exists() else ""
     if 'path("scheduling/", include("apps.scheduling.api.v1.urls"))' not in source:
         errors.append("Rota canônica /api/v1/scheduling não está registrada")
-    if 'path("agenda/", include("apps.scheduling.api.legacy.urls"))' not in source:
-        errors.append("Alias legado /api/v1/agenda não está registrado")
+    if 'path("agenda/"' in source:
+        errors.append("Alias removido /api/v1/agenda voltou ao roteamento global")
+    if "apps.scheduling.api.legacy" in source:
+        errors.append("Roteamento global depende da API legada de scheduling")
     if 'include("apps.agenda.urls")' in source:
-        errors.append("Roteamento global ainda depende de apps.agenda.urls")
+        errors.append("Roteamento global depende do pacote removido apps.agenda")
 
 
 def _validate_v1_views(errors: list[str]) -> None:
@@ -149,7 +142,7 @@ def validate_scheduling_architecture(errors: list[str]) -> None:
     _validate_required_paths(errors)
     _validate_app_config(errors)
     _validate_root(errors)
-    _validate_legacy_package(errors)
+    _validate_removed_compatibility(errors)
     _validate_routes(errors)
     _validate_v1_views(errors)
     _validate_exports(errors)

@@ -1,8 +1,10 @@
+from importlib import import_module
+from pathlib import Path
+
 from django.apps import apps
 from django.test import SimpleTestCase
-from django.urls import resolve, reverse
+from django.urls import Resolver404, resolve, reverse
 
-from apps.agenda.models import Appointment as LegacyAppointment
 from apps.scheduling.models import Appointment
 
 
@@ -13,7 +15,13 @@ class SchedulingRenameTests(SimpleTestCase):
         self.assertEqual(config.name, "apps.scheduling")
         self.assertEqual(config.label, "agenda")
         self.assertEqual(Appointment._meta.app_label, "agenda")
-        self.assertIs(LegacyAppointment, Appointment)
+
+    def test_legacy_python_package_is_removed(self):
+        apps_root = Path(__file__).resolve().parents[2]
+
+        self.assertFalse((apps_root / "agenda").exists())
+        with self.assertRaises(ModuleNotFoundError):
+            import_module("apps.agenda")
 
     def test_database_tables_keep_historical_prefix(self):
         model_tables = {
@@ -25,9 +33,10 @@ class SchedulingRenameTests(SimpleTestCase):
         self.assertTrue(all(table.startswith("agenda_") for table in model_tables))
         self.assertFalse(any(table.startswith("scheduling_") for table in model_tables))
 
-    def test_canonical_and_legacy_routes_share_the_same_view(self):
+    def test_only_canonical_route_is_registered(self):
         canonical = resolve("/api/v1/scheduling/appointments/")
-        legacy = resolve("/api/v1/agenda/appointments/")
 
-        self.assertIs(canonical.func.cls, legacy.func.cls)
+        self.assertIsNotNone(canonical.func.cls)
+        with self.assertRaises(Resolver404):
+            resolve("/api/v1/agenda/appointments/")
         self.assertTrue(reverse("appointment-list").startswith("/api/v1/scheduling/"))
