@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useId } from "react";
 import { FileCheck2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -42,6 +42,13 @@ export function GenerateDocumentModal({
   const [title, setTitle] = useState("");
   const [localEmissao, setLocalEmissao] = useState("");
   const [error, setError] = useState("");
+  const [pendingAction, setPendingAction] = useState<"draft" | "pdf" | null>(null);
+
+  const baseId = useId();
+  const patientFieldId = `${baseId}-patient`;
+  const templateFieldId = `${baseId}-template`;
+  const titleFieldId = `${baseId}-title`;
+  const localFieldId = `${baseId}-local`;
 
   useEffect(() => {
     if (!open) return;
@@ -50,6 +57,7 @@ export function GenerateDocumentModal({
     setTitle("");
     setLocalEmissao("");
     setError("");
+    setPendingAction(null);
   }, [initialPatientId, open]);
 
   const submit = async (generateNow: boolean) => {
@@ -58,16 +66,24 @@ export function GenerateDocumentModal({
       return;
     }
     setError("");
-    await onCreate(
-      {
-        patient_id: Number(patientId),
-        template_public_id: templateId,
-        title,
-        local_emissao: localEmissao,
-      },
-      generateNow,
-    );
+    const action = generateNow ? "pdf" : "draft";
+    setPendingAction(action);
+    try {
+      await onCreate(
+        {
+          patient_id: Number(patientId),
+          template_public_id: templateId,
+          title,
+          local_emissao: localEmissao,
+        },
+        generateNow,
+      );
+    } finally {
+      setPendingAction(null);
+    }
   };
+
+  const isPending = submitting || pendingAction !== null;
 
   return (
     <Modal
@@ -78,9 +94,12 @@ export function GenerateDocumentModal({
       className="max-w-xl"
     >
       <div className="space-y-4">
-        <label className="block space-y-1.5 text-xs font-semibold text-foreground">
-          Paciente <span className="text-danger">*</span>
+        <div className="space-y-1.5">
+          <label htmlFor={patientFieldId} className="block text-xs font-semibold text-foreground">
+            Paciente <span className="text-danger">*</span>
+          </label>
           <select
+            id={patientFieldId}
             className={fieldClass}
             value={patientId}
             onChange={(event) => setPatientId(event.target.value)}
@@ -92,10 +111,13 @@ export function GenerateDocumentModal({
               </option>
             ))}
           </select>
-        </label>
-        <label className="block space-y-1.5 text-xs font-semibold text-foreground">
-          Template <span className="text-danger">*</span>
+        </div>
+        <div className="space-y-1.5">
+          <label htmlFor={templateFieldId} className="block text-xs font-semibold text-foreground">
+            Template <span className="text-danger">*</span>
+          </label>
           <select
+            id={templateFieldId}
             className={fieldClass}
             value={templateId}
             onChange={(event) => {
@@ -116,27 +138,33 @@ export function GenerateDocumentModal({
                 </option>
               ))}
           </select>
-        </label>
-        <label className="block space-y-1.5 text-xs font-semibold text-foreground">
-          Título do documento
+        </div>
+        <div className="space-y-1.5">
+          <label htmlFor={titleFieldId} className="block text-xs font-semibold text-foreground">
+            Título do documento
+          </label>
           <input
+            id={titleFieldId}
             className={fieldClass}
             value={title}
             maxLength={200}
             onChange={(event) => setTitle(event.target.value)}
             placeholder="Usa o nome do template quando vazio"
           />
-        </label>
-        <label className="block space-y-1.5 text-xs font-semibold text-foreground">
-          Local de emissão
+        </div>
+        <div className="space-y-1.5">
+          <label htmlFor={localFieldId} className="block text-xs font-semibold text-foreground">
+            Local de emissão
+          </label>
           <input
+            id={localFieldId}
             className={fieldClass}
             value={localEmissao}
             maxLength={160}
             onChange={(event) => setLocalEmissao(event.target.value)}
             placeholder="Ex.: São Gonçalo/RJ"
           />
-        </label>
+        </div>
         {error && (
           <p
             role="alert"
@@ -150,13 +178,14 @@ export function GenerateDocumentModal({
           template não modificam documentos já criados.
         </p>
         <div className="flex flex-col-reverse justify-end gap-2 border-t border-border pt-4 sm:flex-row">
-          <Button variant="outline" size="sm" onClick={onClose}>
+          <Button variant="outline" size="sm" onClick={onClose} disabled={isPending}>
             Cancelar
           </Button>
           <Button
             variant="secondary"
             size="sm"
-            isLoading={submitting}
+            isLoading={pendingAction === "draft"}
+            disabled={isPending}
             leftIcon={<Save className="h-4 w-4" />}
             onClick={() => submit(false)}
           >
@@ -164,7 +193,8 @@ export function GenerateDocumentModal({
           </Button>
           <Button
             size="sm"
-            isLoading={submitting}
+            isLoading={pendingAction === "pdf"}
+            disabled={isPending}
             leftIcon={<FileCheck2 className="h-4 w-4" />}
             onClick={() => submit(true)}
           >
