@@ -232,7 +232,7 @@ LOCAL_APPS = [
     "apps.patients",
     "apps.records",
     "apps.scheduling.apps.SchedulingConfig",
-    "apps.financeiro",
+    "apps.finances.apps.FinancesConfig",
     "apps.documents",
     "apps.reports",
     "apps.forms",
