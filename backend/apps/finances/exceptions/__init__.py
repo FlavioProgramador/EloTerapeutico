@@ -1,8 +1,8 @@
 """Exceções públicas do domínio financeiro."""
 
 from .domain import (
-    FinancialOwnershipError,
     FinancesDomainError,
+    FinancialOwnershipError,
     IneligibleAppointmentChargeError,
     InvalidPaymentAmountError,
     InvalidPaymentTransitionError,
@@ -10,8 +10,8 @@ from .domain import (
 )
 
 __all__ = [
-    "FinancialOwnershipError",
     "FinancesDomainError",
+    "FinancialOwnershipError",
     "IneligibleAppointmentChargeError",
     "InvalidPaymentAmountError",
     "InvalidPaymentTransitionError",

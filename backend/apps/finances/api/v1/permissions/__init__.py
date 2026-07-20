@@ -1,5 +1,5 @@
 """Permissões públicas da API financeira."""
 
-from .finances import FinancialPermission, FinancesPermission
+from .finances import FinancesPermission, FinancialPermission
 
-__all__ = ["FinancialPermission", "FinancesPermission"]
+__all__ = ["FinancesPermission", "FinancialPermission"]
