@@ -1,64 +1,21 @@
 # Casos de uso — Financeiro
 
-# UC-FIN-001 — Registrar transação
+## Registrar transação
 
-## Objetivo
-Registrar receita ou despesa pertencente ao terapeuta.
+O profissional registra receita ou despesa no próprio escopo. Paciente e consulta, quando informados, devem pertencer ao mesmo terapeuta.
 
-## Atores
-Terapeuta autorizado.
+## Registrar pagamento
 
-## Pré-condições
-Usuário autenticado; referências acessíveis.
+Pagamentos podem ser parciais ou integrais. O backend bloqueia valor maior que o saldo e transações incompatíveis com pagamento.
 
-## Fluxo principal
-1. Usuário informa tipo, categoria, valor, vencimento e descrição.
-2. Pode vincular paciente, consulta ou mensalidade.
-3. API valida valor e recorrência.
-4. Transação nasce normalmente pendente e com origem definida.
+## Cancelar ou estornar
 
-## Exceções
-Valor não positivo, pagamento superior ao total ou frequência ausente.
+Cancelamento é permitido em pendente/parcial; estorno somente em pago. As ações preservam o histórico.
 
-## Dados envolvidos
-Valores, datas, método, paciente, beneficiário e links.
+## Mensalidades
 
-## Regras de segurança
-Owner obrigatório; precisão decimal; nenhum dado bruto de cartão.
+A criação da mensalidade e da primeira cobrança ocorre na mesma transação de banco.
 
-## Endpoints relacionados
-Router `/api/v1/financeiro/`.
+## Cobrança por consulta
 
-## Testes relacionados
-Suítes de financeiro e performance.
-
-## Status de implementação
-Implementado.
-
----
-
-# UC-FIN-002 — Registrar pagamento
-
-## Fluxo principal
-1. Usuário seleciona transação pendente/parcial.
-2. Informa método e valor pago.
-3. Backend impede valor inválido.
-4. Status vira parcial ou pago.
-5. Se integral e ligado a consulta agendada, consulta pode virar confirmada.
-
-## Exceções
-Transação cancelada, estornada ou já paga não aceita novo pagamento.
-
-## Status de implementação
-Implementado.
-
----
-
-# UC-FIN-003 — Cancelar ou estornar
-
-Cancelamento é permitido em pendente/parcial; estorno somente em pago. As ações não devem apagar histórico.
-
-## Status de implementação
-Implementado.
-
-[Voltar](README.md)
+A geração em lote é idempotente e preserva o contrato `created`, `skipped` e `created_count`.
