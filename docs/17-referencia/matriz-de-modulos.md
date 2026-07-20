@@ -7,7 +7,7 @@
 | Dashboard | agregações por domínio | `features/dashboard` | Indireta | Parcial | 🟡 |
 | Pacientes | `apps/patients` | `features/patients` | Sim | Sim | ✅ |
 | Prontuário | `apps/records` | `features/records` | Sim | Sim | ✅ |
-| Agenda | `apps/agenda` | `features/agenda` | Sim | Sim | ✅ |
+| Agenda | `apps/scheduling` (`label=agenda`) | `features/agenda` | `/api/v1/scheduling/` | Sim | ✅ |
 | Financeiro | `apps/financeiro` | `features/financeiro` | Sim | Sim | ✅ |
 | Documentos | `apps/documents` | dashboard/documentos | Sim | Sim | ✅ |
 | Formulários | `apps/forms` | dashboard/formularios | Sim | Sim | ✅ |

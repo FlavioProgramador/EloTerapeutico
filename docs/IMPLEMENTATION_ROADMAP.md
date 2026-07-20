@@ -16,7 +16,7 @@
 | Usuários e autenticação | `apps/users`, Simple JWT, rotação, blacklist, lockout e reset | Parcial | access/refresh ainda são acessíveis ao JavaScript no frontend |
 | Pacientes | `apps/patients`, services, selectors, importação e lifecycle | Com dívida técnica | isolamento predominante por terapeuta, sem tenant explícito |
 | Prontuário | `apps/records`, evoluções, anamnese, anexos e exportações | Parcial | exige tenant explícito, optimistic locking e pipeline antivírus |
-| Agenda | `apps/agenda`, services, recorrências, salas, pacotes e locks | Parcial | revisar calendário mensal, timezone e concorrência PostgreSQL |
+| Agenda | `apps/scheduling` (`label=agenda`), services, recorrências, salas, pacotes e locks | Parcial | revisar calendário mensal, timezone e concorrência PostgreSQL |
 | Financeiro clínico | `apps/financeiro`, services, selectors e relatórios | Parcial | preservar separação em relação ao Billing do SaaS |
 | Documentos | `apps/documents`, models/services/selectors/views separados | Parcial | ampliar versionamento, fila, retenção e classificação de assinatura |
 | Formulários | `apps/forms`, templates, submissões e respostas | Parcial | consolidar snapshots/versionamento e portal público seguro |

@@ -1,6 +1,15 @@
-# Módulo de agenda
+# Módulo de Agenda
 
 **Status: implementado.**
+
+## Identidade técnica
+
+- pacote Python oficial: `apps.scheduling`;
+- app label histórico do Django: `agenda`;
+- nome visual do produto: Agenda;
+- rota oficial: `/api/v1/scheduling/`.
+
+O pacote Python `apps.agenda` e o alias HTTP `/api/v1/agenda/` foram removidos. O label histórico continua preservado para manter tabelas, migrations, permissões e relações existentes.
 
 ## Finalidade
 
@@ -37,7 +46,7 @@ Modalidades: presencial, online e híbrida. Tipos incluem avaliação, psicotera
 
 ## API
 
-Prefixo canônico `/api/v1/scheduling/` (com `/api/v1/agenda/` como alias temporário):
+Prefixo oficial `/api/v1/scheduling/`:
 
 - `appointments/`;
 - `appointment-recurrences/`;
@@ -53,7 +62,7 @@ ViewSets possuem actions de operação, recorrência e telemedicina. Consulte o 
 
 ## Frontend
 
-`features/agenda` implementa calendário, modal de consulta e recorrências. A interface deve evitar criar conflito apenas visualmente; a API valida novamente.
+`features/agenda` implementa a experiência visual de calendário, modal de consulta e recorrências. O nome da feature e a rota visual `/dashboard/agenda` podem permanecer em português; as chamadas HTTP devem usar `scheduling/`.
 
 ## Permissões e segurança
 
@@ -61,7 +70,7 @@ Querysets devem ser filtrados pelo profissional acessível. Tokens de telemedici
 
 ## Testes
 
-Há testes completos de agenda, telemedicina, performance e teste frontend do calendário via Node test runner.
+Há testes completos de scheduling, telemedicina, performance e teste frontend do calendário via Node test runner.
 
 ## Limitações
 

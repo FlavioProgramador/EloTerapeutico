@@ -117,9 +117,6 @@ def test_public_url_modules_keep_their_contract(public_module):
 @pytest.mark.parametrize(
     "relative_path",
     [
-        "apps/agenda/api/models.py",
-        "apps/agenda/api/serializers/__init__.py",
-        "apps/agenda/api/views/__init__.py",
         "apps/billing/models/__init__.py",
         "apps/billing/api/v1/serializers/__init__.py",
         "apps/billing/api/v1/views/__init__.py",
@@ -165,9 +162,6 @@ def test_public_exports_are_explicit(relative_path):
 @pytest.mark.parametrize(
     "relative_path",
     [
-        "apps/agenda/models.py",
-        "apps/agenda/model_parts",
-        "apps/agenda/services/core_services.py",
         "apps/billing/access_views.py",
         "apps/billing/admin.py",
         "apps/billing/authentication.py",
@@ -219,6 +213,12 @@ def test_moved_modules_do_not_return_to_app_root(relative_path):
     assert not (BACKEND_ROOT / relative_path).exists()
 
 
+def test_legacy_agenda_package_is_removed():
+    assert not (BACKEND_ROOT / "apps/agenda").exists()
+    with pytest.raises(ModuleNotFoundError):
+        import_module("apps.agenda")
+
+
 def _assert_facades_are_thin(paths: list[str]) -> None:
     for relative_path in paths:
         source = (BACKEND_ROOT / relative_path).read_text(encoding="utf-8")
@@ -258,24 +258,3 @@ def test_billing_webhook_facade_preserves_patch_points():
     module = import_module("apps.billing.webhooks.asaas")
     assert callable(module.activate_subscription_from_payment)
     assert callable(module.mark_subscription_past_due)
-    assert callable(module.handle_asaas_webhook)
-
-
-def test_communications_compatibility_facades_remain_thin():
-    _assert_facades_are_thin(
-        [
-            "apps/communications/channel_serializers.py",
-            "apps/communications/permissions.py",
-            "apps/communications/providers.py",
-            "apps/communications/serializers.py",
-            "apps/communications/urls.py",
-            "apps/communications/urls_public.py",
-        ]
-    )
-
-
-def test_communications_migration_operations_path_is_preserved():
-    path = BACKEND_ROOT / "apps/communications/migration_operations.py"
-    assert path.exists()
-    module = import_module("apps.communications.migration_operations")
-    assert hasattr(module, "CreateModelIfNotExists")

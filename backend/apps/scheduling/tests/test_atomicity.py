@@ -8,8 +8,11 @@ from rest_framework.test import APIRequestFactory
 
 from apps.financeiro.models import FinancialTransaction
 from apps.patients.models import Patient
-from apps.scheduling.api.serializers import AppointmentCreateSerializer, AppointmentStatusUpdateSerializer
-from apps.scheduling.api.views.appointments import AppointmentViewSet
+from apps.scheduling.api.v1.serializers import (
+    AppointmentCreateSerializer,
+    AppointmentStatusUpdateSerializer,
+)
+from apps.scheduling.api.v1.views.appointments import AppointmentViewSet
 from apps.scheduling.models import Appointment
 from apps.users.models import User
 
@@ -40,7 +43,11 @@ def atomic_patient(db, atomic_therapist):
 
 @pytest.fixture
 def atomic_request(atomic_therapist):
-    request = APIRequestFactory().post("/api/v1/agenda/appointments/", {}, format="json")
+    request = APIRequestFactory().post(
+        "/api/v1/scheduling/appointments/",
+        {},
+        format="json",
+    )
     request.user = atomic_therapist
     return request
 
@@ -67,7 +74,7 @@ def test_appointment_creation_rolls_back_when_derived_resource_fails(
     serializer.is_valid(raise_exception=True)
 
     with patch(
-        "apps.agenda.services.appointments.create_appointment_resources",
+        "apps.scheduling.services.appointments.create_appointment_resources",
         side_effect=RuntimeError("falha simulada"),
     ):
         with pytest.raises(RuntimeError):
@@ -102,7 +109,7 @@ def test_status_and_financial_entry_roll_back_together(
     view.request = atomic_request
 
     with patch(
-        "apps.agenda.services.appointments.create_financial_transaction",
+        "apps.scheduling.services.appointments.create_appointment_transaction",
         side_effect=RuntimeError("falha financeira simulada"),
     ):
         with pytest.raises(RuntimeError):

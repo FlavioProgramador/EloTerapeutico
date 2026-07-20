@@ -16,7 +16,7 @@ A API principal usa o prefixo `/api/v1/` e é documentada automaticamente por dr
 - [Endpoints de autenticação e usuários](endpoints/auth-users.md)
 - [Endpoints de pacientes](endpoints/patients.md)
 - [Endpoints de prontuário](endpoints/records.md)
-- [Endpoints de agenda](endpoints/agenda.md)
+- [Endpoints de scheduling/agenda](endpoints/scheduling.md)
 - [Endpoints financeiros](endpoints/financeiro.md)
 - [Documentos, formulários e relatórios](endpoints/documents-forms-reports.md)
 - [Billing](endpoints/billing.md)

@@ -1,6 +1,8 @@
-# Endpoints — Agenda
+# Endpoints — Scheduling (Agenda)
 
-Base canônica: `/api/v1/scheduling/`. O prefixo `/api/v1/agenda/` permanece como alias temporário de compatibilidade.
+Base oficial: `/api/v1/scheduling/`.
+
+O alias `/api/v1/agenda/` foi removido e não faz parte do contrato público.
 
 Routers:
 
