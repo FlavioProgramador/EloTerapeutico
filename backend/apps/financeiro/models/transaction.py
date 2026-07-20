@@ -9,7 +9,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q, Sum
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -256,16 +256,34 @@ class FinancialTransaction(models.Model):
         start = date(year, month, 1)
         end = date(year, month, monthrange(year, month)[1])
         queryset = cls.objects.filter(therapist=therapist, due_date__range=(start, end))
-        paid = queryset.filter(payment_status=cls.PaymentStatus.PAID)
-        income = paid.filter(transaction_type=cls.TransactionType.INCOME).aggregate(total=Sum("amount"))[
-            "total"
-        ] or Decimal("0.00")
-        expense = paid.filter(transaction_type=cls.TransactionType.EXPENSE).aggregate(total=Sum("amount"))[
-            "total"
-        ] or Decimal("0.00")
-        pending = queryset.filter(payment_status__in=[cls.PaymentStatus.PENDING, cls.PaymentStatus.PARTIAL]).aggregate(
-            total=Sum("amount")
-        )["total"] or Decimal("0.00")
+
+        metrics = queryset.aggregate(
+            total_income=Sum(
+                "amount",
+                filter=Q(
+                    payment_status=cls.PaymentStatus.PAID,
+                    transaction_type=cls.TransactionType.INCOME,
+                ),
+            ),
+            total_expense=Sum(
+                "amount",
+                filter=Q(
+                    payment_status=cls.PaymentStatus.PAID,
+                    transaction_type=cls.TransactionType.EXPENSE,
+                ),
+            ),
+            total_pending=Sum(
+                "amount",
+                filter=Q(payment_status__in=[cls.PaymentStatus.PENDING, cls.PaymentStatus.PARTIAL]),
+            ),
+            transaction_count=Count("id"),
+        )
+
+        income = metrics["total_income"] or Decimal("0.00")
+        expense = metrics["total_expense"] or Decimal("0.00")
+        pending = metrics["total_pending"] or Decimal("0.00")
+        count = metrics["transaction_count"]
+
         return {
             "year": year,
             "month": month,
@@ -273,5 +291,5 @@ class FinancialTransaction(models.Model):
             "total_expense": expense,
             "balance": income - expense,
             "total_pending": pending,
-            "transaction_count": queryset.count(),
+            "transaction_count": count,
         }

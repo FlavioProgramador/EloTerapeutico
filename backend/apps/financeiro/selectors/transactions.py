@@ -2,7 +2,7 @@
 
 from decimal import Decimal
 
-from django.db.models import Sum
+from django.db.models import Count, Q, Sum
 
 from apps.scheduling.models import Appointment
 
@@ -35,16 +35,34 @@ def monthly_summary(*, therapist, year: int, month: int) -> dict:
         created_at__year=year,
         created_at__month=month,
     )
-    paid = queryset.filter(payment_status=FinancialTransaction.PaymentStatus.PAID)
-    income = paid.filter(transaction_type=FinancialTransaction.TransactionType.INCOME).aggregate(total=Sum("amount"))[
-        "total"
-    ] or Decimal("0.00")
-    expense = paid.filter(transaction_type=FinancialTransaction.TransactionType.EXPENSE).aggregate(total=Sum("amount"))[
-        "total"
-    ] or Decimal("0.00")
-    pending = queryset.filter(payment_status=FinancialTransaction.PaymentStatus.PENDING).aggregate(total=Sum("amount"))[
-        "total"
-    ] or Decimal("0.00")
+
+    metrics = queryset.aggregate(
+        total_income=Sum(
+            "amount",
+            filter=Q(
+                payment_status=FinancialTransaction.PaymentStatus.PAID,
+                transaction_type=FinancialTransaction.TransactionType.INCOME,
+            ),
+        ),
+        total_expense=Sum(
+            "amount",
+            filter=Q(
+                payment_status=FinancialTransaction.PaymentStatus.PAID,
+                transaction_type=FinancialTransaction.TransactionType.EXPENSE,
+            ),
+        ),
+        total_pending=Sum(
+            "amount",
+            filter=Q(payment_status=FinancialTransaction.PaymentStatus.PENDING),
+        ),
+        transaction_count=Count("id"),
+    )
+
+    income = metrics["total_income"] or Decimal("0.00")
+    expense = metrics["total_expense"] or Decimal("0.00")
+    pending = metrics["total_pending"] or Decimal("0.00")
+    count = metrics["transaction_count"]
+
     return {
         "year": year,
         "month": month,
@@ -52,7 +70,7 @@ def monthly_summary(*, therapist, year: int, month: int) -> dict:
         "total_expense": expense,
         "balance": income - expense,
         "total_pending": pending,
-        "transaction_count": queryset.count(),
+        "transaction_count": count,
     }
 
 
