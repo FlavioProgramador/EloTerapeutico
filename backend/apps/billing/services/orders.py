@@ -20,7 +20,7 @@ OPERATIONAL_SUBSCRIPTION_STATUSES = [
     Subscription.Status.PAST_DUE,
     Subscription.Status.SUSPENDED,
 ]
-PAYMENT_STATUS_TRANSITIONS = {
+PAYMENT_STATUS_TRANSITIONS: dict[str, set[str]] = {
     Payment.Status.PENDING: set(Payment.Status.values),
     Payment.Status.AUTHORIZED: {
         Payment.Status.AUTHORIZED,
@@ -221,8 +221,8 @@ def upsert_gateway_payment(
     count = int(installment_count or order.installment_count or 1)
     number = payload.get("installmentNumber")
     installment_number = int(number) if number else (1 if count == 1 else None)
-    next_status = payload.get("status") if payload.get("status") in Payment.Status.values else Payment.Status.PENDING
-    defaults = {
+    next_status: str = str(payload.get("status")) if payload.get("status") in Payment.Status.values else str(Payment.Status.PENDING)
+    defaults: dict[str, Any] = {
         "billing_order": order,
         "subscription": subscription,
         "user": order.user,
@@ -368,7 +368,12 @@ def create_billing_order(
         )
         if operational and operational.status in {Subscription.Status.PENDING, Subscription.Status.TRIALING}:
             raise ValidationError("Já existe uma contratação pendente ou período de teste em andamento.")
-        if operational and operational.billing_order_id and operational.billing_order.plan_price_id == plan_price.pk:
+        operational_order = (
+            operational.billing_order
+            if operational and operational.billing_order_id
+            else None
+        )
+        if operational_order is not None and operational_order.plan_price_id == plan_price.pk:
             raise ValidationError("Você já utiliza esta modalidade de plano.")
 
         is_plan_change = operational is not None

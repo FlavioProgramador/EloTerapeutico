@@ -115,7 +115,7 @@ def dispatch_communication(communication_id: int) -> Communication:
         )
         return communication
 
-    final_status = Communication.Status.SENT
+    final_status: str = str(Communication.Status.SENT)
     any_retry = False
     for recipient in recipients:
         attempt_number = _next_attempt_number(communication, recipient)
@@ -184,7 +184,7 @@ def dispatch_communication(communication_id: int) -> Communication:
                 if communication.channel == Communication.Channel.WHATSAPP_MANUAL
                 else CommunicationRecipient.Status.SENT
             )
-            final_status = result.status
+            final_status = str(result.status)
             communication.provider_name = provider.name
             communication.provider_message_id = result.provider_message_id[:160]
             if result.metadata:

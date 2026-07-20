@@ -25,7 +25,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           message: "A sessão expirou. Entre novamente.",
         },
       },
-      { status: 401, headers: { "cache-control": "no-store" } },
+      {
+        status: 401,
+        headers: {
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
+        },
+      },
     );
     clearAuthCookies(response);
     return response;
@@ -47,7 +53,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             },
         {
           status: backendResponse.ok ? 401 : backendResponse.status,
-          headers: { "cache-control": "no-store" },
+          headers: {
+            "cache-control": "no-store",
+            "x-content-type-options": "nosniff",
+          },
         },
       );
       clearAuthCookies(response);
@@ -56,11 +65,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const response = NextResponse.json(
       { refreshed: true },
-      { status: 200, headers: { "cache-control": "no-store" } },
+      {
+        status: 200,
+        headers: {
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
+        },
+      },
     );
     setAuthCookies(response, tokens);
     return response;
-  } catch {
-    return gatewayUnavailableResponse();
+  } catch (error: unknown) {
+    const response = gatewayUnavailableResponse(request, error);
+    clearAuthCookies(response);
+    return response;
   }
 }

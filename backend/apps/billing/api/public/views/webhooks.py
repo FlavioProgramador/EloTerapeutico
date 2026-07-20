@@ -8,7 +8,7 @@ from apps.billing.integrations.asaas.webhooks import handle_asaas_webhook
 
 
 class AsaasWebhookView(APIView):
-    authentication_classes = []
+    authentication_classes: list[type] = []
     permission_classes = [AllowAny]
 
     def post(self, request):

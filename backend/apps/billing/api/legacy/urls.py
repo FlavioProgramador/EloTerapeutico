@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 from django.conf import settings
 from django.urls.resolvers import URLPattern
 
@@ -30,8 +32,9 @@ def _deprecated_callback(callback):
 
     wrapped.__name__ = f"legacy_{getattr(callback, '__name__', 'billing_view')}"
     wrapped.__module__ = callback.__module__
-    wrapped.csrf_exempt = getattr(callback, "csrf_exempt", False)
-    wrapped.login_required = getattr(callback, "login_required", False)
+    wrapped_with_attrs = cast(Any, wrapped)
+    wrapped_with_attrs.csrf_exempt = getattr(callback, "csrf_exempt", False)
+    wrapped_with_attrs.login_required = getattr(callback, "login_required", False)
     return wrapped
 
 

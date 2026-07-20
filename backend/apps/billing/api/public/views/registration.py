@@ -79,7 +79,7 @@ def _send_account_created_email(user, *, trial_started: bool) -> None:
 
 class PlanRegistrationView(APIView):
     permission_classes = [AllowAny]
-    authentication_classes = []
+    authentication_classes: list[type] = []
     serializer_class = PlanRegistrationSerializer
 
     @transaction.atomic

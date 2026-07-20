@@ -1,0 +1,13 @@
+{
+  "name": "elo-terapeutico-auth-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:auth": "playwright test auth.spec.ts",
+    "test:gateway": "playwright test gateway.spec.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1"
+  }
+}

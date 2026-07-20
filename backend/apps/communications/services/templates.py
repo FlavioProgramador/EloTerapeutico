@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from django.conf import settings
 from django.utils import timezone
 
@@ -8,7 +10,7 @@ from ..validators import plain_text_to_safe_html, render_template_text
 from .privacy import _safe_variables
 
 
-def build_default_variables(owner, patient=None, appointment=None) -> dict[str, str]:
+def build_default_variables(owner, patient=None, appointment=None) -> dict[str, object]:
     variables = {
         "therapist_name": owner.full_name,
         "clinic_name": owner.clinic_name or "Elo Terapêutico",
@@ -30,7 +32,7 @@ def build_default_variables(owner, patient=None, appointment=None) -> dict[str, 
     return variables
 
 
-def render_communication(template, variables: dict[str, object], *, append_footer: bool = True):
+def render_communication(template, variables: Mapping[str, object], *, append_footer: bool = True):
     safe_variables = _safe_variables(variables)
     subject = render_template_text(template.subject_template, safe_variables)
     body = render_template_text(template.body_template, safe_variables)

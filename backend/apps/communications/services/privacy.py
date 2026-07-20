@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from decimal import Decimal
 
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -52,7 +53,7 @@ def mask_phone(value: str) -> str:
     return f"+{digits[:2]} (***) *****-{digits[-4:]}"
 
 
-def _safe_variables(variables: dict[str, object] | None) -> dict[str, str]:
+def _safe_variables(variables: Mapping[str, object] | None) -> dict[str, str]:
     result: dict[str, str] = {}
     for key, value in (variables or {}).items():
         if key not in SAFE_VARIABLE_KEYS:

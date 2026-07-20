@@ -49,7 +49,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!refreshToken) {
     const response = NextResponse.json(
       { message: "Sessão encerrada." },
-      { status: 200, headers: { "cache-control": "no-store" } },
+      {
+        status: 200,
+        headers: {
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
+        },
+      },
     );
     clearAuthCookies(response);
     return response;
@@ -68,18 +74,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         : {
             error: {
               code: "LOGOUT_NOT_CONFIRMED",
-              message: "A sessão local foi removida, mas a revogação remota não foi confirmada.",
+              message:
+                "A sessão local foi removida, mas a revogação remota não foi confirmada.",
             },
           },
       {
         status: backendResponse.status,
-        headers: { "cache-control": "no-store" },
+        headers: {
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
+        },
       },
     );
     clearAuthCookies(response);
     return response;
-  } catch {
-    const response = gatewayUnavailableResponse();
+  } catch (error: unknown) {
+    const response = gatewayUnavailableResponse(request, error);
     clearAuthCookies(response);
     return response;
   }

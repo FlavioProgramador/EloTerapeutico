@@ -11,7 +11,10 @@
     "test": "node --experimental-strip-types --test *.test.mjs",
     "test:coverage": "node --experimental-strip-types --experimental-test-coverage --test --test-coverage-lines=80 --test-coverage-functions=75 --test-coverage-branches=70 *.test.mjs",
     "test:agenda": "node --experimental-strip-types --test agenda-calendar.test.mjs",
-    "test:auth": "node --experimental-strip-types --test auth-flow.test.mjs"
+    "test:auth": "node --experimental-strip-types --test auth-flow.test.mjs auth-bff-policy.test.mjs",
+    "test:e2e": "npm --prefix e2e run test",
+    "test:e2e:auth": "npm --prefix e2e run test:auth",
+    "test:e2e:gateway": "npm --prefix e2e run test:gateway"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

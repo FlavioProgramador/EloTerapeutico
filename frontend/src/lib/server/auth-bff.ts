@@ -1,4 +1,4 @@
-import { randomBytes, timingSafeEqual } from "node:crypto";
+import { randomBytes } from "node:crypto";
 
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -8,6 +8,14 @@ import {
   AUTH_REFRESH_COOKIE,
   isUnsafeHttpMethod,
 } from "@/lib/auth-constants";
+import {
+  csrfTokensMatch,
+  gatewayUnavailableLog,
+  gatewayUnavailablePayload,
+  isTrustedOriginValue,
+  sanitizeRequestId,
+  shouldUseSecureCookies,
+} from "@/lib/server/auth-bff-policy";
 
 export interface TokenPair {
   access: string;
@@ -29,7 +37,7 @@ const REFRESH_MAX_AGE_SECONDS = readPositiveInteger(
   7 * 24 * 60 * 60,
 );
 const CSRF_MAX_AGE_SECONDS = REFRESH_MAX_AGE_SECONDS;
-const COOKIE_SECURE = process.env.NODE_ENV === "production";
+const COOKIE_SECURE = shouldUseSecureCookies();
 
 const FORWARDED_REQUEST_HEADERS = [
   "accept",
@@ -66,6 +74,13 @@ function backendBaseUrl(): URL {
   return new URL(configured.endsWith("/") ? configured : `${configured}/`);
 }
 
+function resolveRequestId(request?: NextRequest): string {
+  return (
+    sanitizeRequestId(request?.headers.get("x-request-id")) ||
+    randomBytes(16).toString("hex")
+  );
+}
+
 export function buildBackendUrl(path: string, search = ""): URL {
   const normalized = path.replace(/^\/+/, "");
   if (
@@ -83,39 +98,20 @@ export function buildBackendUrl(path: string, search = ""): URL {
 }
 
 export function isTrustedRequestOrigin(request: NextRequest): boolean {
-  const origin = request.headers.get("origin");
-  if (origin) {
-    try {
-      return new URL(origin).origin === request.nextUrl.origin;
-    } catch {
-      return false;
-    }
-  }
-
-  const fetchSite = request.headers.get("sec-fetch-site");
-  return (
-    fetchSite === null ||
-    fetchSite === "same-origin" ||
-    fetchSite === "same-site" ||
-    fetchSite === "none"
+  return isTrustedOriginValue(
+    request.headers.get("origin"),
+    request.nextUrl.origin,
+    request.headers.get("sec-fetch-site"),
   );
-}
-
-function safeTokenEquals(left: string, right: string): boolean {
-  const leftBuffer = Buffer.from(left);
-  const rightBuffer = Buffer.from(right);
-  if (leftBuffer.length !== rightBuffer.length) return false;
-  return timingSafeEqual(leftBuffer, rightBuffer);
 }
 
 export function hasValidCsrf(request: NextRequest): boolean {
   if (!isUnsafeHttpMethod(request.method)) return true;
   if (!isTrustedRequestOrigin(request)) return false;
 
-  const cookieToken = request.cookies.get(AUTH_CSRF_COOKIE)?.value || "";
-  const headerToken = request.headers.get("x-csrf-token") || "";
-  return Boolean(
-    cookieToken && headerToken && safeTokenEquals(cookieToken, headerToken),
+  return csrfTokensMatch(
+    request.cookies.get(AUTH_CSRF_COOKIE)?.value,
+    request.headers.get("x-csrf-token"),
   );
 }
 
@@ -127,7 +123,13 @@ export function csrfRejectedResponse(): NextResponse {
         message: "A solicitação não pôde ser validada.",
       },
     },
-    { status: 403 },
+    {
+      status: 403,
+      headers: {
+        "cache-control": "no-store",
+        "x-content-type-options": "nosniff",
+      },
+    },
   );
 }
 
@@ -139,22 +141,31 @@ export function originRejectedResponse(): NextResponse {
         message: "A origem da solicitação não é permitida.",
       },
     },
-    { status: 403 },
+    {
+      status: 403,
+      headers: {
+        "cache-control": "no-store",
+        "x-content-type-options": "nosniff",
+      },
+    },
   );
 }
 
-export function gatewayUnavailableResponse(errorDetails?: any): NextResponse {
-  return NextResponse.json(
-    {
-      error: {
-        code: "AUTH_GATEWAY_UNAVAILABLE",
-        message: "O serviço de autenticação está temporariamente indisponível.",
-        details: errorDetails ? (errorDetails.message || String(errorDetails)) : undefined,
-        url: backendBaseUrl().toString()
-      },
+export function gatewayUnavailableResponse(
+  request?: NextRequest,
+  error?: unknown,
+): NextResponse {
+  const requestId = resolveRequestId(request);
+  console.error(JSON.stringify(gatewayUnavailableLog(requestId, error)));
+
+  return NextResponse.json(gatewayUnavailablePayload(requestId), {
+    status: 502,
+    headers: {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff",
+      "x-request-id": requestId,
     },
-    { status: 502 },
-  );
+  });
 }
 
 export function generateCsrfToken(): string {
@@ -313,7 +324,11 @@ export async function backendResponseToNext(
 export async function refreshTokenPair(
   request: NextRequest,
   refreshToken: string,
-): Promise<{ response: Response; tokens: TokenPair | null; payload: JsonObject | null }> {
+): Promise<{
+  response: Response;
+  tokens: TokenPair | null;
+  payload: JsonObject | null;
+}> {
   const response = await fetchBackend("auth/token/refresh/", {
     method: "POST",
     headers: {

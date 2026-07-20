@@ -13,7 +13,7 @@ from django.utils import timezone
 from apps.finances.models import FinancialTransaction
 from apps.finances.selectors.financial_transactions import transactions_accessible_to
 
-MONEY_FIELD = DecimalField(max_digits=12, decimal_places=2)
+MONEY_FIELD: DecimalField = DecimalField(max_digits=12, decimal_places=2)
 ZERO_MONEY = Value(Decimal("0.00"), output_field=MONEY_FIELD)
 
 
