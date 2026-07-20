@@ -50,7 +50,7 @@ class AuditLog(models.Model):
         max_length=200,
         blank=True,
         verbose_name="Representação do objeto",
-        help_text="Identificador técnico seguro do objeto no momento do evento.",
+        help_text="Descrição legível do objeto no momento do log.",
     )
 
     objects = AuditLogManager()
