@@ -10,6 +10,8 @@ A API principal utiliza o prefixo:
 
 Rotas de compatibilidade de billing também existem em `/api/billing/`. Novas integrações devem preferir o contrato versionado em `/api/v1/billing/`.
 
+O domínio de calendário usa exclusivamente `/api/v1/scheduling/`. A antiga rota `/api/v1/agenda/` não é registrada.
+
 ## Grupos de endpoints
 
 | Prefixo | Domínio |
@@ -186,7 +188,7 @@ Webhooks de billing ou comunicações devem:
 
 Mudanças na documentação não devem alterar:
 
-- nomes de rotas;
+- nomes de rotas canônicas;
 - serializers públicos;
 - códigos HTTP;
 - campos obrigatórios;
@@ -195,4 +197,4 @@ Mudanças na documentação não devem alterar:
 - permissions;
 - comportamento de idempotência.
 
-> Compatibilidade: `/api/v1/agenda/` continua disponível temporariamente e aponta para a mesma API de scheduling.
+Para scheduling, somente `/api/v1/scheduling/` é contrato público. O nome visual “Agenda” e o app label histórico `agenda` não criam uma segunda rota HTTP.
