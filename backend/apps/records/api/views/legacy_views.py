@@ -10,7 +10,9 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.audit.services.access_logging import AuditLog, AuditLogMixin, log_access
+from apps.audit.integrations import AuditLogMixin
+from apps.audit.models import AuditLog
+from apps.audit.services import log_access
 from apps.patients.services.access_control import can_access_patient, patient_access_q
 from apps.records.api.serializers.legacy_serializers import (
     AnamnesisSerializer,
@@ -157,8 +159,7 @@ class EvolutionViewSet(AuditLogMixin, viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Vincula a evolução ao usuário logado
         instance = serializer.save(created_by=self.request.user)
-        # AuditLogMixin realiza auditoria automaticamente, mas chamamos explicitamente
-        # para garantir consistência no log de auditoria
+        # Este hook possui persistência customizada, então emite um único evento explícito.
         log_access(self.request, AuditLog.Action.CREATE, obj=instance)
 
     def perform_update(self, serializer):
@@ -220,7 +221,7 @@ class EvolutionViewSet(AuditLogMixin, viewsets.ModelViewSet):
             request,
             AuditLog.Action.UPDATE,
             obj=evolution,
-            obj_repr=f"Aditivo criado por {request.user.full_name} para {evolution}",
+            obj_repr=f"records.Evolution#{evolution.pk}:addendum_created",
         )
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)

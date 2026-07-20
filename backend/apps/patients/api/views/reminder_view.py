@@ -4,7 +4,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.audit.services.access_logging import AuditLog, log_access
+from apps.audit.models import AuditLog
+from apps.audit.services import log_access
 from apps.patients.selectors.patients import patients_accessible_to
 
 

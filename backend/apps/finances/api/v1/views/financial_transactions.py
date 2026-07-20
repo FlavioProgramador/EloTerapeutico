@@ -4,7 +4,9 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.audit.services.access_logging import AuditLogMixin
+from apps.audit.integrations import AuditLogMixin
+from apps.audit.models import AuditLog
+from apps.audit.services import record_audit_event, safe_resource_repr
 from apps.finances.api.v1.filters import FinancialTransactionFilter
 from apps.finances.api.v1.permissions import FinancesPermission
 from apps.finances.api.v1.serializers import (
@@ -42,6 +44,7 @@ class FinancialTransactionViewSetBase(AuditLogMixin, viewsets.ModelViewSet):
         serializer.instance = create_financial_transaction(
             actor=self.request.user, validated_data=serializer.validated_data
         )
+        self._record_instance(AuditLog.Action.CREATE, serializer.instance, on_commit=True)
 
     def perform_update(self, serializer):
         serializer.instance = update_financial_transaction(
@@ -49,10 +52,24 @@ class FinancialTransactionViewSetBase(AuditLogMixin, viewsets.ModelViewSet):
             financial_transaction=serializer.instance,
             validated_data=serializer.validated_data,
         )
+        self._record_instance(AuditLog.Action.UPDATE, serializer.instance, on_commit=True)
 
     def perform_destroy(self, instance):
+        resource_label = instance._meta.label
+        resource_id = instance.pk
+        resource_repr = safe_resource_repr(instance)
         delete_financial_transaction(
             actor=self.request.user, financial_transaction=instance
+        )
+        record_audit_event(
+            action=AuditLog.Action.DELETE,
+            actor=self.request.user,
+            resource_label=resource_label,
+            resource_id=resource_id,
+            resource_repr=resource_repr,
+            request=self.request,
+            source=f"drf:{self.__class__.__name__}",
+            on_commit=True,
         )
 
     @action(detail=False, methods=["get"], url_path="pending")

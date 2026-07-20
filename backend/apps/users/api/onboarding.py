@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.audit.models import AuditLog
+from apps.audit.services import record_audit_event
 from apps.users.models import WorkingHours
 
 from .serializers import UserProfileSerializer, WorkingHoursSerializer
@@ -115,13 +116,14 @@ class OnboardingView(APIView):
                     weekday__in=supplied_weekdays
                 ).update(is_active=False)
 
-        AuditLog.objects.create(
-            user=user,
+        record_audit_event(
             action=AuditLog.Action.UPDATE,
-            ip_address=request.META.get("REMOTE_ADDR"),
-            user_agent=request.META.get("HTTP_USER_AGENT", "")[:1000],
-            content_object=user,
-            object_repr="Configuração inicial da conta atualizada",
+            actor=user,
+            resource=user,
+            resource_repr=f"users.User#{user.pk}:onboarding_updated",
+            request=request,
+            source="users.onboarding",
+            on_commit=True,
         )
 
         return Response(

@@ -68,7 +68,7 @@ Também foram analisados:
 - `backend/apps/billing/services/payment_sync.py`: docstring Google Style no fluxo de sincronização com o gateway;
 - `backend/apps/core/api/pagination.py`: documentação da classe, resposta paginada e schema OpenAPI;
 - `backend/apps/users/services/credentials.py`: documentação do fluxo anti-enumeração de recuperação de senha;
-- `backend/apps/audit/services/access_logging.py`: documentação de sanitização, IP, persistência de auditoria e mixin de ViewSets.
+- `backend/apps/audit/services/events.py`, `request_context.py` e `sanitization.py`: documentação de sanitização, IP, persistência de auditoria e mixin de ViewSets.
 
 ## Padrões adotados
 

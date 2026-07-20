@@ -238,7 +238,7 @@ LOCAL_APPS = [
     "apps.forms",
     "apps.billing",
     "apps.communications",
-    "apps.audit",
+    "apps.audit.apps.AuditConfig",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 

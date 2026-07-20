@@ -13,7 +13,7 @@
 | `forms` | Formulários |
 | `billing` | Planos e assinatura SaaS |
 | `communications` | Notificações e automações |
-| `audit` | Auditoria |
+| `audit` | Trilha append-only, sanitização, contexto HTTP e integrações de auditoria |
 
 ## Fronteira financeira
 

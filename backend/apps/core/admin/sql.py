@@ -26,7 +26,7 @@ from sqlparse.sql import Identifier, IdentifierList, Parenthesis, Statement
 from sqlparse.tokens import DDL, DML, Comment, Keyword
 
 from apps.audit.models import AuditLog
-from apps.audit.services.access_logging import log_access
+from apps.audit.services import log_access
 
 logger = logging.getLogger(__name__)
 

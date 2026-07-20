@@ -66,7 +66,6 @@ repos:
             backend/apps/users/managers\.py|
             backend/apps/core/quality/.*|
             backend/apps/core/fields\.py|
-            backend/apps/audit/services/access_logging\.py|
             backend/config/settings/test\.py|
             backend/conftest\.py|
             .*/tests/.*

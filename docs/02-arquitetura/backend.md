@@ -41,7 +41,7 @@ Django Unfold organiza dashboard, SQL Explorer, pacientes, registros, agenda, fi
 
 ## Pontos de atenção
 
-- `apps.audit.services.access_logging.log_access` não interrompe a ação de negócio quando a gravação da auditoria falha; isso preserva disponibilidade, mas exige alerta operacional;
+- `apps.audit.services.record_audit_event` não interrompe a ação de negócio quando a gravação da auditoria falha; isso preserva disponibilidade, mas exige alerta operacional;
 - há imports de compatibilidade para modelos e URLs após refatorações;
 - vários módulos estão excluídos ou ignorados parcialmente pelo mypy;
 - a rota de billing também existe em `/api/billing/`, além do prefixo principal.

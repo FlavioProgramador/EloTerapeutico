@@ -3,7 +3,8 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.audit.services.access_logging import AuditLog, log_access
+from apps.audit.models import AuditLog
+from apps.audit.services import log_access
 from apps.scheduling.api.v1.filters import PackageFilter, ScheduleBlockFilter
 from apps.scheduling.api.v1.serializers import (
     AppointmentCreateSerializer,

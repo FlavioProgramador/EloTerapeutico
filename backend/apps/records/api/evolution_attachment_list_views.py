@@ -5,7 +5,8 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.audit.services.access_logging import AuditLog, log_access
+from apps.audit.models import AuditLog
+from apps.audit.services import log_access
 from apps.records.api.views.clinical_views import ClinicalPatientMixin
 from apps.records.services.evolution_security import max_evolution_attachments
 

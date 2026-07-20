@@ -13,6 +13,7 @@ from apps.core.quality.legacy_backend_architecture import (
     main as validate_existing_architecture,
 )
 from apps.core.quality.rules import (
+    validate_audit_architecture,
     validate_core_architecture,
     validate_documents_architecture,
     validate_finances_architecture,
@@ -24,6 +25,7 @@ def main() -> None:
     """Valida regras modulares e, em seguida, as regras legadas do backend."""
 
     errors: list[str] = []
+    validate_audit_architecture(errors)
     validate_core_architecture(errors)
     validate_documents_architecture(errors)
     validate_finances_architecture(errors)
