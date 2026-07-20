@@ -1,0 +1,10 @@
+"""Configuração do domínio financeiro clínico."""
+
+from django.apps import AppConfig
+
+
+class FinancesConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.finances"
+    label = "financeiro"
+    verbose_name = "Financeiro"
