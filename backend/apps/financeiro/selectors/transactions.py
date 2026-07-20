@@ -2,7 +2,7 @@
 
 from decimal import Decimal
 
-from django.db.models import Sum, Q, Count
+from django.db.models import Count, Q, Sum
 
 from apps.scheduling.models import Appointment
 
