@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
@@ -31,6 +32,12 @@ class InAppNotification(models.Model):
         SYSTEM = "system", "Sistema"
 
     public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="in_app_notifications",
+        db_index=True,
+    )
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -55,11 +62,20 @@ class InAppNotification(models.Model):
         on_delete=models.SET_NULL,
         related_name="notifications",
     )
-    category = models.CharField(max_length=24, choices=Category.choices, default=Category.SYSTEM, db_index=True)
+    category = models.CharField(
+        max_length=24,
+        choices=Category.choices,
+        default=Category.SYSTEM,
+        db_index=True,
+    )
     title = models.CharField(max_length=160)
     message = models.CharField(max_length=500)
     notification_type = models.CharField(max_length=80, db_index=True)
-    priority = models.CharField(max_length=12, choices=Priority.choices, default=Priority.NORMAL)
+    priority = models.CharField(
+        max_length=12,
+        choices=Priority.choices,
+        default=Priority.NORMAL,
+    )
     internal_url = models.CharField(max_length=500, blank=True)
     action_label = models.CharField(max_length=80, blank=True)
     metadata = models.JSONField(default=dict, blank=True)
@@ -72,13 +88,33 @@ class InAppNotification(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["recipient", "is_read", "created_at"], name="comm_notification_unread_idx"),
-            models.Index(fields=["recipient", "archived_at", "created_at"], name="comm_notif_archive_idx"),
-            models.Index(fields=["recipient", "category", "created_at"], name="comm_notif_category_idx"),
+            models.Index(
+                fields=["organization", "recipient", "is_read", "created_at"],
+                name="comm_notif_org_unread_idx",
+            ),
+            models.Index(
+                fields=["recipient", "is_read", "created_at"],
+                name="comm_notification_unread_idx",
+            ),
+            models.Index(
+                fields=["recipient", "archived_at", "created_at"],
+                name="comm_notif_archive_idx",
+            ),
+            models.Index(
+                fields=["recipient", "category", "created_at"],
+                name="comm_notif_category_idx",
+            ),
         ]
+
+    def clean(self):
+        super().clean()
+        if self.communication_id and self.communication.organization_id != self.organization_id:
+            raise ValidationError({"communication": "A comunicação pertence a outra organização."})
 
 
 class NotificationPreference(models.Model):
+    """Preferência pessoal global do usuário para notificações do produto."""
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -116,9 +152,18 @@ class NotificationDelivery(models.Model):
         FAILED = "failed", "Falhou"
         SKIPPED = "skipped", "Ignorado"
 
-    notification = models.ForeignKey(InAppNotification, on_delete=models.CASCADE, related_name="deliveries")
+    notification = models.ForeignKey(
+        InAppNotification,
+        on_delete=models.CASCADE,
+        related_name="deliveries",
+    )
     channel = models.CharField(max_length=20, choices=Channel.choices)
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
+    )
     attempt_count = models.PositiveSmallIntegerField(default=0)
     provider = models.CharField(max_length=80, blank=True)
     provider_reference = models.CharField(max_length=160, blank=True)
@@ -134,9 +179,17 @@ class NotificationDelivery(models.Model):
     class Meta:
         ordering = ["notification_id", "channel"]
         constraints = [
-            models.UniqueConstraint(fields=["notification", "channel"], name="comm_notif_delivery_channel_uniq")
+            models.UniqueConstraint(
+                fields=["notification", "channel"],
+                name="comm_notif_delivery_channel_uniq",
+            )
         ]
-        indexes = [models.Index(fields=["status", "next_retry_at"], name="comm_notif_delivery_retry_idx")]
+        indexes = [
+            models.Index(
+                fields=["status", "next_retry_at"],
+                name="comm_notif_delivery_retry_idx",
+            )
+        ]
 
 
 class InboundMessage(models.Model):
@@ -147,7 +200,17 @@ class InboundMessage(models.Model):
         LINKED = "linked", "Relacionada"
         ARCHIVED = "archived", "Arquivada"
 
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="inbound_messages")
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="inbound_messages",
+        db_index=True,
+    )
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="inbound_messages",
+    )
     patient = models.ForeignKey(
         "patients.Patient",
         null=True,
@@ -160,7 +223,11 @@ class InboundMessage(models.Model):
     provider = models.CharField(max_length=60)
     external_id = models.CharField(max_length=160)
     body = EncryptedTextField(blank=True)
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.RECEIVED)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.RECEIVED,
+    )
     communication = models.ForeignKey(
         Communication,
         null=True,
@@ -181,5 +248,21 @@ class InboundMessage(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["provider", "external_id"], name="comm_inbound_external_uniq")
+            models.UniqueConstraint(
+                fields=["organization", "provider", "external_id"],
+                name="comm_inbound_org_external_uniq",
+            )
         ]
+        indexes = [
+            models.Index(
+                fields=["organization", "status", "received_at"],
+                name="comm_inbound_org_status_idx",
+            )
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.patient_id and self.patient.organization_id != self.organization_id:
+            raise ValidationError({"patient": "O paciente pertence a outra organização."})
+        if self.communication_id and self.communication.organization_id != self.organization_id:
+            raise ValidationError({"communication": "A comunicação pertence a outra organização."})
