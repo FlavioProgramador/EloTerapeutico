@@ -108,7 +108,8 @@ class InAppNotification(models.Model):
 
     def clean(self):
         super().clean()
-        if self.communication_id and self.communication.organization_id != self.organization_id:
+        communication = self.communication if self.communication_id else None
+        if communication is not None and communication.organization_id != self.organization_id:
             raise ValidationError({"communication": "A comunicação pertence a outra organização."})
 
 
@@ -262,7 +263,10 @@ class InboundMessage(models.Model):
 
     def clean(self):
         super().clean()
-        if self.patient_id and self.patient.organization_id != self.organization_id:
+        patient = self.patient if self.patient_id else None
+        if patient is not None and patient.organization_id != self.organization_id:
             raise ValidationError({"patient": "O paciente pertence a outra organização."})
-        if self.communication_id and self.communication.organization_id != self.organization_id:
+
+        communication = self.communication if self.communication_id else None
+        if communication is not None and communication.organization_id != self.organization_id:
             raise ValidationError({"communication": "A comunicação pertence a outra organização."})
