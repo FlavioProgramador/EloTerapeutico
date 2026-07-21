@@ -39,13 +39,26 @@ class AuditLog(models.Model):
         verbose_name="Usuário",
     )
     action = models.CharField(max_length=20, choices=Action.choices, verbose_name="Ação")
-    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="Endereço IP")
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        verbose_name="Endereço IP",
+    )
     user_agent = models.TextField(blank=True, verbose_name="User Agent")
     timestamp = models.DateTimeField(default=timezone.now, verbose_name="Data/Hora")
-    content_type = models.ForeignKey(ContentType, on_delete=models.SET_NULL, null=True, blank=True)
+    content_type = models.ForeignKey(
+        ContentType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     object_id = models.PositiveBigIntegerField(null=True, blank=True)
     content_object = GenericForeignKey("content_type", "object_id")
-    object_repr = models.CharField(max_length=200, blank=True, verbose_name="Representação do objeto")
+    object_repr = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Representação do objeto",
+    )
 
     objects = AuditLogManager()
 
@@ -55,8 +68,8 @@ class AuditLog(models.Model):
         verbose_name_plural = "Logs de Auditoria"
         ordering = ["-timestamp"]
         indexes = [
-            models.Index(fields=["organization", "timestamp"], name="audit_org_timestamp_idx"),
             models.Index(fields=["user", "timestamp"]),
+            models.Index(fields=["organization", "timestamp"], name="audit_org_timestamp_idx"),
             models.Index(fields=["content_type", "object_id"]),
         ]
 
@@ -65,11 +78,15 @@ class AuditLog(models.Model):
 
     def save(self, *args, **kwargs):
         if not self._state.adding:
-            raise AuditLogImmutableError("Logs de auditoria são append-only e não podem ser alterados.")
+            raise AuditLogImmutableError(
+                "Logs de auditoria são append-only e não podem ser alterados."
+            )
         return super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        raise AuditLogImmutableError("Logs de auditoria são append-only e não podem ser removidos.")
+        raise AuditLogImmutableError(
+            "Logs de auditoria são append-only e não podem ser removidos."
+        )
 
 
 __all__ = ["AuditLog"]
