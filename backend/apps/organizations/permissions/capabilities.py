@@ -67,6 +67,7 @@ ROLE_CAPABILITIES: dict[str, frozenset[str]] = {
             "communications.view",
             "communications.manage",
             "reports.view",
+            "reports.export",
         }
     ),
     OrganizationMembership.Role.RECEPTIONIST: frozenset(
