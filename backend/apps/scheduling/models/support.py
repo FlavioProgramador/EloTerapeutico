@@ -71,7 +71,8 @@ class ScheduleBlock(models.Model):
         super().clean()
         if self.start_time >= self.end_time:
             raise ValidationError({"end_time": "O término deve ser posterior ao início."})
-        if self.parent_block_id and self.parent_block.organization_id != self.organization_id:
+        parent_block = self.parent_block if self.parent_block_id else None
+        if parent_block is not None and parent_block.organization_id != self.organization_id:
             raise ValidationError({"parent_block": "O bloqueio-pai pertence a outra organização."})
 
 
@@ -114,7 +115,8 @@ class PackageSession(models.Model):
         super().clean()
         if self.package_id and self.package.organization_id != self.organization_id:
             raise ValidationError({"package": "O pacote pertence a outra organização."})
-        if self.appointment_id and self.appointment.organization_id != self.organization_id:
+        appointment = self.appointment if self.appointment_id else None
+        if appointment is not None and appointment.organization_id != self.organization_id:
             raise ValidationError({"appointment": "A consulta pertence a outra organização."})
 
     def __str__(self) -> str:

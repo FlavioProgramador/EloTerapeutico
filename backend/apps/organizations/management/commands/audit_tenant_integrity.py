@@ -4,13 +4,17 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any, cast
 
 from django.apps import apps
 from django.core.management.base import BaseCommand, CommandError
-from django.db.models import Count, Q
+from django.db import models
+from django.db.models import Count, F, Q
 from django.utils import timezone
 
 from apps.organizations.models import Organization, OrganizationMembership
+
+Report = dict[str, Any]
 
 
 class Command(BaseCommand):
@@ -22,7 +26,7 @@ class Command(BaseCommand):
         parser.add_argument("--report-file")
 
     def handle(self, *args, **options):
-        report = {
+        report: Report = {
             "checked_at": timezone.now().isoformat(),
             "errors": [],
             "warnings": [],
@@ -50,11 +54,11 @@ class Command(BaseCommand):
         if report["errors"] and options["fail_on_error"]:
             raise CommandError("A auditoria encontrou violações de isolamento por tenant.")
 
-    def _add(self, report: dict, bucket: str, code: str, count: int, model: str = ""):
+    def _add(self, report: Report, bucket: str, code: str, count: int, model: str = "") -> None:
         if count:
             report[bucket].append({"code": code, "count": count, "model": model})
 
-    def _check_memberships(self, report: dict) -> None:
+    def _check_memberships(self, report: Report) -> None:
         organizations_without_owner = Organization.objects.exclude(status=Organization.Status.ARCHIVED).filter(
             ~Q(
                 memberships__role=OrganizationMembership.Role.OWNER,
@@ -76,7 +80,7 @@ class Command(BaseCommand):
         self._add(report, "errors", "MULTIPLE_DEFAULT_MEMBERSHIPS", duplicate_defaults)
         self._add(report, "warnings", "ACTIVE_MEMBERSHIP_IN_ARCHIVED_ORGANIZATION", active_memberships_in_archived)
 
-    def _check_tenant_models(self, report: dict) -> None:
+    def _check_tenant_models(self, report: Report) -> None:
         relation_candidates = ("patient", "appointment", "package", "membership")
         ignored_apps = {"organizations", "auth", "contenttypes", "sessions", "admin"}
         for model in apps.get_models():
@@ -94,18 +98,12 @@ class Command(BaseCommand):
             for relation in relation_candidates:
                 if relation not in field_names:
                     continue
-                related_model = model._meta.get_field(relation).related_model
+                related_model = cast(type[models.Model], model._meta.get_field(relation).related_model)
                 related_fields = {field.name for field in related_model._meta.get_fields()}
                 if "organization" not in related_fields:
                     continue
                 cross_total += model._default_manager.exclude(organization__isnull=True).exclude(
-                    **{f"{relation}__organization_id": models_f("organization_id")}
+                    **{f"{relation}__organization_id": F("organization_id")}
                 ).count()
             report["models"][label]["cross_tenant"] = cross_total
             self._add(report, "errors", "CROSS_TENANT_RELATION", cross_total, label)
-
-
-def models_f(field_name: str):
-    from django.db.models import F
-
-    return F(field_name)

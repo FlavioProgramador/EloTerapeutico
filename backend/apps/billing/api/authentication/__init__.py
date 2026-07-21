@@ -38,8 +38,8 @@ class SubscriptionJWTAuthentication(JWTAuthentication):
         "/api/v1/auth/password/reset/",
         "/api/v1/auth/password/reset/confirm/",
     }
-    PUBLIC_AUTH_PREFIXES = ("/api/v1/auth/sessions/",)
-    ACCESS_MANAGEMENT_PREFIXES = (
+    PUBLIC_AUTH_PREFIXES: tuple[str, ...] = ("/api/v1/auth/sessions/",)
+    ACCESS_MANAGEMENT_PREFIXES: tuple[str, ...] = (
         "/api/v1/billing/",
         "/api/schema/",
         "/api/docs/",

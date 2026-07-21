@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from django.apps import apps
 from django.core.management.base import BaseCommand
-from django.db import transaction
+from django.db import models, transaction
 from django.utils import timezone
 
 from apps.organizations.models import (
@@ -113,7 +115,7 @@ class Command(BaseCommand):
             for relation in relation_candidates:
                 if relation not in field_names:
                     continue
-                related_model = model._meta.get_field(relation).related_model
+                related_model = cast(type[models.Model], model._meta.get_field(relation).related_model)
                 related_fields = {field.name for field in related_model._meta.get_fields()}
                 if "organization" not in related_fields:
                     continue

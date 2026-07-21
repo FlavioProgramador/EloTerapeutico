@@ -124,7 +124,8 @@ class AppointmentRecurrence(models.Model):
         super().clean()
         if self.patient_id and self.organization_id != self.patient.organization_id:
             raise ValidationError({"patient": "O paciente pertence a outra organização."})
-        if self.room_id and self.organization_id != self.room.organization_id:
+        room = self.room if self.room_id else None
+        if room is not None and self.organization_id != room.organization_id:
             raise ValidationError({"room": "A sala pertence a outra organização."})
 
     def __str__(self) -> str:

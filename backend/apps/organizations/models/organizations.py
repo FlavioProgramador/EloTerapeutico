@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 
-from django.conf import settings
+from django.conf import settings as django_settings
 from django.db import models
 
 
@@ -45,7 +45,7 @@ class Organization(models.Model):
         db_index=True,
     )
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        django_settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="created_organizations",
     )
