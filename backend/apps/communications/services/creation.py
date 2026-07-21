@@ -7,6 +7,9 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from apps.organizations.models import OrganizationMembership
+from apps.organizations.permissions import has_capability
+
 from ..models import Communication, CommunicationChannelConfig, CommunicationRecipient
 from ..validators import plain_text_to_safe_html
 from .billing import enforce_communication_limit, get_plan_communication_entitlement
@@ -17,6 +20,55 @@ from .templates import build_default_variables, render_communication
 logger = logging.getLogger(__name__)
 
 
+def _resolve_organization(
+    *,
+    owner,
+    organization=None,
+    patient=None,
+    appointment=None,
+    form_submission=None,
+    document=None,
+    financial_transaction=None,
+):
+    candidates = [
+        organization,
+        getattr(patient, "organization", None),
+        getattr(appointment, "organization", None),
+        getattr(form_submission, "organization", None),
+        getattr(document, "organization", None),
+        getattr(financial_transaction, "organization", None),
+    ]
+    resolved = next((candidate for candidate in candidates if candidate is not None), None)
+    if resolved is None:
+        memberships = OrganizationMembership.objects.filter(
+            user=owner,
+            status=OrganizationMembership.Status.ACTIVE,
+        ).select_related("organization")
+        membership = memberships.filter(is_default=True).first()
+        if membership is None:
+            first_two = list(memberships[:2])
+            membership = first_two[0] if len(first_two) == 1 else None
+        resolved = membership.organization if membership is not None else None
+    if resolved is None:
+        raise ValidationError("Selecione uma organização.")
+    membership = OrganizationMembership.objects.filter(
+        organization=resolved,
+        user=owner,
+        status=OrganizationMembership.Status.ACTIVE,
+    ).first()
+    if not has_capability(membership, "communications.manage"):
+        raise PermissionDenied("Você não pode enviar comunicações nesta organização.")
+    return resolved
+
+
+def _ensure_same_organization(organization, **relations):
+    for field_name, relation in relations.items():
+        if relation is not None and relation.organization_id != organization.pk:
+            raise ValidationError(
+                {field_name: "O recurso pertence a outra organização."}
+            )
+
+
 @transaction.atomic
 def create_communication(
     *,
@@ -24,6 +76,7 @@ def create_communication(
     created_by,
     channel: str,
     category: str,
+    organization=None,
     patient=None,
     appointment=None,
     form_submission=None,
@@ -47,24 +100,46 @@ def create_communication(
     if not idempotency_key:
         raise ValidationError("Idempotency key é obrigatória.")
 
+    organization = _resolve_organization(
+        owner=owner,
+        organization=organization,
+        patient=patient,
+        appointment=appointment,
+        form_submission=form_submission,
+        document=document,
+        financial_transaction=financial_transaction,
+    )
+    _ensure_same_organization(
+        organization,
+        patient=patient,
+        appointment=appointment,
+        form_submission=form_submission,
+        document=document,
+        financial_transaction=financial_transaction,
+    )
+
     normalized_idempotency_key = idempotency_key[:160]
     existing = Communication.objects.filter(
-        owner=owner,
+        organization=organization,
         idempotency_key=normalized_idempotency_key,
     ).first()
     if existing is not None:
         return existing
 
     if patient is not None and patient.therapist_id != owner.pk:
-        raise ValidationError("Paciente inválido para este usuário.")
-    if appointment is not None and appointment.therapist_id != owner.pk:
-        raise ValidationError("Consulta inválida para este usuário.")
-    if form_submission is not None and form_submission.owner_id != owner.pk:
-        raise ValidationError("Formulário inválido para este usuário.")
-    if document is not None and document.owner_id != owner.pk:
-        raise ValidationError("Documento inválido para este usuário.")
-    if financial_transaction is not None and financial_transaction.therapist_id != owner.pk:
-        raise ValidationError("Transação financeira inválida para este usuário.")
+        membership = OrganizationMembership.objects.filter(
+            organization=organization,
+            user=owner,
+            status=OrganizationMembership.Status.ACTIVE,
+        ).first()
+        if membership is None or membership.role == OrganizationMembership.Role.THERAPIST:
+            raise ValidationError("Paciente inválido para este usuário.")
+    if template is not None:
+        if template.is_system_template:
+            pass
+        elif template.organization_id != organization.pk:
+            raise ValidationError("Template pertence a outra organização.")
+
     if not draft:
         owner.__class__.objects.select_for_update().filter(pk=owner.pk).exists()
         enforce_communication_limit(owner, channel=channel)
@@ -76,18 +151,37 @@ def create_communication(
                 raise PermissionDenied("Seu plano atual não inclui WhatsApp Business.")
             if channel == Communication.Channel.SMS and not plan_entitlement.sms_enabled:
                 raise PermissionDenied("Seu plano atual não inclui SMS.")
-        ensure_default_channels(owner)
-        config = CommunicationChannelConfig.objects.filter(owner=owner, channel=channel).first()
-        if config is None or not config.is_active or config.connection_status != CommunicationChannelConfig.ConnectionStatus.CONFIGURED:
+        ensure_default_channels(owner, organization=organization)
+        config = CommunicationChannelConfig.objects.filter(
+            organization=organization,
+            channel=channel,
+        ).first()
+        if (
+            config is None
+            or not config.is_active
+            or config.connection_status
+            != CommunicationChannelConfig.ConnectionStatus.CONFIGURED
+        ):
             raise CommunicationBlocked("Este canal ainda não está configurado e ativo.")
 
-    variables_payload: dict[str, object] = build_default_variables(owner, patient, appointment)
+    variables_payload: dict[str, object] = build_default_variables(
+        owner,
+        patient,
+        appointment,
+    )
     variables_payload.update(variables or {})
     if template is not None:
-        if template.owner_id not in {None, owner.pk}:
-            raise ValidationError("Template inválido para este usuário.")
-        subject, body, body_html, safe_variables = render_communication(template, variables_payload)
-        template_snapshot = {"id": template.pk, "name": template.name, "channel": template.channel, "subject_template": template.subject_template, "body_template": template.body_template}
+        subject, body, body_html, safe_variables = render_communication(
+            template,
+            variables_payload,
+        )
+        template_snapshot = {
+            "id": template.pk,
+            "name": template.name,
+            "channel": template.channel,
+            "subject_template": template.subject_template,
+            "body_template": template.body_template,
+        }
     else:
         if not body.strip():
             raise ValidationError("O conteúdo da comunicação é obrigatório.")
@@ -97,10 +191,19 @@ def create_communication(
     if scheduled_at and scheduled_at <= timezone.now():
         raise ValidationError("A data de agendamento deve estar no futuro.")
 
-    status = Communication.Status.DRAFT if draft else (Communication.Status.SCHEDULED if scheduled_at else Communication.Status.QUEUED)
+    status = (
+        Communication.Status.DRAFT
+        if draft
+        else (
+            Communication.Status.SCHEDULED
+            if scheduled_at
+            else Communication.Status.QUEUED
+        )
+    )
     try:
         with transaction.atomic():
             communication = Communication.objects.create(
+                organization=organization,
                 owner=owner,
                 created_by=created_by,
                 patient=patient,
@@ -119,20 +222,42 @@ def create_communication(
                 template_snapshot=template_snapshot,
                 variables_snapshot=safe_variables,
                 scheduled_at=scheduled_at,
-                queued_at=timezone.now() if status == Communication.Status.QUEUED else None,
+                queued_at=(
+                    timezone.now()
+                    if status == Communication.Status.QUEUED
+                    else None
+                ),
                 idempotency_key=normalized_idempotency_key,
                 source_event=source_event[:80],
                 source_object_type=source_object_type[:80],
                 source_object_id=source_object_id[:80],
-                metadata={key: value for key, value in (metadata or {}).items() if key in {"internal_url", "manual_opened_at", "manual_confirmed_at", "event_version"}},
+                metadata={
+                    key: value
+                    for key, value in (metadata or {}).items()
+                    if key
+                    in {
+                        "internal_url",
+                        "manual_opened_at",
+                        "manual_confirmed_at",
+                        "event_version",
+                    }
+                },
             )
+            communication.full_clean()
     except IntegrityError:
         return Communication.objects.get(
-            owner=owner,
+            organization=organization,
             idempotency_key=normalized_idempotency_key,
         )
 
-    recipient_data = _resolve_recipient(owner, patient, channel, recipient_type, controlled_destination=controlled_destination, category=category)
+    recipient_data = _resolve_recipient(
+        owner,
+        patient,
+        channel,
+        recipient_type,
+        controlled_destination=controlled_destination,
+        category=category,
+    )
     CommunicationRecipient.objects.create(
         communication=communication,
         patient=recipient_data["patient"],
@@ -143,12 +268,25 @@ def create_communication(
         channel=channel,
         status=CommunicationRecipient.Status.READY,
     )
-    logger.info("communication_created", extra={"communication_id": communication.pk, "channel": channel, "status": status})
+    logger.info(
+        "communication_created",
+        extra={
+            "communication_id": communication.pk,
+            "organization_id": str(organization.pk),
+            "channel": channel,
+            "status": status,
+        },
+    )
     return communication
 
 
 def cancel_communication(communication, *, actor=None):
-    if communication.status not in {Communication.Status.DRAFT, Communication.Status.SCHEDULED, Communication.Status.QUEUED, Communication.Status.FAILED}:
+    if communication.status not in {
+        Communication.Status.DRAFT,
+        Communication.Status.SCHEDULED,
+        Communication.Status.QUEUED,
+        Communication.Status.FAILED,
+    }:
         raise ValidationError("Esta comunicação não pode ser cancelada.")
     communication.status = Communication.Status.CANCELED
     communication.canceled_at = timezone.now()
@@ -164,7 +302,16 @@ def retry_communication(communication):
     communication.failed_at = None
     communication.processing_started_at = None
     communication.next_retry_at = timezone.now()
-    communication.save(update_fields=["status", "queued_at", "failed_at", "processing_started_at", "next_retry_at", "updated_at"])
+    communication.save(
+        update_fields=[
+            "status",
+            "queued_at",
+            "failed_at",
+            "processing_started_at",
+            "next_retry_at",
+            "updated_at",
+        ]
+    )
     return communication
 
 
@@ -173,7 +320,10 @@ def mark_manual_opened(communication):
         raise ValidationError("Ação disponível somente para WhatsApp manual.")
     if not communication.metadata.get("manual_url"):
         raise ValidationError("O link manual ainda não foi preparado pelo worker.")
-    communication.metadata = {**communication.metadata, "manual_opened_at": timezone.now().isoformat()}
+    communication.metadata = {
+        **communication.metadata,
+        "manual_opened_at": timezone.now().isoformat(),
+    }
     communication.save(update_fields=["metadata", "updated_at"])
     return communication
 
@@ -186,19 +336,54 @@ def mark_manually_sent(communication):
     now = timezone.now()
     communication.status = Communication.Status.SENT
     communication.sent_at = now
-    communication.metadata = {**communication.metadata, "manual_confirmed_at": now.isoformat()}
-    communication.save(update_fields=["status", "sent_at", "metadata", "updated_at"])
+    communication.metadata = {
+        **communication.metadata,
+        "manual_confirmed_at": now.isoformat(),
+    }
+    communication.save(
+        update_fields=["status", "sent_at", "metadata", "updated_at"]
+    )
     communication.recipients.update(status=CommunicationRecipient.Status.SENT)
     return communication
 
 
-def ensure_default_channels(owner) -> None:
+def ensure_default_channels(owner, *, organization=None) -> None:
+    organization = _resolve_organization(owner=owner, organization=organization)
     defaults = {
-        Communication.Channel.IN_APP: (True, CommunicationChannelConfig.ConnectionStatus.CONFIGURED, "in_app"),
-        Communication.Channel.EMAIL: (True, CommunicationChannelConfig.ConnectionStatus.CONFIGURED, "django_email"),
-        Communication.Channel.WHATSAPP_MANUAL: (True, CommunicationChannelConfig.ConnectionStatus.CONFIGURED, "whatsapp_manual"),
-        Communication.Channel.WHATSAPP: (False, CommunicationChannelConfig.ConnectionStatus.NOT_CONFIGURED, ""),
-        Communication.Channel.SMS: (False, CommunicationChannelConfig.ConnectionStatus.NOT_CONFIGURED, ""),
+        Communication.Channel.IN_APP: (
+            True,
+            CommunicationChannelConfig.ConnectionStatus.CONFIGURED,
+            "in_app",
+        ),
+        Communication.Channel.EMAIL: (
+            True,
+            CommunicationChannelConfig.ConnectionStatus.CONFIGURED,
+            "django_email",
+        ),
+        Communication.Channel.WHATSAPP_MANUAL: (
+            True,
+            CommunicationChannelConfig.ConnectionStatus.CONFIGURED,
+            "whatsapp_manual",
+        ),
+        Communication.Channel.WHATSAPP: (
+            False,
+            CommunicationChannelConfig.ConnectionStatus.NOT_CONFIGURED,
+            "",
+        ),
+        Communication.Channel.SMS: (
+            False,
+            CommunicationChannelConfig.ConnectionStatus.NOT_CONFIGURED,
+            "",
+        ),
     }
     for channel, (active, status, provider) in defaults.items():
-        CommunicationChannelConfig.objects.get_or_create(owner=owner, channel=channel, defaults={"is_active": active, "connection_status": status, "provider": provider})
+        CommunicationChannelConfig.objects.get_or_create(
+            organization=organization,
+            channel=channel,
+            defaults={
+                "owner": owner,
+                "is_active": active,
+                "connection_status": status,
+                "provider": provider,
+            },
+        )
