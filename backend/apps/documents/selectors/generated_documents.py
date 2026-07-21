@@ -8,6 +8,18 @@ from apps.documents.models import GeneratedDocument
 from apps.organizations.models import OrganizationMembership
 
 
+def _owner_organization(owner):
+    memberships = OrganizationMembership.objects.filter(
+        user=owner,
+        status=OrganizationMembership.Status.ACTIVE,
+    ).select_related("organization")
+    membership = memberships.filter(is_default=True).first()
+    if membership is None:
+        first_two = list(memberships[:2])
+        membership = first_two[0] if len(first_two) == 1 else None
+    return membership.organization if membership is not None else None
+
+
 def generated_documents_for_owner(
     *,
     owner,
@@ -46,9 +58,13 @@ def generated_documents_for_user(*, user, organization) -> QuerySet[GeneratedDoc
 
 def find_by_idempotency_key(
     *,
-    organization,
     idempotency_key: str,
+    organization=None,
+    owner=None,
 ) -> GeneratedDocument | None:
+    organization = organization or (_owner_organization(owner) if owner is not None else None)
+    if organization is None:
+        return None
     return GeneratedDocument.objects.filter(
         organization=organization,
         idempotency_key=idempotency_key,
