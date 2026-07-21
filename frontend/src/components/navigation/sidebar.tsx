@@ -67,6 +67,7 @@ export function Sidebar({ className }: SidebarProps) {
   const allowed = items.filter(
     (item) => !item.roles || (user && item.roles.includes(user.role)),
   );
+  const displayName = user?.full_name?.trim() || "Usuário";
 
   return (
     <aside
@@ -135,11 +136,12 @@ export function Sidebar({ className }: SidebarProps) {
                 className={cn(
                   "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-semibold transition-colors duration-200",
                   isActive
-                    ? "text-sidebar-foreground font-bold"
+                    ? "font-bold text-sidebar-foreground"
                     : "text-sidebar-muted hover:text-sidebar-foreground",
                   isCollapsed && "justify-center px-2",
                 )}
                 aria-current={isActive ? "page" : undefined}
+                title={isCollapsed ? item.name : undefined}
               >
                 {isActive && (
                   <motion.div
@@ -149,7 +151,7 @@ export function Sidebar({ className }: SidebarProps) {
                   />
                 )}
                 {isActive && (
-                  <span className="absolute bottom-2.5 left-0 top-2.5 w-0.5 rounded-full bg-sidebar-active z-10" />
+                  <span className="absolute bottom-2.5 left-0 top-2.5 z-10 w-0.5 rounded-full bg-sidebar-active" />
                 )}
                 <Icon
                   className={cn(
@@ -172,13 +174,13 @@ export function Sidebar({ className }: SidebarProps) {
         {!isCollapsed && (
           <div className="mb-2 flex items-center gap-3 rounded-lg border border-sidebar-border bg-sidebar-surface/70 px-3 py-3">
             <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-sidebar-active/25 bg-sidebar-active/10 text-xs font-bold text-sidebar-active">
-              {user?.full_name?.charAt(0).toUpperCase() || "J"}
+              {displayName.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
               <p className="truncate text-xs font-bold leading-tight text-sidebar-foreground">
-                {user?.full_name || "Juliana Martins"}
+                {displayName}
               </p>
-              <span className="mt-0.5 block truncate text-[9px] text-sidebar-muted">
+              <span className="mt-0.5 block truncate text-xs text-sidebar-muted">
                 Ver perfil
               </span>
             </div>

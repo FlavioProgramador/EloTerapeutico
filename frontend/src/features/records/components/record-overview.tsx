@@ -18,12 +18,7 @@ interface RecordOverviewProps {
   onOpenDocuments: () => void;
 }
 
-const goalTones = ["bg-emerald-400", "bg-sky-400", "bg-amber-400"];
-const documentTones = [
-  "border-rose-400/20 bg-rose-500/10 text-rose-300",
-  "border-sky-400/20 bg-sky-500/10 text-sky-300",
-  "border-violet-400/20 bg-violet-500/10 text-violet-300",
-];
+const goalTones = ["bg-primary", "bg-success", "bg-warning"];
 
 function formatDate(value?: string | null, withTime = false) {
   if (!value) return "Não registrada";
@@ -42,10 +37,8 @@ export function RecordStats({ summary }: { summary: RecordSummary }) {
       value: String(summary.sessions_total),
       helper: "evoluções não arquivadas",
       icon: CalendarCheck2,
-      surface:
-        "border-emerald-400/20 bg-gradient-to-br from-emerald-500/10 via-card to-card",
-      iconTone: "bg-emerald-500/15 text-emerald-300",
-      valueTone: "text-emerald-200",
+      iconTone: "bg-success-soft text-success",
+      valueTone: "text-success",
     },
     {
       label: "Última sessão",
@@ -54,10 +47,8 @@ export function RecordStats({ summary }: { summary: RecordSummary }) {
         ? "atendimento anterior"
         : "sem sessão anterior",
       icon: CalendarClock,
-      surface:
-        "border-sky-400/20 bg-gradient-to-br from-sky-500/10 via-card to-card",
-      iconTone: "bg-sky-500/15 text-sky-300",
-      valueTone: "text-sky-200",
+      iconTone: "bg-primary-soft text-primary",
+      valueTone: "text-foreground",
     },
     {
       label: "Próxima sessão",
@@ -66,20 +57,16 @@ export function RecordStats({ summary }: { summary: RecordSummary }) {
         ? `${summary.next_session.duration_minutes} minutos`
         : "não agendada",
       icon: CalendarClock,
-      surface:
-        "border-violet-400/20 bg-gradient-to-br from-violet-500/10 via-card to-card",
-      iconTone: "bg-violet-500/15 text-violet-300",
-      valueTone: "text-violet-200",
+      iconTone: "bg-info-soft text-info",
+      valueTone: "text-foreground",
     },
     {
       label: "Acompanhamento",
       value: summary.patient.status_display,
       helper: "status cadastral do paciente",
       icon: LockKeyhole,
-      surface:
-        "border-lime-400/20 bg-gradient-to-br from-lime-500/10 via-card to-card",
-      iconTone: "bg-lime-500/15 text-lime-300",
-      valueTone: "text-lime-200",
+      iconTone: "bg-secondary text-foreground",
+      valueTone: "text-foreground",
     },
   ];
 
@@ -91,10 +78,7 @@ export function RecordStats({ summary }: { summary: RecordSummary }) {
       {items.map((item) => (
         <article
           key={item.label}
-          className={cn(
-            "rounded-xl border p-4 shadow-xs transition hover:-translate-y-0.5 hover:shadow-md",
-            item.surface,
-          )}
+          className="rounded-xl border border-border bg-card p-4 shadow-xs"
         >
           <div className="flex items-start gap-3">
             <span
@@ -103,10 +87,10 @@ export function RecordStats({ summary }: { summary: RecordSummary }) {
                 item.iconTone,
               )}
             >
-              <item.icon className="h-4 w-4" />
+              <item.icon className="h-4 w-4" aria-hidden="true" />
             </span>
             <div className="min-w-0">
-              <p className="text-[11px] font-medium text-muted-foreground">
+              <p className="text-xs font-medium text-muted-foreground">
                 {item.label}
               </p>
               <strong
@@ -114,7 +98,7 @@ export function RecordStats({ summary }: { summary: RecordSummary }) {
               >
                 {item.value}
               </strong>
-              <small className="mt-1 block text-[10px] text-muted-foreground">
+              <small className="mt-1 block text-xs text-muted-foreground">
                 {item.helper}
               </small>
             </div>
@@ -132,55 +116,55 @@ export function RecordSupportPanel({
 }: RecordOverviewProps) {
   return (
     <aside className="space-y-3" aria-label="Painel de apoio do prontuário">
-      <section className="rounded-xl border border-cyan-400/20 bg-gradient-to-br from-cyan-500/10 via-card to-card p-4">
+      <section className="rounded-xl border border-border bg-card p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="grid h-7 w-7 place-items-center rounded-md bg-cyan-500/15 text-cyan-300">
-              <Sparkles className="h-4 w-4" />
+            <span className="grid h-7 w-7 place-items-center rounded-md bg-info-soft text-info">
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
             </span>
-            <h3 className="text-xs font-bold">Resumo assistido</h3>
+            <h3 className="text-sm font-semibold">Resumo assistido</h3>
           </div>
-          <span className="rounded-full border border-cyan-400/15 bg-cyan-500/10 px-2 py-0.5 text-[9px] font-bold text-cyan-300">
+          <span className="rounded-full border border-border bg-secondary px-2 py-0.5 text-xs font-semibold text-muted-foreground">
             Indisponível
           </span>
         </div>
-        <p className="mt-3 text-[11px] leading-5 text-muted-foreground">
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">
           {summary.ai_summary.message}
         </p>
         <button
           type="button"
           disabled
-          className="mt-3 w-full rounded-md border border-cyan-400/15 bg-cyan-500/5 px-3 py-2 text-[11px] font-semibold text-cyan-200/70 opacity-70"
+          className="mt-3 w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm font-semibold text-muted-foreground opacity-70"
         >
-          Geração não configurada
+          Recurso indisponível
         </button>
       </section>
 
-      <section className="rounded-xl border border-emerald-400/20 bg-gradient-to-br from-emerald-500/10 via-card to-card p-4">
+      <section className="rounded-xl border border-border bg-card p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="grid h-7 w-7 place-items-center rounded-md bg-emerald-500/15 text-emerald-300">
-              <Target className="h-4 w-4" />
+            <span className="grid h-7 w-7 place-items-center rounded-md bg-success-soft text-success">
+              <Target className="h-4 w-4" aria-hidden="true" />
             </span>
-            <h3 className="text-xs font-bold">Metas terapêuticas</h3>
+            <h3 className="text-sm font-semibold">Metas terapêuticas</h3>
           </div>
           <button
             type="button"
             onClick={onOpenGoal}
-            className="text-[10px] font-bold text-emerald-300 hover:text-emerald-200 hover:underline"
+            className="text-xs font-semibold text-primary hover:text-primary-hover hover:underline"
           >
             Ver todas
           </button>
         </div>
         <div className="mt-4 space-y-4">
           {summary.goals.length === 0 && (
-            <p className="text-[11px] leading-5 text-muted-foreground">
+            <p className="text-sm leading-6 text-muted-foreground">
               Nenhuma meta ativa cadastrada.
             </p>
           )}
           {summary.goals.slice(0, 3).map((goal, index) => (
             <div key={goal.id}>
-              <div className="flex items-center justify-between gap-3 text-[10px]">
+              <div className="flex items-center justify-between gap-3 text-xs">
                 <strong className="truncate text-foreground">
                   {goal.title}
                 </strong>
@@ -200,48 +184,42 @@ export function RecordSupportPanel({
         </div>
       </section>
 
-      <section className="rounded-xl border border-violet-400/20 bg-gradient-to-br from-violet-500/10 via-card to-card p-4">
+      <section className="rounded-xl border border-border bg-card p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="grid h-7 w-7 place-items-center rounded-md bg-violet-500/15 text-violet-300">
-              <FileText className="h-4 w-4" />
+            <span className="grid h-7 w-7 place-items-center rounded-md bg-primary-soft text-primary">
+              <FileText className="h-4 w-4" aria-hidden="true" />
             </span>
-            <h3 className="text-xs font-bold">Documentos recentes</h3>
+            <h3 className="text-sm font-semibold">Documentos recentes</h3>
           </div>
           <button
             type="button"
             onClick={onOpenDocuments}
-            className="text-[10px] font-bold text-violet-300 hover:text-violet-200 hover:underline"
+            className="text-xs font-semibold text-primary hover:text-primary-hover hover:underline"
           >
             Ver todos
           </button>
         </div>
         <div className="mt-3 space-y-2">
           {summary.recent_documents.length === 0 && (
-            <p className="text-[11px] leading-5 text-muted-foreground">
+            <p className="text-sm leading-6 text-muted-foreground">
               Nenhum documento anexado.
             </p>
           )}
-          {summary.recent_documents.slice(0, 3).map((document, index) => (
+          {summary.recent_documents.slice(0, 3).map((document) => (
             <div
               key={document.id}
-              className="flex items-start gap-2 rounded-md border border-violet-400/10 bg-background/35 p-2.5"
+              className="flex items-start gap-2 rounded-md border border-border bg-background p-2.5"
             >
-              <span
-                className={cn(
-                  "mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md border",
-                  documentTones[index] ?? documentTones[0],
-                )}
-              >
-                <FileText className="h-3.5 w-3.5" />
+              <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md border border-primary/20 bg-primary-soft text-primary">
+                <FileText className="h-3.5 w-3.5" aria-hidden="true" />
               </span>
               <div className="min-w-0">
-                <strong className="block truncate text-[10px] text-foreground">
+                <strong className="block truncate text-xs text-foreground">
                   {document.original_name}
                 </strong>
-                <small className="mt-1 block text-[9px] text-muted-foreground">
-                  {document.category_display} ·{" "}
-                  {formatDate(document.created_at)}
+                <small className="mt-1 block text-xs text-muted-foreground">
+                  {document.category_display} · {formatDate(document.created_at)}
                 </small>
               </div>
             </div>

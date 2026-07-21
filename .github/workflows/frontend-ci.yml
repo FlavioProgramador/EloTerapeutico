@@ -55,6 +55,12 @@ jobs:
           set -o pipefail
           npm test 2>&1 | tee test-output.txt
 
+      - name: Validate coverage thresholds
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:coverage 2>&1 | tee coverage-output.txt
+
       - name: Build Next.js application
         env:
           NEXT_PUBLIC_API_URL: http://127.0.0.1:8000/api/v1/
@@ -72,6 +78,7 @@ jobs:
             frontend/eslint-output.txt
             frontend/typescript-output.txt
             frontend/test-output.txt
+            frontend/coverage-output.txt
             frontend/build-output.txt
           if-no-files-found: ignore
           retention-days: 7

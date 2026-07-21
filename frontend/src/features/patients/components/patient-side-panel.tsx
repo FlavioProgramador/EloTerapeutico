@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { maskEmail, maskPhone } from "@/lib/privacy/masks";
 import type { SafePatientPanelData } from "../panel-contracts";
 
 interface Props {
@@ -38,7 +39,10 @@ export function PatientSidePanel({ data, loading, onClose }: Props) {
 
   if (loading) {
     return (
-      <aside className="h-[32rem] animate-pulse rounded-xl border border-border bg-card" />
+      <aside
+        className="h-[32rem] animate-pulse rounded-xl border border-border bg-card"
+        aria-label="Carregando resumo do paciente"
+      />
     );
   }
 
@@ -69,7 +73,7 @@ export function PatientSidePanel({ data, loading, onClose }: Props) {
               <h2 className="truncate text-base font-bold text-foreground">
                 {patient.display_name}
               </h2>
-              <p className="mt-1 text-[10px] text-muted-foreground">
+              <p className="mt-1 text-xs text-muted-foreground">
                 {patient.age ? `${patient.age} anos` : "Idade não informada"} •{" "}
                 {patient.masked_cpf}
               </p>
@@ -88,14 +92,14 @@ export function PatientSidePanel({ data, loading, onClose }: Props) {
                 className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                 aria-label="Fechar painel"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4" aria-hidden="true" />
               </button>
             )}
           </div>
         </div>
-        <div className="mt-3 space-y-1 text-[11px] text-muted-foreground">
-          <p>{patient.phone || "Telefone não informado"}</p>
-          <p className="truncate">{patient.email || "E-mail não informado"}</p>
+        <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+          <p>{maskPhone(patient.phone)}</p>
+          <p className="truncate">{maskEmail(patient.email)}</p>
         </div>
       </header>
 
@@ -103,23 +107,23 @@ export function PatientSidePanel({ data, loading, onClose }: Props) {
         <button
           type="button"
           onClick={() => router.push(`/dashboard/patients/${patient.id}`)}
-          className="flex items-center justify-center gap-2 border-r border-border px-3 py-3 text-[10px] font-semibold text-foreground hover:bg-primary/8 hover:text-primary"
+          className="flex items-center justify-center gap-2 border-r border-border px-3 py-3 text-xs font-semibold text-foreground hover:bg-primary/8 hover:text-primary"
         >
-          <Settings2 className="h-4 w-4" /> Gerenciar cadastro
+          <Settings2 className="h-4 w-4" aria-hidden="true" /> Gerenciar cadastro
         </button>
         <button
           type="button"
           onClick={() => router.push(`/dashboard/agenda?patient=${patient.id}`)}
-          className="flex items-center justify-center gap-2 px-3 py-3 text-[10px] font-semibold text-foreground hover:bg-primary/8 hover:text-primary"
+          className="flex items-center justify-center gap-2 px-3 py-3 text-xs font-semibold text-foreground hover:bg-primary/8 hover:text-primary"
         >
-          <CalendarDays className="h-4 w-4" /> Agendar sessão
+          <CalendarDays className="h-4 w-4" aria-hidden="true" /> Agendar sessão
         </button>
       </div>
 
       <div className="space-y-3 p-3">
         <section className="rounded-lg border border-border bg-secondary/25 p-3">
-          <div className="flex items-center gap-2 text-[10px] font-semibold text-muted-foreground">
-            <CalendarDays className="h-3.5 w-3.5 text-primary" /> Próxima sessão
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+            <CalendarDays className="h-3.5 w-3.5 text-primary" aria-hidden="true" /> Próxima sessão
           </div>
           {data.next_session ? (
             <strong className="mt-3 block text-sm text-foreground">
@@ -140,7 +144,7 @@ export function PatientSidePanel({ data, loading, onClose }: Props) {
         </section>
 
         <section className="rounded-lg border border-border bg-secondary/25 p-3">
-          <div className="flex items-center justify-between text-[10px] font-semibold text-muted-foreground">
+          <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
             <span>Acompanhamento</span>
             <span>{data.follow_up.total_sessions} sessões</span>
           </div>
@@ -150,19 +154,19 @@ export function PatientSidePanel({ data, loading, onClose }: Props) {
                 {attendance ?? "—"}
                 {attendance !== null ? "%" : ""}
               </strong>
-              <span className="text-[9px] text-muted-foreground">Adesão</span>
+              <span className="text-xs text-muted-foreground">Adesão</span>
             </div>
             <div>
               <strong className="block text-sm text-foreground">
                 {data.follow_up.missed_sessions}
               </strong>
-              <span className="text-[9px] text-muted-foreground">Faltas</span>
+              <span className="text-xs text-muted-foreground">Faltas</span>
             </div>
             <div>
               <strong className="block text-sm text-foreground">
                 {data.follow_up.active_goals}
               </strong>
-              <span className="text-[9px] text-muted-foreground">Metas</span>
+              <span className="text-xs text-muted-foreground">Metas</span>
             </div>
           </div>
         </section>

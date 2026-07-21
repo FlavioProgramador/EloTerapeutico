@@ -2,141 +2,121 @@
 
 ## Direção visual
 
-> **Acolhimento Seguro:** confiança clínica com aparência tecnológica madura.
+> **Acolhimento seguro:** confiança clínica com aparência tecnológica madura.
 
-A interface deve transmitir profissionalismo, calma e segurança sem parecer fria ou produzida por um gerador genérico de dashboards.
+A interface deve transmitir profissionalismo, calma, segurança e clareza sem parecer fria ou produzida por um gerador genérico de dashboards.
 
 Princípios:
 
 - clareza antes de decoração;
-- azul clínico para identidade principal, ações importantes e seleção;
-- azul/ciano luminoso para informação, segurança e apoio;
-- verde/esmeralda apenas para indicação de sucesso/confirmação;
+- laranja terroso para identidade principal, ações importantes, seleção e foco;
+- verde escuro como apoio institucional e referência espacial;
+- verde sálvia apenas para sucesso e confirmação;
 - superfícies neutras com contraste progressivo;
 - bordas finas e sombras discretas;
-- gradientes apenas quando comunicarem progresso ou seleção;
-- nenhuma informação clínica deve depender apenas da cor.
+- nenhuma informação clínica deve depender somente da cor;
+- dados pessoais e clínicos devem ser minimizados por padrão.
 
 ---
 
 ## Paleta semântica
 
-A implementação oficial fica em `frontend/src/app/globals.css`. Componentes devem usar tokens como `bg-card`, `text-foreground` e `border-border`, nunca repetir valores HSL ou HEX diretamente.
+A implementação oficial está em `frontend/src/app/globals.css`. Componentes devem usar tokens como `bg-card`, `text-foreground`, `bg-primary` e `border-border`, sem repetir valores HSL ou HEX diretamente.
 
 ### Tema claro
 
 | Token | HSL | HEX aproximado | Uso |
 |---|---:|---:|---|
-| `--background` | `220 20% 97%` | `#F1F3F5` | Fundo geral do app |
-| `--background-subtle` | `220 25% 95%` | `#E9ECEF` | Fundo secundário / apoio |
-| `--foreground` | `222 47% 15%` | `#1A2536` | Texto padrão |
+| `--background` | `84 10% 95%` | `#EFF1EC` | Fundo geral do app |
+| `--foreground` | `159 24% 11%` | `#15241E` | Texto padrão |
 | `--card` | `0 0% 100%` | `#FFFFFF` | Cards e painéis |
-| `--primary` | `221 83% 53%` | `#2563EB` | Cor primária padrão |
-| `--primary-hover` | `221 84% 48%` | `#1D4ED8` | Hover da cor primária |
-| `--primary-active` | `221 84% 42%` | `#1E40AF` | Clique / ativo da cor primária |
-| `--primary-soft` | `221 95% 94%` | `#EFF6FF` | Fundo suave / tags de seleção |
-| `--secondary` | `220 14% 96%` | `#F1F5F9` | Botões secundários |
-| `--border` | `220 13% 91%` | `#E2E8F0` | Bordas padrão |
-| `--border-strong` | `220 13% 80%` | `#CBD5E1` | Divisores e bordas fortes |
-| `--text-primary` | `222 47% 15%` | `#1E293B` | Texto de alto contraste |
-| `--text-secondary` | `220 16% 36%` | `#475569` | Texto de médio contraste |
-| `--text-muted` | `220 14% 56%` | `#64748B` | Rótulos e placeholders |
-| `--success` | `142 72% 29%` | `#15803D` | Sucesso primário |
-| `--success-soft` | `142 72% 95%` | `#F0FDF4` | Badge / tag de sucesso |
-| `--warning` | `38 92% 44%` | `#B45309` | Alerta primário |
-| `--warning-soft` | `38 92% 95%` | `#FEF3C7` | Badge / tag de alerta |
-| `--danger` | `0 74% 42%` | `#B91C1C` | Erro e destrutivo |
-| `--danger-soft` | `0 74% 96%` | `#FEF2F2` | Badge / tag de erro |
+| `--primary` | `31 67% 50%` | `#D98E3F` | Cor principal laranja |
+| `--primary-hover` | `31 67% 43%` | `#B97633` | Hover da ação principal |
+| `--primary-active` | `31 67% 38%` | `#A3682D` | Clique da ação principal |
+| `--primary-soft` | `31 67% 95%` | `#FCF3EA` | Seleção e foco suave |
+| `--secondary` | `142 24% 92%` | `#E7F0EA` | Ações secundárias |
+| `--border` | `147 18% 88%` | `#DCE6E0` | Bordas padrão |
+| `--success` | `149 32% 36%` | `#3E795C` | Sucesso e confirmação |
+| `--warning` | `31 67% 55%` | `#E19A4B` | Atenção não bloqueante |
+| `--info` | `199 89% 48%` | `#0EA5E9` | Informação contextual |
+| `--danger` | `15 59% 45%` | `#B9502F` | Erro e ação destrutiva |
+| `--sidebar` | `177 57% 15%` | `#103C39` | Navegação institucional |
+| `--sidebar-active` | `31 67% 55%` | `#E19A4B` | Item ativo da navegação |
 
 ### Tema escuro
 
-| Token | HSL | HEX aproximado | Uso |
-|---|---:|---:|---|
-| `--background` | `222 47% 6%` | `#090D16` | Fundo escuro principal |
-| `--background-subtle` | `222 47% 4%` | `#06090F` | Fundo escuro de apoio |
-| `--foreground` | `210 40% 98%` | `#F8FAFC` | Texto padrão |
-| `--card` | `222 47% 10%` | `#0F172A` | Cards e painéis |
-| `--primary` | `217 91% 65%` | `#60A5FA` | Cor primária padrão no escuro |
-| `--primary-hover` | `217 91% 70%` | `#93C5FD` | Hover da cor primária |
-| `--primary-soft` | `217 91% 15%` | `#1E3A8A` | Fundo suave / tags no escuro |
-| `--secondary` | `222 47% 12%` | `#1E293B` | Ações secundárias |
-| `--border` | `222 47% 15%` | `#1E293B` | Bordas e divisores |
-| `--border-strong` | `222 47% 24%` | `#334155` | Bordas destacadas |
-| `--text-primary` | `210 40% 98%` | `#F8FAFC` | Texto principal |
-| `--text-secondary` | `215 20% 80%` | `#CBD5E1` | Texto de apoio |
-| `--text-muted` | `215 16% 60%` | `#94A3B8` | Textos apagados |
-| `--success` | `142 70% 45%` | `#22C55E` | Sucesso no escuro |
-| `--success-soft` | `142 70% 12%` | `#14532D` | Badge de sucesso no escuro |
-| `--danger` | `0 84% 60%` | `#EF4444` | Erro no escuro |
-| `--danger-soft` | `0 84% 15%` | `#7F1D1D` | Badge de erro no escuro |
+| Token | HSL | Uso |
+|---|---:|---|
+| `--background` | `220 15% 10%` | Fundo geral |
+| `--foreground` | `220 10% 94%` | Texto principal |
+| `--card` | `220 12% 14%` | Cards e painéis |
+| `--primary` | `31 75% 55%` | Ação principal laranja |
+| `--primary-soft` | `31 75% 15%` | Seleção suave |
+| `--secondary` | `220 12% 12%` | Ações secundárias |
+| `--border` | `220 10% 18%` | Bordas e divisores |
+| `--success` | `149 32% 42%` | Sucesso |
+| `--danger` | `15 67% 55%` | Erro e destrutivo |
+| `--sidebar` | `220 18% 7%` | Navegação lateral |
+| `--sidebar-active` | `31 75% 55%` | Item ativo |
 
-### Estados
+### Regras de estado
 
-| Token | Finalidade |
-|---|---|
-| `success` | operação concluída, pagamento recebido, registro ativo |
-| `warning` | atenção, prazo próximo, pendência não bloqueante |
-| `info` | ajuda, segurança, informação contextual |
-| `destructive` | erro, cancelamento, exclusão ou bloqueio |
+- `primary`: ação principal, seleção, link importante e foco;
+- `success`: operação concluída, pagamento recebido, conexão validada;
+- `warning`: pendência ou atenção não bloqueante;
+- `info`: ajuda e informação contextual;
+- `danger` ou `destructive`: erro, remoção, cancelamento e bloqueio.
 
-Não use `primary` para avisos, pendências ou erros. Estados devem combinar cor, ícone e texto.
-
-### Navegação lateral
-
-A barra lateral permanece escura nos dois temas para criar referência espacial estável:
-
-- `sidebar`: fundo principal;
-- `sidebar-surface`: hover e bloco de perfil;
-- `sidebar-foreground`: texto principal;
-- `sidebar-muted`: texto e ícones em repouso;
-- `sidebar-active`: item ativo, foco e marca;
-- `sidebar-border`: divisores.
+Não use `primary` para erro, alerta ou indisponibilidade. Estados devem combinar cor, ícone e texto.
 
 ---
 
-## Regras de aplicação
+## Landing page
 
-### Hierarquia de superfícies
+A landing page preserva o verde escuro como apoio institucional em fundos e áreas editoriais, mas não redefine semanticamente a cor principal do produto.
 
-1. `background`: plano mais distante;
-2. `surface`: agrupamentos discretos;
-3. `card`: conteúdo principal;
-4. `popover`: menus, dropdowns e modais.
+Obrigatório:
 
-Evite empilhar cards dentro de cards sem necessidade. Para agrupamentos internos, prefira borda ou `bg-muted/40`.
-
-### Uso de cores
-
-- uma ação primária por região visual;
-- no máximo duas cores de destaque simultâneas;
-- ícones herdam a cor do contexto;
-- textos longos usam `foreground` ou `muted-foreground`;
-- barras de progresso usam `primary`, exceto quando representam alerta ou erro;
-- badges devem ser compactos e usar transparência baixa no fundo.
-
-### Gradientes e efeitos
-
-- evitar gradientes decorativos grandes;
-- permitir gradiente curto entre `primary` e `accent` para progresso ou seleção;
-- não usar blur ou glassmorphism em cards comuns;
-- sombras devem indicar elevação real, não ornamentação.
+- CTA principal laranja;
+- links de destaque laranja;
+- foco e seleção laranja;
+- verde escuro apenas como fundo ou apoio;
+- verde sálvia apenas como estado positivo;
+- texto de botão principal com `primary-foreground`.
 
 ---
 
 ## Tipografia
 
+### Produto autenticado
+
 Fonte principal: `Outfit`, com fallback para `Inter`, `system-ui` e `sans-serif`.
 
-| Nível | Classe de referência | Uso |
-|---|---|---|
-| Título de página | `text-2xl font-bold tracking-tight` | Nome da tela |
-| Título de seção | `text-base font-semibold` | Blocos principais |
-| Título de card | `text-sm font-semibold` | Cards e painéis |
-| Corpo | `text-sm` | Conteúdo padrão |
-| Metadado | `text-xs text-muted-foreground` | Datas, autores e apoio |
-| Rótulo compacto | `text-[10px] font-semibold uppercase tracking-wide` | KPIs e tabelas densas |
+### Landing page
 
-Textos clínicos não devem usar tamanho inferior a `12px` em áreas de leitura prolongada.
+- títulos institucionais: `Piazzolla`;
+- corpo: `Work Sans`;
+- métricas: `IBM Plex Mono`, somente quando o contexto exigir leitura numérica.
+
+### Escala de referência
+
+| Nível | Classe | Uso |
+|---|---|---|
+| Título de página | `text-2xl font-bold tracking-tight` | Nome da tela, 24px |
+| Título secundário | `text-xl font-semibold` | Destaque importante, 20px |
+| Título de seção | `text-base font-semibold` | Blocos principais, 16px |
+| Título de card | `text-sm font-semibold` | Cards e painéis, 14px |
+| Corpo | `text-sm` ou `text-base` | Conteúdo padrão, 14px ou 16px |
+| Metadado | `text-xs text-muted-foreground` | Datas e apoio, 12px |
+| Rótulo compacto | `text-xs font-semibold` | KPIs e tabelas densas, 12px |
+
+Regras:
+
+- conteúdo clínico: mínimo de 14px;
+- leitura prolongada: mínimo de 16px;
+- inputs em mobile: mínimo de 16px;
+- informações de pacientes, erros e instruções: nunca abaixo de 12px;
+- classes arbitrárias menores que 12px são proibidas em conteúdo relevante.
 
 ---
 
@@ -149,16 +129,16 @@ O sistema usa grid de 4px.
 | `space-1` | 4px | Ajustes mínimos |
 | `space-2` | 8px | Badges e ícones |
 | `space-3` | 12px | Controles compactos |
-| `space-4` | 16px | Padding padrão de cards |
+| `space-4` | 16px | Padding padrão |
 | `space-6` | 24px | Separação de grupos |
 | `space-8` | 32px | Seções de página |
 
-`--radius` é `0.75rem`. Use:
+Raios:
 
-- `rounded-md` para inputs e botões;
-- `rounded-lg` para itens de navegação;
-- `rounded-xl` para cards e modais;
-- `rounded-full` apenas para avatar, status e progresso circular.
+- `rounded-md` ou `rounded-lg`: inputs e botões;
+- `rounded-lg`: navegação;
+- `rounded-xl`: cards, drawers e modais;
+- `rounded-full`: avatar, status e progresso circular.
 
 Evite `rounded-2xl` e `rounded-3xl` em interfaces operacionais.
 
@@ -168,56 +148,146 @@ Evite `rounded-2xl` e `rounded-3xl` em interfaces operacionais.
 
 ### Botões
 
+Variantes oficiais:
+
 - `primary`: ação principal;
 - `secondary`: ação de apoio;
-- `outline`: ação neutra em superfície existente;
-- `ghost`: ação de baixa prioridade;
+- `outline`: ação neutra;
+- `ghost`: baixa prioridade;
 - `destructive`: ação irreversível.
 
-O texto do botão deve usar `text-primary-foreground`, nunca `text-white` fixo.
-
-### Cards
-
-Cards usam `bg-card`, `text-card-foreground`, `border-border` e sombra mínima. Hover só deve existir quando o card for clicável.
+O texto da ação principal usa `text-primary-foreground`, nunca `text-white` fixo. Ações destrutivas exigem confirmação clara.
 
 ### Inputs
 
-Inputs usam `bg-background` ou `bg-card`, `border-input` e foco com `ring`. Placeholder usa `muted-foreground` com opacidade reduzida.
+Inputs usam `bg-background` ou `bg-card`, `border-input`, foco com `ring`, label associado, `aria-invalid`, `aria-describedby` e autocomplete adequado.
+
+Credenciais existentes nunca são preenchidas novamente. A interface recebe apenas o estado de configuração.
+
+### Cards
+
+Cards usam `bg-card`, `text-card-foreground`, `border-border` e sombra mínima. Hover só existe quando o card é interativo.
 
 ### Badges
 
-Badges apresentam status com fundo de 8% a 12% de opacidade, borda discreta e texto legível. Não usar badge como botão.
+Badges representam estado com fundo suave, borda discreta, ícone ou texto e contraste legível. Badge não funciona como botão.
 
-### Toasts
+### Toasts e alertas
 
-- sucesso: borda lateral `success`;
-- informação: borda lateral `info`;
-- atenção: borda lateral `warning`;
-- erro: borda lateral `destructive`.
+- sucesso: `success`;
+- informação: `info`;
+- atenção: `warning`;
+- erro: `destructive`.
+
+Toasts clínicos devem usar texto neutro e nunca incluir conteúdo de prontuário, nome de hipótese clínica ou outro dado sensível.
+
+---
+
+## Proteção de dados na interface
+
+A interface aplica minimização por padrão.
+
+Devem ser mascarados quando a exibição integral não for indispensável:
+
+- CPF;
+- telefone;
+- e-mail;
+- endereço;
+- data de nascimento;
+- tokens e identificadores de integração;
+- links privados.
+
+Utilitários oficiais ficam em `frontend/src/lib/privacy/masks.ts`.
+
+Regras:
+
+- CPF usa `masked_cpf` quando fornecido pela API;
+- dados revelados não são persistidos em Web Storage;
+- conteúdo clínico não aparece em URLs, toasts, logs ou notificações genéricas;
+- links de telemedicina são ações, não texto exposto;
+- nomes fictícios não podem ser fallback em produção;
+- autorização definitiva permanece no backend.
+
+---
+
+## Mensagens públicas e erros
+
+O frontend usa `frontend/src/lib/errors/public-error.ts`.
+
+Somente são exibidas:
+
+- mensagens mapeadas por código público conhecido;
+- validações de campos presentes na allowlist;
+- mensagens neutras por status HTTP.
+
+É proibido renderizar diretamente:
+
+- `response.data`;
+- `error.message`;
+- `last_error.message`;
+- stack traces;
+- nomes de exceptions;
+- variáveis de ambiente;
+- caminhos internos;
+- detalhes de banco, filas, containers ou deploy;
+- tokens ou credenciais.
+
+Erros desconhecidos usam uma mensagem neutra e orientada à ação.
+
+---
+
+## Sessão e navegador
+
+Preservar:
+
+- tokens em cookies HttpOnly;
+- BFF como fronteira do navegador;
+- CSRF em métodos inseguros;
+- backend como autoridade de permissão;
+- React Query Devtools somente em desenvolvimento.
+
+É proibido:
+
+- armazenar tokens ou conteúdo clínico em `localStorage` ou `sessionStorage`;
+- criar cliente HTTP paralelo que contorne o BFF;
+- suprimir globalmente erros do console;
+- usar role da interface como autorização definitiva.
 
 ---
 
 ## Acessibilidade
 
-- texto normal: contraste mínimo de `4.5:1`;
-- texto grande e componentes: mínimo de `3:1`;
+- contraste mínimo de 4.5:1 para texto normal;
+- contraste mínimo de 3:1 para texto grande e componentes;
 - foco visível em todos os controles;
-- não remover outline sem substituição;
-- estados sempre combinam texto, ícone e cor;
-- respeitar `prefers-reduced-motion`;
-- botões apenas com ícone exigem `aria-label`;
-- mensagens de erro usam `role="alert"` quando apropriado.
-
-Os pares principais foram escolhidos para atender WCAG AA nos usos previstos. Componentes novos devem ser verificados quando introduzirem opacidade ou sobreposição.
+- navegação por teclado;
+- `aria-label` em botões somente com ícone;
+- mensagens de erro com `role="alert"`;
+- modais com `role="dialog"`, `aria-modal`, focus trap e retorno de foco;
+- estados combinam texto, ícone e cor;
+- respeito a `prefers-reduced-motion`.
 
 ---
 
-## Migração de componentes antigos
+## Testes estruturais
 
-Existe uma ponte temporária em `globals.css` para classes que ainda contêm valores HSL literais. Todo código novo deve usar tokens semânticos. Ao editar uma tela antiga:
+A suíte deve impedir regressões relacionadas a:
 
-1. substitua valores `hsl(...)` por tokens;
-2. remova cores fixas de texto em botões;
-3. valide tema claro e escuro;
-4. teste foco, hover, disabled e estados de erro;
-5. remova o seletor de compatibilidade correspondente quando não houver mais consumidores.
+- mensagens técnicas visíveis;
+- dados fictícios em produção;
+- CPF completo na tela de paciente;
+- renderização direta de erros internos;
+- uso de Web Storage em fluxos sensíveis;
+- cores literais em componentes;
+- texto relevante menor que 12px;
+- supressão global do console;
+- credenciais preenchidas ou retornadas.
+
+Ao editar uma tela antiga:
+
+1. substitua cores literais por tokens;
+2. valide tema claro e escuro;
+3. aplique minimização de dados;
+4. revise estados loading, vazio e erro;
+5. teste teclado, foco, hover, disabled e erro;
+6. remova a compatibilidade antiga quando não houver consumidores.

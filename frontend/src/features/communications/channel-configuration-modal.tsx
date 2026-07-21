@@ -18,7 +18,12 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
+import {
+  getPublicErrorMessage,
+  getPublicIntegrationError,
+} from "@/lib/errors/public-error";
 import { cn } from "@/lib/utils";
 import {
   communicationChannelLabel,
@@ -45,6 +50,7 @@ const steps = [
   "Teste",
   "Ativação",
 ];
+
 const senderFields = new Set([
   "sender",
   "sender_name",
@@ -52,6 +58,7 @@ const senderFields = new Set([
   "reply_to",
   "phone_number",
 ]);
+
 const preferenceFields = new Set([
   "signature",
   "tracking_enabled",
@@ -66,19 +73,6 @@ const preferenceFields = new Set([
   "api_version",
 ]);
 
-function humanError(error: unknown): string {
-  const response = (error as { response?: { data?: unknown } })?.response?.data;
-  if (typeof response === "string") return response;
-  if (response && typeof response === "object") {
-    const values = Object.values(response as Record<string, unknown>).flatMap(
-      (value) => (Array.isArray(value) ? value : [value]),
-    );
-    const message = values.find((value) => typeof value === "string");
-    if (typeof message === "string") return message;
-  }
-  return "Não foi possível concluir a operação. Revise os campos e tente novamente.";
-}
-
 function initialMetadata(
   config: CommunicationChannelConfig,
   providerId: string,
@@ -92,6 +86,13 @@ function initialMetadata(
       .map((field) => [field.name, field.default as string | number | boolean]),
   );
   return { ...defaults, ...(config.metadata ?? {}) };
+}
+
+function fieldAutoComplete(field: ChannelConfigurationField): string {
+  if (field.kind === "password") return "new-password";
+  if (field.kind === "email") return "email";
+  if (field.kind === "tel") return "tel";
+  return "off";
 }
 
 export function ChannelConfigurationModal({
@@ -145,7 +146,9 @@ export function ChannelConfigurationModal({
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
     document.body.style.overflow = "hidden";
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !pending) onClose();
       if (event.key !== "Tab" || !panelRef.current) return;
@@ -163,6 +166,7 @@ export function ChannelConfigurationModal({
         first.focus();
       }
     };
+
     document.addEventListener("keydown", onKeyDown);
     const focusTimer = window.setTimeout(
       () =>
@@ -171,10 +175,12 @@ export function ChannelConfigurationModal({
           ?.focus(),
       0,
     );
+
     return () => {
       window.clearTimeout(focusTimer);
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKeyDown);
+      previouslyFocused?.focus();
     };
   }, [onClose, pending]);
 
@@ -189,9 +195,11 @@ export function ChannelConfigurationModal({
     field: ChannelConfigurationField,
     value: string | number | boolean,
   ) {
-    if (field.secret)
+    if (field.secret) {
       setSecrets((current) => ({ ...current, [field.name]: String(value) }));
-    else setMetadata((current) => ({ ...current, [field.name]: value }));
+      return;
+    }
+    setMetadata((current) => ({ ...current, [field.name]: value }));
   }
 
   async function save(saveAsDraft: boolean, showToast = true) {
@@ -209,6 +217,7 @@ export function ChannelConfigurationModal({
         "Trocar o provedor desativará o canal atual. Deseja continuar?",
       );
     if (!confirmed) return null;
+
     const payload: UpdateChannelConfigurationPayload = {
       provider: providerId,
       metadata,
@@ -224,21 +233,29 @@ export function ChannelConfigurationModal({
       save_as_draft: saveAsDraft,
       confirm_provider_change: providerChanged && currentChannel.is_active,
     };
+
     try {
       const result = await updateChannel.mutateAsync({
         channel: currentChannel.channel,
         payload,
       });
       setCurrentChannel(result);
-      if (showToast)
+      setSecrets({});
+      if (showToast) {
         toast.success(
           saveAsDraft
             ? "Configuração salva como rascunho."
             : "Configuração salva. Agora valide a conexão.",
         );
+      }
       return result;
     } catch (error) {
-      toast.error(humanError(error));
+      toast.error(
+        getPublicErrorMessage(
+          error,
+          "Não foi possível salvar a configuração. Revise os campos e tente novamente.",
+        ),
+      );
       return null;
     }
   }
@@ -251,7 +268,12 @@ export function ChannelConfigurationModal({
       setCurrentChannel(result);
       toast.success("Conexão validada com sucesso.");
     } catch (error) {
-      toast.error(humanError(error));
+      toast.error(
+        getPublicErrorMessage(
+          error,
+          "Não foi possível validar a conexão. Revise os dados e tente novamente.",
+        ),
+      );
     }
   }
 
@@ -272,7 +294,12 @@ export function ChannelConfigurationModal({
           : "Mensagem de teste processada.",
       );
     } catch (error) {
-      toast.error(humanError(error));
+      toast.error(
+        getPublicErrorMessage(
+          error,
+          "Não foi possível processar a mensagem de teste.",
+        ),
+      );
     }
   }
 
@@ -287,7 +314,9 @@ export function ChannelConfigurationModal({
         currentChannel.is_active ? "Canal desativado." : "Canal ativado.",
       );
     } catch (error) {
-      toast.error(humanError(error));
+      toast.error(
+        getPublicErrorMessage(error, "Não foi possível alterar o estado do canal."),
+      );
     }
   }
 
@@ -296,14 +325,17 @@ export function ChannelConfigurationModal({
       !window.confirm(
         "Remover esta configuração? As credenciais armazenadas serão apagadas.",
       )
-    )
+    ) {
       return;
+    }
     try {
       await removeChannel.mutateAsync(currentChannel.channel);
       toast.success("Configuração removida.");
       onClose();
     } catch (error) {
-      toast.error(humanError(error));
+      toast.error(
+        getPublicErrorMessage(error, "Não foi possível remover a configuração."),
+      );
     }
   }
 
@@ -313,39 +345,49 @@ export function ChannelConfigurationModal({
     const currentValue = field.secret
       ? (secrets[field.name] ?? "")
       : (metadata[field.name] ?? field.default ?? "");
+    const fieldId = `channel-field-${field.name}`;
+    const hintId = configuredSecret ? `${fieldId}-configured` : undefined;
     const commonClass =
-      "h-11 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-primary";
+      "h-11 w-full rounded-lg border border-input bg-background px-3 text-base text-foreground outline-none transition focus:border-primary focus:ring-4 focus:ring-primary-soft";
+
     return (
-      <label
-        key={field.name}
-        className="grid gap-2 text-xs font-semibold text-foreground"
-      >
-        <span>
+      <div key={field.name} className="grid gap-2">
+        <label
+          htmlFor={fieldId}
+          className="text-xs font-semibold text-foreground"
+        >
           {field.label}
           {field.required && <span className="ml-1 text-danger">*</span>}
-        </span>
+        </label>
         {field.kind === "boolean" ? (
-          <span className="flex h-11 items-center gap-3 rounded-xl border border-input bg-background px-3">
+          <label
+            htmlFor={fieldId}
+            className="flex h-11 items-center gap-3 rounded-lg border border-input bg-background px-3"
+          >
             <input
+              id={fieldId}
               type="checkbox"
               checked={Boolean(currentValue)}
               disabled={field.read_only || pending}
               onChange={(event) => updateField(field, event.target.checked)}
             />
-            <span className="font-normal text-muted-foreground">
+            <span className="text-sm font-normal text-muted-foreground">
               {Boolean(currentValue) ? "Ativado" : "Desativado"}
             </span>
-          </span>
+          </label>
         ) : field.kind === "textarea" ? (
           <textarea
-            className="min-h-28 rounded-xl border border-input bg-background p-3 text-sm font-normal outline-none focus:border-primary"
+            id={fieldId}
+            className="min-h-28 rounded-lg border border-input bg-background p-3 text-base font-normal text-foreground outline-none transition focus:border-primary focus:ring-4 focus:ring-primary-soft"
             value={String(currentValue)}
             disabled={field.read_only || pending}
             placeholder={field.placeholder}
+            aria-describedby={hintId}
             onChange={(event) => updateField(field, event.target.value)}
           />
         ) : (
           <input
+            id={fieldId}
             className={commonClass}
             type={
               field.kind === "number"
@@ -362,9 +404,11 @@ export function ChannelConfigurationModal({
             }
             value={String(currentValue)}
             disabled={field.read_only || pending}
+            autoComplete={fieldAutoComplete(field)}
+            aria-describedby={hintId}
             placeholder={
               configuredSecret
-                ? "Segredo já configurado — deixe vazio para manter"
+                ? "Credencial já configurada — deixe vazio para manter"
                 : field.placeholder
             }
             onChange={(event) =>
@@ -378,11 +422,11 @@ export function ChannelConfigurationModal({
           />
         )}
         {configuredSecret && (
-          <span className="text-[10px] font-normal text-success">
-            Credencial armazenada de forma criptografada.
+          <span id={hintId} className="text-xs font-normal text-success">
+            Credencial protegida e já configurada.
           </span>
         )}
-      </label>
+      </div>
     );
   }
 
@@ -392,7 +436,7 @@ export function ChannelConfigurationModal({
     <div className="fixed inset-0 z-[120] flex justify-end" role="presentation">
       <button
         type="button"
-        className="absolute inset-0 bg-black/65 backdrop-blur-[1px]"
+        className="absolute inset-0 bg-black/65"
         aria-label="Fechar configuração do canal"
         onClick={() => {
           if (!pending) onClose();
@@ -403,6 +447,7 @@ export function ChannelConfigurationModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="channel-configuration-title"
+        aria-describedby="channel-configuration-description"
         className="relative flex h-dvh w-full max-w-3xl flex-col border-l border-border bg-card shadow-2xl"
       >
         <header className="flex items-start justify-between border-b border-border px-5 py-4 sm:px-7">
@@ -416,9 +461,12 @@ export function ChannelConfigurationModal({
             >
               {communicationChannelLabel[currentChannel.channel]}
             </h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Credenciais nunca são retornadas pela API; somente o estado de
-              configuração é exibido.
+            <p
+              id="channel-configuration-description"
+              className="mt-1 text-xs text-muted-foreground"
+            >
+              Credenciais nunca são retornadas; somente o estado de configuração
+              é exibido.
             </p>
           </div>
           <button
@@ -428,7 +476,7 @@ export function ChannelConfigurationModal({
             className="rounded-lg p-2 text-muted-foreground hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Fechar"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </header>
 
@@ -448,16 +496,18 @@ export function ChannelConfigurationModal({
                         ? "border-success bg-success/10 text-success"
                         : "border-border bg-background text-muted-foreground",
                   )}
+                  aria-label={`Ir para etapa ${index + 1}: ${label}`}
+                  aria-current={step === index ? "step" : undefined}
                 >
                   {index < step ? (
-                    <CheckCircle2 className="h-4 w-4" />
+                    <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                   ) : (
                     index + 1
                   )}
                 </button>
                 <span
                   className={cn(
-                    "text-[10px] font-semibold",
+                    "text-xs font-semibold",
                     step === index
                       ? "text-foreground"
                       : "text-muted-foreground",
@@ -466,7 +516,7 @@ export function ChannelConfigurationModal({
                   {label}
                 </span>
                 {index < steps.length - 1 && (
-                  <span className="h-px flex-1 bg-border" />
+                  <span className="h-px flex-1 bg-border" aria-hidden="true" />
                 )}
               </li>
             ))}
@@ -493,11 +543,15 @@ export function ChannelConfigurationModal({
                         ? "border-primary bg-primary/5"
                         : "border-border hover:border-primary/40",
                     )}
+                    aria-pressed={providerId === item.id}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-sm font-bold">{item.label}</span>
                       {providerId === item.id && (
-                        <CheckCircle2 className="h-5 w-5 text-primary" />
+                        <CheckCircle2
+                          className="h-5 w-5 text-primary"
+                          aria-hidden="true"
+                        />
                       )}
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
@@ -506,27 +560,33 @@ export function ChannelConfigurationModal({
                   </button>
                 ))}
                 {availableProviders.length === 0 && (
-                  <div className="rounded-xl border border-warning/30 bg-warning/5 p-4 text-xs text-muted-foreground">
-                    O catálogo de provedores não foi carregado. Atualize a
-                    página e confirme que o backend está na versão mais recente.
+                  <div
+                    className="rounded-xl border border-warning/30 bg-warning/5 p-4 text-xs text-muted-foreground"
+                    role="status"
+                  >
+                    Não foi possível carregar os provedores disponíveis. Atualize
+                    a página e tente novamente.
                   </div>
                 )}
               </div>
               {provider && (
                 <div className="mt-5 rounded-xl border border-primary/20 bg-primary/5 p-4 text-xs text-muted-foreground">
-                  <ShieldCheck className="mr-2 inline h-4 w-4 text-primary" />
+                  <ShieldCheck
+                    className="mr-2 inline h-4 w-4 text-primary"
+                    aria-hidden="true"
+                  />
                   {provider.instructions}
                 </div>
               )}
             </section>
           )}
+
           {step === 1 && (
             <section>
-              <h3 className="text-sm font-bold">
-                Credenciais e identificação técnica
-              </h3>
+              <h3 className="text-sm font-bold">Credenciais e identificação</h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                Segredos vazios preservam o valor armazenado anteriormente.
+                Campos de credenciais vazios preservam o valor protegido já
+                configurado.
               </p>
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 {technicalFields.map(renderField)}
@@ -539,6 +599,7 @@ export function ChannelConfigurationModal({
               </div>
             </section>
           )}
+
           {step === 2 && (
             <section>
               <h3 className="text-sm font-bold">Remetente</h3>
@@ -555,12 +616,13 @@ export function ChannelConfigurationModal({
               </div>
             </section>
           )}
+
           {step === 3 && (
             <section>
               <h3 className="text-sm font-bold">Preferências do canal</h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                As preferências do paciente e o opt-out continuam sendo
-                validados antes de cada envio.
+                Preferências e solicitações de não recebimento continuam sendo
+                validadas antes de cada envio.
               </p>
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 {preferenceConfigurationFields.map(renderField)}
@@ -572,6 +634,7 @@ export function ChannelConfigurationModal({
               </div>
             </section>
           )}
+
           {step === 4 && (
             <section>
               <h3 className="text-sm font-bold">Teste da integração</h3>
@@ -598,24 +661,35 @@ export function ChannelConfigurationModal({
                     disabled={pending}
                   >
                     {testConnection.isPending ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2
+                        className="mr-2 h-4 w-4 animate-spin"
+                        aria-hidden="true"
+                      />
                     ) : (
-                      <FlaskConical className="mr-2 h-4 w-4" />
+                      <FlaskConical
+                        className="mr-2 h-4 w-4"
+                        aria-hidden="true"
+                      />
                     )}
                     Testar conexão
                   </Button>
                 </div>
               </div>
-              <label className="mt-5 grid gap-2 text-xs font-semibold">
-                Destino da mensagem de teste{" "}
-                <input
-                  className="h-11 rounded-xl border border-input bg-background px-3 text-sm font-normal"
-                  value={testDestination}
-                  disabled={pending}
-                  onChange={(event) => setTestDestination(event.target.value)}
-                  placeholder="Vazio usa seu e-mail ou telefone cadastrado"
-                />
+              <label
+                htmlFor="communication-test-destination"
+                className="mt-5 grid gap-2 text-xs font-semibold"
+              >
+                Destino da mensagem de teste
               </label>
+              <input
+                id="communication-test-destination"
+                className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 text-base font-normal text-foreground outline-none transition focus:border-primary focus:ring-4 focus:ring-primary-soft"
+                value={testDestination}
+                disabled={pending}
+                autoComplete="off"
+                onChange={(event) => setTestDestination(event.target.value)}
+                placeholder="Vazio usa seu contato cadastrado"
+              />
               <Button
                 type="button"
                 className="mt-4"
@@ -623,9 +697,12 @@ export function ChannelConfigurationModal({
                 disabled={pending}
               >
                 {sendTest.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2
+                    className="mr-2 h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />
                 ) : (
-                  <Send className="mr-2 h-4 w-4" />
+                  <Send className="mr-2 h-4 w-4" aria-hidden="true" />
                 )}
                 Enviar mensagem de teste
               </Button>
@@ -633,21 +710,28 @@ export function ChannelConfigurationModal({
                 <a
                   href={manualTestUrl}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="mt-4 flex items-center gap-2 rounded-xl border border-success/20 bg-success/10 p-4 text-xs font-bold text-success"
                 >
-                  <ExternalLink className="h-4 w-4" />
+                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
                   Abrir WhatsApp para concluir o teste manual
                 </a>
               )}
               {currentChannel.last_error && (
-                <div className="mt-5 rounded-xl border border-danger/20 bg-danger/5 p-4 text-xs text-danger">
-                  <AlertTriangle className="mr-2 inline h-4 w-4" />
-                  {currentChannel.last_error.message}
+                <div
+                  className="mt-5 rounded-xl border border-danger/20 bg-danger/5 p-4 text-xs text-danger"
+                  role="alert"
+                >
+                  <AlertTriangle
+                    className="mr-2 inline h-4 w-4"
+                    aria-hidden="true"
+                  />
+                  {getPublicIntegrationError(currentChannel.last_error)}
                 </div>
               )}
             </section>
           )}
+
           {step === 5 && (
             <section>
               <h3 className="text-sm font-bold">Ativação</h3>
@@ -674,9 +758,7 @@ export function ChannelConfigurationModal({
                   <b>{currentChannel.is_active ? "Ativo" : "Inativo"}</b>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <span className="text-muted-foreground">
-                    Última validação
-                  </span>
+                  <span className="text-muted-foreground">Última validação</span>
                   <b>
                     {currentChannel.last_validated_at
                       ? new Date(
@@ -696,7 +778,7 @@ export function ChannelConfigurationModal({
                     currentChannel.connection_status !== "configured")
                 }
               >
-                <Power className="mr-2 h-4 w-4" />
+                <Power className="mr-2 h-4 w-4" aria-hidden="true" />
                 {currentChannel.is_active ? "Desativar canal" : "Ativar canal"}
               </Button>
             </section>
@@ -705,17 +787,14 @@ export function ChannelConfigurationModal({
 
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4 sm:px-7">
           <div>
-            {!["in_app", "whatsapp_manual"].includes(
-              currentChannel.channel,
-            ) && (
+            {!['in_app', 'whatsapp_manual'].includes(currentChannel.channel) && (
               <Button
                 type="button"
-                variant="outline"
-                className="border-danger/30 text-danger hover:bg-danger/5"
+                variant="destructive"
                 onClick={handleRemove}
                 disabled={pending}
               >
-                <Trash2 className="mr-2 h-4 w-4" />
+                <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
                 Remover configuração
               </Button>
             )}
@@ -727,7 +806,7 @@ export function ChannelConfigurationModal({
               onClick={() => save(true)}
               disabled={pending}
             >
-              <Save className="mr-2 h-4 w-4" />
+              <Save className="mr-2 h-4 w-4" aria-hidden="true" />
               Salvar rascunho
             </Button>
             {step > 0 && (
@@ -737,7 +816,7 @@ export function ChannelConfigurationModal({
                 onClick={() => setStep((current) => current - 1)}
                 disabled={pending}
               >
-                <ChevronLeft className="mr-2 h-4 w-4" />
+                <ChevronLeft className="mr-2 h-4 w-4" aria-hidden="true" />
                 Voltar
               </Button>
             )}
@@ -748,7 +827,7 @@ export function ChannelConfigurationModal({
                 disabled={pending}
               >
                 Continuar
-                <ChevronRight className="ml-2 h-4 w-4" />
+                <ChevronRight className="ml-2 h-4 w-4" aria-hidden="true" />
               </Button>
             ) : (
               <Button
@@ -757,9 +836,12 @@ export function ChannelConfigurationModal({
                 disabled={pending}
               >
                 {updateChannel.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2
+                    className="mr-2 h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />
                 ) : (
-                  <Save className="mr-2 h-4 w-4" />
+                  <Save className="mr-2 h-4 w-4" aria-hidden="true" />
                 )}
                 Salvar
               </Button>

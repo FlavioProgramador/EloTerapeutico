@@ -25,9 +25,27 @@ _PROVIDER_DEFINITIONS: dict[str, dict[str, Any]] = {
                 "description": "Notificações exibidas dentro do Elo Terapêutico.",
                 "instructions": "O canal interno não exige credenciais externas.",
                 "fields": [
-                    {"name": "desktop_enabled", "label": "Exibir no dashboard", "kind": "boolean", "required": False, "default": True},
-                    {"name": "sound_enabled", "label": "Som de notificação", "kind": "boolean", "required": False, "default": False},
-                    {"name": "duration_seconds", "label": "Duração do aviso (segundos)", "kind": "number", "required": False, "default": 8},
+                    {
+                        "name": "desktop_enabled",
+                        "label": "Exibir no dashboard",
+                        "kind": "boolean",
+                        "required": False,
+                        "default": True,
+                    },
+                    {
+                        "name": "sound_enabled",
+                        "label": "Som de notificação",
+                        "kind": "boolean",
+                        "required": False,
+                        "default": False,
+                    },
+                    {
+                        "name": "duration_seconds",
+                        "label": "Duração do aviso (segundos)",
+                        "kind": "number",
+                        "required": False,
+                        "default": 8,
+                    },
                 ],
                 "secret_fields": [],
             }
@@ -38,35 +56,134 @@ _PROVIDER_DEFINITIONS: dict[str, dict[str, Any]] = {
         "providers": [
             {
                 "id": "django_email",
-                "label": "Backend padrão do Django",
-                "description": "Usa o backend de e-mail definido nas variáveis de ambiente do servidor.",
-                "instructions": "Configure EMAIL_BACKEND, DEFAULT_FROM_EMAIL e as variáveis SMTP no ambiente de produção.",
+                "label": "Envio de e-mail da plataforma",
+                "description": "Canal de e-mail administrado com segurança pelo Elo Terapêutico.",
+                "instructions": (
+                    "Você pode definir o nome do remetente, o e-mail de resposta "
+                    "e a assinatura padrão."
+                ),
+                # Nunca incluído no catálogo público retornado pela API.
+                "internal_requirements": (
+                    "Configurar o backend de e-mail e o remetente padrão no ambiente "
+                    "de produção."
+                ),
                 "fields": [
-                    {"name": "sender_name", "label": "Nome do remetente", "kind": "text", "required": False},
-                    {"name": "sender_email", "label": "E-mail do remetente", "kind": "email", "required": False},
-                    {"name": "reply_to", "label": "E-mail de resposta", "kind": "email", "required": False},
-                    {"name": "signature", "label": "Assinatura padrão", "kind": "textarea", "required": False},
-                    {"name": "tracking_enabled", "label": "Rastreamento de entrega", "kind": "boolean", "required": False, "default": False},
+                    {
+                        "name": "sender_name",
+                        "label": "Nome do remetente",
+                        "kind": "text",
+                        "required": False,
+                    },
+                    {
+                        "name": "sender_email",
+                        "label": "E-mail do remetente",
+                        "kind": "email",
+                        "required": False,
+                    },
+                    {
+                        "name": "reply_to",
+                        "label": "E-mail de resposta",
+                        "kind": "email",
+                        "required": False,
+                    },
+                    {
+                        "name": "signature",
+                        "label": "Assinatura padrão",
+                        "kind": "textarea",
+                        "required": False,
+                    },
+                    {
+                        "name": "tracking_enabled",
+                        "label": "Rastreamento de entrega",
+                        "kind": "boolean",
+                        "required": False,
+                        "default": False,
+                    },
                 ],
                 "secret_fields": [],
             },
             {
                 "id": "smtp",
                 "label": "SMTP personalizado",
-                "description": "Conecta diretamente a um servidor SMTP específico deste terapeuta.",
-                "instructions": "Use uma senha de aplicativo quando o provedor exigir autenticação em duas etapas. TLS e SSL não podem ser ativados simultaneamente.",
+                "description": "Conecta a um servidor SMTP informado pelo próprio terapeuta.",
+                "instructions": (
+                    "Use uma senha de aplicativo quando o provedor exigir autenticação "
+                    "em duas etapas. TLS e SSL não podem ser ativados simultaneamente."
+                ),
                 "fields": [
-                    {"name": "host", "label": "Servidor SMTP", "kind": "text", "required": True, "placeholder": "smtp.exemplo.com"},
-                    {"name": "port", "label": "Porta", "kind": "number", "required": True, "default": 587},
-                    {"name": "username", "label": "Usuário", "kind": "text", "required": True, "secret": _SENSITIVE_FIELD},
-                    {"name": "password", "label": "Senha", "kind": "password", "required": True, "secret": _SENSITIVE_FIELD},
-                    {"name": "use_tls", "label": "Usar TLS", "kind": "boolean", "required": False, "default": True},
-                    {"name": "use_ssl", "label": "Usar SSL", "kind": "boolean", "required": False, "default": False},
-                    {"name": "timeout", "label": "Timeout (segundos)", "kind": "number", "required": False, "default": 15},
-                    {"name": "sender_name", "label": "Nome do remetente", "kind": "text", "required": True},
-                    {"name": "sender_email", "label": "E-mail do remetente", "kind": "email", "required": True},
-                    {"name": "reply_to", "label": "E-mail de resposta", "kind": "email", "required": False},
-                    {"name": "signature", "label": "Assinatura padrão", "kind": "textarea", "required": False},
+                    {
+                        "name": "host",
+                        "label": "Servidor SMTP",
+                        "kind": "text",
+                        "required": True,
+                        "placeholder": "smtp.exemplo.com",
+                    },
+                    {
+                        "name": "port",
+                        "label": "Porta",
+                        "kind": "number",
+                        "required": True,
+                        "default": 587,
+                    },
+                    {
+                        "name": "username",
+                        "label": "Usuário",
+                        "kind": "text",
+                        "required": True,
+                        "secret": _SENSITIVE_FIELD,
+                    },
+                    {
+                        "name": "password",
+                        "label": "Senha",
+                        "kind": "password",
+                        "required": True,
+                        "secret": _SENSITIVE_FIELD,
+                    },
+                    {
+                        "name": "use_tls",
+                        "label": "Usar TLS",
+                        "kind": "boolean",
+                        "required": False,
+                        "default": True,
+                    },
+                    {
+                        "name": "use_ssl",
+                        "label": "Usar SSL",
+                        "kind": "boolean",
+                        "required": False,
+                        "default": False,
+                    },
+                    {
+                        "name": "timeout",
+                        "label": "Tempo limite (segundos)",
+                        "kind": "number",
+                        "required": False,
+                        "default": 15,
+                    },
+                    {
+                        "name": "sender_name",
+                        "label": "Nome do remetente",
+                        "kind": "text",
+                        "required": True,
+                    },
+                    {
+                        "name": "sender_email",
+                        "label": "E-mail do remetente",
+                        "kind": "email",
+                        "required": True,
+                    },
+                    {
+                        "name": "reply_to",
+                        "label": "E-mail de resposta",
+                        "kind": "email",
+                        "required": False,
+                    },
+                    {
+                        "name": "signature",
+                        "label": "Assinatura padrão",
+                        "kind": "textarea",
+                        "required": False,
+                    },
                 ],
                 "secret_fields": ["username", "password"],
             },
@@ -78,11 +195,26 @@ _PROVIDER_DEFINITIONS: dict[str, dict[str, Any]] = {
             {
                 "id": "whatsapp_manual",
                 "label": "Link oficial do WhatsApp",
-                "description": "Gera um link wa.me e exige confirmação humana do envio.",
-                "instructions": "O Elo Terapêutico nunca marca mensagens manuais como entregues ou lidas.",
+                "description": "Gera um link oficial e exige confirmação humana do envio.",
+                "instructions": (
+                    "Mensagens manuais somente são registradas como preparadas; "
+                    "a confirmação de envio continua sob responsabilidade do usuário."
+                ),
                 "fields": [
-                    {"name": "open_in_web", "label": "Preferir WhatsApp Web", "kind": "boolean", "required": False, "default": True},
-                    {"name": "country_code", "label": "Código do país padrão", "kind": "text", "required": False, "default": "55"},
+                    {
+                        "name": "open_in_web",
+                        "label": "Preferir WhatsApp Web",
+                        "kind": "boolean",
+                        "required": False,
+                        "default": True,
+                    },
+                    {
+                        "name": "country_code",
+                        "label": "Código do país padrão",
+                        "kind": "text",
+                        "required": False,
+                        "default": "55",
+                    },
                 ],
                 "secret_fields": [],
             }
@@ -95,17 +227,71 @@ _PROVIDER_DEFINITIONS: dict[str, dict[str, Any]] = {
                 "id": "meta_cloud",
                 "label": "WhatsApp Cloud API (Meta)",
                 "description": "Integração oficial com a API do WhatsApp Business da Meta.",
-                "instructions": "Crie um aplicativo empresarial na Meta, vincule a conta do WhatsApp Business e informe o Phone Number ID e um token válido.",
+                "instructions": (
+                    "Conecte uma conta empresarial válida e informe apenas as "
+                    "credenciais solicitadas nesta etapa."
+                ),
                 "fields": [
-                    {"name": "business_account_id", "label": "ID da conta comercial", "kind": "text", "required": False},
-                    {"name": "phone_number_id", "label": "Phone Number ID", "kind": "text", "required": True},
-                    {"name": "phone_number", "label": "Número comercial", "kind": "tel", "required": True},
-                    {"name": "api_version", "label": "Versão da Graph API", "kind": "text", "required": False, "default": "v23.0"},
-                    {"name": "webhook_url", "label": "URL do webhook", "kind": "url", "required": False, "read_only": True},
-                    {"name": "default_language", "label": "Idioma padrão dos templates", "kind": "text", "required": False, "default": "pt_BR"},
-                    {"name": "access_token", "label": "Token de acesso", "kind": "password", "required": True, "secret": _SENSITIVE_FIELD},
-                    {"name": "app_secret", "label": "Segredo do aplicativo", "kind": "password", "required": False, "secret": _SENSITIVE_FIELD},
-                    {"name": "verify_token", "label": "Token de verificação do webhook", "kind": "password", "required": True, "secret": _SENSITIVE_FIELD},
+                    {
+                        "name": "business_account_id",
+                        "label": "ID da conta comercial",
+                        "kind": "text",
+                        "required": False,
+                    },
+                    {
+                        "name": "phone_number_id",
+                        "label": "ID do número de telefone",
+                        "kind": "text",
+                        "required": True,
+                    },
+                    {
+                        "name": "phone_number",
+                        "label": "Número comercial",
+                        "kind": "tel",
+                        "required": True,
+                    },
+                    {
+                        "name": "api_version",
+                        "label": "Versão da integração",
+                        "kind": "text",
+                        "required": False,
+                        "default": "v23.0",
+                    },
+                    {
+                        "name": "webhook_url",
+                        "label": "URL de retorno",
+                        "kind": "url",
+                        "required": False,
+                        "read_only": True,
+                    },
+                    {
+                        "name": "default_language",
+                        "label": "Idioma padrão dos modelos",
+                        "kind": "text",
+                        "required": False,
+                        "default": "pt_BR",
+                    },
+                    {
+                        "name": "access_token",
+                        "label": "Token de acesso",
+                        "kind": "password",
+                        "required": True,
+                        "secret": _SENSITIVE_FIELD,
+                    },
+                    {
+                        "name": "app_secret",
+                        "label": "Segredo do aplicativo",
+                        "kind": "password",
+                        "required": False,
+                        "secret": _SENSITIVE_FIELD,
+                    },
+                    {
+                        "name": "verify_token",
+                        "label": "Token de verificação",
+                        "kind": "password",
+                        "required": True,
+                        "secret": _SENSITIVE_FIELD,
+                    },
                 ],
                 "secret_fields": ["access_token", "app_secret", "verify_token"],
             }
@@ -117,15 +303,50 @@ _PROVIDER_DEFINITIONS: dict[str, dict[str, Any]] = {
             {
                 "id": "twilio",
                 "label": "Twilio SMS",
-                "description": "Envio de SMS com rastreamento por meio da API oficial da Twilio.",
-                "instructions": "Informe o Account SID, Auth Token e um número remetente habilitado para SMS.",
+                "description": "Envio de SMS por meio da integração oficial da Twilio.",
+                "instructions": (
+                    "Informe os dados da sua conta e um número remetente habilitado para SMS."
+                ),
                 "fields": [
-                    {"name": "account_sid", "label": "Account SID", "kind": "text", "required": True},
-                    {"name": "sender", "label": "Número remetente", "kind": "tel", "required": True},
-                    {"name": "country_code", "label": "Código do país padrão", "kind": "text", "required": False, "default": "55"},
-                    {"name": "monthly_limit", "label": "Limite mensal de mensagens", "kind": "number", "required": False},
-                    {"name": "status_callback_url", "label": "URL de status", "kind": "url", "required": False, "read_only": True},
-                    {"name": "auth_token", "label": "Auth Token", "kind": "password", "required": True, "secret": _SENSITIVE_FIELD},
+                    {
+                        "name": "account_sid",
+                        "label": "Identificador da conta",
+                        "kind": "text",
+                        "required": True,
+                    },
+                    {
+                        "name": "sender",
+                        "label": "Número remetente",
+                        "kind": "tel",
+                        "required": True,
+                    },
+                    {
+                        "name": "country_code",
+                        "label": "Código do país padrão",
+                        "kind": "text",
+                        "required": False,
+                        "default": "55",
+                    },
+                    {
+                        "name": "monthly_limit",
+                        "label": "Limite mensal de mensagens",
+                        "kind": "number",
+                        "required": False,
+                    },
+                    {
+                        "name": "status_callback_url",
+                        "label": "URL de status",
+                        "kind": "url",
+                        "required": False,
+                        "read_only": True,
+                    },
+                    {
+                        "name": "auth_token",
+                        "label": "Token de autenticação",
+                        "kind": "password",
+                        "required": True,
+                        "secret": _SENSITIVE_FIELD,
+                    },
                 ],
                 "secret_fields": ["auth_token"],
             }
@@ -144,13 +365,24 @@ def _provider_definition(channel: str, provider: str) -> dict[str, Any]:
     raise ValidationError({"provider": "Provedor não suportado para este canal."})
 
 
+def _public_provider_definition(definition: dict[str, Any]) -> dict[str, Any]:
+    public_definition = deepcopy(definition)
+    public_definition.pop("internal_requirements", None)
+    public_definition.pop("admin_instructions", None)
+    public_definition.pop("deployment_notes", None)
+    return public_definition
+
+
 def get_channel_catalog(channel: str | None = None) -> list[dict[str, Any]] | dict[str, Any]:
     if channel is None:
         return [
             {
                 "channel": channel_name,
                 "default_provider": definition["default_provider"],
-                "providers": deepcopy(definition["providers"]),
+                "providers": [
+                    _public_provider_definition(provider)
+                    for provider in definition["providers"]
+                ],
             }
             for channel_name, definition in _PROVIDER_DEFINITIONS.items()
         ]
@@ -160,7 +392,10 @@ def get_channel_catalog(channel: str | None = None) -> list[dict[str, Any]] | di
     return {
         "channel": channel,
         "default_provider": definition["default_provider"],
-        "providers": deepcopy(definition["providers"]),
+        "providers": [
+            _public_provider_definition(provider)
+            for provider in definition["providers"]
+        ],
     }
 
 
@@ -169,7 +404,10 @@ def get_configured_secret_state(config: CommunicationChannelConfig) -> dict[str,
         return {}
     definition = _provider_definition(config.channel, config.provider)
     credentials = config.get_credentials()
-    return {field: bool(credentials.get(field)) for field in definition.get("secret_fields", [])}
+    return {
+        field: bool(credentials.get(field))
+        for field in definition.get("secret_fields", [])
+    }
 
 
 def get_missing_configuration_fields(config: CommunicationChannelConfig) -> list[str]:
@@ -190,7 +428,11 @@ def get_missing_configuration_fields(config: CommunicationChannelConfig) -> list
 
 def _normalize_metadata(definition: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
     clean: dict[str, Any] = {}
-    allowed_fields = {field["name"]: field for field in definition.get("fields", []) if not field.get("secret")}
+    allowed_fields = {
+        field["name"]: field
+        for field in definition.get("fields", [])
+        if not field.get("secret")
+    }
     for name, field in allowed_fields.items():
         if field.get("read_only"):
             continue
@@ -206,11 +448,15 @@ def _normalize_metadata(definition: dict[str, Any], payload: dict[str, Any]) -> 
             try:
                 clean[name] = int(value)
             except (TypeError, ValueError) as exc:
-                raise ValidationError({"metadata": {name: "Informe um número válido."}}) from exc
+                raise ValidationError(
+                    {"metadata": {name: "Informe um número válido."}}
+                ) from exc
         else:
             clean[name] = str(value).strip()[:2000]
     if clean.get("use_tls") and clean.get("use_ssl"):
-        raise ValidationError({"metadata": {"use_ssl": "TLS e SSL não podem ser ativados ao mesmo tempo."}})
+        raise ValidationError(
+            {"metadata": {"use_ssl": "TLS e SSL não podem ser ativados ao mesmo tempo."}}
+        )
     return clean
 
 
@@ -229,7 +475,9 @@ def configure_channel(
     definition = _provider_definition(config.channel, provider)
     provider_changed = bool(config.provider and config.provider != provider)
     if provider_changed and config.is_active and not confirm_provider_change:
-        raise ValidationError({"confirm_provider_change": "Confirme a troca do provedor ativo."})
+        raise ValidationError(
+            {"confirm_provider_change": "Confirme a troca do provedor ativo."}
+        )
 
     current_credentials = {} if provider_changed else config.get_credentials()
     allowed_secret_fields = set(definition.get("secret_fields", []))
@@ -242,21 +490,30 @@ def configure_channel(
 
     config.provider = provider
     config.metadata = _normalize_metadata(definition, metadata or {})
-    config.sender = str(sender or config.metadata.get("sender_email") or config.metadata.get("sender") or "")[:160]
+    config.sender = str(
+        sender
+        or config.metadata.get("sender_email")
+        or config.metadata.get("sender")
+        or ""
+    )[:160]
     config.public_identifier = str(
         public_identifier
         or config.metadata.get("phone_number_id")
         or config.metadata.get("account_sid")
         or ""
     )[:160]
-    config.set_credentials({key: value for key, value in current_credentials.items() if key in allowed_secret_fields})
+    config.set_credentials(
+        {
+            key: value
+            for key, value in current_credentials.items()
+            if key in allowed_secret_fields
+        }
+    )
     config.is_active = False if provider_changed else config.is_active
     config.last_validated_at = None
     config.last_tested_at = None
     config.clear_validation_error()
 
-    # Uma configuração só é considerada operacional após o teste explícito.
-    # Mesmo completa, ela permanece incompleta até validate_channel_configuration().
     get_missing_configuration_fields(config)
     config.connection_status = CommunicationChannelConfig.ConnectionStatus.INCOMPLETE
     config.save()
@@ -264,28 +521,68 @@ def configure_channel(
 
 
 @transaction.atomic
-def validate_channel_configuration(config: CommunicationChannelConfig) -> CommunicationChannelConfig:
+def validate_channel_configuration(
+    config: CommunicationChannelConfig,
+) -> CommunicationChannelConfig:
     if get_missing_configuration_fields(config):
         config.connection_status = CommunicationChannelConfig.ConnectionStatus.INCOMPLETE
         config.last_tested_at = timezone.now()
-        config.last_error_code = "IncompleteConfiguration"
+        config.last_error_code = "INVALID_INPUT"
         config.last_error_message = "Preencha todos os campos obrigatórios antes de testar."
-        config.save(update_fields=["connection_status", "last_tested_at", "last_error_code", "last_error_message", "updated_at"])
+        config.save(
+            update_fields=[
+                "connection_status",
+                "last_tested_at",
+                "last_error_code",
+                "last_error_message",
+                "updated_at",
+            ]
+        )
         raise ValidationError(config.last_error_message)
 
     config.connection_status = CommunicationChannelConfig.ConnectionStatus.VALIDATING
     config.last_tested_at = timezone.now()
     config.clear_validation_error()
-    config.save(update_fields=["connection_status", "last_tested_at", "last_error_code", "last_error_message", "updated_at"])
+    config.save(
+        update_fields=[
+            "connection_status",
+            "last_tested_at",
+            "last_error_code",
+            "last_error_message",
+            "updated_at",
+        ]
+    )
 
     provider = get_provider(config.channel, config=config)
     try:
         provider.validate_configuration(config.owner)
-    except (ProviderError, ProviderNotConfigured) as exc:
+    except ProviderNotConfigured as exc:
         config.connection_status = CommunicationChannelConfig.ConnectionStatus.ERROR
-        config.last_error_code = exc.__class__.__name__[:80]
-        config.last_error_message = str(exc)[:255] or "Não foi possível validar a configuração."
-        config.save(update_fields=["connection_status", "last_error_code", "last_error_message", "updated_at"])
+        config.last_error_code = "CHANNEL_NOT_AVAILABLE"
+        config.last_error_message = "Este canal ainda não está pronto para uso."
+        config.save(
+            update_fields=[
+                "connection_status",
+                "last_error_code",
+                "last_error_message",
+                "updated_at",
+            ]
+        )
+        raise ValidationError(config.last_error_message) from exc
+    except ProviderError as exc:
+        config.connection_status = CommunicationChannelConfig.ConnectionStatus.ERROR
+        config.last_error_code = "CHANNEL_NOT_AVAILABLE"
+        config.last_error_message = (
+            "Não foi possível validar a conexão. Revise os dados e tente novamente."
+        )
+        config.save(
+            update_fields=[
+                "connection_status",
+                "last_error_code",
+                "last_error_message",
+                "updated_at",
+            ]
+        )
         raise ValidationError(config.last_error_message) from exc
 
     now = timezone.now()
@@ -293,13 +590,27 @@ def validate_channel_configuration(config: CommunicationChannelConfig) -> Commun
     config.last_validated_at = now
     config.last_tested_at = now
     config.clear_validation_error()
-    config.save(update_fields=["connection_status", "last_validated_at", "last_tested_at", "last_error_code", "last_error_message", "updated_at"])
+    config.save(
+        update_fields=[
+            "connection_status",
+            "last_validated_at",
+            "last_tested_at",
+            "last_error_code",
+            "last_error_message",
+            "updated_at",
+        ]
+    )
     return config
 
 
 @transaction.atomic
-def remove_channel_configuration(config: CommunicationChannelConfig) -> CommunicationChannelConfig:
-    if config.channel in {Communication.Channel.IN_APP, Communication.Channel.WHATSAPP_MANUAL}:
+def remove_channel_configuration(
+    config: CommunicationChannelConfig,
+) -> CommunicationChannelConfig:
+    if config.channel in {
+        Communication.Channel.IN_APP,
+        Communication.Channel.WHATSAPP_MANUAL,
+    }:
         raise ValidationError("Este canal nativo não pode ter a configuração removida.")
 
     config.is_active = False

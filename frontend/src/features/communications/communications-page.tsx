@@ -19,9 +19,12 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { getPublicIntegrationError } from "@/lib/errors/public-error";
+import { maskEmail, maskPhone } from "@/lib/privacy/masks";
 import { cn } from "@/lib/utils";
 import { ChannelConfigurationModal } from "./channel-configuration-modal";
 import {
@@ -72,6 +75,11 @@ function readableProvider(config: CommunicationChannelConfig) {
     config.provider ||
     "Selecione um provedor"
   );
+}
+
+function maskRecipient(value?: string | null) {
+  if (!value) return "Destino protegido";
+  return value.includes("@") ? maskEmail(value) : maskPhone(value);
 }
 
 export function CommunicationsPage() {
@@ -142,7 +150,7 @@ export function CommunicationsPage() {
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold text-primary">
-              <MessageSquare className="h-4 w-4" />
+              <MessageSquare className="h-4 w-4" aria-hidden="true" />
               Central operacional
             </div>
             <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">
@@ -153,10 +161,11 @@ export function CommunicationsPage() {
             </p>
           </div>
           <Button onClick={() => setNewOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             Nova comunicação
           </Button>
         </header>
+
         <nav
           className="mt-7 flex gap-1 overflow-x-auto rounded-xl border border-border bg-card p-1"
           aria-label="Seções de comunicações"
@@ -172,6 +181,7 @@ export function CommunicationsPage() {
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground",
               )}
+              aria-current={tab === value ? "page" : undefined}
             >
               {label}
             </button>
@@ -181,10 +191,14 @@ export function CommunicationsPage() {
         {tab === "overview" && (
           <section className="mt-6 grid gap-6">
             <div className="flex justify-end">
+              <label htmlFor="communications-period" className="sr-only">
+                Período dos indicadores
+              </label>
               <select
+                id="communications-period"
                 value={period}
                 onChange={(event) => setPeriod(event.target.value)}
-                className="h-10 rounded-xl border border-input bg-card px-3 text-xs"
+                className="h-11 rounded-lg border border-input bg-card px-3 text-base"
               >
                 <option value="7">Esta semana</option>
                 <option value="30">Últimos 30 dias</option>
@@ -193,12 +207,18 @@ export function CommunicationsPage() {
             </div>
             {dashboard.isLoading && (
               <div className="flex min-h-56 items-center justify-center text-sm text-muted-foreground">
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Carregando indicadores reais...
+                <Loader2
+                  className="mr-2 h-5 w-5 animate-spin"
+                  aria-hidden="true"
+                />
+                Carregando indicadores...
               </div>
             )}
             {dashboard.isError && (
-              <div className="rounded-xl border border-danger/20 bg-danger/5 p-5 text-sm text-danger">
+              <div
+                className="rounded-xl border border-danger/20 bg-danger/5 p-5 text-sm text-danger"
+                role="alert"
+              >
                 Não foi possível carregar os indicadores.
               </div>
             )}
@@ -209,7 +229,7 @@ export function CommunicationsPage() {
                     title="Enviadas no período"
                     value={dashboard.data.metrics.total}
                     icon={Send}
-                    detail="Registros reais criados"
+                    detail="Registros criados"
                   />
                   <Metric
                     title="Agendadas"
@@ -227,7 +247,7 @@ export function CommunicationsPage() {
                     title="Falhas"
                     value={dashboard.data.metrics.failed}
                     icon={AlertTriangle}
-                    detail="Erros sanitizados"
+                    detail="Ocorrências registradas"
                   />
                   <Metric
                     title="Taxa de sucesso"
@@ -300,48 +320,61 @@ export function CommunicationsPage() {
           <section className="mt-6">
             <div className="grid gap-3 rounded-xl border border-border bg-card p-4 md:grid-cols-[1fr_180px_180px]">
               <label className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <span className="sr-only">Buscar comunicações</span>
+                <Search
+                  className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground"
+                  aria-hidden="true"
+                />
                 <input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Buscar paciente, assunto ou origem..."
-                  className="h-10 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-xs"
+                  className="h-11 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-base"
                 />
               </label>
-              <select
-                value={channel}
-                onChange={(event) => setChannel(event.target.value)}
-                className="h-10 rounded-lg border border-input bg-background px-3 text-xs"
-              >
-                <option value="">Todos os canais</option>
-                {Object.entries(channelLabel).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={status}
-                onChange={(event) => setStatus(event.target.value)}
-                className="h-10 rounded-lg border border-input bg-background px-3 text-xs"
-              >
-                <option value="">Todos os status</option>
-                {Object.entries(statusLabel).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+              <label>
+                <span className="sr-only">Filtrar por canal</span>
+                <select
+                  value={channel}
+                  onChange={(event) => setChannel(event.target.value)}
+                  className="h-11 w-full rounded-lg border border-input bg-background px-3 text-base"
+                >
+                  <option value="">Todos os canais</option>
+                  {Object.entries(channelLabel).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span className="sr-only">Filtrar por status</span>
+                <select
+                  value={status}
+                  onChange={(event) => setStatus(event.target.value)}
+                  className="h-11 w-full rounded-lg border border-input bg-background px-3 text-base"
+                >
+                  <option value="">Todos os status</option>
+                  {Object.entries(statusLabel).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
             <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card">
               {communications.isLoading && (
                 <div className="flex min-h-64 items-center justify-center text-sm text-muted-foreground">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2
+                    className="mr-2 h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />
                   Carregando histórico...
                 </div>
               )}
               {communications.isError && (
-                <div className="p-6 text-sm text-danger">
+                <div className="p-6 text-sm text-danger" role="alert">
                   Não foi possível carregar o histórico.
                 </div>
               )}
@@ -377,13 +410,16 @@ export function CommunicationsPage() {
                           >
                             <td className="px-4 py-4 font-semibold">
                               {item.patient_name || "Sistema"}
-                              <p className="mt-1 text-[10px] font-normal text-muted-foreground">
-                                {item.recipient}
+                              <p className="mt-1 text-xs font-normal text-muted-foreground">
+                                {maskRecipient(item.recipient)}
                               </p>
                             </td>
                             <td className="px-4 py-4">
                               <span className="inline-flex items-center gap-2">
-                                <Icon className="h-4 w-4 text-primary" />
+                                <Icon
+                                  className="h-4 w-4 text-primary"
+                                  aria-hidden="true"
+                                />
                                 {channelLabel[item.channel]}
                               </span>
                             </td>
@@ -393,7 +429,7 @@ export function CommunicationsPage() {
                             <td className="px-4 py-4">
                               <span
                                 className={cn(
-                                  "rounded-full border px-2.5 py-1 text-[10px] font-bold",
+                                  "rounded-full border px-2.5 py-1 text-xs font-bold",
                                   statusTone(item.status),
                                 )}
                               >
@@ -409,7 +445,7 @@ export function CommunicationsPage() {
                                 onClick={() => setSelectedId(item.public_id)}
                                 className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 font-semibold text-primary hover:bg-primary/10"
                               >
-                                <Eye className="h-3.5 w-3.5" />
+                                <Eye className="h-3.5 w-3.5" aria-hidden="true" />
                                 Detalhes
                               </button>
                             </td>
@@ -436,12 +472,10 @@ export function CommunicationsPage() {
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-3">
                     <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
-                      <FileText className="h-5 w-5" />
+                      <FileText className="h-5 w-5" aria-hidden="true" />
                     </span>
-                    <span className="rounded-full border border-border px-2 py-1 text-[10px]">
-                      {template.is_system_template
-                        ? "Sistema"
-                        : "Personalizado"}
+                    <span className="rounded-full border border-border px-2 py-1 text-xs">
+                      {template.is_system_template ? "Sistema" : "Personalizado"}
                     </span>
                   </div>
                   <h2 className="mt-4 text-sm font-bold">{template.name}</h2>
@@ -452,7 +486,7 @@ export function CommunicationsPage() {
                     {template.allowed_variables.slice(0, 4).map((variable) => (
                       <span
                         key={variable}
-                        className="rounded bg-secondary px-2 py-1 text-[9px] text-muted-foreground"
+                        className="rounded bg-secondary px-2 py-1 text-xs text-muted-foreground"
                       >{`{{${variable}}}`}</span>
                     ))}
                   </div>
@@ -476,14 +510,17 @@ export function CommunicationsPage() {
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <Clock3 className="h-4 w-4 text-primary" />
+                    <Clock3
+                      className="h-4 w-4 text-primary"
+                      aria-hidden="true"
+                    />
                     <h2 className="text-sm font-bold">{automation.name}</h2>
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">
                     {automation.event_type} · {automation.template_name} ·{" "}
                     {automation.delay_value} {automation.delay_unit}
                   </p>
-                  <p className="mt-1 text-[10px] text-muted-foreground">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     Falhas registradas: {automation.failures}
                   </p>
                 </div>
@@ -503,7 +540,7 @@ export function CommunicationsPage() {
                       );
                     } catch {
                       toast.error(
-                        "Revise o canal e o template antes de ativar.",
+                        "Revise o canal e o modelo antes de ativar.",
                       );
                     }
                   }}
@@ -525,12 +562,18 @@ export function CommunicationsPage() {
           <section className="mt-6">
             {channels.isLoading && (
               <div className="flex min-h-64 items-center justify-center text-sm text-muted-foreground">
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                <Loader2
+                  className="mr-2 h-5 w-5 animate-spin"
+                  aria-hidden="true"
+                />
                 Carregando canais...
               </div>
             )}
             {channels.isError && (
-              <div className="rounded-xl border border-danger/20 bg-danger/5 p-5 text-sm text-danger">
+              <div
+                className="rounded-xl border border-danger/20 bg-danger/5 p-5 text-sm text-danger"
+                role="alert"
+              >
                 Não foi possível carregar os canais.
               </div>
             )}
@@ -539,7 +582,7 @@ export function CommunicationsPage() {
                 <EmptyState
                   icon={<Settings2 className="h-6 w-6" />}
                   title="Nenhum canal disponível"
-                  description="Atualize a página ou verifique as permissões do módulo."
+                  description="Atualize a página ou verifique sua permissão de acesso."
                 />
               </div>
             )}
@@ -553,11 +596,11 @@ export function CommunicationsPage() {
                         <div className="p-5">
                           <div className="flex items-start justify-between gap-3">
                             <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
-                              <Icon className="h-5 w-5" />
+                              <Icon className="h-5 w-5" aria-hidden="true" />
                             </span>
                             <span
                               className={cn(
-                                "rounded-full border px-2.5 py-1 text-[10px] font-bold",
+                                "rounded-full border px-2.5 py-1 text-xs font-bold",
                                 channelStatusTone(item.connection_status),
                               )}
                             >
@@ -577,7 +620,7 @@ export function CommunicationsPage() {
                               {readableProvider(item)}
                             </span>
                           </p>
-                          <div className="mt-4 grid gap-2 rounded-xl border border-border bg-secondary/30 p-3 text-[11px]">
+                          <div className="mt-4 grid gap-2 rounded-xl border border-border bg-secondary/30 p-3 text-xs">
                             <div className="flex justify-between gap-3">
                               <span className="text-muted-foreground">
                                 Operação
@@ -603,9 +646,15 @@ export function CommunicationsPage() {
                               </b>
                             </div>
                             {item.last_error && (
-                              <div className="border-t border-border pt-2 text-danger">
-                                <AlertTriangle className="mr-1 inline h-3.5 w-3.5" />
-                                {item.last_error.message}
+                              <div
+                                className="border-t border-border pt-2 text-danger"
+                                role="alert"
+                              >
+                                <AlertTriangle
+                                  className="mr-1 inline h-3.5 w-3.5"
+                                  aria-hidden="true"
+                                />
+                                {getPublicIntegrationError(item.last_error)}
                               </div>
                             )}
                           </div>
@@ -615,7 +664,10 @@ export function CommunicationsPage() {
                             variant="outline"
                             onClick={() => setSelectedChannel(item)}
                           >
-                            <Settings2 className="mr-2 h-4 w-4" />
+                            <Settings2
+                              className="mr-2 h-4 w-4"
+                              aria-hidden="true"
+                            />
                             Configurar
                           </Button>
                           <Button
@@ -627,12 +679,15 @@ export function CommunicationsPage() {
                               item.connection_status === "incomplete"
                             }
                           >
-                            <FlaskConical className="mr-2 h-4 w-4" />
+                            <FlaskConical
+                              className="mr-2 h-4 w-4"
+                              aria-hidden="true"
+                            />
                             Testar
                           </Button>
                           <Button
                             className="col-span-2"
-                            variant={item.is_active ? "outline" : "default"}
+                            variant={item.is_active ? "outline" : "primary"}
                             onClick={() => quickToggle(item)}
                             disabled={
                               toggleChannel.isPending ||
@@ -640,7 +695,10 @@ export function CommunicationsPage() {
                                 item.connection_status !== "configured")
                             }
                           >
-                            <Power className="mr-2 h-4 w-4" />
+                            <Power
+                              className="mr-2 h-4 w-4"
+                              aria-hidden="true"
+                            />
                             {item.is_active
                               ? "Desativar canal"
                               : "Ativar canal"}

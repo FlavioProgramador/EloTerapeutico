@@ -54,8 +54,79 @@ async function csrfFromDocument(page: Page): Promise<string> {
   return value;
 }
 
+async function sensitiveStorageKeys(page: Page) {
+  return page.evaluate(() => {
+    const sensitive = /(?:access|refresh|token|auth[_-]?role)/i;
+    return {
+      local: Object.keys(localStorage).filter((key) => sensitive.test(key)),
+      session: Object.keys(sessionStorage).filter((key) => sensitive.test(key)),
+    };
+  });
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/login");
+});
+
+test("telas públicas não exibem detalhes técnicos e funcionam no mobile", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+
+  for (const path of ["/login", "/register", "/forgot-password"]) {
+    await page.goto(path);
+    await expect(page.locator("body")).not.toContainText(
+      /(?:EMAIL_BACKEND|DEFAULT_FROM_EMAIL|Traceback|Internal Server Error|Connection refused|ECONNREFUSED)/i,
+    );
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
+  }
+});
+
+test("cadastro usa BFF, cookies HttpOnly e não persiste tokens", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/register");
+  const uniqueEmail = `register-e2e-${Date.now()}@example.test`;
+
+  await page.getByLabel("Nome completo").fill("Usuário Cadastro E2E");
+  await page.getByLabel("E-mail").fill(uniqueEmail);
+  await page.getByLabel("Telefone").fill("21999991234");
+  await page.getByLabel("Senha", { exact: true }).fill("SenhaE2E123!");
+  await page.getByLabel("Confirmar senha").fill("SenhaE2E123!");
+
+  const checkboxes = page.locator('input[type="checkbox"]');
+  await checkboxes.nth(0).check();
+  await checkboxes.nth(1).check();
+
+  const responsePromise = page.waitForResponse((response) => {
+    const pathname = new URL(response.url()).pathname;
+    return (
+      pathname === "/api/auth/register" &&
+      response.request().method() === "POST"
+    );
+  });
+  await page.getByRole("button", { name: "Criar conta" }).click();
+  const response = await responsePromise;
+
+  expect(response.status()).toBeGreaterThanOrEqual(200);
+  expect(response.status()).toBeLessThan(300);
+  const body = (await response.json()) as Record<string, unknown>;
+  expect(body).not.toHaveProperty("access");
+  expect(body).not.toHaveProperty("refresh");
+  expect(body).not.toHaveProperty("tokens");
+
+  const access = await cookieByName(context, ACCESS_COOKIE);
+  const refresh = await cookieByName(context, REFRESH_COOKIE);
+  expect(access?.httpOnly).toBe(true);
+  expect(refresh?.httpOnly).toBe(true);
+
+  const storage = await sensitiveStorageKeys(page);
+  expect(storage.local).toEqual([]);
+  expect(storage.session).toEqual([]);
 });
 
 test("login mantém JWTs somente em cookies HttpOnly", async ({

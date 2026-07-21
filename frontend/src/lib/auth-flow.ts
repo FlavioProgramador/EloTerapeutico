@@ -1,3 +1,5 @@
+import { sanitizePublicMessage } from "./errors/sanitize-error.ts";
+
 export type AccessSubscriptionStatus =
   | "TRIALING"
   | "PENDING"
@@ -67,7 +69,9 @@ export function resolvePostLoginDestination(input: {
 }
 
 function firstDetail(value: unknown): string | null {
-  if (typeof value === "string" && value.trim()) return value;
+  const direct = sanitizePublicMessage(value);
+  if (direct) return direct;
+
   if (Array.isArray(value)) {
     for (const item of value) {
       const found = firstDetail(item);
@@ -87,17 +91,15 @@ export function extractApiErrorMessage(
   payload: ApiErrorEnvelope | null | undefined,
   fallback: string,
 ): string {
-  if (
-    typeof payload?.error?.message === "string" &&
-    payload.error.message.trim()
-  ) {
-    return payload.error.message;
-  }
-  if (typeof payload?.detail === "string" && payload.detail.trim()) {
-    return payload.detail;
-  }
+  const envelopeMessage = sanitizePublicMessage(payload?.error?.message);
+  if (envelopeMessage) return envelopeMessage;
+
+  const detail = sanitizePublicMessage(payload?.detail);
+  if (detail) return detail;
+
   const nonField = firstDetail(payload?.non_field_errors);
   if (nonField) return nonField;
+
   const fieldDetail = firstDetail(payload?.error?.details);
   return fieldDetail || fallback;
 }

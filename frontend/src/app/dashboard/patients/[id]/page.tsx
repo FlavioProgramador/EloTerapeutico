@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
   ArrowLeft,
   CalendarPlus,
@@ -16,22 +17,30 @@ import { useState } from "react";
 
 import { Badge, getPatientStatusVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SensitiveValue } from "@/components/ui/sensitive-value";
 import { useAuth } from "@/contexts/auth";
 import { PatientFormDrawer } from "@/features/patients/components/patient-form-drawer";
 import {
   useDeletePatient,
   usePatient,
 } from "@/features/patients/hooks/use-patients";
+import {
+  maskAddress,
+  maskCpf,
+  maskDate,
+  maskEmail,
+  maskPhone,
+} from "@/lib/privacy/masks";
 
-function Detail({ label, value }: { label: string; value?: string | null }) {
+function Detail({ label, value }: { label: string; value?: ReactNode }) {
   return (
     <div>
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
-      <p className="mt-1 text-sm font-medium text-foreground">
+      <div className="mt-1 text-sm font-medium text-foreground">
         {value || "Não informado"}
-      </p>
+      </div>
     </div>
   );
 }
@@ -62,7 +71,12 @@ export default function PatientDetailPage() {
   const patient = patientQuery.data;
 
   if (patientQuery.isLoading) {
-    return <div className="h-[34rem] animate-pulse rounded-xl bg-secondary" />;
+    return (
+      <div
+        className="h-[34rem] animate-pulse rounded-xl bg-secondary"
+        aria-label="Carregando dados do paciente"
+      />
+    );
   }
 
   if (!patient || patientQuery.isError) {
@@ -111,7 +125,7 @@ export default function PatientDetailPage() {
         onClick={() => router.push("/dashboard/patients")}
         className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" /> Voltar para pacientes
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Voltar para pacientes
       </button>
 
       <header className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 md:flex-row md:items-center md:justify-between">
@@ -127,7 +141,7 @@ export default function PatientDetailPage() {
               <Badge variant={getPatientStatusVariant(patient.status)}>
                 {patient.status_display || patient.status}
               </Badge>
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 Cadastrado em {createdAt}
               </span>
             </div>
@@ -147,7 +161,9 @@ export default function PatientDetailPage() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => router.push(`/dashboard/agenda?patient=${patient.id}`)}
+            onClick={() =>
+              router.push(`/dashboard/agenda?patient=${patient.id}`)
+            }
             leftIcon={<CalendarPlus className="h-4 w-4" />}
           >
             Agendar consulta
@@ -165,7 +181,7 @@ export default function PatientDetailPage() {
           {canManage && (
             <Button
               size="sm"
-              variant="outline"
+              variant="destructive"
               onClick={archive}
               isLoading={deleteMutation.isPending}
               leftIcon={<Trash2 className="h-4 w-4" />}
@@ -179,22 +195,29 @@ export default function PatientDetailPage() {
       <div className="grid gap-4 xl:grid-cols-3">
         <section className="rounded-xl border border-border bg-card p-5 xl:col-span-2">
           <h2 className="flex items-center gap-2 border-b border-border pb-3 text-base font-semibold">
-            <UserRound className="h-4 w-4 text-primary" /> Dados cadastrais
+            <UserRound
+              className="h-4 w-4 text-primary"
+              aria-hidden="true"
+            />{" "}
+            Dados cadastrais
           </h2>
           <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <Detail label="Nome completo" value={patient.full_name} />
             <Detail
               label="CPF"
-              value={patient.formatted_cpf || patient.masked_cpf}
+              value={
+                <SensitiveValue
+                  maskedValue={
+                    patient.masked_cpf || maskCpf(patient.formatted_cpf)
+                  }
+                  revealLabel="CPF"
+                />
+              }
             />
             <Detail
               label="Nascimento"
               value={
-                patient.birth_date
-                  ? new Date(`${patient.birth_date}T12:00:00`).toLocaleDateString(
-                      "pt-BR",
-                    )
-                  : undefined
+                <SensitiveValue maskedValue={maskDate(patient.birth_date)} />
               }
             />
             <Detail label="Terapeuta" value={patient.therapist_name} />
@@ -208,18 +231,27 @@ export default function PatientDetailPage() {
             Contato
           </h2>
           <div className="mt-4 space-y-4">
-            <p className="flex items-center gap-2 text-sm text-foreground">
-              <Phone className="h-4 w-4 text-primary" />
-              {patient.phone || "Não informado"}
-            </p>
-            <p className="flex items-center gap-2 text-sm text-foreground">
-              <Mail className="h-4 w-4 text-primary" />
-              {patient.email || "Não informado"}
-            </p>
-            <p className="flex items-start gap-2 text-sm text-foreground">
-              <MapPin className="mt-0.5 h-4 w-4 text-primary" />
-              {address || "Não informado"}
-            </p>
+            <div className="flex items-center gap-2 text-sm text-foreground">
+              <Phone
+                className="h-4 w-4 text-primary"
+                aria-hidden="true"
+              />
+              <SensitiveValue maskedValue={maskPhone(patient.phone)} />
+            </div>
+            <div className="flex items-center gap-2 text-sm text-foreground">
+              <Mail
+                className="h-4 w-4 text-primary"
+                aria-hidden="true"
+              />
+              <SensitiveValue maskedValue={maskEmail(patient.email)} />
+            </div>
+            <div className="flex items-start gap-2 text-sm text-foreground">
+              <MapPin
+                className="mt-0.5 h-4 w-4 text-primary"
+                aria-hidden="true"
+              />
+              <SensitiveValue maskedValue={maskAddress(address)} />
+            </div>
           </div>
         </section>
       </div>

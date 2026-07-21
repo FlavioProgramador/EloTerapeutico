@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import { Outfit, Piazzolla, Work_Sans, IBM_Plex_Mono } from "next/font/google";
+import { IBM_Plex_Mono, Outfit, Piazzolla, Work_Sans } from "next/font/google";
+
 import { Providers } from "@/providers/providers";
 import "./globals.css";
+import "./legacy-typography.css";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -54,7 +56,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body
-        className="min-h-full flex flex-col font-sans"
+        className="flex min-h-full flex-col font-sans"
         suppressHydrationWarning
       >
         <Providers>{children}</Providers>

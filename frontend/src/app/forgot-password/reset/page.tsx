@@ -1,34 +1,33 @@
 "use client";
 
-import React, { Suspense, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowRight, CheckCircle2, Eye, EyeOff, Lock } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Lock, Eye, EyeOff, CheckCircle2, ArrowRight } from "lucide-react";
-import { AxiosError } from "axios";
-import { authService } from "@/features/auth/services/auth.service";
+
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Card,
+  CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
-  CardContent,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   resetPasswordSchema,
   type ResetPasswordFormData,
 } from "@/features/auth/schemas/auth.schemas";
+import { authService } from "@/features/auth/services/auth.service";
+import { getPublicErrorMessage } from "@/lib/errors/public-error";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
-
   const token = searchParams.get("token");
   const uid = searchParams.get("uid");
-
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -44,9 +43,9 @@ function ResetPasswordForm() {
 
   const onSubmit = async (data: ResetPasswordFormData) => {
     if (!token || !uid) {
-      toast.error("Parâmetros inválidos", {
+      toast.error("Link inválido", {
         description:
-          "O link de redefinição de senha está incompleto ou inválido.",
+          "O link de redefinição está incompleto ou expirou. Solicite um novo link.",
       });
       return;
     }
@@ -58,27 +57,16 @@ function ResetPasswordForm() {
         new_password: data.password,
         new_password_confirm: data.confirm_password,
       });
-
       setIsSuccess(true);
-      toast.success("Senha redefinida!", {
+      toast.success("Senha redefinida", {
         description: "Sua senha foi alterada com sucesso.",
       });
     } catch (error: unknown) {
-      const axiosError = error as AxiosError<{
-        error?: { message?: string };
-        detail?: string;
-        token?: string[];
-      }>;
-      const serverMessage =
-        axiosError?.response?.data?.error?.message ||
-        axiosError?.response?.data?.detail ||
-        (axiosError?.response?.data?.token
-          ? axiosError.response.data.token[0]
-          : null) ||
-        "Erro ao redefinir a senha. O link pode ter expirado.";
-
-      toast.error("Falha ao alterar senha", {
-        description: serverMessage,
+      toast.error("Não foi possível alterar a senha", {
+        description: getPublicErrorMessage(
+          error,
+          "O link pode ter expirado. Solicite uma nova redefinição.",
+        ),
       });
     }
   };
@@ -88,20 +76,19 @@ function ResetPasswordForm() {
       <Card className="border-border/80 bg-card shadow-xs">
         <CardHeader className="space-y-1 pb-4 text-center">
           <CardTitle className="text-xl font-bold text-destructive">
-            Link Inválido
+            Link inválido
           </CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
-            O link de redefinição de senha que você acessou é inválido, está
-            expirado ou incompleto.
+            O link de redefinição está inválido, expirado ou incompleto.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <p className="text-xs text-muted-foreground text-center">
-            Por favor, solicite um novo link de recuperação de senha.
+          <p className="text-center text-xs text-muted-foreground">
+            Solicite um novo link de recuperação de senha.
           </p>
-          <Link href="/forgot-password" passHref className="w-full block">
-            <Button className="w-full text-white font-semibold">
-              Solicitar Novo Link
+          <Link href="/forgot-password" className="block w-full">
+            <Button className="w-full font-semibold">
+              Solicitar novo link
             </Button>
           </Link>
         </CardContent>
@@ -111,26 +98,29 @@ function ResetPasswordForm() {
 
   if (isSuccess) {
     return (
-      <Card className="border-border/80 bg-card shadow-xs animate-fade-in">
+      <Card className="animate-fade-in border-border/80 bg-card shadow-xs">
         <CardHeader className="space-y-2 pb-4 text-center">
-          <div className="flex justify-center mb-2">
-            <CheckCircle2 className="h-12 w-12 text-accent" />
+          <div className="mb-2 flex justify-center">
+            <CheckCircle2
+              className="h-12 w-12 text-success"
+              aria-hidden="true"
+            />
           </div>
           <CardTitle className="text-xl font-bold text-foreground">
-            Senha Alterada!
+            Senha alterada
           </CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
-            Sua senha foi redefinida com sucesso. Agora você já pode entrar no
-            sistema com a nova credencial.
+            Sua senha foi redefinida. Agora você pode entrar com a nova
+            credencial.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Link href="/login" passHref className="w-full block">
+          <Link href="/login" className="block w-full">
             <Button
-              className="w-full text-white font-semibold"
+              className="w-full font-semibold"
               rightIcon={<ArrowRight className="h-4 w-4" />}
             >
-              Acessar Painel
+              Acessar painel
             </Button>
           </Link>
         </CardContent>
@@ -142,11 +132,11 @@ function ResetPasswordForm() {
     <Card className="border-border/80 bg-card shadow-xs">
       <CardHeader className="space-y-1 pb-4">
         <CardTitle className="text-xl font-bold text-foreground">
-          Nova Senha
+          Nova senha
         </CardTitle>
         <CardDescription className="text-xs text-muted-foreground">
-          Crie uma senha forte com pelo menos 8 caracteres, contendo letra
-          maiúscula e número.
+          Crie uma senha forte seguindo os requisitos informados abaixo do
+          campo.
         </CardDescription>
       </CardHeader>
 
@@ -156,69 +146,75 @@ function ResetPasswordForm() {
           className="space-y-4"
           noValidate
         >
-          <div className="space-y-1">
-            <Input
-              id="reset-password"
-              label="Nova senha"
-              placeholder="••••••••"
-              type={showPassword ? "text" : "password"}
-              autoComplete="new-password"
-              leftIcon={<Lock className="h-4.5 w-4.5 text-muted-foreground" />}
-              rightIcon={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                  className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4.5 w-4.5" />
-                  ) : (
-                    <Eye className="h-4.5 w-4.5" />
-                  )}
-                </button>
-              }
-              error={errors.password?.message}
-              {...register("password")}
-            />
-          </div>
+          <Input
+            id="reset-password"
+            label="Nova senha"
+            placeholder="••••••••"
+            type={showPassword ? "text" : "password"}
+            autoComplete="new-password"
+            leftIcon={
+              <Lock
+                className="h-4.5 w-4.5 text-muted-foreground"
+                aria-hidden="true"
+              />
+            }
+            rightIcon={
+              <button
+                type="button"
+                onClick={() => setShowPassword((current) => !current)}
+                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                className="cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4.5 w-4.5" aria-hidden="true" />
+                ) : (
+                  <Eye className="h-4.5 w-4.5" aria-hidden="true" />
+                )}
+              </button>
+            }
+            error={errors.password?.message}
+            {...register("password")}
+          />
 
-          <div className="space-y-1">
-            <Input
-              id="reset-confirm-password"
-              label="Confirmar nova senha"
-              placeholder="••••••••"
-              type={showConfirmPassword ? "text" : "password"}
-              autoComplete="new-password"
-              leftIcon={<Lock className="h-4.5 w-4.5 text-muted-foreground" />}
-              rightIcon={
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  aria-label={
-                    showConfirmPassword ? "Ocultar senha" : "Mostrar senha"
-                  }
-                  className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4.5 w-4.5" />
-                  ) : (
-                    <Eye className="h-4.5 w-4.5" />
-                  )}
-                </button>
-              }
-              error={errors.confirm_password?.message}
-              {...register("confirm_password")}
-            />
-          </div>
+          <Input
+            id="reset-confirm-password"
+            label="Confirmar nova senha"
+            placeholder="••••••••"
+            type={showConfirmPassword ? "text" : "password"}
+            autoComplete="new-password"
+            leftIcon={
+              <Lock
+                className="h-4.5 w-4.5 text-muted-foreground"
+                aria-hidden="true"
+              />
+            }
+            rightIcon={
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((current) => !current)}
+                aria-label={
+                  showConfirmPassword ? "Ocultar senha" : "Mostrar senha"
+                }
+                className="cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="h-4.5 w-4.5" aria-hidden="true" />
+                ) : (
+                  <Eye className="h-4.5 w-4.5" aria-hidden="true" />
+                )}
+              </button>
+            }
+            error={errors.confirm_password?.message}
+            {...register("confirm_password")}
+          />
 
           <Button
             id="reset-submit"
             type="submit"
-            className="w-full text-white font-semibold mt-2"
+            className="mt-2 w-full font-semibold"
             isLoading={isSubmitting}
           >
-            Confirmar Nova Senha
+            Confirmar nova senha
           </Button>
         </form>
       </CardContent>
@@ -228,17 +224,19 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background text-foreground font-sans">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 font-sans text-foreground">
       <div className="w-full max-w-md space-y-6">
-        {/* Branding */}
         <div className="flex flex-col items-center text-center">
-          <div className="h-10 w-10 rounded-md bg-primary flex items-center justify-center mb-3">
-            <Lock className="h-5 w-5 text-primary-foreground" />
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-md bg-primary">
+            <Lock
+              className="h-5 w-5 text-primary-foreground"
+              aria-hidden="true"
+            />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Elo Terapêutico
           </h1>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="mt-1 text-xs text-muted-foreground">
             Gestão clínica e prontuários para profissionais
           </p>
         </div>

@@ -1,6 +1,8 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+import { getPublicErrorMessage } from "./errors/public-error.ts";
+
 /**
  * cn – Mescla classes CSS condicionalmente e resolve conflitos Tailwind.
  */
@@ -44,41 +46,15 @@ export function formatTime(timeStr: string): string {
   return timeStr.substring(0, 5);
 }
 
-export function extractApiError(error: unknown): string {
-  const err = error as {
-    response?: {
-      data?: Record<string, unknown> | string | null;
-    };
-  };
-  const details = err?.response?.data;
-
-  if (details) {
-    if (typeof details === "string") return details;
-
-    const dataObj = details as Record<string, unknown>;
-    if (typeof dataObj.detail === "string") return dataObj.detail;
-
-    const errObj = dataObj.error as Record<string, unknown> | undefined;
-    if (errObj && typeof errObj.message === "string") return errObj.message;
-
-    const nonFieldErrors = dataObj.non_field_errors;
-    if (
-      Array.isArray(nonFieldErrors) &&
-      typeof nonFieldErrors[0] === "string"
-    ) {
-      return nonFieldErrors[0];
-    }
-
-    const firstKey = Object.keys(dataObj)[0];
-    if (firstKey) {
-      const fieldErrors = dataObj[firstKey];
-      if (Array.isArray(fieldErrors) && typeof fieldErrors[0] === "string") {
-        return `${firstKey}: ${fieldErrors[0]}`;
-      }
-    }
-  }
-
-  return "Ocorreu um erro inesperado. Tente novamente.";
+/**
+ * Compatibilidade para módulos antigos. Toda mensagem passa pela política
+ * pública central e nunca retorna o corpo bruto da API.
+ */
+export function extractApiError(
+  error: unknown,
+  fallback = "Ocorreu um erro inesperado. Tente novamente.",
+): string {
+  return getPublicErrorMessage(error, fallback);
 }
 
 /**
