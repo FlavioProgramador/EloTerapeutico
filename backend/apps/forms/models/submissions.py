@@ -84,14 +84,19 @@ class FormSubmission(models.Model):
 
     def clean(self):
         super().clean()
-        if self.form_id and self.form.organization_id != self.organization_id:
+        form = self.form if self.form_id else None
+        if form is not None and form.organization_id != self.organization_id:
             raise ValidationError({"form": "O formulário pertence a outra organização."})
-        if self.patient_id and self.patient.organization_id != self.organization_id:
+
+        patient = self.patient if self.patient_id else None
+        if patient is not None and patient.organization_id != self.organization_id:
             raise ValidationError({"patient": "O paciente pertence a outra organização."})
-        if self.appointment_id:
-            if self.appointment.organization_id != self.organization_id:
+
+        appointment = self.appointment if self.appointment_id else None
+        if appointment is not None:
+            if appointment.organization_id != self.organization_id:
                 raise ValidationError({"appointment": "A consulta pertence a outra organização."})
-            if self.patient_id and self.appointment.patient_id != self.patient_id:
+            if patient is not None and appointment.patient_id != patient.pk:
                 raise ValidationError({"appointment": "A consulta pertence a outro paciente."})
 
     def submit(self, user) -> None:
