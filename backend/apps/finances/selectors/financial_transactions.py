@@ -8,12 +8,37 @@ from django.db.models import Q
 
 from apps.finances.models import FinancialTransaction
 from apps.organizations.models import OrganizationMembership
+from apps.patients.models import Patient
+from apps.scheduling.models import Appointment
 
 FULL_FINANCE_ROLES = {
     OrganizationMembership.Role.OWNER,
     OrganizationMembership.Role.ADMIN,
     OrganizationMembership.Role.FINANCE,
 }
+
+
+def selectable_patients_for_finance(*, organization):
+    """Pacientes que podem ser relacionados a um lançamento do tenant ativo."""
+
+    if organization is None:
+        return Patient.objects.none()
+    return Patient.objects.filter(
+        organization=organization,
+        is_active=True,
+        deleted_at__isnull=True,
+    ).order_by("full_name")
+
+
+def selectable_appointments_for_finance(*, organization):
+    """Consultas que podem ser relacionadas a um lançamento do tenant ativo."""
+
+    if organization is None:
+        return Appointment.objects.none()
+    return Appointment.objects.filter(organization=organization).select_related(
+        "patient",
+        "therapist",
+    )
 
 
 def transactions_accessible_to(user, *, organization=None):
