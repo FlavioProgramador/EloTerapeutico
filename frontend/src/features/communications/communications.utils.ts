@@ -1,4 +1,4 @@
-import { getPublicErrorMessage } from "@/lib/errors/public-error";
+import { getPublicErrorMessage } from "../../lib/errors/public-error.ts";
 
 import type {
   ChannelConnectionStatus,
