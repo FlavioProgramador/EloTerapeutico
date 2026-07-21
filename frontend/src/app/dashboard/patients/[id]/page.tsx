@@ -1,3 +1,5 @@
+"use client";
+
 import type { ReactNode } from "react";
 import {
   ArrowLeft,
@@ -159,7 +161,9 @@ export default function PatientDetailPage() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => router.push(`/dashboard/agenda?patient=${patient.id}`)}
+            onClick={() =>
+              router.push(`/dashboard/agenda?patient=${patient.id}`)
+            }
             leftIcon={<CalendarPlus className="h-4 w-4" />}
           >
             Agendar consulta
@@ -191,7 +195,11 @@ export default function PatientDetailPage() {
       <div className="grid gap-4 xl:grid-cols-3">
         <section className="rounded-xl border border-border bg-card p-5 xl:col-span-2">
           <h2 className="flex items-center gap-2 border-b border-border pb-3 text-base font-semibold">
-            <UserRound className="h-4 w-4 text-primary" aria-hidden="true" /> Dados cadastrais
+            <UserRound
+              className="h-4 w-4 text-primary"
+              aria-hidden="true"
+            />{" "}
+            Dados cadastrais
           </h2>
           <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <Detail label="Nome completo" value={patient.full_name} />
@@ -199,14 +207,18 @@ export default function PatientDetailPage() {
               label="CPF"
               value={
                 <SensitiveValue
-                  maskedValue={patient.masked_cpf || maskCpf(patient.formatted_cpf)}
+                  maskedValue={
+                    patient.masked_cpf || maskCpf(patient.formatted_cpf)
+                  }
                   revealLabel="CPF"
                 />
               }
             />
             <Detail
               label="Nascimento"
-              value={<SensitiveValue maskedValue={maskDate(patient.birth_date)} />}
+              value={
+                <SensitiveValue maskedValue={maskDate(patient.birth_date)} />
+              }
             />
             <Detail label="Terapeuta" value={patient.therapist_name} />
             <Detail label="Modalidade" value={patient.modality} />
@@ -220,15 +232,24 @@ export default function PatientDetailPage() {
           </h2>
           <div className="mt-4 space-y-4">
             <div className="flex items-center gap-2 text-sm text-foreground">
-              <Phone className="h-4 w-4 text-primary" aria-hidden="true" />
+              <Phone
+                className="h-4 w-4 text-primary"
+                aria-hidden="true"
+              />
               <SensitiveValue maskedValue={maskPhone(patient.phone)} />
             </div>
             <div className="flex items-center gap-2 text-sm text-foreground">
-              <Mail className="h-4 w-4 text-primary" aria-hidden="true" />
+              <Mail
+                className="h-4 w-4 text-primary"
+                aria-hidden="true"
+              />
               <SensitiveValue maskedValue={maskEmail(patient.email)} />
             </div>
             <div className="flex items-start gap-2 text-sm text-foreground">
-              <MapPin className="mt-0.5 h-4 w-4 text-primary" aria-hidden="true" />
+              <MapPin
+                className="mt-0.5 h-4 w-4 text-primary"
+                aria-hidden="true"
+              />
               <SensitiveValue maskedValue={maskAddress(address)} />
             </div>
           </div>
