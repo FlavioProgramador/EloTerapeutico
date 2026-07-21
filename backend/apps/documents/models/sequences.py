@@ -5,8 +5,14 @@ from django.db import models
 
 
 class DocumentSequence(models.Model):
-    """Sequência transacional por profissional e ano para numeração documental."""
+    """Sequência transacional por organização e ano para numeração documental."""
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="document_sequences",
+        db_index=True,
+    )
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -19,7 +25,7 @@ class DocumentSequence(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["owner", "year"],
-                name="unique_document_sequence_owner_year",
+                fields=["organization", "year"],
+                name="unique_document_sequence_org_year",
             )
         ]
