@@ -13,7 +13,7 @@ class FinancialSummaryActionsMixin:
     def summary(self, request):
         serializer = FinancialSummaryQuerySerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
-        organization, _ = ensure_request_organization(
+        organization, membership = ensure_request_organization(
             request=request,
             required=True,
         )
@@ -21,6 +21,7 @@ class FinancialSummaryActionsMixin:
             financial_summary(
                 user=request.user,
                 organization=organization,
+                membership=membership,
                 start_date=serializer.validated_data["start_date"],
                 end_date=serializer.validated_data["end_date"],
             )
