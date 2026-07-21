@@ -10,6 +10,7 @@ from apps.communications.services import (
     ensure_default_automations,
     ensure_default_channels,
 )
+from apps.organizations.models import OrganizationMembership
 
 
 @receiver(post_save, sender=get_user_model())
@@ -18,8 +19,25 @@ def bootstrap_user_communications(sender, instance, created, **kwargs):
         return
 
     def bootstrap():
-        ensure_default_channels(instance)
-        ensure_default_automations(instance)
+        membership = (
+            OrganizationMembership.objects.filter(
+                user=instance,
+                status=OrganizationMembership.Status.ACTIVE,
+            )
+            .select_related("organization")
+            .order_by("-is_default", "created_at")
+            .first()
+        )
+        if membership is not None:
+            ensure_default_channels(
+                instance,
+                organization=membership.organization,
+            )
+            ensure_default_automations(
+                instance,
+                organization=membership.organization,
+            )
+
         NotificationPreference.objects.get_or_create(
             user=instance,
             defaults={
