@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
+from uuid import UUID
 
 from django.contrib.contenttypes.models import ContentType
 from django.db import connection, transaction
@@ -15,6 +16,7 @@ from apps.audit.exceptions import (
 )
 from apps.audit.models import AuditLog
 from apps.audit.types import AuditWritePolicy, AuditWriteResult
+from apps.organizations.models import OrganizationMembership
 
 from .request_context import extract_request_context
 from .sanitization import (
@@ -44,27 +46,56 @@ def _resolve_actor(actor=None, request=None):
     return candidate
 
 
+def _numeric_object_id(value):
+    if value is None or isinstance(value, UUID):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
 def _resolve_resource(resource=None, resource_label=None, resource_id=None):
     if resource is not None:
         content_type = ContentType.objects.get_for_model(resource, for_concrete_model=False)
         object_id = getattr(resource, "pk", None)
         if object_id is None:
-            raise InvalidAuditMetadataError(
-                "O recurso auditado precisa estar persistido antes do evento."
-            )
-        return content_type, int(object_id)
+            raise InvalidAuditMetadataError("O recurso auditado precisa estar persistido antes do evento.")
+        return content_type, _numeric_object_id(object_id)
     if resource_label:
         try:
             app_label, model_name = str(resource_label).split(".", 1)
-            content_type = ContentType.objects.get_by_natural_key(
-                app_label.lower(), model_name.lower()
-            )
+            content_type = ContentType.objects.get_by_natural_key(app_label.lower(), model_name.lower())
         except (ValueError, ContentType.DoesNotExist) as exc:
-            raise InvalidAuditMetadataError(
-                "Rótulo de recurso inválido para auditoria."
-            ) from exc
-        return content_type, int(resource_id) if resource_id is not None else None
-    return None, int(resource_id) if resource_id is not None else None
+            raise InvalidAuditMetadataError("Rótulo de recurso inválido para auditoria.") from exc
+        return content_type, _numeric_object_id(resource_id)
+    return None, _numeric_object_id(resource_id)
+
+
+def _resolve_organization(*, organization=None, resource=None, request=None, actor=None):
+    if organization is not None:
+        return organization
+    if request is not None:
+        candidate = getattr(request, "organization", None)
+        if candidate is not None:
+            return candidate
+    if resource is not None:
+        candidate = getattr(resource, "organization", None)
+        if candidate is not None:
+            return candidate
+        patient = getattr(resource, "patient", None) if getattr(resource, "patient_id", None) else None
+        if patient is not None:
+            return getattr(patient, "organization", None)
+    if actor is not None and getattr(actor, "pk", None):
+        membership = (
+            OrganizationMembership.objects.filter(user=actor, status=OrganizationMembership.Status.ACTIVE)
+            .select_related("organization")
+            .order_by("-is_default", "created_at")
+            .first()
+        )
+        if membership is not None:
+            return membership.organization
+    return None
 
 
 def _default_policy() -> AuditWritePolicy:
@@ -74,14 +105,7 @@ def _default_policy() -> AuditWritePolicy:
     )
 
 
-def _handle_write_failure(
-    *,
-    action: str,
-    source: str,
-    request_id: str | None,
-    policy: AuditWritePolicy,
-    exc: Exception,
-):
+def _handle_write_failure(*, action: str, source: str, request_id: str | None, policy: AuditWritePolicy, exc: Exception):
     logger.error(
         "audit_log_write_failed",
         extra={
@@ -92,9 +116,7 @@ def _handle_write_failure(
         },
     )
     if action in policy.fail_closed_for:
-        raise AuditWriteError(
-            "Não foi possível registrar o evento obrigatório de auditoria."
-        ) from None
+        raise AuditWriteError("Não foi possível registrar o evento obrigatório de auditoria.") from None
     return None
 
 
@@ -102,9 +124,10 @@ def record_audit_event(
     *,
     action,
     actor=None,
+    organization=None,
     resource=None,
     resource_label: str | None = None,
-    resource_id: int | None = None,
+    resource_id: int | str | UUID | None = None,
     resource_repr: str = "",
     request=None,
     metadata: Mapping[str, object] | None = None,
@@ -113,13 +136,7 @@ def record_audit_event(
     on_commit: bool = True,
     policy: AuditWritePolicy | None = None,
 ) -> AuditWriteResult:
-    """Valida, minimiza e grava um evento de auditoria.
-
-    O schema histórico não possui colunas para ``metadata``, ``reason``,
-    ``source`` ou ``request_id``. Esses valores são validados e usados na
-    política/log técnico, sem serem incorporados silenciosamente a
-    ``object_repr``. A persistência desses campos exige evolução aditiva futura.
-    """
+    """Valida, minimiza e grava um evento com contexto de organização."""
 
     normalized_action = _normalize_action(action)
     normalized_source = clean_text(source, max_length=MAX_SOURCE_LENGTH) or "application"
@@ -127,9 +144,13 @@ def record_audit_event(
     sanitized_metadata = sanitize_metadata(metadata)
     context = extract_request_context(request)
     resolved_actor = _resolve_actor(actor, request)
-    content_type, resolved_object_id = _resolve_resource(
-        resource, resource_label, resource_id
+    resolved_organization = _resolve_organization(
+        organization=organization,
+        resource=resource,
+        request=request,
+        actor=resolved_actor,
     )
+    content_type, resolved_object_id = _resolve_resource(resource, resource_label, resource_id)
     safe_repr = safe_resource_repr(resource, resource_repr)
     write_policy = policy or _default_policy()
 
@@ -138,6 +159,7 @@ def record_audit_event(
     def write_event():
         try:
             return AuditLog.objects.create(
+                organization=resolved_organization,
                 user=resolved_actor,
                 action=normalized_action,
                 ip_address=context.ip_address,
