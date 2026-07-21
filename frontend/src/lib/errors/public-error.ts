@@ -33,6 +33,23 @@ function publicCodeMessage(data: unknown): string | null {
   return typeof code === "string" ? PUBLIC_ERROR_MESSAGES[code] ?? null : null;
 }
 
+function publicEnvelopeMessage(data: unknown): string | null {
+  const payload = asRecord(data);
+  if (!payload) return null;
+  const envelope = asRecord(payload.error);
+
+  for (const candidate of [
+    envelope?.message,
+    payload.message,
+    payload.detail,
+  ]) {
+    const message = sanitizePublicMessage(candidate);
+    if (message) return message;
+  }
+
+  return null;
+}
+
 function firstSafeFieldMessage(value: unknown): string | null {
   if (Array.isArray(value)) {
     for (const item of value) {
@@ -67,6 +84,9 @@ export function getPublicErrorMessage(
   const data = responseData(error);
   const codeMessage = publicCodeMessage(data);
   if (codeMessage) return codeMessage;
+
+  const envelopeMessage = publicEnvelopeMessage(data);
+  if (envelopeMessage) return envelopeMessage;
 
   const fieldMessage = publicFieldMessage(data);
   if (fieldMessage) return fieldMessage;
