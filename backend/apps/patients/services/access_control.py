@@ -13,12 +13,33 @@ FULL_TENANT_PATIENT_ROLES = {
 }
 
 
+def _resolve_membership(user, *, organization_id, membership=None):
+    """Resolve a membership quando adapters legados ainda não passam o contexto."""
+
+    if membership is not None:
+        return membership
+    if not user or not getattr(user, "is_authenticated", False):
+        return None
+    return (
+        OrganizationMembership.objects.filter(
+            user=user,
+            organization_id=organization_id,
+            status=OrganizationMembership.Status.ACTIVE,
+        )
+        .select_related("organization")
+        .first()
+    )
+
+
 def patient_access_q(user, *, membership=None) -> Q:
     """Restringe pacientes pela membership e pelo vínculo clínico do profissional."""
 
     if not user or not getattr(user, "is_authenticated", False) or membership is None:
         return Q(pk__in=[])
-    if membership.user_id != user.pk or membership.status != OrganizationMembership.Status.ACTIVE:
+    if (
+        membership.user_id != user.pk
+        or membership.status != OrganizationMembership.Status.ACTIVE
+    ):
         return Q(pk__in=[])
     if membership.role in FULL_TENANT_PATIENT_ROLES:
         return Q()
@@ -30,10 +51,21 @@ def patient_access_q(user, *, membership=None) -> Q:
     return Q(pk__in=[])
 
 
-def can_access_patient(user, patient, *, membership=None, allow_secretary: bool = False) -> bool:
+def can_access_patient(
+    user,
+    patient,
+    *,
+    membership=None,
+    allow_secretary: bool = False,
+) -> bool:
     """Valida tenant, membership ativa e vínculo mínimo necessário."""
 
-    if not user or not getattr(user, "is_authenticated", False) or membership is None:
+    membership = _resolve_membership(
+        user,
+        organization_id=patient.organization_id,
+        membership=membership,
+    )
+    if membership is None:
         return False
     if membership.user_id != user.pk or membership.organization_id != patient.organization_id:
         return False
@@ -61,7 +93,12 @@ def can_access_patient(user, patient, *, membership=None, allow_secretary: bool 
 def can_manage_patient(user, patient, *, membership=None) -> bool:
     """Autoriza alteração apenas no mesmo tenant e para papéis com escrita."""
 
-    if not can_access_patient(
+    membership = _resolve_membership(
+        user,
+        organization_id=patient.organization_id,
+        membership=membership,
+    )
+    if membership is None or not can_access_patient(
         user,
         patient,
         membership=membership,
