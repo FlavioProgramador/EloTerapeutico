@@ -1,16 +1,11 @@
-"""Base abstrata para entidades clínicas pertencentes a uma organização."""
+"""Comportamento comum para entidades clínicas pertencentes a uma organização."""
 
 from django.core.exceptions import ValidationError
 from django.db import models
 
 
 class ClinicalTenantModel(models.Model):
-    organization = models.ForeignKey(
-        "organizations.Organization",
-        on_delete=models.PROTECT,
-        related_name="%(app_label)s_%(class)s_items",
-        db_index=True,
-    )
+    """Valida relações clínicas sem esconder o campo de tenant em herança."""
 
     class Meta:
         abstract = True
