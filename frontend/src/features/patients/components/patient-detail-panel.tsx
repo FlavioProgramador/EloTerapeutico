@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { maskEmail, maskPhone } from "@/lib/privacy/masks";
 import type { PatientPanelData } from "../types";
 
 interface Props {
@@ -46,7 +47,10 @@ export function PatientDetailPanel({ data, loading, onClose }: Props) {
 
   if (loading) {
     return (
-      <aside className="h-[42rem] animate-pulse rounded-xl border border-border bg-card" />
+      <aside
+        className="h-[42rem] animate-pulse rounded-xl border border-border bg-card"
+        aria-label="Carregando dados do paciente"
+      />
     );
   }
 
@@ -81,7 +85,7 @@ export function PatientDetailPanel({ data, loading, onClose }: Props) {
               <h2 className="truncate text-base font-bold text-foreground">
                 {patient.display_name}
               </h2>
-              <p className="mt-1 text-[10px] text-muted-foreground">
+              <p className="mt-1 text-xs text-muted-foreground">
                 {patient.age ? `${patient.age} anos` : "Idade não informada"} •{" "}
                 {patient.masked_cpf}
               </p>
@@ -100,14 +104,14 @@ export function PatientDetailPanel({ data, loading, onClose }: Props) {
                 className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                 aria-label="Fechar painel"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4" aria-hidden="true" />
               </button>
             )}
           </div>
         </div>
-        <div className="mt-3 space-y-1 text-[11px] text-muted-foreground">
-          <p>{patient.phone || "Telefone não informado"}</p>
-          <p className="truncate">{patient.email || "E-mail não informado"}</p>
+        <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+          <p>{maskPhone(patient.phone)}</p>
+          <p className="truncate">{maskEmail(patient.email)}</p>
         </div>
         <Button
           size="sm"
@@ -125,57 +129,57 @@ export function PatientDetailPanel({ data, loading, onClose }: Props) {
           <button
             type="button"
             onClick={() => router.push(`/dashboard/records/${patient.id}`)}
-            className="flex items-center justify-center gap-2 border-r border-border px-3 py-3 text-[10px] font-semibold text-foreground hover:bg-primary/8 hover:text-primary"
+            className="flex items-center justify-center gap-2 border-r border-border px-3 py-3 text-xs font-semibold text-foreground hover:bg-primary/8 hover:text-primary"
           >
-            <NotebookPen className="h-4 w-4" /> Ver prontuário
+            <NotebookPen className="h-4 w-4" aria-hidden="true" /> Ver prontuário
           </button>
           <button
             type="button"
             onClick={() =>
               router.push(`/dashboard/agenda?patient=${patient.id}`)
             }
-            className="flex items-center justify-center gap-2 px-3 py-3 text-[10px] font-semibold text-foreground hover:bg-primary/8 hover:text-primary"
+            className="flex items-center justify-center gap-2 px-3 py-3 text-xs font-semibold text-foreground hover:bg-primary/8 hover:text-primary"
           >
-            <CalendarDays className="h-4 w-4" /> Agendar sessão
+            <CalendarDays className="h-4 w-4" aria-hidden="true" /> Agendar sessão
           </button>
           <button
             type="button"
             onClick={() =>
               router.push(`/dashboard/records/${patient.id}?new=evolution`)
             }
-            className="flex items-center justify-center gap-2 border-r border-t border-border px-3 py-3 text-[10px] font-semibold text-foreground hover:bg-primary/8 hover:text-primary"
+            className="flex items-center justify-center gap-2 border-r border-t border-border px-3 py-3 text-xs font-semibold text-foreground hover:bg-primary/8 hover:text-primary"
           >
-            <FileText className="h-4 w-4" /> Nova evolução
+            <FileText className="h-4 w-4" aria-hidden="true" /> Nova evolução
           </button>
           <button
             type="button"
             disabled
-            className="flex items-center justify-center gap-2 border-t border-border px-3 py-3 text-[10px] font-semibold text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex items-center justify-center gap-2 border-t border-border px-3 py-3 text-xs font-semibold text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <MessageCircle className="h-4 w-4" /> Mensagem indisponível
+            <MessageCircle className="h-4 w-4" aria-hidden="true" /> Mensagem indisponível
           </button>
         </div>
       ) : (
         <button
           type="button"
           onClick={() => router.push(`/dashboard/agenda?patient=${patient.id}`)}
-          className="flex w-full items-center justify-center gap-2 border-b border-border px-3 py-3 text-[10px] font-semibold text-foreground hover:bg-primary/8 hover:text-primary"
+          className="flex w-full items-center justify-center gap-2 border-b border-border px-3 py-3 text-xs font-semibold text-foreground hover:bg-primary/8 hover:text-primary"
         >
-          <CalendarDays className="h-4 w-4" /> Agendar sessão
+          <CalendarDays className="h-4 w-4" aria-hidden="true" /> Agendar sessão
         </button>
       )}
 
       <div className="space-y-3 p-3">
         <section className="rounded-lg border border-border bg-secondary/25 p-3">
-          <div className="flex items-center gap-2 text-[10px] font-semibold text-muted-foreground">
-            <CalendarDays className="h-3.5 w-3.5 text-primary" /> Próxima sessão
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+            <CalendarDays className="h-3.5 w-3.5 text-primary" aria-hidden="true" /> Próxima sessão
           </div>
           {data.next_session ? (
             <div className="mt-3">
               <strong className="text-sm text-foreground">
                 {formatDate(data.next_session.start_time, true)}
               </strong>
-              <p className="mt-1 text-[10px] text-muted-foreground">
+              <p className="mt-1 text-xs text-muted-foreground">
                 {patient.modality === "online"
                   ? "Atendimento online"
                   : "Atendimento presencial"}
@@ -202,26 +206,25 @@ export function PatientDetailPanel({ data, loading, onClose }: Props) {
 
         {canAccessRecords && (
           <section className="rounded-lg border border-border bg-secondary/25 p-3">
-            <div className="flex items-center gap-2 text-[10px] font-semibold text-muted-foreground">
-              <NotebookPen className="h-3.5 w-3.5 text-primary" /> Última
-              evolução
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+              <NotebookPen className="h-3.5 w-3.5 text-primary" aria-hidden="true" /> Última evolução
             </div>
             {data.latest_evolution ? (
               <div className="mt-3">
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {formatDate(data.latest_evolution.session_date)}
                 </p>
-                <p className="mt-2 line-clamp-3 text-[11px] leading-5 text-foreground">
-                  {data.latest_evolution.summary}
+                <p className="mt-2 text-sm leading-6 text-foreground">
+                  Evolução clínica registrada. Abra o prontuário para consultar o conteúdo.
                 </p>
                 <button
                   type="button"
                   onClick={() =>
                     router.push(`/dashboard/records/${patient.id}`)
                   }
-                  className="mt-3 text-[10px] font-semibold text-primary hover:underline"
+                  className="mt-3 text-xs font-semibold text-primary hover:underline"
                 >
-                  Ver evolução completa
+                  Abrir prontuário
                 </button>
               </div>
             ) : (
@@ -233,9 +236,9 @@ export function PatientDetailPanel({ data, loading, onClose }: Props) {
         )}
 
         <section className="rounded-lg border border-border bg-secondary/25 p-3">
-          <div className="flex items-center justify-between text-[10px] font-semibold text-muted-foreground">
+          <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
             <span className="flex items-center gap-2">
-              <Target className="h-3.5 w-3.5 text-primary" /> Acompanhamento
+              <Target className="h-3.5 w-3.5 text-primary" aria-hidden="true" /> Acompanhamento
             </span>
             <span>{data.follow_up.total_sessions} sessões</span>
           </div>
@@ -245,37 +248,36 @@ export function PatientDetailPanel({ data, loading, onClose }: Props) {
                 {attendance ?? "—"}
                 {attendance !== null ? "%" : ""}
               </strong>
-              <span className="text-[9px] text-muted-foreground">Adesão</span>
+              <span className="text-xs text-muted-foreground">Adesão</span>
             </div>
             <div>
               <strong className="block text-sm text-foreground">
                 {data.follow_up.missed_sessions}
               </strong>
-              <span className="text-[9px] text-muted-foreground">Faltas</span>
+              <span className="text-xs text-muted-foreground">Faltas</span>
             </div>
             <div>
               <strong className="block text-sm text-foreground">
                 {data.follow_up.active_goals}
               </strong>
-              <span className="text-[9px] text-muted-foreground">Metas</span>
+              <span className="text-xs text-muted-foreground">Metas</span>
             </div>
           </div>
         </section>
 
         {canAccessRecords && (
           <section className="rounded-lg border border-border bg-secondary/25 p-3">
-            <div className="flex items-center gap-2 text-[10px] font-semibold text-muted-foreground">
-              <FolderOpen className="h-3.5 w-3.5 text-primary" /> Documentos
-              recentes
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+              <FolderOpen className="h-3.5 w-3.5 text-primary" aria-hidden="true" /> Documentos recentes
             </div>
             {data.recent_documents.length ? (
               <div className="mt-2 divide-y divide-border/70">
                 {data.recent_documents.map((document) => (
                   <div key={document.id} className="py-2">
-                    <p className="truncate text-[11px] font-medium text-foreground">
-                      {document.name}
+                    <p className="truncate text-xs font-medium text-foreground">
+                      Documento clínico
                     </p>
-                    <p className="mt-0.5 text-[9px] text-muted-foreground">
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                       {document.category} • {formatDate(document.created_at)}
                     </p>
                   </div>
@@ -291,12 +293,11 @@ export function PatientDetailPanel({ data, loading, onClose }: Props) {
 
         {canAccessRecords && (
           <section className="rounded-lg border border-dashed border-border bg-secondary/20 p-3">
-            <div className="flex items-center gap-2 text-[10px] font-semibold text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-primary" /> Resumo assistido
-              por IA
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden="true" /> Resumo assistido
             </div>
-            <p className="mt-2 text-[10px] leading-4 text-muted-foreground">
-              {data.ai_summary.message}
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">
+              Abra o prontuário para acessar recursos clínicos disponíveis para este paciente.
             </p>
           </section>
         )}
