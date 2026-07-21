@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 from rest_framework import serializers
 
 from apps.finances.models import MonthlySubscription
-from apps.patients.models import Patient
+from apps.finances.selectors import selectable_patients_for_finance
 
 
 class MonthlySubscriptionSerializer(serializers.ModelSerializer):
@@ -56,10 +56,8 @@ class MonthlySubscriptionSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
         request = self.context.get("request")
         organization = getattr(request, "organization", None)
-        self.fields["patient"].queryset = (
-            Patient.objects.filter(organization=organization, is_active=True)
-            if organization is not None
-            else Patient.objects.none()
+        self.fields["patient"].queryset = selectable_patients_for_finance(
+            organization=organization
         )
 
     def validate_payment_link(self, value):
