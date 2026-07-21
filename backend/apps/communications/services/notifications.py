@@ -3,8 +3,11 @@ from __future__ import annotations
 from datetime import time
 from typing import Any
 
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
+
+from apps.organizations.models import OrganizationMembership
 
 from ..models import InAppNotification, NotificationDelivery, NotificationPreference
 
@@ -63,15 +66,26 @@ def get_notification_preferences(user) -> NotificationPreference:
     return preference
 
 
-def category_channel_enabled(preference: NotificationPreference, category: str, channel: str) -> bool:
+def category_channel_enabled(
+    preference: NotificationPreference,
+    category: str,
+    channel: str,
+) -> bool:
     category_config = (preference.category_preferences or {}).get(category, {})
     if isinstance(category_config, dict) and channel in category_config:
         return bool(category_config[channel])
     return bool(getattr(preference, f"{channel}_enabled", False))
 
 
-def _inside_quiet_hours(preference: NotificationPreference, current: time | None = None) -> bool:
-    if not preference.quiet_hours_enabled or not preference.quiet_hours_start or not preference.quiet_hours_end:
+def _inside_quiet_hours(
+    preference: NotificationPreference,
+    current: time | None = None,
+) -> bool:
+    if (
+        not preference.quiet_hours_enabled
+        or not preference.quiet_hours_start
+        or not preference.quiet_hours_end
+    ):
         return False
     current = current or timezone.localtime().time()
     start, end = preference.quiet_hours_start, preference.quiet_hours_end
@@ -80,7 +94,10 @@ def _inside_quiet_hours(preference: NotificationPreference, current: time | None
     return current >= start or current <= end
 
 
-def _schedule_email_delivery(notification: InAppNotification, preference: NotificationPreference) -> None:
+def _schedule_email_delivery(
+    notification: InAppNotification,
+    preference: NotificationPreference,
+) -> None:
     if not category_channel_enabled(preference, notification.category, "email"):
         return
     delivery, created = NotificationDelivery.objects.get_or_create(
@@ -103,6 +120,27 @@ def _enqueue_notification_delivery(delivery_id: int) -> None:
     send_notification_delivery.apply_async(args=[delivery_id], queue="communications")
 
 
+def _resolve_notification_organization(*, organization, communication, recipient):
+    if organization is not None:
+        if communication is not None and communication.organization_id != organization.pk:
+            raise ValidationError("A comunicação pertence a outra organização.")
+        return organization
+    if communication is not None and communication.organization_id:
+        return communication.organization
+
+    memberships = OrganizationMembership.objects.filter(
+        user=recipient,
+        status=OrganizationMembership.Status.ACTIVE,
+    ).select_related("organization")
+    membership = memberships.filter(is_default=True).first()
+    if membership is None:
+        first_two = list(memberships[:2])
+        membership = first_two[0] if len(first_two) == 1 else None
+    if membership is None:
+        raise ValidationError("Não foi possível determinar a organização da notificação.")
+    return membership.organization
+
+
 @transaction.atomic
 def create_notification(
     *,
@@ -118,15 +156,22 @@ def create_notification(
     metadata: dict[str, Any] | None = None,
     actor=None,
     communication=None,
+    organization=None,
     expires_at=None,
     deduplication_key: str = "",
 ) -> InAppNotification | None:
+    organization = _resolve_notification_organization(
+        organization=organization,
+        communication=communication,
+        recipient=recipient,
+    )
     preference = get_notification_preferences(recipient)
     category = category or infer_notification_category(event_type)
     safe_metadata = _safe_metadata(metadata)
     if deduplication_key:
         safe_metadata["deduplication_key"] = deduplication_key[:160]
         existing = InAppNotification.objects.filter(
+            organization=organization,
             recipient=recipient,
             notification_type=event_type,
             metadata__deduplication_key=deduplication_key[:160],
@@ -140,6 +185,7 @@ def create_notification(
         return None
 
     notification = InAppNotification.objects.create(
+        organization=organization,
         owner=owner,
         recipient=recipient,
         actor=actor,
