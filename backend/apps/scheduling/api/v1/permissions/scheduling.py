@@ -1,6 +1,6 @@
 """Permissões de scheduling baseadas na membership da organização ativa."""
 
-from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
+from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 
 from apps.organizations.models import OrganizationMembership
 from apps.organizations.permissions import has_capability

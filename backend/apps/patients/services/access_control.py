@@ -4,7 +4,6 @@ from django.db.models import Q
 
 from apps.organizations.models import OrganizationMembership
 
-
 FULL_TENANT_PATIENT_ROLES = {
     OrganizationMembership.Role.OWNER,
     OrganizationMembership.Role.ADMIN,
