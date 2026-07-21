@@ -2,6 +2,7 @@
 
 from rest_framework.permissions import BasePermission
 
+from apps.organizations.models import OrganizationMembership
 from apps.organizations.permissions import has_capability
 from apps.organizations.services.tenant_context import ensure_request_organization
 
@@ -23,6 +24,11 @@ class FinancesPermission(BasePermission):
             required=True,
         )
         if getattr(obj, "organization_id", None) != organization.pk:
+            return False
+        if (
+            membership.role == OrganizationMembership.Role.THERAPIST
+            and getattr(obj, "therapist_id", None) != request.user.pk
+        ):
             return False
         if request.method in {"GET", "HEAD", "OPTIONS"}:
             return has_capability(membership, "finances.view")
