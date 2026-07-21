@@ -34,6 +34,9 @@ function publicCodeMessage(data: unknown): string | null {
 }
 
 function publicEnvelopeMessage(data: unknown): string | null {
+  const direct = sanitizePublicMessage(data);
+  if (direct) return direct;
+
   const payload = asRecord(data);
   if (!payload) return null;
   const envelope = asRecord(payload.error);
@@ -71,7 +74,8 @@ function publicFieldMessage(data: unknown): string | null {
   for (const [field, label] of Object.entries(PUBLIC_FIELD_LABELS)) {
     if (!(field in details)) continue;
     const message = firstSafeFieldMessage(details[field]);
-    if (message) return `${label}: ${message}`;
+    if (!message) continue;
+    return field === "non_field_errors" ? message : `${label}: ${message}`;
   }
 
   return null;
@@ -85,11 +89,11 @@ export function getPublicErrorMessage(
   const codeMessage = publicCodeMessage(data);
   if (codeMessage) return codeMessage;
 
-  const envelopeMessage = publicEnvelopeMessage(data);
-  if (envelopeMessage) return envelopeMessage;
-
   const fieldMessage = publicFieldMessage(data);
   if (fieldMessage) return fieldMessage;
+
+  const envelopeMessage = publicEnvelopeMessage(data);
+  if (envelopeMessage) return envelopeMessage;
 
   const status = responseStatus(error);
   if (status && status >= 500) return PUBLIC_ERROR_MESSAGES.SERVICE_UNAVAILABLE;
