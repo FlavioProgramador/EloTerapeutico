@@ -1,32 +1,53 @@
 from __future__ import annotations
 
 import pytest
-from django.urls import reverse
 from rest_framework.test import APIClient
 
 from apps.communications.models import InAppNotification, NotificationPreference
 from apps.communications.services.notifications import create_notification
+from apps.organizations.models import Organization, OrganizationMembership
 from apps.users.models import User
 
 pytestmark = pytest.mark.django_db
 
 
 def user(email: str) -> User:
-    return User.objects.create_user(
+    current_user = User.objects.create_user(
         email=email,
         password="SenhaForte123!",
         full_name="Usuário Notificações",
     )
+    slug = email.split("@", 1)[0].replace(".", "-")
+    organization = Organization.objects.create(
+        name=f"Organização de {current_user.full_name}",
+        slug=slug,
+        organization_type=Organization.Type.INDIVIDUAL,
+        status=Organization.Status.ACTIVE,
+        created_by=current_user,
+    )
+    OrganizationMembership.objects.create(
+        organization=organization,
+        user=current_user,
+        role=OrganizationMembership.Role.THERAPIST,
+        status=OrganizationMembership.Status.ACTIVE,
+        is_default=True,
+    )
+    current_user.test_organization = organization
+    return current_user
 
 
 def authenticated_client(current_user: User) -> APIClient:
     client = APIClient()
     client.force_authenticate(current_user)
+    client.credentials(
+        HTTP_X_ORGANIZATION_ID=str(current_user.test_organization.pk)
+    )
     return client
 
 
 def create_item(owner: User, **kwargs) -> InAppNotification:
     return InAppNotification.objects.create(
+        organization=owner.test_organization,
         owner=owner,
         recipient=owner,
         category=kwargs.pop("category", InAppNotification.Category.SYSTEM),
@@ -73,8 +94,12 @@ def test_read_unread_archive_and_bulk_actions():
     assert client.post(
         f"/api/v1/communications/notifications/{first.public_id}/unread/"
     ).status_code == 200
-    assert client.post("/api/v1/communications/notifications/read-all/").data["updated"] == 2
-    assert client.post("/api/v1/communications/notifications/archive-read/").data["updated"] == 2
+    assert client.post(
+        "/api/v1/communications/notifications/read-all/"
+    ).data["updated"] == 2
+    assert client.post(
+        "/api/v1/communications/notifications/archive-read/"
+    ).data["updated"] == 2
 
     first.refresh_from_db()
     second.refresh_from_db()
@@ -110,9 +135,11 @@ def test_preferences_are_private_and_whatsapp_cannot_be_enabled():
 
 def test_service_deduplicates_and_sanitizes_metadata():
     owner = user("notification-service@example.test")
+    organization = owner.test_organization
     NotificationPreference.objects.create(user=owner, email_enabled=False)
 
     first = create_notification(
+        organization=organization,
         owner=owner,
         recipient=owner,
         title="Consulta alterada",
@@ -122,6 +149,7 @@ def test_service_deduplicates_and_sanitizes_metadata():
         deduplication_key="appointment:123:updated",
     )
     second = create_notification(
+        organization=organization,
         owner=owner,
         recipient=owner,
         title="Consulta alterada novamente",
