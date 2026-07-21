@@ -28,7 +28,7 @@ export interface Organization {
 }
 
 export interface OrganizationMembership {
-  id: number;
+  id: string;
   organization: string;
   user_id: number;
   user_name: string;
