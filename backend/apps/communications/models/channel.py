@@ -21,6 +21,12 @@ class CommunicationChannelConfig(models.Model):
         DISABLED = "disabled", "Desativado"
         UNAVAILABLE = "unavailable", "Indisponível temporariamente"
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="communication_channel_configs",
+        db_index=True,
+    )
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -47,13 +53,20 @@ class CommunicationChannelConfig(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["owner", "channel"], name="comm_channel_owner_uniq")
+            models.UniqueConstraint(
+                fields=["organization", "channel"],
+                name="comm_channel_org_uniq",
+            )
         ]
         indexes = [
             models.Index(
+                fields=["organization", "is_active", "connection_status"],
+                name="comm_channel_org_oper_idx",
+            ),
+            models.Index(
                 fields=["owner", "is_active", "connection_status"],
                 name="comm_channel_oper_idx",
-            )
+            ),
         ]
 
     def get_credentials(self) -> dict[str, Any]:
