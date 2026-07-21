@@ -6,8 +6,10 @@ from urllib.parse import urlparse
 from rest_framework import serializers
 
 from apps.finances.models import FinancialTransaction
-from apps.patients.models import Patient
-from apps.scheduling.models import Appointment
+from apps.finances.selectors import (
+    selectable_appointments_for_finance,
+    selectable_patients_for_finance,
+)
 
 
 class PatientNestedSerializer(serializers.Serializer):
@@ -128,15 +130,11 @@ class TransactionCreateUpdateSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
         request = self.context.get("request")
         organization = getattr(request, "organization", None)
-        self.fields["patient"].queryset = (
-            Patient.objects.filter(organization=organization, is_active=True)
-            if organization is not None
-            else Patient.objects.none()
+        self.fields["patient"].queryset = selectable_patients_for_finance(
+            organization=organization
         )
-        self.fields["appointment"].queryset = (
-            Appointment.objects.filter(organization=organization)
-            if organization is not None
-            else Appointment.objects.none()
+        self.fields["appointment"].queryset = selectable_appointments_for_finance(
+            organization=organization
         )
 
     def validate_amount(self, value: Decimal) -> Decimal:
