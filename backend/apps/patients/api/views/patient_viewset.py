@@ -64,7 +64,9 @@ class TenantPatientCreateUpdateSerializer(PatientCreateUpdateSerializer):
         request = self.context.get("request")
         organization = getattr(request, "organization", None)
         if organization is None:
-            raise serializers.ValidationError("Selecione uma organização antes de cadastrar o paciente.")
+            raise serializers.ValidationError(
+                "Selecione uma organização antes de cadastrar o paciente."
+            )
         queryset = Patient.all_objects.filter(
             organization=organization,
             cpf=clean_cpf,
@@ -72,7 +74,9 @@ class TenantPatientCreateUpdateSerializer(PatientCreateUpdateSerializer):
         if self.instance:
             queryset = queryset.exclude(pk=self.instance.pk)
         if queryset.exists():
-            raise serializers.ValidationError("Um paciente com este CPF já está cadastrado nesta organização.")
+            raise serializers.ValidationError(
+                "Um paciente com este CPF já está cadastrado nesta organização."
+            )
         return clean_cpf
 
     def validate_therapist(self, therapist):
@@ -91,7 +95,9 @@ class TenantPatientCreateUpdateSerializer(PatientCreateUpdateSerializer):
             ],
         ).exists()
         if not is_professional:
-            raise serializers.ValidationError("O terapeuta selecionado não pertence à organização.")
+            raise serializers.ValidationError(
+                "O terapeuta selecionado não pertence à organização."
+            )
         return therapist
 
     def validate(self, attrs):
@@ -111,7 +117,10 @@ class OrganizationPatientPermission(IsAuthenticated):
     def has_permission(self, request, view):
         if not super().has_permission(request, view):
             return False
-        _, membership = ensure_request_organization(request=request, required=True)
+        _, membership = ensure_request_organization(
+            request=request,
+            required=True,
+        )
         if request.method in {"GET", "HEAD", "OPTIONS"}:
             return has_capability(membership, "patients.view")
         if getattr(view, "action", "") in {"deactivate", "restore"}:
@@ -121,11 +130,16 @@ class OrganizationPatientPermission(IsAuthenticated):
         if request.method in {"PUT", "PATCH"}:
             return has_capability(membership, "patients.update")
         if request.method == "DELETE":
-            return has_capability(membership, "patients.archive")
+            # Permite chegar ao queryset tenant-aware. Registros fora do escopo
+            # retornam 404; a capability de arquivamento é verificada no objeto.
+            return has_capability(membership, "patients.view")
         return False
 
     def has_object_permission(self, request, view, obj):
-        _, membership = ensure_request_organization(request=request, required=True)
+        _, membership = ensure_request_organization(
+            request=request,
+            required=True,
+        )
         if request.method in {"GET", "HEAD", "OPTIONS"}:
             return can_access_patient(
                 request.user,
@@ -133,7 +147,18 @@ class OrganizationPatientPermission(IsAuthenticated):
                 membership=membership,
                 allow_secretary=True,
             )
-        return can_manage_patient(request.user, obj, membership=membership)
+        if request.method == "DELETE":
+            return can_access_patient(
+                request.user,
+                obj,
+                membership=membership,
+                allow_secretary=True,
+            ) and has_capability(membership, "patients.archive")
+        return can_manage_patient(
+            request.user,
+            obj,
+            membership=membership,
+        )
 
 
 class PatientViewSet(LegacyPatientViewSet):
@@ -166,13 +191,17 @@ class PatientViewSet(LegacyPatientViewSet):
         organization = getattr(self.request, "organization", None)
         membership = getattr(self.request, "organization_membership", None)
         if organization is None or membership is None:
-            raise DRFValidationError({"detail": "Selecione uma organização antes de cadastrar o paciente."})
+            raise DRFValidationError(
+                {"detail": "Selecione uma organização antes de cadastrar o paciente."}
+            )
 
         therapist = serializer.validated_data.get("therapist")
         if membership.role == OrganizationMembership.Role.THERAPIST:
             therapist = self.request.user
         if therapist is None:
-            raise DRFValidationError({"therapist": "Selecione um terapeuta da organização."})
+            raise DRFValidationError(
+                {"therapist": "Selecione um terapeuta da organização."}
+            )
 
         subscription_owner = organization.created_by or self.request.user
         try:
@@ -181,7 +210,11 @@ class PatientViewSet(LegacyPatientViewSet):
             raise DRFValidationError({"detail": exc.messages[0]}) from exc
 
         serializer.save(organization=organization, therapist=therapist)
-        self._record_instance(AuditLog.Action.CREATE, serializer.instance, on_commit=True)
+        self._record_instance(
+            AuditLog.Action.CREATE,
+            serializer.instance,
+            on_commit=True,
+        )
 
     @action(detail=True, methods=["post"], url_path="deactivate")
     def deactivate(self, request, pk=None):
