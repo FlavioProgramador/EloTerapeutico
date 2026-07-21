@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   User,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
@@ -116,6 +117,100 @@ function findPrice(
   return { plan: selectedPlan, price: selectedPrice };
 }
 
+function PlanSummary({
+  selected,
+  plansLoading,
+  accessMode,
+}: {
+  selected: { plan?: Plan; price?: PlanPrice };
+  plansLoading: boolean;
+  accessMode: AccessMode;
+}) {
+  return (
+    <div className="absolute bottom-8 right-8 z-10 w-[min(26rem,calc(100%-4rem))] rounded-3xl border border-primary/20 bg-white/90 p-6 shadow-2xl shadow-primary/15 backdrop-blur-md xl:bottom-10 xl:right-10 xl:p-7">
+      <div className="mb-5 flex items-center gap-3">
+        <span className="grid h-11 w-11 place-items-center rounded-full border border-primary/20 bg-primary-soft text-primary">
+          <ShieldCheck className="h-6 w-6" aria-hidden="true" />
+        </span>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">
+            Resumo da contratação
+          </p>
+          <h2 className="mt-1 text-lg font-bold text-foreground">
+            {selected.plan?.name || "Elo Terapêutico"}
+          </h2>
+        </div>
+      </div>
+
+      {plansLoading ? (
+        <div className="rounded-2xl border border-primary/10 bg-primary-soft/70 p-5 text-sm text-muted-foreground">
+          Carregando informações do plano...
+        </div>
+      ) : selected.plan && selected.price ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-primary/10 bg-white/75 p-3">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Ciclo
+              </span>
+              <strong className="mt-1 block text-sm text-foreground">
+                {billingIntervalLabel(selected.price.billing_interval)}
+              </strong>
+            </div>
+            <div className="rounded-2xl border border-primary/10 bg-white/75 p-3">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Modalidade
+              </span>
+              <strong className="mt-1 block text-sm text-foreground">
+                {billingModelLabel(selected.price.billing_model)}
+              </strong>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-primary/20 bg-primary-soft p-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-primary">
+              Valor total
+            </p>
+            <p className="mt-1 text-3xl font-extrabold text-primary">
+              {currency(
+                selected.price.total_amount,
+                selected.price.currency,
+              )}
+            </p>
+            {selected.price.billing_model === "INSTALLMENT" && (
+              <p className="mt-1 text-xs text-primary/75">
+                Até {selected.price.max_installments} parcelas, conforme o checkout.
+              </p>
+            )}
+          </div>
+
+          {accessMode === "TRIAL" && (
+            <div className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-white/80 p-3 text-sm text-foreground">
+              <CheckCircle2
+                className="h-5 w-5 shrink-0 text-primary"
+                aria-hidden="true"
+              />
+              <span className="font-medium">Período de avaliação incluído.</span>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-primary/10 bg-white/75 p-5 text-sm text-muted-foreground">
+          Sua conta será criada e você poderá comparar os planos disponíveis em
+          seguida.
+        </div>
+      )}
+
+      <Link
+        href="/planos"
+        className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl p-2 text-sm font-bold text-primary transition-colors hover:bg-primary-soft hover:text-primary-hover"
+      >
+        Alterar ou escolher plano <ArrowRight className="h-4 w-4" />
+      </Link>
+    </div>
+  );
+}
+
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -212,15 +307,19 @@ function RegisterForm() {
   };
 
   return (
-    <main className="grid min-h-screen bg-background font-sans text-foreground lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.72fr)]">
-      <section className="flex items-center px-5 py-10 sm:px-10 lg:px-16">
-        <div className="mx-auto w-full max-w-2xl">
+    <main className="flex min-h-screen overflow-hidden bg-background font-sans text-foreground">
+      <section className="relative z-10 flex w-full flex-col justify-center overflow-y-auto border-r border-primary/10 bg-background px-5 py-10 sm:px-10 lg:w-[45%] lg:px-14 xl:w-[40%] xl:px-16">
+        <div
+          className="pointer-events-none absolute -left-28 top-1/3 h-80 w-80 rounded-full bg-primary/8 blur-3xl"
+          aria-hidden="true"
+        />
+        <div className="relative mx-auto w-full max-w-2xl py-8 lg:py-12">
           <Brand />
-          <div className="mt-8">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
+          <div className="mt-7">
+            <span className="inline-flex rounded-full border border-primary/20 bg-primary-soft px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-primary">
               Crie sua conta
-            </p>
-            <h1 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            </span>
+            <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
               Comece com segurança e sem surpresas.
             </h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
@@ -230,7 +329,7 @@ function RegisterForm() {
           </div>
 
           <form
-            className="mt-8 grid gap-5"
+            className="mt-8 grid gap-5 rounded-2xl border border-primary/10 bg-card p-5 shadow-sm shadow-primary/5 sm:p-6"
             onSubmit={handleSubmit(onSubmit)}
             noValidate
           >
@@ -241,7 +340,7 @@ function RegisterForm() {
               autoComplete="name"
               error={errors.full_name?.message}
               leftIcon={
-                <User className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                <User className="h-5 w-5 text-primary" aria-hidden="true" />
               }
               {...register("full_name")}
             />
@@ -254,10 +353,7 @@ function RegisterForm() {
                 autoComplete="email"
                 error={errors.email?.message}
                 leftIcon={
-                  <Mail
-                    className="h-5 w-5 text-muted-foreground"
-                    aria-hidden="true"
-                  />
+                  <Mail className="h-5 w-5 text-primary" aria-hidden="true" />
                 }
                 {...register("email")}
               />
@@ -268,10 +364,7 @@ function RegisterForm() {
                 autoComplete="tel"
                 error={errors.phone?.message}
                 leftIcon={
-                  <Phone
-                    className="h-5 w-5 text-muted-foreground"
-                    aria-hidden="true"
-                  />
+                  <Phone className="h-5 w-5 text-primary" aria-hidden="true" />
                 }
                 {...register("phone")}
               />
@@ -306,10 +399,7 @@ function RegisterForm() {
                 autoComplete="new-password"
                 error={errors.password?.message}
                 leftIcon={
-                  <Lock
-                    className="h-5 w-5 text-muted-foreground"
-                    aria-hidden="true"
-                  />
+                  <Lock className="h-5 w-5 text-primary" aria-hidden="true" />
                 }
                 rightIcon={
                   <button
@@ -334,10 +424,7 @@ function RegisterForm() {
                 autoComplete="new-password"
                 error={errors.confirm_password?.message}
                 leftIcon={
-                  <Lock
-                    className="h-5 w-5 text-muted-foreground"
-                    aria-hidden="true"
-                  />
+                  <Lock className="h-5 w-5 text-primary" aria-hidden="true" />
                 }
                 rightIcon={
                   <button
@@ -361,7 +448,7 @@ function RegisterForm() {
               />
             </div>
 
-            <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+            <div className="space-y-3 rounded-xl border border-primary/10 bg-primary-soft/45 p-4">
               <label className="flex items-start gap-3 text-sm text-muted-foreground">
                 <input
                   type="checkbox"
@@ -418,7 +505,7 @@ function RegisterForm() {
             <Button
               id="register-submit"
               type="submit"
-              className="w-full font-bold sm:w-auto"
+              className="w-full font-bold shadow-lg shadow-primary/20 sm:w-auto"
               isLoading={isSubmitting}
               rightIcon={<ArrowRight className="h-4 w-4" />}
             >
@@ -430,7 +517,7 @@ function RegisterForm() {
             Já possui uma conta?{" "}
             <Link
               href={loginHref}
-              className="font-semibold text-primary hover:underline"
+              className="font-semibold text-primary hover:text-primary-hover hover:underline"
             >
               Entrar
             </Link>
@@ -438,63 +525,24 @@ function RegisterForm() {
         </div>
       </section>
 
-      <aside className="flex items-center border-l border-sidebar-border bg-sidebar p-6 text-sidebar-foreground sm:p-10">
-        <div className="mx-auto w-full max-w-md space-y-6">
-          <div className="rounded-xl border border-sidebar-border bg-sidebar-surface/80 p-6">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-lg border border-sidebar-active/25 bg-sidebar-active/10 text-sidebar-active">
-                <ShieldCheck className="h-5 w-5" aria-hidden="true" />
-              </span>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-sidebar-muted">
-                  Seleção atual
-                </p>
-                <h2 className="text-base font-bold text-sidebar-foreground">
-                  {selected.plan?.name || "Avaliação do Elo Terapêutico"}
-                </h2>
-              </div>
-            </div>
-
-            <div className="mt-5 border-t border-sidebar-border pt-5">
-              {plansLoading ? (
-                <p className="text-sm text-sidebar-muted">Carregando plano...</p>
-              ) : selected.price ? (
-                <>
-                  <p className="text-2xl font-bold text-sidebar-active">
-                    {currency(
-                      selected.price.total_amount,
-                      selected.price.currency,
-                    )}
-                  </p>
-                  <p className="mt-1 text-xs text-sidebar-muted">
-                    {billingIntervalLabel(selected.price.billing_interval)} •{" "}
-                    {billingModelLabel(selected.price.billing_model)}
-                  </p>
-                </>
-              ) : (
-                <p className="text-sm text-sidebar-muted">
-                  Você poderá escolher ou revisar o plano após criar a conta.
-                </p>
-              )}
-            </div>
-          </div>
-
-          <ul className="space-y-3 text-sm text-sidebar-muted">
-            {[
-              "Tokens de acesso protegidos em cookies HttpOnly.",
-              "Dados clínicos não participam do fluxo de cobrança.",
-              "A assinatura só é ativada após confirmação segura do pagamento.",
-            ].map((item) => (
-              <li key={item} className="flex items-start gap-3">
-                <CheckCircle2
-                  className="mt-0.5 h-4 w-4 shrink-0 text-sidebar-active"
-                  aria-hidden="true"
-                />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+      <aside className="relative hidden overflow-hidden bg-primary-soft lg:block lg:w-[55%] xl:w-[60%]">
+        <Image
+          src="/register_illustration.svg"
+          alt="Ilustração de um ambiente terapêutico acolhedor"
+          fill
+          priority
+          sizes="(min-width: 1280px) 60vw, 55vw"
+          className="object-cover object-left"
+        />
+        <div
+          className="absolute inset-0 bg-gradient-to-t from-primary/24 via-primary/5 to-transparent"
+          aria-hidden="true"
+        />
+        <PlanSummary
+          selected={selected}
+          plansLoading={plansLoading}
+          accessMode={selection.accessMode}
+        />
       </aside>
     </main>
   );
