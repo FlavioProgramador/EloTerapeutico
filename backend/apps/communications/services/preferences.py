@@ -7,18 +7,32 @@ from ..providers import InvalidRecipient
 from .privacy import CommunicationBlocked, mask_email, mask_phone, normalize_phone
 
 
-def get_or_create_preference(owner, patient) -> CommunicationPreference:
+def get_or_create_preference(
+    owner,
+    patient,
+    *,
+    organization=None,
+) -> CommunicationPreference:
+    organization = organization or patient.organization
+    if patient.organization_id != organization.pk:
+        raise ValidationError("O paciente pertence a outra organização.")
     preference, _ = CommunicationPreference.objects.get_or_create(
-        owner=owner,
+        organization=organization,
         patient=patient,
         defaults={
+            "owner": owner,
             "allow_email": bool(patient.email),
             "allow_whatsapp": bool(patient.whatsapp or patient.phone),
             "allow_reminders": patient.reminders_enabled,
             "consented_at": patient.consent_at,
-            "consent_source": "patient_registration" if patient.consent_terms_accepted else "",
+            "consent_source": (
+                "patient_registration" if patient.consent_terms_accepted else ""
+            ),
         },
     )
+    if preference.owner_id != owner.pk:
+        preference.owner = owner
+        preference.save(update_fields=["owner", "updated_at"])
     return preference
 
 
@@ -41,14 +55,22 @@ def _resolve_recipient(
     if patient is None and controlled_destination:
         if channel == Communication.Channel.EMAIL:
             if controlled_destination.casefold() != (owner.email or "").casefold():
-                raise ValidationError("O teste de e-mail só pode ser enviado ao próprio usuário.")
+                raise ValidationError(
+                    "O teste de e-mail só pode ser enviado ao próprio usuário."
+                )
             destination = controlled_destination
             masked = mask_email(destination)
-        elif channel in {Communication.Channel.WHATSAPP_MANUAL, Communication.Channel.WHATSAPP, Communication.Channel.SMS}:
+        elif channel in {
+            Communication.Channel.WHATSAPP_MANUAL,
+            Communication.Channel.WHATSAPP,
+            Communication.Channel.SMS,
+        }:
             owner_phone = normalize_phone(owner.phone)
             destination = normalize_phone(controlled_destination)
             if not owner_phone or destination != owner_phone:
-                raise ValidationError("O teste deste canal só pode ser enviado ao próprio usuário.")
+                raise ValidationError(
+                    "O teste deste canal só pode ser enviado ao próprio usuário."
+                )
             masked = mask_phone(destination)
         else:
             raise ValidationError("Canal inválido para teste controlado.")
@@ -81,31 +103,55 @@ def _resolve_recipient(
         Communication.Category.PACKAGE_ENDING,
     } and not preference.allow_financial_notices:
         raise CommunicationBlocked("O paciente não permite avisos financeiros.")
-    if category in {Communication.Category.FORM_REQUEST, Communication.Category.FORM_REMINDER} and not preference.allow_form_requests:
-        raise CommunicationBlocked("O paciente não permite solicitações de formulários.")
+    if category in {
+        Communication.Category.FORM_REQUEST,
+        Communication.Category.FORM_REMINDER,
+    } and not preference.allow_form_requests:
+        raise CommunicationBlocked(
+            "O paciente não permite solicitações de formulários."
+        )
 
-    use_guardian = recipient_type == CommunicationRecipient.RecipientType.GUARDIAN or preference.send_to_guardian
+    use_guardian = (
+        recipient_type == CommunicationRecipient.RecipientType.GUARDIAN
+        or preference.send_to_guardian
+    )
     name = patient.guardian_name if use_guardian else patient.full_name
     if channel == Communication.Channel.EMAIL:
         if not preference.allow_email:
-            raise CommunicationBlocked("O paciente não permite comunicações por e-mail.")
+            raise CommunicationBlocked(
+                "O paciente não permite comunicações por e-mail."
+            )
         destination = patient.guardian_email if use_guardian else patient.email
         if not destination:
             raise InvalidRecipient("Este paciente não possui um e-mail válido.")
         masked = mask_email(destination)
-    elif channel in {Communication.Channel.WHATSAPP_MANUAL, Communication.Channel.WHATSAPP, Communication.Channel.SMS}:
+    elif channel in {
+        Communication.Channel.WHATSAPP_MANUAL,
+        Communication.Channel.WHATSAPP,
+        Communication.Channel.SMS,
+    }:
         if channel == Communication.Channel.SMS and not preference.allow_sms:
             raise CommunicationBlocked("O paciente não permite comunicações por SMS.")
         if channel != Communication.Channel.SMS and not preference.allow_whatsapp:
-            raise CommunicationBlocked("O paciente não permite comunicações por WhatsApp.")
-        raw = patient.guardian_phone if use_guardian else (patient.whatsapp or patient.phone)
+            raise CommunicationBlocked(
+                "O paciente não permite comunicações por WhatsApp."
+            )
+        raw = (
+            patient.guardian_phone
+            if use_guardian
+            else (patient.whatsapp or patient.phone)
+        )
         destination = normalize_phone(raw)
         masked = mask_phone(destination)
     else:
         raise ValidationError("Canal inválido.")
 
     return {
-        "recipient_type": CommunicationRecipient.RecipientType.GUARDIAN if use_guardian else CommunicationRecipient.RecipientType.PATIENT,
+        "recipient_type": (
+            CommunicationRecipient.RecipientType.GUARDIAN
+            if use_guardian
+            else CommunicationRecipient.RecipientType.PATIENT
+        ),
         "name": name or "Destinatário",
         "destination": destination,
         "destination_masked": masked,
