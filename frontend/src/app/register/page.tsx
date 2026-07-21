@@ -73,6 +73,16 @@ function currency(value: string, currencyCode = "BRL") {
   }).format(Number(value));
 }
 
+function billingIntervalLabel(value: PlanPrice["billing_interval"]): string {
+  return value === "YEARLY" ? "Anual" : "Mensal";
+}
+
+function billingModelLabel(value: PlanPrice["billing_model"]): string {
+  if (value === "INSTALLMENT") return "Parcelado";
+  if (value === "ONE_TIME") return "Pagamento único";
+  return "Recorrente";
+}
+
 function findPrice(
   plans: Plan[],
   selection: RegistrationSelection,
@@ -451,11 +461,14 @@ function RegisterForm() {
               ) : selected.price ? (
                 <>
                   <p className="text-2xl font-bold text-sidebar-active">
-                    {currency(selected.price.amount, selected.price.currency)}
+                    {currency(
+                      selected.price.total_amount,
+                      selected.price.currency,
+                    )}
                   </p>
                   <p className="mt-1 text-xs text-sidebar-muted">
-                    {selected.price.billing_interval_display} •{" "}
-                    {selected.price.billing_model_display}
+                    {billingIntervalLabel(selected.price.billing_interval)} •{" "}
+                    {billingModelLabel(selected.price.billing_model)}
                   </p>
                 </>
               ) : (
