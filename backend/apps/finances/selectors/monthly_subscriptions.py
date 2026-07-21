@@ -3,7 +3,7 @@
 from apps.finances.models import MonthlySubscription
 from apps.organizations.models import OrganizationMembership
 
-FINANCE_ROLES = {
+FULL_FINANCE_ROLES = {
     OrganizationMembership.Role.OWNER,
     OrganizationMembership.Role.ADMIN,
     OrganizationMembership.Role.FINANCE,
@@ -18,21 +18,34 @@ def monthly_subscriptions_accessible_to(user, *, organization=None, status=None)
     )
     if not user or user.is_anonymous:
         return queryset.none()
+
+    memberships = OrganizationMembership.objects.filter(
+        user=user,
+        status=OrganizationMembership.Status.ACTIVE,
+    )
     if organization is not None:
-        allowed = OrganizationMembership.objects.filter(
-            organization=organization,
-            user=user,
-            status=OrganizationMembership.Status.ACTIVE,
-            role__in=FINANCE_ROLES,
-        ).exists()
-        queryset = queryset.filter(organization=organization) if allowed else queryset.none()
+        membership = memberships.filter(organization=organization).first()
+        if membership is None:
+            queryset = queryset.none()
+        else:
+            queryset = queryset.filter(organization=organization)
+            if membership.role == OrganizationMembership.Role.THERAPIST:
+                queryset = queryset.filter(therapist=user)
+            elif membership.role not in FULL_FINANCE_ROLES:
+                queryset = queryset.none()
     else:
-        organization_ids = OrganizationMembership.objects.filter(
-            user=user,
-            status=OrganizationMembership.Status.ACTIVE,
-            role__in=FINANCE_ROLES,
+        full_scope_orgs = memberships.filter(
+            role__in=FULL_FINANCE_ROLES,
         ).values_list("organization_id", flat=True)
-        queryset = queryset.filter(organization_id__in=organization_ids)
+        therapist_orgs = memberships.filter(
+            role=OrganizationMembership.Role.THERAPIST,
+        ).values_list("organization_id", flat=True)
+        from django.db.models import Q
+
+        queryset = queryset.filter(
+            Q(organization_id__in=full_scope_orgs)
+            | Q(organization_id__in=therapist_orgs, therapist=user)
+        )
     if status:
         queryset = queryset.filter(status=status)
     return queryset
