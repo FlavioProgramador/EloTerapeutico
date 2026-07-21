@@ -58,6 +58,8 @@ ROLE_CAPABILITIES: dict[str, frozenset[str]] = {
             "records.create",
             "records.update",
             "records.export",
+            "finances.view",
+            "finances.manage",
             "documents.view",
             "documents.manage",
             "forms.view",
