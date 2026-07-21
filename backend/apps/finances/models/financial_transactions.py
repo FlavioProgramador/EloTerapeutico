@@ -205,21 +205,27 @@ class FinancialTransaction(models.Model):
             raise ValidationError({"paid_amount": _("O valor pago não pode exceder o valor da transação.")})
         if self.is_recurring and not self.recurrence_frequency:
             raise ValidationError({"recurrence_frequency": _("Informe a frequência da recorrência.")})
-        if self.patient_id and self.patient.organization_id != self.organization_id:
+
+        patient = self.patient if self.patient_id else None
+        if patient is not None and patient.organization_id != self.organization_id:
             raise ValidationError({"patient": _("O paciente pertence a outra organização.")})
-        if self.appointment_id:
-            if self.appointment.organization_id != self.organization_id:
+
+        appointment = self.appointment if self.appointment_id else None
+        if appointment is not None:
+            if appointment.organization_id != self.organization_id:
                 raise ValidationError({"appointment": _("A consulta pertence a outra organização.")})
-            if self.patient_id and self.appointment.patient_id != self.patient_id:
+            if patient is not None and appointment.patient_id != patient.pk:
                 raise ValidationError({"appointment": _("A consulta pertence a outro paciente.")})
-            if self.appointment.therapist_id != self.therapist_id:
+            if appointment.therapist_id != self.therapist_id:
                 raise ValidationError({"appointment": _("A consulta pertence a outro profissional.")})
-        if self.subscription_id:
-            if self.subscription.organization_id != self.organization_id:
+
+        subscription = self.subscription if self.subscription_id else None
+        if subscription is not None:
+            if subscription.organization_id != self.organization_id:
                 raise ValidationError({"subscription": _("A mensalidade pertence a outra organização.")})
-            if self.patient_id and self.subscription.patient_id != self.patient_id:
+            if patient is not None and subscription.patient_id != patient.pk:
                 raise ValidationError({"subscription": _("A mensalidade pertence a outro paciente.")})
-            if self.subscription.therapist_id != self.therapist_id:
+            if subscription.therapist_id != self.therapist_id:
                 raise ValidationError({"subscription": _("A mensalidade pertence a outro profissional.")})
 
     def can_pay(self) -> bool:
