@@ -12,11 +12,20 @@ from apps.documents.services.placeholders import validate_template_content
 
 class DocumentTemplateSerializer(serializers.ModelSerializer):
     public_id = serializers.UUIDField(read_only=True)
-    document_type_display = serializers.CharField(source="get_document_type_display", read_only=True)
+    document_type_display = serializers.CharField(
+        source="get_document_type_display",
+        read_only=True,
+    )
     status_display = serializers.CharField(source="get_status_display", read_only=True)
-    author_name = serializers.CharField(source="created_by.full_name", read_only=True, allow_null=True)
+    author_name = serializers.CharField(
+        source="created_by.full_name",
+        read_only=True,
+        allow_null=True,
+    )
     source_library_public_id = serializers.UUIDField(
-        source="source_library_template.public_id", read_only=True, allow_null=True
+        source="source_library_template.public_id",
+        read_only=True,
+        allow_null=True,
     )
 
     class Meta:
@@ -58,10 +67,21 @@ class DocumentTemplateSerializer(serializers.ModelSerializer):
             "archived_at",
         )
 
+    def _organization(self):
+        request = self.context.get("request")
+        organization = getattr(request, "organization", None)
+        if organization is None:
+            raise serializers.ValidationError(
+                {"organization": "Selecione uma organização."}
+            )
+        return organization
+
     def validate_name(self, value: str) -> str:
         value = " ".join(value.split()).strip()
         if len(value) < 3:
-            raise serializers.ValidationError("Informe um nome com pelo menos 3 caracteres.")
+            raise serializers.ValidationError(
+                "Informe um nome com pelo menos 3 caracteres."
+            )
         return value
 
     def _validate_template_field(self, value: str, *, required: bool) -> str:
@@ -83,25 +103,31 @@ class DocumentTemplateSerializer(serializers.ModelSerializer):
         return self._validate_template_field(value, required=False)
 
     def validate(self, attrs):
-        request = self.context.get("request")
-        if request and request.user.is_secretary:
-            raise serializers.ValidationError("Secretárias não possuem acesso a templates clínicos.")
-        if request:
-            name = attrs.get("name", getattr(self.instance, "name", ""))
-            if template_name_exists(
-                owner=request.user,
-                name=name,
-                exclude_id=self.instance.pk if self.instance else None,
-            ):
-                raise serializers.ValidationError({"name": "Já existe um template ativo com este nome."})
+        organization = self._organization()
+        name = attrs.get("name", getattr(self.instance, "name", ""))
+        if template_name_exists(
+            organization=organization,
+            name=name,
+            exclude_id=self.instance.pk if self.instance else None,
+        ):
+            raise serializers.ValidationError(
+                {"name": "Já existe um template ativo com este nome."}
+            )
         return attrs
 
     def create(self, validated_data):
-        return create_template(actor=self.context["request"].user, validated_data=validated_data)
+        request = self.context["request"]
+        return create_template(
+            actor=request.user,
+            organization=self._organization(),
+            validated_data=validated_data,
+        )
 
     def update(self, instance, validated_data):
+        request = self.context["request"]
         return update_template(
-            actor=self.context["request"].user,
+            actor=request.user,
+            organization=self._organization(),
             template=instance,
             validated_data=validated_data,
         )
