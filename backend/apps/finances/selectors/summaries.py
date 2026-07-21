@@ -25,13 +25,24 @@ def _sum(field_name: str, query_filter: Q):
     )
 
 
-def financial_summary(*, user, start_date: date, end_date: date, organization=None) -> dict:
+def financial_summary(
+    *,
+    user,
+    start_date: date,
+    end_date: date,
+    organization=None,
+    membership=None,
+) -> dict:
     today = timezone.localdate()
     period_filter = Q(due_date__range=(start_date, end_date)) | Q(
         paid_at__date__range=(start_date, end_date)
     )
     queryset = (
-        transactions_accessible_to(user, organization=organization)
+        transactions_accessible_to(
+            user,
+            organization=organization,
+            membership=membership,
+        )
         .filter(period_filter)
         .exclude(
             payment_status__in=[
@@ -117,12 +128,20 @@ def financial_summary(*, user, start_date: date, end_date: date, organization=No
     }
 
 
-def monthly_summary(*, therapist, year: int, month: int, organization=None) -> dict:
+def monthly_summary(
+    *,
+    therapist,
+    year: int,
+    month: int,
+    organization=None,
+    membership=None,
+) -> dict:
     start_date = date(year, month, 1)
     end_date = date(year, month, monthrange(year, month)[1])
     summary = financial_summary(
         user=therapist,
         organization=organization,
+        membership=membership,
         start_date=start_date,
         end_date=end_date,
     )
