@@ -11,7 +11,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import pre_save
 from rest_framework.test import APIClient
 
 from apps.organizations.models import (
@@ -40,6 +40,8 @@ def _membership_role_for_user(user: User) -> str:
 
 
 def _ensure_test_organization(user: User) -> Organization:
+    """Cria o tenant padrão somente quando uma fixture legada realmente o exige."""
+
     organization = Organization.objects.filter(slug=TEST_ORGANIZATION_SLUG).first()
     if organization is None:
         organization = Organization.objects.create(
@@ -84,12 +86,6 @@ def _ensure_test_organization(user: User) -> Organization:
     return organization
 
 
-def _ensure_membership_after_user_save(sender, instance, created, raw=False, **kwargs):
-    if raw or not created or not instance.pk:
-        return
-    _ensure_test_organization(instance)
-
-
 def _derive_organization(instance):
     for relation_name in ("patient", "appointment", "package", "membership"):
         relation_id = getattr(instance, f"{relation_name}_id", None)
@@ -111,7 +107,12 @@ def _derive_organization(instance):
 
 
 def _assign_legacy_test_tenant(sender, instance, raw=False, **kwargs):
-    if raw or sender in {Organization, OrganizationMembership, OrganizationSettings, ProfessionalProfile}:
+    if raw or sender in {
+        Organization,
+        OrganizationMembership,
+        OrganizationSettings,
+        ProfessionalProfile,
+    }:
         return
     field_names = {field.name for field in sender._meta.get_fields()}
     if "organization" not in field_names or getattr(instance, "organization_id", None):
@@ -121,12 +122,6 @@ def _assign_legacy_test_tenant(sender, instance, raw=False, **kwargs):
         instance.organization = organization
 
 
-post_save.connect(
-    _ensure_membership_after_user_save,
-    sender=User,
-    weak=False,
-    dispatch_uid=f"pytest-user-tenant-{uuid4()}",
-)
 pre_save.connect(
     _assign_legacy_test_tenant,
     weak=False,
@@ -190,7 +185,9 @@ def auth_client(api_client, therapist_user):
     """APIClient autenticado como terapeuta."""
 
     api_client.force_authenticate(user=therapist_user)
-    api_client.credentials(HTTP_X_ORGANIZATION_ID=str(_ensure_test_organization(therapist_user).pk))
+    api_client.credentials(
+        HTTP_X_ORGANIZATION_ID=str(_ensure_test_organization(therapist_user).pk)
+    )
     return api_client
 
 
@@ -199,5 +196,7 @@ def admin_client(api_client, admin_user):
     """APIClient autenticado como admin."""
 
     api_client.force_authenticate(user=admin_user)
-    api_client.credentials(HTTP_X_ORGANIZATION_ID=str(_ensure_test_organization(admin_user).pk))
+    api_client.credentials(
+        HTTP_X_ORGANIZATION_ID=str(_ensure_test_organization(admin_user).pk)
+    )
     return api_client
