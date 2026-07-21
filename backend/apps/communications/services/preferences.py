@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from django.core.exceptions import ValidationError
 
+from apps.organizations.models import OrganizationMembership
+
 from ..models import Communication, CommunicationPreference, CommunicationRecipient
 from ..providers import InvalidRecipient
 from .privacy import CommunicationBlocked, mask_email, mask_phone, normalize_phone
@@ -43,6 +45,7 @@ def _resolve_recipient(
     recipient_type: str | None = None,
     controlled_destination: str | None = None,
     category: str = Communication.Category.OTHER,
+    organization=None,
 ):
     if channel == Communication.Channel.IN_APP:
         return {
@@ -81,12 +84,32 @@ def _resolve_recipient(
             "destination_masked": masked,
             "patient": None,
         }
-    if patient is None or patient.therapist_id != owner.pk:
+    if patient is None:
         raise ValidationError("Paciente inválido para este usuário.")
+
+    organization = organization or patient.organization
+    if patient.organization_id != organization.pk:
+        raise ValidationError("Paciente pertence a outra organização.")
+    membership = OrganizationMembership.objects.filter(
+        organization=organization,
+        user=owner,
+        status=OrganizationMembership.Status.ACTIVE,
+    ).first()
+    if membership is None:
+        raise ValidationError("Usuário não pertence à organização do paciente.")
+    if (
+        membership.role == OrganizationMembership.Role.THERAPIST
+        and patient.therapist_id != owner.pk
+    ):
+        raise ValidationError("Paciente inválido para este profissional.")
     if not patient.is_active:
         raise CommunicationBlocked("Paciente inativo não pode receber comunicações.")
 
-    preference = get_or_create_preference(owner, patient)
+    preference = get_or_create_preference(
+        owner,
+        patient,
+        organization=organization,
+    )
     if preference.general_opt_out:
         raise CommunicationBlocked("O paciente optou por não receber comunicações.")
     if category in {
