@@ -1,4 +1,4 @@
-"""Consultas somente leitura para detectar conflitos de agendamento."""
+"""Consultas somente leitura para detectar conflitos de agendamento por tenant."""
 
 from __future__ import annotations
 
@@ -35,17 +35,32 @@ def get_appointment_conflicts(
     patient,
     start_time,
     end_time,
+    organization=None,
     room=None,
     participants=None,
     exclude_appointment_id=None,
 ) -> AppointmentConflictResult:
-    """Retorna conflitos por recurso sem alterar estado."""
+    """Retorna conflitos somente dentro da organização resolvida."""
 
+    resolved_organization = (
+        organization
+        or getattr(patient, "organization", None)
+        or getattr(room, "organization", None)
+    )
     base = Appointment.objects.filter(
         status__in=(Appointment.Status.SCHEDULED, Appointment.Status.CONFIRMED),
         start_time__lt=end_time,
         end_time__gt=start_time,
     )
+    blocks = ScheduleBlock.objects.filter(
+        therapist=therapist,
+        start_time__lt=end_time,
+        end_time__gt=start_time,
+        is_active=True,
+    )
+    if resolved_organization is not None:
+        base = base.filter(organization=resolved_organization)
+        blocks = blocks.filter(organization=resolved_organization)
     if exclude_appointment_id:
         base = base.exclude(pk=exclude_appointment_id)
 
@@ -61,17 +76,9 @@ def get_appointment_conflicts(
 
     return AppointmentConflictResult(
         therapist=base.filter(therapist=therapist).exists(),
-        patient=(
-            has_patient_filter
-            and base.filter(patient_query).distinct().exists()
-        ),
+        patient=has_patient_filter and base.filter(patient_query).distinct().exists(),
         room=bool(room and base.filter(room=room).exists()),
-        schedule_block=ScheduleBlock.objects.filter(
-            therapist=therapist,
-            start_time__lt=end_time,
-            end_time__gt=start_time,
-            is_active=True,
-        ).exists(),
+        schedule_block=blocks.exists(),
     )
 
 

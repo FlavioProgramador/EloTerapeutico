@@ -1,4 +1,4 @@
-"""Casos de uso de pacotes e sessões vinculadas."""
+"""Casos de uso de pacotes e sessões vinculadas por organização."""
 
 from __future__ import annotations
 
@@ -21,6 +21,9 @@ from apps.scheduling.services.resources import create_appointment_resources
 
 @transaction.atomic
 def create_patient_package(*, actor, validated_data: dict) -> PatientPackage:
+    organization = validated_data.get("organization")
+    if organization is None:
+        raise ValidationError({"organization": "Organização ativa obrigatória."})
     auto_schedule = validated_data.pop("auto_schedule", False)
     first_at = validated_data.pop("first_appointment_at", None)
     frequency = validated_data.pop(
@@ -36,6 +39,11 @@ def create_patient_package(*, actor, validated_data: dict) -> PatientPackage:
     )
     room = validated_data.pop("room", None)
     remind = validated_data.pop("send_whatsapp_reminder", False)
+    patient = validated_data["patient"]
+    if patient.organization_id != organization.pk:
+        raise ValidationError({"patient": "O paciente pertence a outra organização."})
+    if room and room.organization_id != organization.pk:
+        raise ValidationError({"room": "A sala pertence a outra organização."})
     validated_data["created_by"] = actor
     package = PatientPackage.objects.create(**validated_data)
 
@@ -44,6 +52,7 @@ def create_patient_package(*, actor, validated_data: dict) -> PatientPackage:
 
     if auto_schedule and first_at:
         rule = AppointmentRecurrence.objects.create(
+            organization=organization,
             patient=package.patient,
             therapist=package.therapist,
             frequency=frequency,
@@ -70,6 +79,7 @@ def create_patient_package(*, actor, validated_data: dict) -> PatientPackage:
                 {"first_appointment_at": "A primeira sessão possui conflito."}
             )
         first = Appointment.objects.create(
+            organization=organization,
             patient=package.patient,
             therapist=package.therapist,
             start_time=first_at,
@@ -106,6 +116,8 @@ def release_package_session(appointment: Appointment) -> None:
     except PackageSession.DoesNotExist:
         return
 
+    if package_session.organization_id != appointment.organization_id:
+        raise ValidationError("A sessão do pacote pertence a outra organização.")
     if package_session.consumed and package_session.status not in {
         PackageSession.Status.COMPLETED,
         PackageSession.Status.MISSED,
@@ -121,7 +133,8 @@ def sync_package_session_status(appointment: Appointment) -> None:
         package_session = appointment.package_session
     except PackageSession.DoesNotExist:
         return
-
+    if package_session.organization_id != appointment.organization_id:
+        raise ValidationError("A sessão do pacote pertence a outra organização.")
     mapping = {
         Appointment.Status.SCHEDULED: PackageSession.Status.SCHEDULED,
         Appointment.Status.CONFIRMED: PackageSession.Status.CONFIRMED,

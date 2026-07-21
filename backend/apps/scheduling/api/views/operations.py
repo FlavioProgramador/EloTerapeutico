@@ -37,7 +37,7 @@ class ScheduleBlockViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
         return self.scope_queryset(schedule_blocks_queryset())
 
     def perform_create(self, serializer):
-        item = serializer.save()
+        item = serializer.save(organization=self.request.organization)
         log_access(
             self.request,
             AuditLog.Action.CREATE,
@@ -81,7 +81,7 @@ class PatientPackageViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
         return self.scope_queryset(patient_packages_queryset())
 
     def perform_create(self, serializer):
-        package = serializer.save()
+        package = serializer.save(organization=self.request.organization)
         log_access(self.request, AuditLog.Action.CREATE, package, "Pacote criado")
 
     def perform_update(self, serializer):
@@ -102,7 +102,10 @@ class PatientPackageViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
             context={"request": request},
         )
         serializer.is_valid(raise_exception=True)
-        appointment = serializer.save()
+        appointment = serializer.save(
+            organization=package.organization,
+            created_by=request.user,
+        )
         log_access(
             request,
             AuditLog.Action.UPDATE,
@@ -145,7 +148,10 @@ class PatientPackageViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
         }
         serializer = self.get_serializer(data=payload)
         serializer.is_valid(raise_exception=True)
-        renewed = serializer.save()
+        renewed = serializer.save(
+            organization=current.organization,
+            created_by=request.user,
+        )
         log_access(request, AuditLog.Action.CREATE, renewed, "Pacote renovado")
         return Response(
             self.get_serializer(renewed).data,

@@ -9,7 +9,7 @@ from django.utils import timezone
 
 
 class PatientPackage(models.Model):
-    """Pacote comercial de sessões de um paciente."""
+    """Pacote comercial de sessões pertencente a uma organização."""
 
     class Status(models.TextChoices):
         ACTIVE = "active", "Ativo"
@@ -18,6 +18,11 @@ class PatientPackage(models.Model):
         EXPIRED = "expired", "Expirado"
         CANCELLED = "cancelled", "Cancelado"
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="patient_packages",
+    )
     patient = models.ForeignKey("patients.Patient", on_delete=models.PROTECT, related_name="session_packages")
     therapist = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -48,9 +53,15 @@ class PatientPackage(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes = [
+            models.Index(fields=["organization", "status"], name="pkg_org_status_idx"),
             models.Index(fields=["therapist", "status"], name="pkg_owner_status_idx"),
             models.Index(fields=["patient", "status"], name="pkg_patient_status_idx"),
         ]
+
+    def clean(self):
+        super().clean()
+        if self.patient_id and self.organization_id != self.patient.organization_id:
+            raise ValidationError({"patient": "O paciente pertence a outra organização."})
 
     def __str__(self) -> str:
         return self.name

@@ -1,4 +1,4 @@
-"""Casos de uso de recorrência da Agenda."""
+"""Casos de uso de recorrência da Agenda com isolamento por tenant."""
 
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ def add_months(value: date, months: int) -> date:
 
 def recurrence_dates(rule: AppointmentRecurrence, limit: int | None = None):
     """Gera datas da recorrência com limite defensivo."""
+
     max_items = min(limit or rule.max_occurrences or 12, 365)
     current = rule.starts_on
     produced = 0
@@ -72,7 +73,13 @@ def generate_recurrence_appointments(
     send_whatsapp_reminder: bool = False,
     package: PatientPackage | None = None,
 ) -> list[Appointment]:
-    """Materializa ocorrências futuras de uma série dentro de uma transação."""
+    """Materializa ocorrências futuras de uma série dentro do mesmo tenant."""
+
+    if rule.patient.organization_id != rule.organization_id:
+        raise ValidationError("A recorrência e o paciente pertencem a organizações diferentes.")
+    if package and package.organization_id != rule.organization_id:
+        raise ValidationError("O pacote pertence a outra organização.")
+
     created: list[Appointment] = []
     first_date = first_appointment.start_time.date() if first_appointment else None
 
@@ -94,6 +101,7 @@ def generate_recurrence_appointments(
             labels = ", ".join(key for key, value in conflicts.items() if value)
             raise ValidationError(f"A recorrência possui conflito em {target_date:%d/%m/%Y}: {labels}.")
         appointment = Appointment.objects.create(
+            organization=rule.organization,
             patient=rule.patient,
             therapist=rule.therapist,
             start_time=start,
@@ -134,7 +142,10 @@ def set_recurrence_status(
     recurrence: AppointmentRecurrence,
     status: str,
 ) -> AppointmentRecurrence:
-    recurrence = AppointmentRecurrence.objects.select_for_update().get(pk=recurrence.pk)
+    recurrence = AppointmentRecurrence.objects.select_for_update().get(
+        pk=recurrence.pk,
+        organization=recurrence.organization,
+    )
     recurrence.status = status
     recurrence.save(update_fields=["status", "updated_at"])
     return recurrence
@@ -146,11 +157,15 @@ def end_recurrence(
     recurrence: AppointmentRecurrence,
     ends_on: date | None = None,
 ) -> AppointmentRecurrence:
-    recurrence = AppointmentRecurrence.objects.select_for_update().get(pk=recurrence.pk)
+    recurrence = AppointmentRecurrence.objects.select_for_update().get(
+        pk=recurrence.pk,
+        organization=recurrence.organization,
+    )
     recurrence.status = AppointmentRecurrence.Status.ENDED
     recurrence.ends_on = ends_on or timezone.localdate()
     recurrence.save(update_fields=["status", "ends_on", "updated_at"])
     recurrence.appointments.filter(
+        organization=recurrence.organization,
         start_time__date__gt=recurrence.ends_on,
         status__in=[
             Appointment.Status.SCHEDULED,
@@ -175,12 +190,19 @@ def apply_bulk_recurrence_change(
     if scope not in {"following", "all"}:
         raise InvalidRecurrenceScopeError("Escopo inválido.")
 
-    recurrence = AppointmentRecurrence.objects.select_for_update().get(pk=recurrence.pk)
-    occurrence = recurrence.appointments.select_for_update().get(pk=occurrence.pk)
+    recurrence = AppointmentRecurrence.objects.select_for_update().get(
+        pk=recurrence.pk,
+        organization=recurrence.organization,
+    )
+    occurrence = recurrence.appointments.select_for_update().get(
+        pk=occurrence.pk,
+        organization=recurrence.organization,
+    )
     target_rule = recurrence
 
     if scope == "following":
         target_rule = AppointmentRecurrence.objects.create(
+            organization=recurrence.organization,
             patient=recurrence.patient,
             therapist=recurrence.therapist,
             frequency=changes.get("frequency", recurrence.frequency),
@@ -203,10 +225,11 @@ def apply_bulk_recurrence_change(
         recurrence.save(update_fields=["ends_on", "updated_at"])
 
     editable = recurrence.appointments.select_for_update().filter(
+        organization=recurrence.organization,
         status__in=[
             Appointment.Status.SCHEDULED,
             Appointment.Status.CONFIRMED,
-        ]
+        ],
     )
     if scope == "following":
         editable = editable.filter(start_time__gte=occurrence.start_time)
@@ -223,19 +246,23 @@ def apply_bulk_recurrence_change(
         )
         duration = int(changes.get("duration_minutes", target_rule.duration_minutes))
         room_id = changes.get("room", target_rule.room_id)
+        room = Room.objects.filter(
+            pk=room_id,
+            organization=target_rule.organization,
+        ).first()
         conflicts = Appointment.conflict_details(
             therapist=target_rule.therapist,
             patient=target_rule.patient,
             start_time=new_start,
             end_time=new_start + timedelta(minutes=duration),
-            room=Room.objects.filter(pk=room_id).first(),
+            room=room,
             exclude_id=item.pk,
         )
         if any(conflicts.values()):
             raise RecurrenceConflictError(f"Conflito ao alterar ocorrência de {local:%d/%m/%Y}.")
         item.start_time = new_start
         item.end_time = new_start + timedelta(minutes=duration)
-        item.room_id = room_id
+        item.room = room
         item.modality = changes.get("modality", target_rule.modality)
         item.appointment_type = changes.get("appointment_type", target_rule.appointment_type)
         item.recurrence = target_rule
@@ -258,6 +285,9 @@ def apply_bulk_recurrence_change(
     if "start_time" in changes:
         target_rule.start_time = as_time(changes["start_time"])
     if "room" in changes:
-        target_rule.room_id = changes["room"]
+        target_rule.room = Room.objects.filter(
+            pk=changes["room"],
+            organization=target_rule.organization,
+        ).first()
     target_rule.save()
     return target_rule

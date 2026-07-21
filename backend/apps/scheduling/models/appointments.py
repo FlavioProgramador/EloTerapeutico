@@ -13,7 +13,7 @@ ACTIVE_APPOINTMENT_STATUSES = ("scheduled", "confirmed")
 
 
 class Appointment(models.Model):
-    """Consulta ou sessão agendada entre profissional e paciente."""
+    """Consulta ou sessão agendada dentro de uma organização."""
 
     class Status(models.TextChoices):
         SCHEDULED = "scheduled", "Agendada"
@@ -47,6 +47,11 @@ class Appointment(models.Model):
         BIWEEKLY = "BIWEEKLY", "Quinzenal"
         MONTHLY = "MONTHLY", "Mensal"
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="appointments",
+    )
     patient = models.ForeignKey(
         "patients.Patient",
         on_delete=models.PROTECT,
@@ -165,6 +170,8 @@ class Appointment(models.Model):
         verbose_name_plural = "Consultas"
         ordering = ["-start_time"]
         indexes = [
+            models.Index(fields=["organization", "start_time"], name="appt_org_start_idx"),
+            models.Index(fields=["organization", "status"], name="appt_org_status_idx"),
             models.Index(
                 fields=["therapist", "start_time"],
                 name="idx_appt_therapist_start",
@@ -219,6 +226,7 @@ class Appointment(models.Model):
         from apps.scheduling.selectors.conflicts import get_appointment_conflicts
 
         return get_appointment_conflicts(
+            organization=getattr(patient, "organization", None) or getattr(room, "organization", None),
             therapist=therapist,
             patient=patient,
             start_time=start_time,
@@ -235,10 +243,12 @@ class Appointment(models.Model):
         start_time,
         end_time,
         exclude_id=None,
+        organization=None,
     ) -> bool:
         from apps.scheduling.selectors.conflicts import get_appointment_conflicts
 
         result = get_appointment_conflicts(
+            organization=organization,
             therapist=therapist,
             patient=None,
             start_time=start_time,
@@ -253,6 +263,16 @@ class Appointment(models.Model):
             raise ValidationError({"end_time": "O término deve ser posterior ao início."})
         if self.session_value is not None and self.session_value < 0:
             raise ValidationError({"session_value": "O valor não pode ser negativo."})
+        if self.patient_id and self.organization_id != self.patient.organization_id:
+            raise ValidationError({"patient": "O paciente pertence a outra organização."})
+        if self.room_id and self.organization_id != self.room.organization_id:
+            raise ValidationError({"room": "A sala pertence a outra organização."})
+        if self.recurrence_id and self.organization_id != self.recurrence.organization_id:
+            raise ValidationError({"recurrence": "A recorrência pertence a outra organização."})
+        if self.package_id and self.organization_id != self.package.organization_id:
+            raise ValidationError({"package": "O pacote pertence a outra organização."})
+        if self.parent_appointment_id and self.organization_id != self.parent_appointment.organization_id:
+            raise ValidationError({"parent_appointment": "A consulta-pai pertence a outra organização."})
         if self.modality == self.Modality.ONLINE and self.room_id:
             raise ValidationError({"room": "Consultas online não utilizam sala física."})
         if self.room_id and not self.room.is_active:

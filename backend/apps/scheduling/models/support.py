@@ -7,7 +7,7 @@ from django.db.models import Q
 
 
 class ScheduleBlock(models.Model):
-    """Intervalo indisponível do profissional."""
+    """Intervalo indisponível do profissional dentro de uma organização."""
 
     class Reason(models.TextChoices):
         LUNCH = "lunch", "Almoço"
@@ -17,6 +17,11 @@ class ScheduleBlock(models.Model):
         APPOINTMENT = "appointment", "Compromisso"
         OTHER = "other", "Outro"
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="schedule_blocks",
+    )
     therapist = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -48,7 +53,10 @@ class ScheduleBlock(models.Model):
 
     class Meta:
         ordering = ["start_time"]
-        indexes = [models.Index(fields=["therapist", "start_time"], name="block_owner_start_idx")]
+        indexes = [
+            models.Index(fields=["organization", "start_time"], name="block_org_start_idx"),
+            models.Index(fields=["therapist", "start_time"], name="block_owner_start_idx"),
+        ]
         constraints = [
             models.CheckConstraint(
                 condition=Q(end_time__gt=models.F("start_time")),
@@ -60,12 +68,15 @@ class ScheduleBlock(models.Model):
         return f"Bloqueio {self.start_time:%d/%m/%Y %H:%M}"
 
     def clean(self):
+        super().clean()
         if self.start_time >= self.end_time:
             raise ValidationError({"end_time": "O término deve ser posterior ao início."})
+        if self.parent_block_id and self.parent_block.organization_id != self.organization_id:
+            raise ValidationError({"parent_block": "O bloqueio-pai pertence a outra organização."})
 
 
 class PackageSession(models.Model):
-    """Vínculo auditável entre uma sessão e um pacote."""
+    """Vínculo auditável entre sessão e pacote dentro do tenant."""
 
     class Status(models.TextChoices):
         SCHEDULED = "scheduled", "Agendada"
@@ -75,6 +86,11 @@ class PackageSession(models.Model):
         CANCELLED = "cancelled", "Cancelada"
         RESCHEDULED = "rescheduled", "Remarcada"
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="package_sessions",
+    )
     package = models.ForeignKey("agenda.PatientPackage", on_delete=models.CASCADE, related_name="package_sessions")
     appointment = models.OneToOneField(
         "agenda.Appointment",
@@ -92,6 +108,14 @@ class PackageSession(models.Model):
     class Meta:
         ordering = ["scheduled_for"]
         constraints = [models.UniqueConstraint(fields=["package", "scheduled_for"], name="uniq_pkg_session_datetime")]
+        indexes = [models.Index(fields=["organization", "scheduled_for"], name="pkg_session_org_time_idx")]
+
+    def clean(self):
+        super().clean()
+        if self.package_id and self.package.organization_id != self.organization_id:
+            raise ValidationError({"package": "O pacote pertence a outra organização."})
+        if self.appointment_id and self.appointment.organization_id != self.organization_id:
+            raise ValidationError({"appointment": "A consulta pertence a outra organização."})
 
     def __str__(self) -> str:
         return f"Sessão {self.package_id} - {self.scheduled_for:%d/%m/%Y}"

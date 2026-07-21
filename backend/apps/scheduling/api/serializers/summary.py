@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from apps.organizations.models import OrganizationMembership
 from apps.patients.models import Patient
 from apps.scheduling.models import AppointmentReminder, PackageSession, Room, TelemedicineRoom
 
@@ -29,30 +30,55 @@ class RoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
         fields = [
-            "id",
-            "therapist",
-            "therapist_name",
-            "name",
-            "location",
-            "capacity",
-            "is_active",
-            "created_at",
-            "updated_at",
+            "id", "therapist", "therapist_name", "name", "location", "capacity",
+            "is_active", "created_at", "updated_at",
         ]
         read_only_fields = ["created_at", "updated_at"]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        organization = getattr(request, "organization", None)
+        membership = getattr(request, "organization_membership", None)
+        if organization is None:
+            self.fields["therapist"].queryset = User.objects.none()
+            return
+        therapist_ids = OrganizationMembership.objects.filter(
+            organization=organization,
+            status=OrganizationMembership.Status.ACTIVE,
+            role__in=[
+                OrganizationMembership.Role.OWNER,
+                OrganizationMembership.Role.ADMIN,
+                OrganizationMembership.Role.THERAPIST,
+            ],
+        ).values_list("user_id", flat=True)
+        queryset = User.objects.filter(pk__in=therapist_ids, is_active=True)
+        if membership and membership.role == OrganizationMembership.Role.THERAPIST:
+            queryset = queryset.filter(pk=request.user.pk)
+        self.fields["therapist"].queryset = queryset
+
     def validate_therapist(self, value):
         request = self.context["request"]
-        if request.user.is_therapist and value != request.user:
+        organization = getattr(request, "organization", None)
+        membership = getattr(request, "organization_membership", None)
+        if organization is None:
+            raise serializers.ValidationError("Selecione uma organização.")
+        if membership and membership.role == OrganizationMembership.Role.THERAPIST and value != request.user:
             raise serializers.ValidationError("Você só pode gerenciar suas próprias salas.")
-        if not value.is_therapist:
-            raise serializers.ValidationError("A sala deve pertencer a um terapeuta.")
+        if not OrganizationMembership.objects.filter(
+            organization=organization,
+            user=value,
+            status=OrganizationMembership.Status.ACTIVE,
+        ).exists():
+            raise serializers.ValidationError("O responsável não pertence à organização.")
         return value
 
     def create(self, validated_data):
         request = self.context["request"]
-        if request.user.is_therapist:
+        membership = getattr(request, "organization_membership", None)
+        if membership and membership.role == OrganizationMembership.Role.THERAPIST:
             validated_data["therapist"] = request.user
+        validated_data["organization"] = request.organization
         return super().create(validated_data)
 
 
@@ -60,15 +86,8 @@ class AppointmentReminderSerializer(serializers.ModelSerializer):
     class Meta:
         model = AppointmentReminder
         fields = [
-            "id",
-            "appointment",
-            "channel",
-            "scheduled_for",
-            "status",
-            "recipient_masked",
-            "error_message",
-            "sent_at",
-            "created_at",
+            "id", "appointment", "channel", "scheduled_for", "status",
+            "recipient_masked", "error_message", "sent_at", "created_at",
         ]
         read_only_fields = fields
 
@@ -84,18 +103,9 @@ class TelemedicineRoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = TelemedicineRoom
         fields = [
-            "id",
-            "appointment",
-            "appointment_start",
-            "patient_name",
-            "therapist_name",
-            "patient_link",
-            "professional_link",
-            "expires_at",
-            "status",
-            "is_accessible",
-            "created_at",
-            "updated_at",
+            "id", "appointment", "appointment_start", "patient_name", "therapist_name",
+            "patient_link", "professional_link", "expires_at", "status", "is_accessible",
+            "created_at", "updated_at",
         ]
         read_only_fields = fields
 
@@ -116,14 +126,26 @@ class PackageSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PackageSession
         fields = [
-            "id",
-            "package",
-            "appointment",
-            "appointment_status",
-            "scheduled_for",
-            "status",
-            "consumed",
-            "created_at",
-            "updated_at",
+            "id", "package", "appointment", "appointment_status", "scheduled_for",
+            "status", "consumed", "created_at", "updated_at",
         ]
         read_only_fields = ["created_at", "updated_at"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        organization = getattr(request, "organization", None)
+        if organization is not None:
+            self.fields["package"].queryset = self.fields["package"].queryset.filter(
+                organization=organization
+            )
+            self.fields["appointment"].queryset = self.fields["appointment"].queryset.filter(
+                organization=organization
+            )
+        else:
+            self.fields["package"].queryset = self.fields["package"].queryset.none()
+            self.fields["appointment"].queryset = self.fields["appointment"].queryset.none()
+
+    def create(self, validated_data):
+        validated_data["organization"] = self.context["request"].organization
+        return super().create(validated_data)

@@ -30,13 +30,19 @@ class AppointmentRecurrenceViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
     ordering_fields = ["created_at", "starts_on", "ends_on"]
 
     def get_queryset(self):
-        queryset = AppointmentRecurrence.objects.select_related("patient", "therapist", "room").prefetch_related(
-            "appointments"
-        )
+        queryset = AppointmentRecurrence.objects.select_related(
+            "organization",
+            "patient",
+            "therapist",
+            "room",
+        ).prefetch_related("appointments")
         return self.scope_queryset(queryset)
 
     def perform_create(self, serializer):
-        recurrence = serializer.save(created_by=self.request.user)
+        recurrence = serializer.save(
+            organization=self.request.organization,
+            created_by=self.request.user,
+        )
         log_access(self.request, AuditLog.Action.CREATE, recurrence, "Recorrência criada")
 
     def perform_update(self, serializer):

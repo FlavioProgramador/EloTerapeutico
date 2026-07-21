@@ -9,6 +9,7 @@ def get_telemedicine_room_by_token(*, role: str, token):
     token_field = "patient_token" if role == "patient" else "professional_token"
     return get_object_or_404(
         TelemedicineRoom.objects.select_related(
+            "organization",
             "appointment",
             "appointment__patient",
             "appointment__therapist",
