@@ -32,23 +32,50 @@ def _resolve_membership(user, *, organization_id, membership=None):
 
 
 def patient_access_q(user, *, membership=None) -> Q:
-    """Restringe pacientes pela membership e pelo vínculo clínico do profissional."""
+    """Restringe pacientes por memberships ativas e vínculos clínicos."""
 
-    if not user or not getattr(user, "is_authenticated", False) or membership is None:
+    if not user or not getattr(user, "is_authenticated", False):
         return Q(pk__in=[])
-    if (
-        membership.user_id != user.pk
-        or membership.status != OrganizationMembership.Status.ACTIVE
-    ):
+
+    if membership is not None:
+        if (
+            membership.user_id != user.pk
+            or membership.status != OrganizationMembership.Status.ACTIVE
+        ):
+            return Q(pk__in=[])
+        if membership.role in FULL_TENANT_PATIENT_ROLES:
+            return Q(organization_id=membership.organization_id)
+        if membership.role == OrganizationMembership.Role.THERAPIST:
+            return Q(organization_id=membership.organization_id) & (
+                Q(therapist=user)
+                | Q(
+                    professional_links__professional=user,
+                    professional_links__is_active=True,
+                )
+            )
         return Q(pk__in=[])
-    if membership.role in FULL_TENANT_PATIENT_ROLES:
-        return Q()
-    if membership.role == OrganizationMembership.Role.THERAPIST:
-        return Q(therapist=user) | Q(
-            professional_links__professional=user,
-            professional_links__is_active=True,
+
+    active_memberships = OrganizationMembership.objects.filter(
+        user=user,
+        status=OrganizationMembership.Status.ACTIVE,
+    )
+    full_scope_orgs = active_memberships.filter(
+        role__in=FULL_TENANT_PATIENT_ROLES,
+    ).values_list("organization_id", flat=True)
+    therapist_orgs = active_memberships.filter(
+        role=OrganizationMembership.Role.THERAPIST,
+    ).values_list("organization_id", flat=True)
+
+    return Q(organization_id__in=full_scope_orgs) | (
+        Q(organization_id__in=therapist_orgs)
+        & (
+            Q(therapist=user)
+            | Q(
+                professional_links__professional=user,
+                professional_links__is_active=True,
+            )
         )
-    return Q(pk__in=[])
+    )
 
 
 def can_access_patient(
