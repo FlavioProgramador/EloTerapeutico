@@ -7,6 +7,15 @@ from .celery import *  # noqa
 
 DEBUG = True
 AUTH_REQUIRE_SESSION_CLAIM = False
+TENANT_ENFORCEMENT_ENABLED = env.bool("TENANT_ENFORCEMENT_ENABLED", default=False)  # noqa: F405
+INSTALLED_APPS += ["apps.organizations.apps.OrganizationsConfig"]  # noqa: F405
+CORS_ALLOW_HEADERS = [*CORS_ALLOW_HEADERS, "x-organization-id"]  # noqa: F405
+REST_FRAMEWORK = {
+    **REST_FRAMEWORK,  # noqa: F405
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "apps.organizations.authentication.TenantSubscriptionJWTAuthentication",
+    ),
+}
 
 ADMIN_SQL_EXPLORER_ENABLED = env.bool("ADMIN_SQL_EXPLORER_ENABLED", default=False)  # noqa: F405
 ADMIN_SQL_EXPLORER_DATABASE_ALIAS = env(  # noqa: F405

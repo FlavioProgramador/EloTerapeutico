@@ -8,7 +8,7 @@ from apps.audit.models import AuditLog
 from apps.audit.services import log_access
 from apps.documents.exceptions import DocumentDomainError
 from apps.documents.filters import DocumentTemplateFilter
-from apps.documents.selectors import library_templates, owned_templates
+from apps.documents.selectors import library_templates, organization_templates
 from apps.documents.services import (
     activate_template,
     archive_template,
@@ -17,6 +17,7 @@ from apps.documents.services import (
     import_library_template,
     remove_or_archive_template,
 )
+from apps.organizations.services.tenant_context import ensure_request_organization
 
 from ..permissions import IsClinicalDocumentUser
 from ..serializers import (
@@ -33,8 +34,15 @@ class DocumentTemplateViewSet(viewsets.ModelViewSet):
     ordering_fields = ("name", "created_at", "updated_at", "usage_count")
     ordering = ("name",)
 
+    def _organization(self):
+        organization, _ = ensure_request_organization(
+            request=self.request,
+            required=True,
+        )
+        return organization
+
     def get_queryset(self):
-        return owned_templates(owner=self.request.user)
+        return organization_templates(organization=self._organization())
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -62,6 +70,7 @@ class DocumentTemplateViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         result = remove_or_archive_template(
             actor=request.user,
+            organization=self._organization(),
             template=self.get_object(),
         )
         if result.archived and result.template is not None:
@@ -83,7 +92,11 @@ class DocumentTemplateViewSet(viewsets.ModelViewSet):
     def duplicate(self, request, public_id=None):
         template = self.get_object()
         try:
-            copy = duplicate_template(actor=request.user, template=template)
+            copy = duplicate_template(
+                actor=request.user,
+                organization=self._organization(),
+                template=template,
+            )
         except DocumentDomainError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         log_access(
@@ -92,12 +105,16 @@ class DocumentTemplateViewSet(viewsets.ModelViewSet):
             obj=copy,
             obj_repr=f"Template de documento #{template.pk} duplicado como #{copy.pk}",
         )
-        return Response(DocumentTemplateSerializer(copy).data, status=status.HTTP_201_CREATED)
+        return Response(
+            DocumentTemplateSerializer(copy, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
 
     @action(detail=True, methods=["post"])
     def archive(self, request, public_id=None):
         template = archive_template(
             actor=request.user,
+            organization=self._organization(),
             template=self.get_object(),
         )
         log_access(
@@ -106,29 +123,43 @@ class DocumentTemplateViewSet(viewsets.ModelViewSet):
             obj=template,
             obj_repr=f"Template de documento #{template.pk} arquivado",
         )
-        return Response(DocumentTemplateSerializer(template).data)
+        return Response(
+            DocumentTemplateSerializer(template, context={"request": request}).data
+        )
 
     @action(detail=True, methods=["post"])
     def activate(self, request, public_id=None):
-        template = activate_template(actor=request.user, template=self.get_object())
+        template = activate_template(
+            actor=request.user,
+            organization=self._organization(),
+            template=self.get_object(),
+        )
         log_access(
             request,
             AuditLog.Action.UPDATE,
             obj=template,
             obj_repr=f"Template de documento #{template.pk} ativado",
         )
-        return Response(DocumentTemplateSerializer(template).data)
+        return Response(
+            DocumentTemplateSerializer(template, context={"request": request}).data
+        )
 
     @action(detail=True, methods=["post"])
     def deactivate(self, request, public_id=None):
-        template = deactivate_template(actor=request.user, template=self.get_object())
+        template = deactivate_template(
+            actor=request.user,
+            organization=self._organization(),
+            template=self.get_object(),
+        )
         log_access(
             request,
             AuditLog.Action.UPDATE,
             obj=template,
             obj_repr=f"Template de documento #{template.pk} inativado",
         )
-        return Response(DocumentTemplateSerializer(template).data)
+        return Response(
+            DocumentTemplateSerializer(template, context={"request": request}).data
+        )
 
     @action(detail=True, methods=["post"])
     def preview(self, request, public_id=None):
@@ -165,10 +196,15 @@ class DocumentLibraryViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="import")
     def import_template(self, request, public_id=None):
+        organization, _ = ensure_request_organization(
+            request=request,
+            required=True,
+        )
         library_template = self.get_object()
         try:
             template, created = import_library_template(
                 actor=request.user,
+                organization=organization,
                 library_template=library_template,
             )
         except DocumentDomainError as exc:
@@ -181,7 +217,10 @@ class DocumentLibraryViewSet(viewsets.ReadOnlyModelViewSet):
                 obj_repr=f"Template da biblioteca #{library_template.pk} importado",
             )
         return Response(
-            DocumentTemplateSerializer(template).data,
+            DocumentTemplateSerializer(
+                template,
+                context={"request": request},
+            ).data,
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
 

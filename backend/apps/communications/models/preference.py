@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from .communication import Communication
@@ -12,6 +13,12 @@ class CommunicationPreference(models.Model):
         WHATSAPP_MANUAL = Communication.Channel.WHATSAPP_MANUAL, "WhatsApp"
         IN_APP = Communication.Channel.IN_APP, "Notificação interna"
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="communication_preferences",
+        db_index=True,
+    )
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -55,6 +62,23 @@ class CommunicationPreference(models.Model):
     class Meta:
         ordering = ["patient_id"]
         constraints = [
-            models.UniqueConstraint(fields=["owner", "patient"], name="comm_preference_patient_uniq")
+            models.UniqueConstraint(
+                fields=["organization", "patient"],
+                name="comm_preference_org_patient_uniq",
+            )
         ]
-        indexes = [models.Index(fields=["owner", "patient"], name="comm_pref_owner_patient_idx")]
+        indexes = [
+            models.Index(
+                fields=["organization", "patient"],
+                name="comm_pref_org_patient_idx",
+            ),
+            models.Index(
+                fields=["owner", "patient"],
+                name="comm_pref_owner_patient_idx",
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.patient_id and self.patient.organization_id != self.organization_id:
+            raise ValidationError({"patient": "O paciente pertence a outra organização."})

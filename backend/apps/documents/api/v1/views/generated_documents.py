@@ -9,7 +9,7 @@ from apps.audit.models import AuditLog
 from apps.audit.services import log_access
 from apps.documents.exceptions import DocumentDomainError
 from apps.documents.filters import GeneratedDocumentFilter
-from apps.documents.selectors import generated_documents_for_owner
+from apps.documents.selectors import generated_documents_for_user
 from apps.documents.services import (
     archive_document,
     cancel_document,
@@ -17,6 +17,7 @@ from apps.documents.services import (
     prepare_document_download,
     remove_or_archive_document,
 )
+from apps.organizations.services.tenant_context import ensure_request_organization
 
 from ..permissions import IsClinicalDocumentUser
 from ..serializers import (
@@ -35,8 +36,18 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
     ordering = ("-created_at",)
     http_method_names = ("get", "post", "patch", "delete", "head", "options")
 
+    def _organization(self):
+        organization, _ = ensure_request_organization(
+            request=self.request,
+            required=True,
+        )
+        return organization
+
     def get_queryset(self):
-        return generated_documents_for_owner(owner=self.request.user)
+        return generated_documents_for_user(
+            user=self.request.user,
+            organization=self._organization(),
+        )
 
     def get_serializer_class(self):
         if self.action == "create":

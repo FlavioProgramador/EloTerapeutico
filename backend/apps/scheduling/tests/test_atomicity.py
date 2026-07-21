@@ -7,6 +7,7 @@ from django.utils import timezone
 from rest_framework.test import APIRequestFactory
 
 from apps.finances.models import FinancialTransaction
+from apps.organizations.models import OrganizationMembership
 from apps.patients.models import Patient
 from apps.scheduling.api.v1.serializers import (
     AppointmentCreateSerializer,
@@ -42,14 +43,28 @@ def atomic_patient(db, atomic_therapist):
 
 
 @pytest.fixture
-def atomic_request(atomic_therapist):
-    request = APIRequestFactory().post("/api/v1/scheduling/appointments/", {}, format="json")
+def atomic_request(atomic_therapist, atomic_patient):
+    request = APIRequestFactory().post(
+        "/api/v1/scheduling/appointments/",
+        {},
+        format="json",
+    )
     request.user = atomic_therapist
+    request.organization = atomic_patient.organization
+    request.organization_membership = OrganizationMembership.objects.get(
+        organization=atomic_patient.organization,
+        user=atomic_therapist,
+        status=OrganizationMembership.Status.ACTIVE,
+    )
     return request
 
 
 @pytest.mark.django_db
-def test_appointment_creation_rolls_back_when_derived_resource_fails(atomic_therapist, atomic_patient, atomic_request):
+def test_appointment_creation_rolls_back_when_derived_resource_fails(
+    atomic_therapist,
+    atomic_patient,
+    atomic_request,
+):
     start = timezone.now() + timedelta(days=2)
     serializer = AppointmentCreateSerializer(
         data={
@@ -64,14 +79,21 @@ def test_appointment_creation_rolls_back_when_derived_resource_fails(atomic_ther
         context={"request": atomic_request},
     )
     serializer.is_valid(raise_exception=True)
-    with patch("apps.scheduling.services.appointments.create_appointment_resources", side_effect=RuntimeError("falha simulada")):
+    with patch(
+        "apps.scheduling.services.appointments.create_appointment_resources",
+        side_effect=RuntimeError("falha simulada"),
+    ):
         with pytest.raises(RuntimeError):
             serializer.save()
     assert Appointment.objects.count() == 0
 
 
 @pytest.mark.django_db
-def test_status_and_financial_entry_roll_back_together(atomic_therapist, atomic_patient, atomic_request):
+def test_status_and_financial_entry_roll_back_together(
+    atomic_therapist,
+    atomic_patient,
+    atomic_request,
+):
     start = timezone.now() + timedelta(days=1)
     appointment = Appointment.objects.create(
         patient=atomic_patient,
@@ -90,7 +112,10 @@ def test_status_and_financial_entry_roll_back_together(atomic_therapist, atomic_
     serializer.is_valid(raise_exception=True)
     view = AppointmentViewSet()
     view.request = atomic_request
-    with patch("apps.scheduling.services.appointments.create_appointment_transaction", side_effect=RuntimeError("falha financeira simulada")):
+    with patch(
+        "apps.scheduling.services.appointments.create_appointment_transaction",
+        side_effect=RuntimeError("falha financeira simulada"),
+    ):
         with pytest.raises(RuntimeError):
             view._save_status(serializer, Appointment.Status.CONFIRMED)
     appointment.refresh_from_db()
@@ -99,7 +124,10 @@ def test_status_and_financial_entry_roll_back_together(atomic_therapist, atomic_
 
 
 @pytest.mark.django_db(transaction=True)
-def test_database_prevents_duplicate_automatic_financial_entry(atomic_therapist, atomic_patient):
+def test_database_prevents_duplicate_automatic_financial_entry(
+    atomic_therapist,
+    atomic_patient,
+):
     start = timezone.now() + timedelta(days=1)
     appointment = Appointment.objects.create(
         patient=atomic_patient,
@@ -121,4 +149,10 @@ def test_database_prevents_duplicate_automatic_financial_entry(atomic_therapist,
     with pytest.raises(IntegrityError):
         with transaction.atomic():
             FinancialTransaction.objects.create(**defaults)
-    assert FinancialTransaction.objects.filter(appointment=appointment, source=FinancialTransaction.Source.APPOINTMENT).count() == 1
+    assert (
+        FinancialTransaction.objects.filter(
+            appointment=appointment,
+            source=FinancialTransaction.Source.APPOINTMENT,
+        ).count()
+        == 1
+    )

@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from apps.communications.models import CommunicationTemplate
 from apps.communications.validators import validate_template_text
+from apps.organizations.models import OrganizationMembership
 
 
 class CommunicationTemplateSerializer(serializers.ModelSerializer):
@@ -35,15 +36,38 @@ class CommunicationTemplateSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def _membership(self):
+        request = self.context.get("request")
+        organization = getattr(request, "organization", None)
+        if request is None or organization is None:
+            return None
+        return OrganizationMembership.objects.filter(
+            user=request.user,
+            organization=organization,
+            status=OrganizationMembership.Status.ACTIVE,
+        ).first()
+
     def get_can_edit(self, obj):
         request = self.context.get("request")
-        return bool(
-            request
-            and obj.owner_id == request.user.pk
-            and not obj.is_system_template
-        )
+        membership = self._membership()
+        if not request or membership is None or obj.is_system_template:
+            return False
+        if obj.organization_id != membership.organization_id:
+            return False
+        if membership.role == OrganizationMembership.Role.THERAPIST:
+            return obj.owner_id == request.user.pk
+        return membership.role in {
+            OrganizationMembership.Role.OWNER,
+            OrganizationMembership.Role.ADMIN,
+        }
 
     def validate(self, attrs):
+        request = self.context.get("request")
+        organization = getattr(request, "organization", None)
+        if organization is None:
+            raise serializers.ValidationError(
+                {"organization": "Selecione uma organização."}
+            )
         subject = attrs.get(
             "subject_template",
             getattr(self.instance, "subject_template", ""),
@@ -53,18 +77,29 @@ class CommunicationTemplateSerializer(serializers.ModelSerializer):
             getattr(self.instance, "body_template", ""),
         )
         attrs["allowed_variables"] = validate_template_text(subject, body)
-        if self.instance and self.instance.is_system_template:
-            raise serializers.ValidationError(
-                "Templates do sistema não podem ser editados."
-            )
+        if self.instance:
+            if self.instance.is_system_template:
+                raise serializers.ValidationError(
+                    "Templates do sistema não podem ser editados."
+                )
+            if self.instance.organization_id != organization.pk:
+                raise serializers.ValidationError(
+                    "O template pertence a outra organização."
+                )
+            if not self.get_can_edit(self.instance):
+                raise serializers.ValidationError(
+                    "Você não pode editar este template."
+                )
         return attrs
 
     def create(self, validated_data):
         request = self.context["request"]
         return CommunicationTemplate.objects.create(
+            organization=request.organization,
             owner=request.user,
             created_by=request.user,
             updated_by=request.user,
+            is_system_template=False,
             **validated_data,
         )
 

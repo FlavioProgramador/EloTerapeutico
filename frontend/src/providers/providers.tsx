@@ -5,13 +5,9 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "sonner";
 
 import { AuthProvider } from "@/contexts/auth";
+import { OrganizationProvider } from "@/contexts/organization";
 import { ThemeProvider } from "./theme-provider";
 import { queryClient } from "./query-client";
-
-/**
- * Providers raiz da aplicação.
- * Ordem: tema → dados remotos → autenticação → notificações.
- */
 
 if (typeof window !== "undefined") {
   const originalError = console.error;
@@ -27,11 +23,14 @@ if (typeof window !== "undefined") {
     originalError(...args);
   };
 }
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <OrganizationProvider>{children}</OrganizationProvider>
+        </AuthProvider>
         <Toaster
           position="bottom-right"
           theme="system"

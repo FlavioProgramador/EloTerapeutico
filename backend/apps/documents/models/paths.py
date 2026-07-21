@@ -6,10 +6,13 @@ from pathlib import Path
 
 
 def generated_document_path(instance, filename: str) -> str:
-    """Gera um caminho não previsível sem dados pessoais no nome do arquivo."""
+    """Gera caminho privado por organização, sem dados pessoais no nome."""
 
     suffix = Path(filename).suffix.lower() or ".pdf"
-    return f"generated_documents/{instance.owner_id}/{instance.public_id.hex}{suffix}"
+    return (
+        f"organizations/{instance.organization_id}/generated_documents/"
+        f"{instance.public_id.hex}{suffix}"
+    )
 
 
 # Mantém o caminho serializado em migrations antigas mesmo após mover o código.

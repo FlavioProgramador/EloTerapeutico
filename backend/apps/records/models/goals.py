@@ -1,14 +1,17 @@
 """Metas terapêuticas do prontuário."""
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 
 from apps.core.fields import EncryptedTextField
 
+from .tenant import ClinicalTenantModel
 
-class TreatmentGoal(models.Model):
+
+class TreatmentGoal(ClinicalTenantModel):
     class Priority(models.TextChoices):
         LOW = "low", "Baixa"
         MEDIUM = "medium", "Média"
@@ -20,6 +23,12 @@ class TreatmentGoal(models.Model):
         COMPLETED = "completed", "Concluída"
         ARCHIVED = "archived", "Arquivada"
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="records_treatmentgoal_items",
+        db_index=True,
+    )
     patient = models.ForeignKey(
         "patients.Patient",
         on_delete=models.PROTECT,
@@ -67,10 +76,25 @@ class TreatmentGoal(models.Model):
         ordering = ["sort_order", "-priority", "created_at"]
         indexes = [
             models.Index(
+                fields=["organization", "patient", "status"],
+                name="goal_org_patient_idx",
+            ),
+            models.Index(
                 fields=["patient", "status"],
                 name="goal_patient_status_idx",
-            )
+            ),
         ]
+
+    def clean(self):
+        super().clean()
+        for evolution in self.evolutions.all() if self.pk else []:
+            if (
+                evolution.organization_id != self.organization_id
+                or evolution.patient_id != self.patient_id
+            ):
+                raise ValidationError(
+                    {"evolutions": "A evolução pertence a outro paciente ou organização."}
+                )
 
     def archive(self):
         self.status = self.Status.ARCHIVED

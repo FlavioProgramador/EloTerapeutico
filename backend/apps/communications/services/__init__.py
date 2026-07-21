@@ -40,6 +40,7 @@ from .public_actions import (
     public_action_context,
     submit_public_form,
 )
+from .system import create_system_email
 from .templates import build_default_variables, render_communication
 
 __all__ = [name for name in globals() if not name.startswith("_")]

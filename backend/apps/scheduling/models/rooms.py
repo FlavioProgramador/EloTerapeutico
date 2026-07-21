@@ -1,12 +1,18 @@
 from __future__ import annotations
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
 class Room(models.Model):
-    """Sala física disponível para atendimentos presenciais."""
+    """Sala física pertencente a uma organização."""
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="agenda_rooms",
+    )
     therapist = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -22,14 +28,35 @@ class Room(models.Model):
 
     class Meta:
         ordering = ["name"]
-        constraints = [models.UniqueConstraint(fields=["therapist", "name"], name="uniq_room_owner_name")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "name"],
+                name="uniq_room_org_name",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["organization", "is_active"], name="room_org_active_idx"),
+        ]
+
+    def clean(self):
+        super().clean()
+        if not self.organization_id or not self.therapist_id:
+            return
+        from apps.organizations.models import OrganizationMembership
+
+        if not OrganizationMembership.objects.filter(
+            organization_id=self.organization_id,
+            user_id=self.therapist_id,
+            status=OrganizationMembership.Status.ACTIVE,
+        ).exists():
+            raise ValidationError({"therapist": "O responsável não pertence à organização."})
 
     def __str__(self) -> str:
         return self.name
 
 
 class AppointmentRecurrence(models.Model):
-    """Regra persistida de uma série de consultas."""
+    """Regra persistida de uma série de consultas no tenant ativo."""
 
     class Frequency(models.TextChoices):
         WEEKLY = "weekly", "Semanal"
@@ -42,6 +69,11 @@ class AppointmentRecurrence(models.Model):
         PAUSED = "paused", "Pausada"
         ENDED = "ended", "Encerrada"
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="appointment_recurrences",
+    )
     patient = models.ForeignKey("patients.Patient", on_delete=models.PROTECT, related_name="appointment_recurrences")
     therapist = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -83,9 +115,18 @@ class AppointmentRecurrence(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes = [
+            models.Index(fields=["organization", "status"], name="rec_org_status_idx"),
             models.Index(fields=["therapist", "status"], name="rec_owner_status_idx"),
             models.Index(fields=["patient", "status"], name="rec_patient_status_idx"),
         ]
+
+    def clean(self):
+        super().clean()
+        if self.patient_id and self.organization_id != self.patient.organization_id:
+            raise ValidationError({"patient": "O paciente pertence a outra organização."})
+        room = self.room if self.room_id else None
+        if room is not None and self.organization_id != room.organization_id:
+            raise ValidationError({"room": "A sala pertence a outra organização."})
 
     def __str__(self) -> str:
         return f"{self.patient} - {self.get_frequency_display()}"

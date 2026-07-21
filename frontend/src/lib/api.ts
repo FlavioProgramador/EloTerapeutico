@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 
+import { getStoredOrganizationId } from "@/features/organizations/storage";
 import {
   createSingleFlight,
   extractApiErrorMessage,
@@ -25,6 +26,12 @@ api.interceptors.request.use(
     if (isUnsafeHttpMethod(config.method || "GET")) {
       const csrfToken = getCsrfToken();
       if (csrfToken) config.headers.set("X-CSRF-Token", csrfToken);
+    }
+    const organizationId = getStoredOrganizationId();
+    if (organizationId) {
+      config.headers.set("X-Organization-ID", organizationId);
+    } else {
+      config.headers.delete("X-Organization-ID");
     }
     config.headers.delete("Authorization");
     return config;

@@ -16,7 +16,7 @@ from .financial_transactions import FinancialTransaction
 
 
 class MonthlySubscription(models.Model):
-    """Acordo recorrente de atendimento e cobrança de um paciente."""
+    """Acordo recorrente de atendimento e cobrança de um paciente no tenant."""
 
     class Status(models.TextChoices):
         ACTIVE = "active", _("Ativa")
@@ -29,11 +29,22 @@ class MonthlySubscription(models.Model):
         BIWEEKLY = "biweekly", _("Quinzenal")
         MONTHLY = "monthly", _("Mensal")
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="monthly_subscriptions",
+        verbose_name=_("Organização"),
+        db_index=True,
+    )
     therapist = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="monthly_subscriptions"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="monthly_subscriptions",
     )
     patient = models.ForeignKey(
-        "patients.Patient", on_delete=models.PROTECT, related_name="monthly_subscriptions"
+        "patients.Patient",
+        on_delete=models.PROTECT,
+        related_name="monthly_subscriptions",
     )
     status = models.CharField(max_length=15, choices=Status.choices, default=Status.ACTIVE)
     frequency = models.CharField(max_length=15, choices=Frequency.choices, default=Frequency.WEEKLY)
@@ -62,6 +73,11 @@ class MonthlySubscription(models.Model):
     class Meta:
         ordering = ["patient__full_name"]
         indexes = [
+            models.Index(fields=["organization", "status"], name="fin_sub_org_status_idx"),
+            models.Index(
+                fields=["organization", "next_billing_date"],
+                name="fin_sub_org_bill_idx",
+            ),
             models.Index(fields=["therapist", "status"], name="fin_sub_status_idx"),
             models.Index(fields=["therapist", "next_billing_date"], name="fin_sub_next_bill_idx"),
         ]
@@ -77,6 +93,8 @@ class MonthlySubscription(models.Model):
 
     def clean(self) -> None:
         super().clean()
+        if self.patient_id and self.patient.organization_id != self.organization_id:
+            raise ValidationError({"patient": _("O paciente pertence a outra organização.")})
         if self.patient_id and self.therapist_id and self.patient.therapist_id != self.therapist_id:
             raise ValidationError({"patient": _("O paciente não pertence ao profissional informado.")})
         if self.end_date and self.end_date < self.first_appointment_date:

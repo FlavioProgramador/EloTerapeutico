@@ -32,6 +32,15 @@ const PUBLIC_ORIGIN_ONLY_PATHS = new Set([
   "auth/password/reset/confirm",
 ]);
 
+function validOrganizationId(value: string | null): value is string {
+  return Boolean(
+    value &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        value,
+      ),
+  );
+}
+
 async function registrationResponse(
   request: NextRequest,
   backendResponse: Response,
@@ -105,6 +114,10 @@ async function proxyRequest(
   }
 
   const headers = createBackendHeaders(request, getAccessCookie(request));
+  const organizationId = request.headers.get("x-organization-id");
+  if (validOrganizationId(organizationId)) {
+    headers.set("x-organization-id", organizationId);
+  }
   const init: StreamingRequestInit = {
     method: request.method,
     headers,

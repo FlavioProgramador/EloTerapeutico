@@ -1,11 +1,17 @@
-"""Criação de recursos derivados de consultas."""
+"""Criação de recursos derivados de consultas com tenant explícito."""
 
 from datetime import timedelta
 
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from apps.scheduling.models import Appointment, AppointmentReminder, PackageSession, PatientPackage, TelemedicineRoom
+from apps.scheduling.models import (
+    Appointment,
+    AppointmentReminder,
+    PackageSession,
+    PatientPackage,
+    TelemedicineRoom,
+)
 
 
 def mask_phone(value: str) -> str:
@@ -20,11 +26,17 @@ def create_appointment_resources(
     package: PatientPackage | None = None,
 ) -> None:
     """Cria recursos derivados sem realizar envio externo na requisição."""
+
     if package:
-        if package.patient_id != appointment.patient_id or package.therapist_id != appointment.therapist_id:
-            raise ValidationError("O pacote não pertence ao paciente e profissional informados.")
+        if (
+            package.organization_id != appointment.organization_id
+            or package.patient_id != appointment.patient_id
+            or package.therapist_id != appointment.therapist_id
+        ):
+            raise ValidationError("O pacote não pertence ao tenant, paciente e profissional informados.")
         package.consume()
         PackageSession.objects.create(
+            organization=appointment.organization,
             package=package,
             appointment=appointment,
             scheduled_for=appointment.start_time,
@@ -39,6 +51,7 @@ def create_appointment_resources(
         TelemedicineRoom.objects.get_or_create(
             appointment=appointment,
             defaults={
+                "organization": appointment.organization,
                 "expires_at": appointment.end_time + timedelta(hours=2),
                 "status": TelemedicineRoom.Status.AVAILABLE,
             },
@@ -47,6 +60,7 @@ def create_appointment_resources(
     if send_whatsapp_reminder:
         phone = appointment.patient.whatsapp or appointment.patient.phone
         AppointmentReminder.objects.create(
+            organization=appointment.organization,
             appointment=appointment,
             channel=AppointmentReminder.Channel.WHATSAPP,
             scheduled_for=max(appointment.start_time - timedelta(hours=24), timezone.now()),

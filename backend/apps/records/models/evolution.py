@@ -8,8 +8,16 @@ from django.utils import timezone
 
 from apps.core.fields import EncryptedTextField
 
+from .tenant import ClinicalTenantModel
 
-class Evolution(models.Model):
+
+class Evolution(ClinicalTenantModel):
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="records_evolution_items",
+        db_index=True,
+    )
     patient = models.ForeignKey(
         "patients.Patient",
         on_delete=models.PROTECT,
@@ -23,38 +31,13 @@ class Evolution(models.Model):
         blank=True,
         related_name="evolution",
         verbose_name="Agendamento vinculado",
-        help_text="Consulta da agenda que originou esta evolução (opcional).",
     )
-    content = EncryptedTextField(
-        verbose_name="Conteúdo da sessão",
-        help_text="Texto descritivo da sessão terapêutica.",
-    )
-    cid10 = models.CharField(
-        max_length=10,
-        blank=True,
-        verbose_name="CID-10",
-        help_text="Código CID-10 associado à sessão (ex: F41.1).",
-    )
-    session_date = models.DateField(
-        verbose_name="Data da sessão",
-        help_text="Data em que a sessão terapêutica ocorreu.",
-    )
-    is_locked = models.BooleanField(
-        default=False,
-        verbose_name="Bloqueada",
-        help_text=("Evoluções bloqueadas não podem ser editadas. Só aceitam aditivos."),
-    )
-    locked_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name="Bloqueada em",
-        help_text="Data/hora em que a evolução foi bloqueada.",
-    )
-    is_confidential = models.BooleanField(
-        default=False,
-        verbose_name="Confidencial",
-        help_text=("Marcar como confidencial. Informações visíveis apenas para o autor " "ou com permissão especial."),
-    )
+    content = EncryptedTextField(verbose_name="Conteúdo da sessão")
+    cid10 = models.CharField(max_length=10, blank=True, verbose_name="CID-10")
+    session_date = models.DateField(verbose_name="Data da sessão")
+    is_locked = models.BooleanField(default=False, verbose_name="Bloqueada")
+    locked_at = models.DateTimeField(null=True, blank=True, verbose_name="Bloqueada em")
+    is_confidential = models.BooleanField(default=False, verbose_name="Confidencial")
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -73,6 +56,10 @@ class Evolution(models.Model):
             ("export_confidential_evolution", "Can export confidential evolution"),
         ]
         indexes = [
+            models.Index(
+                fields=["organization", "patient", "session_date"],
+                name="evolution_org_patient_idx",
+            ),
             models.Index(
                 fields=["patient", "session_date"],
                 name="evolution_patient_date_idx",

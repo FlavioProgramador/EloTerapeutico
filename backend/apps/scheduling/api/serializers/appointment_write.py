@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from rest_framework import serializers
 
+from apps.organizations.models import OrganizationMembership
 from apps.patients.models import Patient
 from apps.scheduling.models import Appointment, AppointmentRecurrence, PatientPackage, Room
 from apps.scheduling.services import create_appointment, update_appointment
@@ -19,18 +20,79 @@ def _validation_detail(exc: DjangoValidationError):
     return getattr(exc, "message_dict", None) or getattr(exc, "messages", [str(exc)])
 
 
-class AppointmentValidationMixin:
+class TenantRelationQuerysetMixin:
+    """Limita relações editáveis à organização resolvida na requisição."""
+
+    def _scope_relation_fields(self):
+        request = self.context.get("request")
+        organization = getattr(request, "organization", None)
+        membership = getattr(request, "organization_membership", None)
+        if organization is None:
+            empty_patient = Patient.objects.none()
+            empty_room = Room.objects.none()
+            empty_package = PatientPackage.objects.none()
+            empty_user = User.objects.none()
+            if "patient" in self.fields:
+                self.fields["patient"].queryset = empty_patient
+            if "participants" in self.fields:
+                self.fields["participants"].queryset = empty_patient
+            if "room" in self.fields:
+                self.fields["room"].queryset = empty_room
+            if "package" in self.fields:
+                self.fields["package"].queryset = empty_package
+            if "therapist" in self.fields:
+                self.fields["therapist"].queryset = empty_user
+            return
+
+        patients = Patient.objects.filter(organization=organization, is_active=True)
+        rooms = Room.objects.filter(organization=organization, is_active=True)
+        packages = PatientPackage.objects.filter(organization=organization)
+        therapist_ids = OrganizationMembership.objects.filter(
+            organization=organization,
+            status=OrganizationMembership.Status.ACTIVE,
+            role__in=[
+                OrganizationMembership.Role.OWNER,
+                OrganizationMembership.Role.ADMIN,
+                OrganizationMembership.Role.THERAPIST,
+            ],
+        ).values_list("user_id", flat=True)
+        therapists = User.objects.filter(pk__in=therapist_ids, is_active=True)
+
+        if membership and membership.role == OrganizationMembership.Role.THERAPIST:
+            patients = patients.filter(therapist=request.user)
+            rooms = rooms.filter(therapist=request.user)
+            packages = packages.filter(therapist=request.user)
+            therapists = therapists.filter(pk=request.user.pk)
+
+        if "patient" in self.fields:
+            self.fields["patient"].queryset = patients
+        if "participants" in self.fields:
+            self.fields["participants"].queryset = patients
+        if "room" in self.fields:
+            self.fields["room"].queryset = rooms
+        if "package" in self.fields:
+            self.fields["package"].queryset = packages
+        if "therapist" in self.fields:
+            self.fields["therapist"].queryset = therapists
+
+
+class AppointmentValidationMixin(TenantRelationQuerysetMixin):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._scope_relation_fields()
+
     def _resolve_therapist(self, attrs):
         request = self.context["request"]
+        membership = getattr(request, "organization_membership", None)
         patient = attrs.get("patient", getattr(self.instance, "patient", None))
         therapist = attrs.get("therapist", getattr(self.instance, "therapist", None))
-        if request.user.is_therapist:
+        if membership and membership.role == OrganizationMembership.Role.THERAPIST:
             therapist = request.user
             attrs["therapist"] = therapist
         elif not therapist and patient:
             therapist = patient.therapist
             attrs["therapist"] = therapist
-        if not therapist or not therapist.is_therapist:
+        if not therapist:
             raise serializers.ValidationError({"therapist": "Selecione um terapeuta válido."})
         return therapist
 
@@ -65,12 +127,19 @@ class AppointmentValidationMixin:
         self._raise_conflict_error(conflicts)
 
     def _validate_business_rules(self, attrs):
+        request = self.context["request"]
+        organization = getattr(request, "organization", None)
+        membership = getattr(request, "organization_membership", None)
+        if organization is None or membership is None:
+            raise serializers.ValidationError({"organization": "Selecione uma organização."})
+
         therapist = self._resolve_therapist(attrs)
         patient = attrs.get("patient", getattr(self.instance, "patient", None))
         participants = attrs.get("participants", [])
         start = attrs.get("start_time", getattr(self.instance, "start_time", None))
         end = attrs.get("end_time", getattr(self.instance, "end_time", None))
         room = attrs.get("room", getattr(self.instance, "room", None))
+        package = attrs.get("package", getattr(self.instance, "package", None))
         modality = attrs.get(
             "modality",
             getattr(self.instance, "modality", Appointment.Modality.IN_PERSON),
@@ -78,22 +147,28 @@ class AppointmentValidationMixin:
 
         if not patient or patient.deleted_at or not patient.is_active:
             raise serializers.ValidationError({"patient": "Selecione um paciente ativo."})
+        if patient.organization_id != organization.pk:
+            raise serializers.ValidationError({"patient": "O paciente pertence a outra organização."})
         if patient.therapist_id != therapist.id:
             raise serializers.ValidationError({"patient": "O paciente não pertence ao profissional selecionado."})
+        if any(item.organization_id != organization.pk for item in participants):
+            raise serializers.ValidationError({"participants": "Todos os participantes devem pertencer à organização."})
         if any(item.therapist_id != therapist.id for item in participants):
-            raise serializers.ValidationError(
-                {"participants": "Todos os participantes devem pertencer ao profissional."}
-            )
+            raise serializers.ValidationError({"participants": "Todos os participantes devem pertencer ao profissional."})
+        if room and room.organization_id != organization.pk:
+            raise serializers.ValidationError({"room": "A sala pertence a outra organização."})
+        if package and package.organization_id != organization.pk:
+            raise serializers.ValidationError({"package": "O pacote pertence a outra organização."})
         if start and end and start >= end:
             raise serializers.ValidationError({"end_time": "O término deve ser posterior ao início."})
-        if start and start < timezone.now() and not self.context["request"].user.is_admin_role:
+        if start and start < timezone.now() and membership.role != OrganizationMembership.Role.OWNER:
             raise serializers.ValidationError({"start_time": "Não é possível agendar no passado."})
         practice = PracticeSettings.objects.filter(user=therapist).first()
         if (
             start
             and practice
             and practice.minimum_booking_notice_hours
-            and not self.context["request"].user.is_admin_role
+            and membership.role not in {OrganizationMembership.Role.OWNER, OrganizationMembership.Role.ADMIN}
             and start < timezone.now() + timedelta(hours=practice.minimum_booking_notice_hours)
         ):
             raise serializers.ValidationError(
@@ -126,34 +201,22 @@ class AppointmentValidationMixin:
         ).first()
         if working and (start.time() < working.start_time or end.time() > working.end_time):
             raise serializers.ValidationError(
-                {
-                    "start_time": (
-                        f"Horário fora do expediente " f"({working.start_time:%H:%M}–{working.end_time:%H:%M})."
-                    )
-                }
+                {"start_time": f"Horário fora do expediente ({working.start_time:%H:%M}–{working.end_time:%H:%M})."}
             )
 
 
 class AppointmentCreateSerializer(AppointmentValidationMixin, serializers.ModelSerializer):
-    participants = serializers.PrimaryKeyRelatedField(
-        queryset=Patient.objects.filter(is_active=True), many=True, required=False
-    )
-    therapist = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(role="therapist"), required=False)
-    room = serializers.PrimaryKeyRelatedField(
-        queryset=Room.objects.filter(is_active=True),
-        required=False,
-        allow_null=True,
-    )
-    package = serializers.PrimaryKeyRelatedField(queryset=PatientPackage.objects.all(), required=False, allow_null=True)
+    participants = serializers.PrimaryKeyRelatedField(queryset=Patient.objects.none(), many=True, required=False)
+    therapist = serializers.PrimaryKeyRelatedField(queryset=User.objects.none(), required=False)
+    room = serializers.PrimaryKeyRelatedField(queryset=Room.objects.none(), required=False, allow_null=True)
+    package = serializers.PrimaryKeyRelatedField(queryset=PatientPackage.objects.none(), required=False, allow_null=True)
     send_whatsapp_reminder = serializers.BooleanField(write_only=True, default=False)
     recurrence_frequency = serializers.ChoiceField(
         choices=AppointmentRecurrence.Frequency.choices,
         write_only=True,
         required=False,
     )
-    recurrence_interval = serializers.IntegerField(
-        write_only=True, required=False, default=1, min_value=1, max_value=12
-    )
+    recurrence_interval = serializers.IntegerField(write_only=True, required=False, default=1, min_value=1, max_value=12)
     recurrence_weekdays = serializers.ListField(
         child=serializers.IntegerField(min_value=0, max_value=6),
         write_only=True,
@@ -172,25 +235,11 @@ class AppointmentCreateSerializer(AppointmentValidationMixin, serializers.ModelS
     class Meta:
         model = Appointment
         fields = [
-            "patient",
-            "participants",
-            "therapist",
-            "start_time",
-            "end_time",
-            "modality",
-            "appointment_type",
-            "room",
-            "session_value",
-            "notes",
-            "package",
-            "is_recurring",
-            "send_whatsapp_reminder",
-            "recurrence_frequency",
-            "recurrence_interval",
-            "recurrence_weekdays",
-            "recurrence_ends_on",
-            "recurrence_max_occurrences",
-            "recurrence_conflict_strategy",
+            "patient", "participants", "therapist", "start_time", "end_time",
+            "modality", "appointment_type", "room", "session_value", "notes",
+            "package", "is_recurring", "send_whatsapp_reminder", "recurrence_frequency",
+            "recurrence_interval", "recurrence_weekdays", "recurrence_ends_on",
+            "recurrence_max_occurrences", "recurrence_conflict_strategy",
         ]
 
     def validate(self, attrs):
@@ -205,39 +254,23 @@ class AppointmentCreateSerializer(AppointmentValidationMixin, serializers.ModelS
         return attrs
 
     def create(self, validated_data):
+        validated_data["organization"] = self.context["request"].organization
         try:
-            return create_appointment(
-                actor=self.context["request"].user,
-                validated_data=validated_data,
-            )
+            return create_appointment(actor=self.context["request"].user, validated_data=validated_data)
         except DjangoValidationError as exc:
             raise serializers.ValidationError(_validation_detail(exc)) from exc
 
 
 class AppointmentUpdateSerializer(AppointmentValidationMixin, serializers.ModelSerializer):
-    participants = serializers.PrimaryKeyRelatedField(
-        queryset=Patient.objects.filter(is_active=True), many=True, required=False
-    )
-    therapist = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(role="therapist"), required=False)
-    room = serializers.PrimaryKeyRelatedField(
-        queryset=Room.objects.filter(is_active=True),
-        required=False,
-        allow_null=True,
-    )
+    participants = serializers.PrimaryKeyRelatedField(queryset=Patient.objects.none(), many=True, required=False)
+    therapist = serializers.PrimaryKeyRelatedField(queryset=User.objects.none(), required=False)
+    room = serializers.PrimaryKeyRelatedField(queryset=Room.objects.none(), required=False, allow_null=True)
 
     class Meta:
         model = Appointment
         fields = [
-            "patient",
-            "participants",
-            "therapist",
-            "start_time",
-            "end_time",
-            "modality",
-            "appointment_type",
-            "room",
-            "session_value",
-            "notes",
+            "patient", "participants", "therapist", "start_time", "end_time",
+            "modality", "appointment_type", "room", "session_value", "notes",
         ]
 
     def validate(self, attrs):
@@ -263,11 +296,6 @@ class AppointmentStatusUpdateSerializer(serializers.ModelSerializer):
         status_value = attrs.get("status")
         if status_value == Appointment.Status.CANCELLED and not attrs.get("cancellation_reason", "").strip():
             raise serializers.ValidationError({"cancellation_reason": "Informe o motivo do cancelamento."})
-        if self.instance.status in {
-            Appointment.Status.COMPLETED,
-            Appointment.Status.MISSED,
-        }:
-            raise serializers.ValidationError(
-                {"status": "Uma sessão finalizada não pode voltar para um estado anterior."}
-            )
+        if self.instance.status in {Appointment.Status.COMPLETED, Appointment.Status.MISSED}:
+            raise serializers.ValidationError({"status": "Uma sessão finalizada não pode voltar para um estado anterior."})
         return attrs

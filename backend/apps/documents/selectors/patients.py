@@ -2,12 +2,30 @@
 
 from __future__ import annotations
 
+from apps.organizations.models import OrganizationMembership
 from apps.patients.models import Patient
+from apps.patients.services.access_control import patient_access_q
 
 
-def get_accessible_patient(*, owner, patient_id: int) -> Patient | None:
-    return Patient.objects.filter(
+def get_accessible_patient(
+    *,
+    owner,
+    patient_id: int,
+    organization=None,
+) -> Patient | None:
+    membership = None
+    if organization is not None:
+        membership = OrganizationMembership.objects.filter(
+            organization=organization,
+            user=owner,
+            status=OrganizationMembership.Status.ACTIVE,
+        ).first()
+    queryset = Patient.objects.filter(
         pk=patient_id,
-        therapist=owner,
         deleted_at__isnull=True,
-    ).first()
+    )
+    if organization is not None:
+        queryset = queryset.filter(organization=organization)
+    return queryset.filter(
+        patient_access_q(owner, membership=membership)
+    ).distinct().first()

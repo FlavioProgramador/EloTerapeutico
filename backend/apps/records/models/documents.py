@@ -3,15 +3,17 @@
 import hashlib
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
 from apps.core.fields import EncryptedTextField
 
 from .paths import clinical_document_path, clinical_document_quarantine_path
+from .tenant import ClinicalTenantModel
 
 
-class ClinicalDocument(models.Model):
+class ClinicalDocument(ClinicalTenantModel):
     class Category(models.TextChoices):
         CONSENT = "consent", "Termo de consentimento"
         REPORT = "report", "Relatório"
@@ -29,6 +31,12 @@ class ClinicalDocument(models.Model):
         INFECTED = "infected", "Arquivo rejeitado"
         FAILED = "failed", "Falha na análise"
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="records_clinicaldocument_items",
+        db_index=True,
+    )
     patient = models.ForeignKey(
         "patients.Patient",
         on_delete=models.PROTECT,
@@ -47,17 +55,11 @@ class ClinicalDocument(models.Model):
         default=Category.OTHER,
         db_index=True,
     )
-    file = models.FileField(
-        upload_to=clinical_document_path,
-        null=True,
-        blank=True,
-        help_text="Arquivo liberado após análise antimalware.",
-    )
+    file = models.FileField(upload_to=clinical_document_path, null=True, blank=True)
     quarantine_file = models.FileField(
         upload_to=clinical_document_quarantine_path,
         null=True,
         blank=True,
-        help_text="Arquivo temporário, indisponível para download até a análise.",
     )
     original_name = models.CharField(max_length=255)
     description = EncryptedTextField(blank=True, default="")
@@ -89,6 +91,10 @@ class ClinicalDocument(models.Model):
         ordering = ["-created_at"]
         indexes = [
             models.Index(
+                fields=["organization", "patient", "is_archived"],
+                name="document_org_patient_idx",
+            ),
+            models.Index(
                 fields=["patient", "is_archived"],
                 name="document_patient_archive_idx",
             ),
@@ -99,13 +105,22 @@ class ClinicalDocument(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                condition=(
-                    models.Q(scan_status="clean", file__isnull=False)
-                    | ~models.Q(scan_status="clean")
-                ),
+                condition=models.Q(scan_status="clean", file__isnull=False)
+                | ~models.Q(scan_status="clean"),
                 name="clinical_document_clean_has_file",
             )
         ]
+
+    def clean(self):
+        super().clean()
+        evolution = self.evolution if self.evolution_id else None
+        if evolution is not None and (
+            evolution.organization_id != self.organization_id
+            or evolution.patient_id != self.patient_id
+        ):
+            raise ValidationError(
+                {"evolution": "A evolução pertence a outro paciente ou organização."}
+            )
 
     @property
     def is_downloadable(self) -> bool:

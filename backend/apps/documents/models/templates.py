@@ -5,6 +5,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -13,7 +14,7 @@ from apps.core.fields import EncryptedTextField
 
 
 class DocumentTemplate(models.Model):
-    """Modelo reutilizável de documento, privado ou pertencente à biblioteca global."""
+    """Modelo reutilizável de documento, privado do tenant ou da biblioteca global."""
 
     class Status(models.TextChoices):
         ACTIVE = "active", "Ativo"
@@ -29,6 +30,14 @@ class DocumentTemplate(models.Model):
         OTHER = "other", "Outro"
 
     public_id = models.UUIDField(default=uuid4, unique=True, editable=False, db_index=True)
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="document_templates",
+        help_text="Nulo somente para templates globais da biblioteca.",
+    )
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -90,6 +99,10 @@ class DocumentTemplate(models.Model):
     class Meta:
         ordering = ["name"]
         indexes = [
+            models.Index(
+                fields=["organization", "status"],
+                name="doc_tpl_org_status_idx",
+            ),
             models.Index(fields=["owner", "status"], name="doc_tpl_owner_status_idx"),
             models.Index(
                 fields=["is_library_template", "specialty"],
@@ -99,13 +112,18 @@ class DocumentTemplate(models.Model):
         ]
         constraints = [
             models.UniqueConstraint(
-                fields=["owner", "name"],
-                condition=Q(archived_at__isnull=True, owner__isnull=False),
-                name="unique_active_document_template_owner_name",
+                fields=["organization", "name"],
+                condition=Q(
+                    archived_at__isnull=True,
+                    organization__isnull=False,
+                    is_library_template=False,
+                ),
+                name="unique_active_document_template_org_name",
             ),
             models.UniqueConstraint(
                 fields=["name"],
                 condition=Q(
+                    organization__isnull=True,
                     owner__isnull=True,
                     is_library_template=True,
                     archived_at__isnull=True,
@@ -114,7 +132,16 @@ class DocumentTemplate(models.Model):
             ),
             models.CheckConstraint(
                 condition=(
-                    Q(is_library_template=False, owner__isnull=False) | Q(is_library_template=True, owner__isnull=True)
+                    Q(
+                        is_library_template=False,
+                        organization__isnull=False,
+                        owner__isnull=False,
+                    )
+                    | Q(
+                        is_library_template=True,
+                        organization__isnull=True,
+                        owner__isnull=True,
+                    )
                 ),
                 name="document_template_scope_consistent",
             ),
@@ -126,8 +153,25 @@ class DocumentTemplate(models.Model):
             )
         ]
 
+    def clean(self):
+        super().clean()
+        if self.is_library_template:
+            if self.organization_id or self.owner_id:
+                raise ValidationError(
+                    "Templates globais não podem pertencer a usuário ou organização."
+                )
+            return
+        if not self.organization_id or not self.owner_id:
+            raise ValidationError(
+                "Templates personalizados exigem organização e responsável."
+            )
+
     def __str__(self) -> str:
-        scope = "Biblioteca" if self.is_library_template else f"Usuário {self.owner_id}"
+        scope = (
+            "Biblioteca"
+            if self.is_library_template
+            else f"Organização {self.organization_id}"
+        )
         return f"{self.name} ({scope})"
 
     def archive(self) -> None:

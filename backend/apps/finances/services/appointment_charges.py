@@ -34,7 +34,13 @@ class AppointmentChargeResult:
 
 
 @transaction.atomic
-def generate_appointment_charges(*, actor, appointment_ids, due_date):
+def generate_appointment_charges(
+    *,
+    actor,
+    appointment_ids,
+    due_date,
+    organization=None,
+):
     normalized_ids = [int(value) for value in appointment_ids]
     if not normalized_ids or len(normalized_ids) != len(set(normalized_ids)):
         raise IneligibleAppointmentChargeError(
@@ -42,12 +48,15 @@ def generate_appointment_charges(*, actor, appointment_ids, due_date):
         )
     appointments = list(
         eligible_appointments_for_charge(
-            actor=actor, appointment_ids=normalized_ids, for_update=True
+            actor=actor,
+            appointment_ids=normalized_ids,
+            organization=organization,
+            for_update=True,
         )
     )
     if len(appointments) != len(normalized_ids):
         raise IneligibleAppointmentChargeError(
-            "Uma ou mais sessões não pertencem ao profissional ou não são elegíveis."
+            "Uma ou mais sessões não pertencem à organização ou não são elegíveis."
         )
     created: list[int] = []
     skipped: list[int] = []
@@ -62,7 +71,8 @@ def generate_appointment_charges(*, actor, appointment_ids, due_date):
         try:
             with transaction.atomic():
                 charge = FinancialTransaction.objects.create(
-                    therapist=actor,
+                    organization=appointment.organization,
+                    therapist=appointment.therapist,
                     patient=appointment.patient,
                     appointment=appointment,
                     transaction_type=FinancialTransaction.TransactionType.INCOME,
@@ -71,7 +81,7 @@ def generate_appointment_charges(*, actor, appointment_ids, due_date):
                     amount=appointment.session_value,
                     due_date=due_date,
                     description=f"Sessão de {appointment.start_time:%d/%m/%Y}",
-            )
+                )
         except IntegrityError:
             skipped.append(appointment.pk)
         else:
@@ -82,6 +92,7 @@ def generate_appointment_charges(*, actor, appointment_ids, due_date):
 @transaction.atomic
 def create_transaction_for_appointment(*, appointment):
     charge, _ = FinancialTransaction.objects.get_or_create(
+        organization=appointment.organization,
         appointment=appointment,
         source=FinancialTransaction.Source.APPOINTMENT,
         defaults={

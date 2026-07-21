@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 
 from apps.audit.models import AuditLog
 from apps.audit.services import log_access
+from apps.organizations.services.tenant_context import ensure_request_organization
 from apps.patients.selectors.patients import patients_accessible_to
 
 
@@ -20,7 +21,15 @@ class PatientReminderView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        queryset = patients_accessible_to(user)
+        organization, membership = ensure_request_organization(
+            request=request,
+            required=True,
+        )
+        queryset = patients_accessible_to(
+            user,
+            organization=organization,
+            membership=membership,
+        )
         patient = get_object_or_404(queryset, pk=pk)
 
         enabled = request.data.get("enabled")

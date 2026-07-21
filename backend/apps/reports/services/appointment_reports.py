@@ -9,7 +9,14 @@ from django.utils import timezone
 
 from apps.patients.models import Patient
 from apps.reports.selectors import appointments_for_period
-from apps.reports.services.periods import iter_months, label_month, month_key, page_queryset, resolve_period
+from apps.reports.services.periods import (
+    iter_months,
+    label_month,
+    month_key,
+    page_queryset,
+    resolve_period,
+)
+from apps.reports.services.tenant import resolve_report_organization
 from apps.reports.services.value_formatting import decimal_to_number, insurance_label
 from apps.scheduling.models import Appointment
 
@@ -32,9 +39,15 @@ def serialize_appointment(appointment: Appointment) -> dict[str, Any]:
     }
 
 
-def appointments_report(user, params) -> dict[str, Any]:
+def appointments_report(user, params, organization=None) -> dict[str, Any]:
     start, end = resolve_period(params)
-    queryset = appointments_for_period(owner=user, start=start, end=end)
+    organization = resolve_report_organization(user=user, organization=organization)
+    queryset = appointments_for_period(
+        user=user,
+        organization=organization,
+        start=start,
+        end=end,
+    )
 
     patient_filter = params.get("patient")
     professional_filter = params.get("professional")
@@ -61,24 +74,51 @@ def appointments_report(user, params) -> dict[str, Any]:
     missed = queryset.filter(status=Appointment.Status.MISSED).count()
     rate = lambda value: round((value / total) * 100, 1) if total else 0
 
-    status_counts = {item["status"]: item["count"] for item in queryset.values("status").annotate(count=Count("id"))}
+    status_counts = {
+        item["status"]: item["count"]
+        for item in queryset.values("status").annotate(count=Count("id"))
+    }
     status_distribution = [
         {"label": label, "key": key, "value": status_counts.get(key, 0)}
         for key, label in Appointment.Status.choices
     ]
 
     by_room = []
-    for item in queryset.values("room__name").annotate(value=Count("id")).order_by("room__name"):
-        by_room.append({"label": item["room__name"] or "Sem sala definida", "value": item["value"]})
+    for item in (
+        queryset.values("room__name")
+        .annotate(value=Count("id"))
+        .order_by("room__name")
+    ):
+        by_room.append(
+            {
+                "label": item["room__name"] or "Sem sala definida",
+                "value": item["value"],
+            }
+        )
 
     insurance_map: dict[str, int] = {}
     for appointment in queryset.select_related("patient"):
         label = insurance_label(appointment.patient)
         insurance_map[label] = insurance_map.get(label, 0) + 1
-    by_insurance = [{"label": key, "value": value} for key, value in sorted(insurance_map.items())]
+    by_insurance = [
+        {"label": key, "value": value}
+        for key, value in sorted(insurance_map.items())
+    ]
 
-    buckets = [(6, 8), (8, 10), (10, 12), (12, 14), (14, 16), (16, 18), (18, 20), (20, 22)]
-    busy_hours = [{"label": f"{start_h:02d}h-{end_h:02d}h", "value": 0} for start_h, end_h in buckets]
+    buckets = [
+        (6, 8),
+        (8, 10),
+        (10, 12),
+        (12, 14),
+        (14, 16),
+        (16, 18),
+        (18, 20),
+        (20, 22),
+    ]
+    busy_hours = [
+        {"label": f"{start_h:02d}h-{end_h:02d}h", "value": 0}
+        for start_h, end_h in buckets
+    ]
     for appointment in queryset:
         hour = timezone.localtime(appointment.start_time).hour
         for index, (start_h, end_h) in enumerate(buckets):
@@ -96,7 +136,11 @@ def appointments_report(user, params) -> dict[str, Any]:
         }
         for month in iter_months(start, end)
     }
-    for item in queryset.annotate(month=TruncMonth("start_time")).values("month", "status").annotate(count=Count("id")):
+    for item in (
+        queryset.annotate(month=TruncMonth("start_time"))
+        .values("month", "status")
+        .annotate(count=Count("id"))
+    ):
         key = month_key(item["month"])
         if key not in monthly:
             continue
@@ -127,6 +171,8 @@ def appointments_report(user, params) -> dict[str, Any]:
             "count": paginated["count"],
             "page": paginated["page"],
             "page_size": paginated["page_size"],
-            "results": [serialize_appointment(item) for item in paginated["items"]],
+            "results": [
+                serialize_appointment(item) for item in paginated["items"]
+            ],
         },
     }

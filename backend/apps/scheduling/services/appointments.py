@@ -1,4 +1,4 @@
-"""Casos de uso transacionais de consultas."""
+"""Casos de uso transacionais de consultas com tenant explícito."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
+from apps.organizations.models import OrganizationMembership
 from apps.scheduling.exceptions import CompletedAppointmentDeletionError
 from apps.scheduling.integrations.finance import (
     cancel_appointment_transaction,
@@ -48,6 +49,7 @@ def _raise_conflict_error(conflicts: dict[str, bool]) -> None:
 
 def _validate_locked_conflicts(
     *,
+    organization,
     therapist,
     patient,
     participants,
@@ -68,8 +70,34 @@ def _validate_locked_conflicts(
     _raise_conflict_error(conflicts)
 
 
+def _validate_tenant_relations(*, organization, therapist, patient, participants, room, package):
+    if patient.organization_id != organization.pk:
+        raise ValidationError({"patient": "O paciente pertence a outra organização."})
+    if any(item.organization_id != organization.pk for item in participants):
+        raise ValidationError({"participants": "Todos os participantes devem pertencer à organização."})
+    if room and room.organization_id != organization.pk:
+        raise ValidationError({"room": "A sala pertence a outra organização."})
+    if package and package.organization_id != organization.pk:
+        raise ValidationError({"package": "O pacote pertence a outra organização."})
+    if not OrganizationMembership.objects.filter(
+        organization=organization,
+        user=therapist,
+        status=OrganizationMembership.Status.ACTIVE,
+        role__in=[
+            OrganizationMembership.Role.OWNER,
+            OrganizationMembership.Role.ADMIN,
+            OrganizationMembership.Role.THERAPIST,
+        ],
+    ).exists():
+        raise ValidationError({"therapist": "O profissional não pertence à organização."})
+
+
 @transaction.atomic
 def create_appointment(*, actor, validated_data: dict) -> Appointment:
+    organization = validated_data.get("organization")
+    if organization is None:
+        raise ValidationError({"organization": "Organização ativa obrigatória."})
+
     participants = validated_data.pop("participants", [])
     remind = validated_data.pop("send_whatsapp_reminder", False)
     frequency = validated_data.pop("recurrence_frequency", None)
@@ -90,14 +118,26 @@ def create_appointment(*, actor, validated_data: dict) -> Appointment:
     )
     validated_data["therapist"] = therapist
     if package:
-        package = PatientPackage.objects.select_for_update().get(pk=package.pk)
+        package = PatientPackage.objects.select_for_update().get(
+            pk=package.pk,
+            organization=organization,
+        )
         if not package.can_consume():
             raise ValidationError(
                 {"package": "O pacote está sem saldo, expirado ou inativo."}
             )
         validated_data["package"] = package
 
+    _validate_tenant_relations(
+        organization=organization,
+        therapist=therapist,
+        patient=validated_data["patient"],
+        participants=participants,
+        room=validated_data.get("room"),
+        package=package,
+    )
     _validate_locked_conflicts(
+        organization=organization,
         therapist=therapist,
         patient=validated_data["patient"],
         participants=participants,
@@ -110,6 +150,7 @@ def create_appointment(*, actor, validated_data: dict) -> Appointment:
     if validated_data.get("is_recurring"):
         local_start = timezone.localtime(validated_data["start_time"])
         recurrence = AppointmentRecurrence.objects.create(
+            organization=organization,
             patient=validated_data["patient"],
             therapist=validated_data["therapist"],
             frequency=frequency,
@@ -167,7 +208,11 @@ def update_appointment(
     appointment: Appointment,
     validated_data: dict,
 ) -> Appointment:
-    appointment = Appointment.objects.select_for_update().get(pk=appointment.pk)
+    appointment = Appointment.objects.select_for_update().get(
+        pk=appointment.pk,
+        organization=appointment.organization,
+    )
+    validated_data.pop("organization", None)
     participants = validated_data.pop("participants", None)
     effective_participants = (
         participants
@@ -179,13 +224,25 @@ def update_appointment(
     validated_data["therapist"] = therapist
     validated_data.pop("updated_by", None)
 
-    _validate_locked_conflicts(
+    patient = validated_data.get("patient", appointment.patient)
+    room = validated_data.get("room", appointment.room)
+    package = validated_data.get("package", appointment.package)
+    _validate_tenant_relations(
+        organization=appointment.organization,
         therapist=therapist,
-        patient=validated_data.get("patient", appointment.patient),
+        patient=patient,
+        participants=effective_participants,
+        room=room,
+        package=package,
+    )
+    _validate_locked_conflicts(
+        organization=appointment.organization,
+        therapist=therapist,
+        patient=patient,
         participants=effective_participants,
         start=validated_data.get("start_time", appointment.start_time),
         end=validated_data.get("end_time", appointment.end_time),
-        room=validated_data.get("room", appointment.room),
+        room=room,
         exclude_id=appointment.pk,
     )
 
@@ -202,6 +259,7 @@ def update_appointment(
         TelemedicineRoom.objects.get_or_create(
             appointment=appointment,
             defaults={
+                "organization": appointment.organization,
                 "expires_at": appointment.end_time + timedelta(hours=2),
                 "status": TelemedicineRoom.Status.AVAILABLE,
             },
@@ -227,7 +285,10 @@ def update_appointment_status(
     appointment: Appointment,
     validated_data: dict,
 ) -> Appointment:
-    appointment = Appointment.objects.select_for_update().get(pk=appointment.pk)
+    appointment = Appointment.objects.select_for_update().get(
+        pk=appointment.pk,
+        organization=appointment.organization,
+    )
     new_status = validated_data.get("status", appointment.status)
     cancellation_reason = validated_data.get(
         "cancellation_reason",
@@ -281,7 +342,10 @@ def cancel_appointment_for_deletion(
     actor,
     appointment: Appointment,
 ) -> Appointment:
-    appointment = Appointment.objects.select_for_update().get(pk=appointment.pk)
+    appointment = Appointment.objects.select_for_update().get(
+        pk=appointment.pk,
+        organization=appointment.organization,
+    )
     if appointment.status == Appointment.Status.COMPLETED:
         raise CompletedAppointmentDeletionError(
             "Consultas realizadas não podem ser excluídas."

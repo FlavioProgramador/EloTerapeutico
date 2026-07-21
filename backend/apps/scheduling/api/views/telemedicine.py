@@ -7,6 +7,8 @@ from rest_framework.views import APIView
 
 from apps.audit.models import AuditLog
 from apps.audit.services import log_access
+from apps.organizations.models import OrganizationMembership
+from apps.organizations.permissions import has_capability
 from apps.scheduling.api.v1.serializers import (
     AppointmentReminderSerializer,
     TelemedicineRoomSerializer,
@@ -112,7 +114,7 @@ class AppointmentReminderViewSet(ScopedAgendaMixin, viewsets.ReadOnlyModelViewSe
 
 
 class TelemedicineAccessView(APIView):
-    """Valida tokens distintos de paciente e profissional."""
+    """Valida tokens distintos de paciente e profissional sem revelar outro tenant."""
 
     permission_classes = [AllowAny]
 
@@ -130,11 +132,27 @@ class TelemedicineAccessView(APIView):
             )
         if role == "professional":
             user = request.user
-            if not user.is_authenticated or not (
-                user.is_admin_role
-                or user.is_secretary
-                or user.id == room.appointment.therapist_id
-            ):
+            membership = None
+            if user.is_authenticated:
+                membership = OrganizationMembership.objects.filter(
+                    organization=room.organization,
+                    user=user,
+                    status=OrganizationMembership.Status.ACTIVE,
+                ).first()
+            allowed = bool(
+                membership
+                and has_capability(membership, "scheduling.view")
+                and (
+                    membership.role
+                    in {
+                        OrganizationMembership.Role.OWNER,
+                        OrganizationMembership.Role.ADMIN,
+                        OrganizationMembership.Role.RECEPTIONIST,
+                    }
+                    or user.id == room.appointment.therapist_id
+                )
+            )
+            if not allowed:
                 return Response(
                     {"detail": "Autenticação profissional obrigatória."},
                     status=status.HTTP_403_FORBIDDEN,

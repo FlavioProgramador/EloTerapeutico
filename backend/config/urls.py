@@ -11,6 +11,11 @@ from apps.billing.api.legacy.routes import legacy_billing_route_enabled
 
 api_v1_patterns = [
     path("auth/", include("apps.users.urls")),
+    path("organizations/", include("apps.organizations.api.v1.urls")),
+    path(
+        "organization-invitations/accept/",
+        include("apps.organizations.api.v1.public_urls"),
+    ),
     path("patients/", include("apps.patients.urls")),
     path("records/", include("apps.records.urls")),
     path("scheduling/", include("apps.scheduling.api.v1.urls")),
@@ -58,9 +63,7 @@ urlpatterns = [
 ]
 
 if legacy_billing_route_enabled():
-    urlpatterns.append(
-        path("api/billing/", include("apps.billing.api.legacy.urls"))
-    )
+    urlpatterns.append(path("api/billing/", include("apps.billing.api.legacy.urls")))
 
 if settings.DEBUG and "debug_toolbar" in settings.INSTALLED_APPS:
     import debug_toolbar

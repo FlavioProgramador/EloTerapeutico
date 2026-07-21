@@ -11,12 +11,18 @@ from django.utils import timezone
 from apps.finances.models import FinancialTransaction
 from apps.patients.models import Patient
 from apps.reports.selectors import (
-    active_packages_for_owner,
-    active_subscriptions_for_owner,
-    all_transactions_for_owner,
+    active_packages_for_user,
+    active_subscriptions_for_user,
+    all_transactions_for_user,
     transactions_for_period,
 )
-from apps.reports.services.periods import label_month, month_key, page_queryset, resolve_period
+from apps.reports.services.periods import (
+    label_month,
+    month_key,
+    page_queryset,
+    resolve_period,
+)
+from apps.reports.services.tenant import resolve_report_organization
 from apps.reports.services.value_formatting import decimal_to_number, insurance_label
 
 ZERO = Decimal("0.00")
@@ -39,15 +45,28 @@ def serialize_transaction(transaction: FinancialTransaction) -> dict[str, Any]:
         "status": transaction.payment_status,
         "status_display": transaction.get_payment_status_display(),
         "due_date": transaction.due_date.isoformat() if transaction.due_date else None,
-        "paid_at": timezone.localtime(transaction.paid_at).isoformat() if transaction.paid_at else None,
+        "paid_at": (
+            timezone.localtime(transaction.paid_at).isoformat()
+            if transaction.paid_at
+            else None
+        ),
     }
 
 
-def financial_report(user, params) -> dict[str, Any]:
+def financial_report(user, params, organization=None) -> dict[str, Any]:
     start, end = resolve_period(params)
+    organization = resolve_report_organization(user=user, organization=organization)
     today = timezone.localdate()
-    all_transactions = all_transactions_for_owner(owner=user)
-    queryset = transactions_for_period(owner=user, start=start, end=end)
+    all_transactions = all_transactions_for_user(
+        user=user,
+        organization=organization,
+    )
+    queryset = transactions_for_period(
+        user=user,
+        organization=organization,
+        start=start,
+        end=end,
+    )
 
     type_filter = params.get("transaction_type") or params.get("type")
     status_filter = params.get("status")
@@ -82,33 +101,32 @@ def financial_report(user, params) -> dict[str, Any]:
     ).annotate(outstanding=outstanding_expr)
     overdue_value = overdue.aggregate(total=Sum("outstanding"))["total"] or ZERO
 
-    income_base = queryset.filter(transaction_type=FinancialTransaction.TransactionType.INCOME)
-    expense_base = queryset.filter(transaction_type=FinancialTransaction.TransactionType.EXPENSE)
+    income_base = queryset.filter(
+        transaction_type=FinancialTransaction.TransactionType.INCOME
+    )
+    expense_base = queryset.filter(
+        transaction_type=FinancialTransaction.TransactionType.EXPENSE
+    )
+    excluded_statuses = [
+        FinancialTransaction.PaymentStatus.CANCELLED,
+        FinancialTransaction.PaymentStatus.REFUNDED,
+    ]
     gross = (
-        income_base.exclude(
-            payment_status__in=[
-                FinancialTransaction.PaymentStatus.CANCELLED,
-                FinancialTransaction.PaymentStatus.REFUNDED,
-            ]
-        ).aggregate(total=Sum("amount"))["total"]
+        income_base.exclude(payment_status__in=excluded_statuses).aggregate(
+            total=Sum("amount")
+        )["total"]
         or ZERO
     )
     cancellations = (
-        income_base.filter(
-            payment_status__in=[
-                FinancialTransaction.PaymentStatus.CANCELLED,
-                FinancialTransaction.PaymentStatus.REFUNDED,
-            ]
-        ).aggregate(total=Sum("amount"))["total"]
+        income_base.filter(payment_status__in=excluded_statuses).aggregate(
+            total=Sum("amount")
+        )["total"]
         or ZERO
     )
     expenses = (
-        expense_base.exclude(
-            payment_status__in=[
-                FinancialTransaction.PaymentStatus.CANCELLED,
-                FinancialTransaction.PaymentStatus.REFUNDED,
-            ]
-        ).aggregate(total=Sum("amount"))["total"]
+        expense_base.exclude(payment_status__in=excluded_statuses).aggregate(
+            total=Sum("amount")
+        )["total"]
         or ZERO
     )
     net_revenue = gross - cancellations
@@ -120,7 +138,9 @@ def financial_report(user, params) -> dict[str, Any]:
         key = item.patient_id or 0
         if key not in overdue_by_patient:
             overdue_by_patient[key] = {
-                "patient": item.patient.display_name if item.patient else "Sem paciente",
+                "patient": (
+                    item.patient.display_name if item.patient else "Sem paciente"
+                ),
                 "value": ZERO,
                 "titles": 0,
                 "oldest_due_date": item.due_date,
@@ -142,25 +162,35 @@ def financial_report(user, params) -> dict[str, Any]:
                 "days_overdue": (today - oldest).days if oldest else 0,
             }
         )
-    delinquency.sort(key=lambda row: (row["value"], row["days_overdue"]), reverse=True)
+    delinquency.sort(
+        key=lambda row: (row["value"], row["days_overdue"]),
+        reverse=True,
+    )
 
     revenue_by_insurance: dict[str, Decimal] = {}
     for item in income_base.exclude(
-        payment_status__in=[
-            FinancialTransaction.PaymentStatus.CANCELLED,
-            FinancialTransaction.PaymentStatus.REFUNDED,
-        ]
+        payment_status__in=excluded_statuses
     ).select_related("patient"):
         label = insurance_label(item.patient)
-        revenue_by_insurance[label] = revenue_by_insurance.get(label, ZERO) + item.amount
+        revenue_by_insurance[label] = (
+            revenue_by_insurance.get(label, ZERO) + item.amount
+        )
 
-    active_subscriptions = active_subscriptions_for_owner(owner=user)
-    monthly_amount = active_subscriptions.aggregate(total=Sum("monthly_amount"))["total"] or ZERO
-    packages = active_packages_for_owner(owner=user)
+    active_subscriptions = active_subscriptions_for_user(
+        user=user,
+        organization=organization,
+    )
+    monthly_amount = (
+        active_subscriptions.aggregate(total=Sum("monthly_amount"))["total"]
+        or ZERO
+    )
+    packages = active_packages_for_user(user=user, organization=organization)
     package_remaining = ZERO
     for package in packages:
         package_remaining += package.unit_value * Decimal(package.remaining_sessions)
-    package_monthly_slice = package_remaining / Decimal("3") if package_remaining else ZERO
+    package_monthly_slice = (
+        package_remaining / Decimal("3") if package_remaining else ZERO
+    )
     projection_series = []
     for offset in range(3):
         month = date(
@@ -208,6 +238,8 @@ def financial_report(user, params) -> dict[str, Any]:
             "count": paginated["count"],
             "page": paginated["page"],
             "page_size": paginated["page_size"],
-            "results": [serialize_transaction(item) for item in paginated["items"]],
+            "results": [
+                serialize_transaction(item) for item in paginated["items"]
+            ],
         },
     }

@@ -3,12 +3,13 @@ from __future__ import annotations
 from datetime import timedelta
 from uuid import uuid4
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
 
 class TelemedicineRoom(models.Model):
-    """Credenciais não previsíveis e revogáveis para consulta online."""
+    """Credenciais não previsíveis e revogáveis isoladas por organização."""
 
     class Status(models.TextChoices):
         PENDING = "pending", "Pendente"
@@ -18,6 +19,11 @@ class TelemedicineRoom(models.Model):
         CANCELLED = "cancelled", "Cancelada"
         EXPIRED = "expired", "Expirada"
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="telemedicine_rooms",
+    )
     appointment = models.OneToOneField("agenda.Appointment", on_delete=models.CASCADE, related_name="telemedicine_room")
     patient_token = models.UUIDField(default=uuid4, unique=True, editable=False)
     professional_token = models.UUIDField(default=uuid4, unique=True, editable=False)
@@ -29,6 +35,12 @@ class TelemedicineRoom(models.Model):
 
     class Meta:
         ordering = ["appointment__start_time"]
+        indexes = [models.Index(fields=["organization", "status"], name="telemed_org_status_idx")]
+
+    def clean(self):
+        super().clean()
+        if self.appointment_id and self.appointment.organization_id != self.organization_id:
+            raise ValidationError({"appointment": "A consulta pertence a outra organização."})
 
     @property
     def is_accessible(self) -> bool:
@@ -70,7 +82,7 @@ class TelemedicineRoom(models.Model):
 
 
 class AppointmentReminder(models.Model):
-    """Lembrete administrativo sem conteúdo clínico."""
+    """Lembrete administrativo sem conteúdo clínico e com tenant explícito."""
 
     class Channel(models.TextChoices):
         WHATSAPP = "whatsapp", "WhatsApp"
@@ -82,6 +94,11 @@ class AppointmentReminder(models.Model):
         FAILED = "failed", "Falhou"
         CANCELLED = "cancelled", "Cancelado"
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="appointment_reminders",
+    )
     appointment = models.ForeignKey("agenda.Appointment", on_delete=models.CASCADE, related_name="reminders")
     channel = models.CharField(max_length=20, choices=Channel.choices, default=Channel.WHATSAPP)
     scheduled_for = models.DateTimeField()
@@ -94,4 +111,12 @@ class AppointmentReminder(models.Model):
 
     class Meta:
         ordering = ["scheduled_for"]
-        indexes = [models.Index(fields=["status", "scheduled_for"], name="reminder_status_time_idx")]
+        indexes = [
+            models.Index(fields=["organization", "status", "scheduled_for"], name="reminder_org_status_idx"),
+            models.Index(fields=["status", "scheduled_for"], name="reminder_status_time_idx"),
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.appointment_id and self.appointment.organization_id != self.organization_id:
+            raise ValidationError({"appointment": "A consulta pertence a outra organização."})

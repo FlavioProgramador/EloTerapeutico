@@ -6,6 +6,7 @@ import hashlib
 from uuid import uuid4
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -17,7 +18,7 @@ from .templates import DocumentTemplate
 
 
 class GeneratedDocument(models.Model):
-    """Snapshot imutável do template e dos dados usados para gerar um documento."""
+    """Snapshot imutável de um documento gerado dentro da organização."""
 
     class Status(models.TextChoices):
         DRAFT = "draft", "Rascunho"
@@ -28,6 +29,12 @@ class GeneratedDocument(models.Model):
         ARCHIVED = "archived", "Arquivado"
 
     public_id = models.UUIDField(default=uuid4, unique=True, editable=False, db_index=True)
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="generated_documents",
+        db_index=True,
+    )
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -95,21 +102,38 @@ class GeneratedDocument(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes = [
+            models.Index(
+                fields=["organization", "status"],
+                name="gen_doc_org_status_idx",
+            ),
             models.Index(fields=["owner", "status"], name="gen_doc_owner_status_idx"),
             models.Index(fields=["patient", "created_at"], name="gen_doc_patient_date_idx"),
             models.Index(fields=["document_type", "created_at"], name="gen_doc_type_date_idx"),
         ]
         constraints = [
             models.UniqueConstraint(
-                fields=["owner", "document_number"],
-                name="unique_generated_document_number_owner",
+                fields=["organization", "document_number"],
+                name="unique_generated_document_number_org",
             ),
             models.UniqueConstraint(
-                fields=["owner", "idempotency_key"],
+                fields=["organization", "idempotency_key"],
                 condition=Q(idempotency_key__isnull=False),
-                name="unique_generated_document_idempotency_owner",
+                name="unique_generated_document_idempotency_org",
             ),
         ]
+
+    def clean(self):
+        super().clean()
+        patient = self.patient if self.patient_id else None
+        if patient is not None and patient.organization_id != self.organization_id:
+            raise ValidationError({"patient": "O paciente pertence a outra organização."})
+
+        template = self.template if self.template_id else None
+        if template is not None and (
+            not template.is_library_template
+            and template.organization_id != self.organization_id
+        ):
+            raise ValidationError({"template": "O template pertence a outra organização."})
 
     def __str__(self) -> str:
         return f"{self.document_number} — {self.title}"

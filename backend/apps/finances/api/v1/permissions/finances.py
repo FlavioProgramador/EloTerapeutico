@@ -1,20 +1,38 @@
-"""Permissões da API financeira."""
+"""Permissões financeiras baseadas na membership ativa."""
 
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import BasePermission
+
+from apps.organizations.models import OrganizationMembership
+from apps.organizations.permissions import has_capability
+from apps.organizations.services.tenant_context import ensure_request_organization
 
 
-class FinancesPermission(IsAuthenticated):
+class FinancesPermission(BasePermission):
+    """Autoriza leitura e escrita somente no tenant ativo."""
+
     def has_permission(self, request, view):
-        return super().has_permission(request, view) and (
-            request.user.is_admin_role
-            or request.user.is_therapist
-            or request.user.is_secretary
-        )
+        if not request.user or not request.user.is_authenticated:
+            return False
+        _, membership = ensure_request_organization(request=request, required=True)
+        if request.method in {"GET", "HEAD", "OPTIONS"}:
+            return has_capability(membership, "finances.view")
+        return has_capability(membership, "finances.manage")
 
     def has_object_permission(self, request, view, obj):
-        if request.user.is_admin_role or request.user.is_secretary:
-            return True
-        return obj.therapist_id == request.user.pk
+        organization, membership = ensure_request_organization(
+            request=request,
+            required=True,
+        )
+        if getattr(obj, "organization_id", None) != organization.pk:
+            return False
+        if (
+            membership.role == OrganizationMembership.Role.THERAPIST
+            and getattr(obj, "therapist_id", None) != request.user.pk
+        ):
+            return False
+        if request.method in {"GET", "HEAD", "OPTIONS"}:
+            return has_capability(membership, "finances.view")
+        return has_capability(membership, "finances.manage")
 
 
 FinancialPermission = FinancesPermission

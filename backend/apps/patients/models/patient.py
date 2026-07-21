@@ -1,7 +1,9 @@
 """Modelo principal de pacientes."""
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 
 from apps.core.validators import validate_cpf, validate_phone
 
@@ -30,6 +32,13 @@ class Patient(PatientComputedPropertiesMixin, PatientLifecycleMixin, models.Mode
     PlannedFrequency = PatientPlannedFrequency
     ReminderRecipient = PatientReminderRecipient
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="patients",
+        verbose_name="Organização",
+        db_index=True,
+    )
     full_name = models.CharField(max_length=255, db_index=True, verbose_name="Nome completo")
     social_name = models.CharField(max_length=255, blank=True, verbose_name="Nome social")
     photo = models.FileField(
@@ -40,7 +49,6 @@ class Patient(PatientComputedPropertiesMixin, PatientLifecycleMixin, models.Mode
     )
     cpf = models.CharField(
         max_length=11,
-        unique=True,
         null=True,
         blank=True,
         validators=[validate_cpf],
@@ -223,7 +231,17 @@ class Patient(PatientComputedPropertiesMixin, PatientLifecycleMixin, models.Mode
         verbose_name = "Paciente"
         verbose_name_plural = "Pacientes"
         ordering = ["full_name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "cpf"],
+                condition=Q(cpf__isnull=False) & ~Q(cpf=""),
+                name="patient_org_cpf_uniq",
+            ),
+        ]
         indexes = [
+            models.Index(fields=["organization", "therapist"], name="patient_org_therapist_idx"),
+            models.Index(fields=["organization", "status"], name="patient_org_status_idx"),
+            models.Index(fields=["organization", "full_name"], name="patient_org_name_idx"),
             models.Index(fields=["therapist"], name="patient_therapist_idx"),
             models.Index(fields=["cpf"], name="patient_cpf_idx"),
             models.Index(fields=["status"], name="patient_status_idx"),
@@ -233,6 +251,25 @@ class Patient(PatientComputedPropertiesMixin, PatientLifecycleMixin, models.Mode
             models.Index(fields=["birth_date"], name="patient_birth_date_idx"),
             models.Index(fields=["payer_type", "insurance_name"], name="patient_payer_insurance_idx"),
         ]
+
+    def clean(self):
+        super().clean()
+        if not self.organization_id or not self.therapist_id:
+            return
+        from apps.organizations.models import OrganizationMembership
+
+        membership_exists = OrganizationMembership.objects.filter(
+            organization_id=self.organization_id,
+            user_id=self.therapist_id,
+            status=OrganizationMembership.Status.ACTIVE,
+            role__in=[
+                OrganizationMembership.Role.OWNER,
+                OrganizationMembership.Role.ADMIN,
+                OrganizationMembership.Role.THERAPIST,
+            ],
+        ).exists()
+        if not membership_exists:
+            raise ValidationError({"therapist": "O profissional não pertence à organização do paciente."})
 
     def save(self, *args, **kwargs):
         if self.tags is None:

@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 from apps.finances.api.v1.serializers import FinancialSummaryQuerySerializer
 from apps.finances.selectors import financial_summary
+from apps.organizations.services.tenant_context import ensure_request_organization
 
 
 class FinancialSummaryActionsMixin:
@@ -12,9 +13,15 @@ class FinancialSummaryActionsMixin:
     def summary(self, request):
         serializer = FinancialSummaryQuerySerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
+        organization, membership = ensure_request_organization(
+            request=request,
+            required=True,
+        )
         return Response(
             financial_summary(
                 user=request.user,
+                organization=organization,
+                membership=membership,
                 start_date=serializer.validated_data["start_date"],
                 end_date=serializer.validated_data["end_date"],
             )

@@ -4,8 +4,11 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from rest_framework import serializers
 
+from apps.organizations.models import OrganizationMembership
+from apps.patients.models import Patient
 from apps.scheduling.models import Appointment, AppointmentRecurrence, PatientPackage, Room
 from apps.scheduling.services import create_patient_package
+from apps.users.models import User
 
 from .summary import PackageSessionSerializer
 
@@ -35,9 +38,7 @@ class PatientPackageSerializer(serializers.ModelSerializer):
         required=False,
         default=list,
     )
-    duration_minutes = serializers.IntegerField(
-        write_only=True, required=False, default=50, min_value=15, max_value=240
-    )
+    duration_minutes = serializers.IntegerField(write_only=True, required=False, default=50, min_value=15, max_value=240)
     modality = serializers.ChoiceField(
         choices=Appointment.Modality.choices,
         write_only=True,
@@ -51,7 +52,7 @@ class PatientPackageSerializer(serializers.ModelSerializer):
         default=Appointment.AppointmentType.PSYCHOTHERAPY,
     )
     room = serializers.PrimaryKeyRelatedField(
-        queryset=Room.objects.filter(is_active=True),
+        queryset=Room.objects.none(),
         write_only=True,
         required=False,
         allow_null=True,
@@ -61,50 +62,65 @@ class PatientPackageSerializer(serializers.ModelSerializer):
     class Meta:
         model = PatientPackage
         fields = [
-            "id",
-            "patient",
-            "patient_name",
-            "therapist",
-            "therapist_name",
-            "name",
-            "description",
-            "sessions_contracted",
-            "sessions_used",
-            "remaining_sessions",
-            "total_value",
-            "unit_value",
-            "valid_from",
-            "valid_until",
-            "status",
-            "is_expired",
-            "generate_charge",
-            "send_charge",
-            "sessions",
-            "auto_schedule",
-            "first_appointment_at",
-            "frequency",
-            "weekdays",
-            "duration_minutes",
-            "modality",
-            "appointment_type",
-            "room",
-            "send_whatsapp_reminder",
-            "created_at",
-            "updated_at",
+            "id", "patient", "patient_name", "therapist", "therapist_name", "name",
+            "description", "sessions_contracted", "sessions_used", "remaining_sessions",
+            "total_value", "unit_value", "valid_from", "valid_until", "status", "is_expired",
+            "generate_charge", "send_charge", "sessions", "auto_schedule", "first_appointment_at",
+            "frequency", "weekdays", "duration_minutes", "modality", "appointment_type", "room",
+            "send_whatsapp_reminder", "created_at", "updated_at",
         ]
         read_only_fields = ["sessions_used", "created_at", "updated_at"]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        organization = getattr(request, "organization", None)
+        membership = getattr(request, "organization_membership", None)
+        if organization is None:
+            self.fields["patient"].queryset = Patient.objects.none()
+            self.fields["therapist"].queryset = User.objects.none()
+            self.fields["room"].queryset = Room.objects.none()
+            return
+        patients = Patient.objects.filter(organization=organization, is_active=True)
+        therapist_ids = OrganizationMembership.objects.filter(
+            organization=organization,
+            status=OrganizationMembership.Status.ACTIVE,
+            role__in=[
+                OrganizationMembership.Role.OWNER,
+                OrganizationMembership.Role.ADMIN,
+                OrganizationMembership.Role.THERAPIST,
+            ],
+        ).values_list("user_id", flat=True)
+        therapists = User.objects.filter(pk__in=therapist_ids, is_active=True)
+        rooms = Room.objects.filter(organization=organization, is_active=True)
+        if membership and membership.role == OrganizationMembership.Role.THERAPIST:
+            patients = patients.filter(therapist=request.user)
+            therapists = therapists.filter(pk=request.user.pk)
+            rooms = rooms.filter(therapist=request.user)
+        self.fields["patient"].queryset = patients
+        self.fields["therapist"].queryset = therapists
+        self.fields["room"].queryset = rooms
+
     def validate(self, attrs):
         request = self.context["request"]
+        organization = getattr(request, "organization", None)
+        membership = getattr(request, "organization_membership", None)
         patient = attrs.get("patient", getattr(self.instance, "patient", None))
         therapist = attrs.get("therapist", getattr(self.instance, "therapist", None))
-        if request.user.is_therapist:
+        if membership and membership.role == OrganizationMembership.Role.THERAPIST:
             therapist = request.user
             attrs["therapist"] = therapist
-        if not therapist or not therapist.is_therapist:
+        if organization is None:
+            raise serializers.ValidationError({"organization": "Selecione uma organização."})
+        if not therapist:
             raise serializers.ValidationError({"therapist": "Selecione um terapeuta válido."})
-        if patient and patient.therapist_id != therapist.id:
+        if not patient or patient.organization_id != organization.pk:
+            raise serializers.ValidationError({"patient": "O paciente pertence a outra organização."})
+        if patient.therapist_id != therapist.id:
             raise serializers.ValidationError({"patient": "O paciente não pertence ao profissional selecionado."})
+        room = attrs.get("room")
+        if room and room.organization_id != organization.pk:
+            raise serializers.ValidationError({"room": "A sala pertence a outra organização."})
         sessions = attrs.get("sessions_contracted", getattr(self.instance, "sessions_contracted", 0))
         if sessions <= 0:
             raise serializers.ValidationError({"sessions_contracted": "Informe ao menos uma sessão."})
@@ -119,6 +135,7 @@ class PatientPackageSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        validated_data["organization"] = self.context["request"].organization
         try:
             return create_patient_package(
                 actor=self.context["request"].user,

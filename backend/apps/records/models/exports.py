@@ -7,9 +7,10 @@ from django.db import models
 from django.db.models import Q
 
 from .paths import clinical_export_path
+from .tenant import ClinicalTenantModel
 
 
-class ClinicalExport(models.Model):
+class ClinicalExport(ClinicalTenantModel):
     class Status(models.TextChoices):
         PENDING = "PENDING", "Pendente"
         PROCESSING = "PROCESSING", "Processando"
@@ -18,6 +19,12 @@ class ClinicalExport(models.Model):
         EXPIRED = "EXPIRED", "Expirado"
         CANCELLED = "CANCELLED", "Cancelado"
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="records_clinicalexport_items",
+        db_index=True,
+    )
     public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     patient = models.ForeignKey(
         "patients.Patient",
@@ -55,7 +62,11 @@ class ClinicalExport(models.Model):
     started_at = models.DateTimeField(null=True, blank=True, verbose_name="Iniciado em")
     completed_at = models.DateTimeField(null=True, blank=True, verbose_name="Finalizado em")
     expires_at = models.DateTimeField(null=True, blank=True, db_index=True)
-    next_attempt_at = models.DateTimeField(null=True, blank=True, verbose_name="Próxima tentativa em")
+    next_attempt_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Próxima tentativa em",
+    )
     worker_id = models.CharField(max_length=255, blank=True, verbose_name="ID do Worker")
     retries = models.IntegerField(default=0, verbose_name="Tentativas")
     error_code = models.CharField(max_length=80, blank=True)
@@ -67,6 +78,10 @@ class ClinicalExport(models.Model):
         verbose_name = "Exportação Clínica"
         verbose_name_plural = "Exportações Clínicas"
         indexes = [
+            models.Index(
+                fields=["organization", "status", "created_at"],
+                name="export_org_status_idx",
+            ),
             models.Index(fields=["patient", "status"], name="export_patient_status_idx"),
             models.Index(fields=["status", "created_at"], name="export_status_created_idx"),
         ]

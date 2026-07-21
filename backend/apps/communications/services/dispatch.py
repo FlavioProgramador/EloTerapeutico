@@ -91,9 +91,11 @@ def _sanitize_error(exc: Exception) -> str:
 
 
 def dispatch_communication(communication_id: int) -> Communication:
-    communication = Communication.objects.select_related("owner", "patient").get(
-        pk=communication_id
-    )
+    communication = Communication.objects.select_related(
+        "organization",
+        "owner",
+        "patient",
+    ).get(pk=communication_id)
     if communication.status != Communication.Status.PROCESSING:
         return communication
     if communication.expires_at and communication.expires_at <= timezone.now():
@@ -102,7 +104,7 @@ def dispatch_communication(communication_id: int) -> Communication:
         return communication
 
     channel_config = CommunicationChannelConfig.objects.filter(
-        owner=communication.owner,
+        organization=communication.organization,
         channel=communication.channel,
     ).first()
     provider = get_provider(communication.channel, config=channel_config)
@@ -215,6 +217,7 @@ def dispatch_communication(communication_id: int) -> Communication:
         from .notifications import create_notification
 
         create_notification(
+            organization=communication.organization,
             owner=communication.owner,
             recipient=communication.owner,
             communication=communication,
@@ -237,6 +240,7 @@ def dispatch_communication(communication_id: int) -> Communication:
         "communication_dispatch_completed",
         extra={
             "communication_id": communication.pk,
+            "organization_id": str(communication.organization_id),
             "channel": communication.channel,
             "provider": provider.name,
             "status": final_status,

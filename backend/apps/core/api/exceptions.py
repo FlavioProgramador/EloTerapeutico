@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import re
 import secrets
+from collections.abc import Mapping, Sequence
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import OperationalError, ProgrammingError
@@ -41,11 +42,12 @@ def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
 
     if response is not None:
+        details = _normalize_api_details(response.data)
         response.data = {
             "error": {
                 "code": _get_error_code(exc, response.status_code),
-                "message": _get_error_message(exc, response),
-                "details": response.data if isinstance(response.data, dict) else None,
+                "message": _get_error_message(exc, response, details),
+                "details": details if isinstance(details, dict) else None,
             }
         }
         return _secure_error_response(response, request_id)
@@ -91,7 +93,9 @@ def custom_exception_handler(exc, context):
 
     if isinstance(exc, (OperationalError, ProgrammingError)) and _is_communications_view(context):
         logger.error(
-            "communications_database_not_ready",
+            "communications_database_not_ready type=%s view=%s",
+            exc.__class__.__name__,
+            _view_name(context),
             extra={
                 "request_id": request_id,
                 "exception_type": exc.__class__.__name__,
@@ -113,16 +117,16 @@ def custom_exception_handler(exc, context):
         )
         return _secure_error_response(response, request_id)
 
-    # Não use logger.exception aqui: a representação textual da exceção pode
-    # conter SQL, tokens, CPF ou conteúdo clínico. O tipo e o request_id são
-    # suficientes para correlação; detalhes devem ser coletados por uma solução
-    # de observabilidade com redaction explícita.
+    exception_type = exc.__class__.__name__
+    view_name = _view_name(context)
     logger.error(
-        "api_unhandled_exception",
+        "api_unhandled_exception type=%s view=%s",
+        exception_type,
+        view_name,
         extra={
             "request_id": request_id,
-            "exception_type": exc.__class__.__name__,
-            "view": _view_name(context),
+            "exception_type": exception_type,
+            "view": view_name,
         },
     )
     response = Response(
@@ -136,6 +140,37 @@ def custom_exception_handler(exc, context):
         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
     return _secure_error_response(response, request_id)
+
+
+def _normalize_api_details(value):
+    """Converte ErrorDetail e estruturas DRF em dados JSON simples e seguros."""
+
+    if isinstance(value, Mapping):
+        return {
+            str(key): _normalize_api_details(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        return [_normalize_api_details(item) for item in value]
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    return str(value)
+
+
+def _first_error_message(details) -> str | None:
+    if isinstance(details, dict):
+        for field, value in details.items():
+            nested = _first_error_message(value)
+            if nested:
+                return nested if field in {"detail", "non_field_errors"} else f"{field}: {nested}"
+    elif isinstance(details, list):
+        for value in details:
+            nested = _first_error_message(value)
+            if nested:
+                return nested
+    elif isinstance(details, str) and details:
+        return details
+    return None
 
 
 def _validation_error_message(exc: ValidationError) -> str:
@@ -178,23 +213,15 @@ def _get_error_code(exc, status_code: int) -> str:
         409: "CONFLICT",
         429: "TOO_MANY_REQUESTS",
         500: "INTERNAL_ERROR",
-        503: "SERVICE_UNAVAILABLE",
     }
-    if hasattr(exc, "default_code"):
-        return exc.default_code.upper()
-    return code_map.get(status_code, "ERROR")
+    code = getattr(exc, "default_code", None)
+    return str(code).upper() if code else code_map.get(status_code, "API_ERROR")
 
 
-def _get_error_message(exc, response) -> str:
-    if hasattr(exc, "detail"):
-        detail = exc.detail
-        if isinstance(detail, str):
-            return detail
-        if isinstance(detail, list) and detail:
-            return str(detail[0])
-        if isinstance(detail, dict):
-            for key, value in detail.items():
-                if isinstance(value, list):
-                    return f"{key}: {value[0]}"
-                return f"{key}: {value}"
-    return "Ocorreu um erro. Por favor, tente novamente."
+def _get_error_message(exc, response: Response, details=None) -> str:
+    detail = getattr(exc, "detail", None)
+    if isinstance(detail, str):
+        return detail
+    normalized = details if details is not None else _normalize_api_details(response.data)
+    first = _first_error_message(normalized)
+    return first or "A solicitação não pôde ser processada."

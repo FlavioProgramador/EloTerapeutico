@@ -20,6 +20,7 @@ def create_schedule_block(*, actor, validated_data: dict) -> ScheduleBlock:
         ScheduleBlock.objects.bulk_create(
             [
                 ScheduleBlock(
+                    organization=block.organization,
                     therapist=block.therapist,
                     start_time=block.start_time + delta * index,
                     end_time=block.end_time + delta * index,
