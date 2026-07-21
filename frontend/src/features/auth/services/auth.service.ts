@@ -41,7 +41,7 @@ function csrfHeaders(): Record<string, string> {
 export const authService = {
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     const response = await axios.post<AuthResponse>(
-      "/api/auth/login/",
+      "/api/auth/login",
       credentials,
       { withCredentials: true },
     );
@@ -50,7 +50,7 @@ export const authService = {
 
   logout: async (): Promise<void> => {
     await axios.post(
-      "/api/auth/logout/",
+      "/api/auth/logout",
       {},
       { withCredentials: true, headers: csrfHeaders() },
     );
@@ -58,7 +58,7 @@ export const authService = {
 
   logoutAll: async (): Promise<void> => {
     await axios.post(
-      "/api/auth/logout-all/",
+      "/api/auth/logout-all",
       {},
       { withCredentials: true, headers: csrfHeaders() },
     );
@@ -71,7 +71,7 @@ export const authService = {
 
   refreshSession: async (): Promise<void> => {
     await axios.post(
-      "/api/auth/refresh/",
+      "/api/auth/refresh",
       {},
       { withCredentials: true, headers: csrfHeaders() },
     );
@@ -79,7 +79,7 @@ export const authService = {
 
   register: async (data: RegisterPayload): Promise<AuthResponse> => {
     const response = await axios.post<AuthResponse>(
-      "/api/auth/register/",
+      "/api/auth/register",
       data,
       { withCredentials: true },
     );
