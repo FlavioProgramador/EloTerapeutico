@@ -1,4 +1,4 @@
-"""Modelo de transações financeiras do profissional."""
+"""Modelo de transações financeiras por organização."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from django.utils.translation import gettext_lazy as _
 
 
 class FinancialTransaction(models.Model):
-    """Receita ou despesa pertencente a um terapeuta."""
+    """Receita ou despesa pertencente a uma organização."""
 
     class TransactionType(models.TextChoices):
         INCOME = "income", _("Receita")
@@ -64,6 +64,13 @@ class FinancialTransaction(models.Model):
         SEMIANNUAL = "semiannual", _("Semestral")
         ANNUAL = "annual", _("Anual")
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="financial_transactions",
+        verbose_name=_("Organização"),
+        db_index=True,
+    )
     therapist = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -94,25 +101,42 @@ class FinancialTransaction(models.Model):
         related_name="charges",
         verbose_name=_("Mensalidade"),
     )
-
     transaction_type = models.CharField(
-        max_length=10, choices=TransactionType.choices, default=TransactionType.INCOME, verbose_name=_("Tipo")
+        max_length=10,
+        choices=TransactionType.choices,
+        default=TransactionType.INCOME,
+        verbose_name=_("Tipo"),
     )
     category = models.CharField(
-        max_length=20, choices=Category.choices, default=Category.SESSION, verbose_name=_("Categoria")
+        max_length=20,
+        choices=Category.choices,
+        default=Category.SESSION,
+        verbose_name=_("Categoria"),
     )
     source = models.CharField(
-        max_length=20, choices=Source.choices, default=Source.MANUAL, verbose_name=_("Origem")
+        max_length=20,
+        choices=Source.choices,
+        default=Source.MANUAL,
+        verbose_name=_("Origem"),
     )
     amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name=_("Valor"))
     paid_amount = models.DecimalField(
-        max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name=_("Valor pago")
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        verbose_name=_("Valor pago"),
     )
     payment_method = models.CharField(
-        max_length=20, choices=PaymentMethod.choices, default=PaymentMethod.UNINFORMED, verbose_name=_("Método de pagamento")
+        max_length=20,
+        choices=PaymentMethod.choices,
+        default=PaymentMethod.UNINFORMED,
+        verbose_name=_("Método de pagamento"),
     )
     payment_status = models.CharField(
-        max_length=15, choices=PaymentStatus.choices, default=PaymentStatus.PENDING, verbose_name=_("Status")
+        max_length=15,
+        choices=PaymentStatus.choices,
+        default=PaymentStatus.PENDING,
+        verbose_name=_("Status"),
     )
     due_date = models.DateField(null=True, blank=True, verbose_name=_("Vencimento"))
     paid_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Pago em"))
@@ -122,7 +146,10 @@ class FinancialTransaction(models.Model):
     receipt_url = models.URLField(blank=True, verbose_name=_("URL do recibo"))
     is_recurring = models.BooleanField(default=False, verbose_name=_("Recorrente"))
     recurrence_frequency = models.CharField(
-        max_length=20, choices=RecurrenceFrequency.choices, blank=True, verbose_name=_("Frequência da recorrência")
+        max_length=20,
+        choices=RecurrenceFrequency.choices,
+        blank=True,
+        verbose_name=_("Frequência da recorrência"),
     )
     recurrence_end_date = models.DateField(null=True, blank=True, verbose_name=_("Fim da recorrência"))
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Criado em"))
@@ -133,6 +160,9 @@ class FinancialTransaction(models.Model):
         verbose_name_plural = _("Transações Financeiras")
         ordering = ["-created_at"]
         indexes = [
+            models.Index(fields=["organization", "payment_status"], name="fin_org_status_idx"),
+            models.Index(fields=["organization", "created_at"], name="fin_org_created_idx"),
+            models.Index(fields=["organization", "due_date"], name="fin_org_due_idx"),
             models.Index(fields=["therapist", "payment_status"], name="fin_therapist_status_idx"),
             models.Index(fields=["therapist", "created_at"], name="fin_therapist_created_idx"),
             models.Index(fields=["therapist", "due_date"], name="fin_therapist_due_idx"),
@@ -141,7 +171,10 @@ class FinancialTransaction(models.Model):
         constraints = [
             models.CheckConstraint(condition=Q(amount__gt=0), name="fin_amount_positive"),
             models.CheckConstraint(condition=Q(paid_amount__gte=0), name="fin_paid_amount_non_negative"),
-            models.CheckConstraint(condition=Q(paid_amount__lte=models.F("amount")), name="fin_paid_amount_lte_amount"),
+            models.CheckConstraint(
+                condition=Q(paid_amount__lte=models.F("amount")),
+                name="fin_paid_amount_lte_amount",
+            ),
             models.UniqueConstraint(
                 fields=["appointment"],
                 condition=Q(appointment__isnull=False, source="appointment"),
@@ -172,6 +205,22 @@ class FinancialTransaction(models.Model):
             raise ValidationError({"paid_amount": _("O valor pago não pode exceder o valor da transação.")})
         if self.is_recurring and not self.recurrence_frequency:
             raise ValidationError({"recurrence_frequency": _("Informe a frequência da recorrência.")})
+        if self.patient_id and self.patient.organization_id != self.organization_id:
+            raise ValidationError({"patient": _("O paciente pertence a outra organização.")})
+        if self.appointment_id:
+            if self.appointment.organization_id != self.organization_id:
+                raise ValidationError({"appointment": _("A consulta pertence a outra organização.")})
+            if self.patient_id and self.appointment.patient_id != self.patient_id:
+                raise ValidationError({"appointment": _("A consulta pertence a outro paciente.")})
+            if self.appointment.therapist_id != self.therapist_id:
+                raise ValidationError({"appointment": _("A consulta pertence a outro profissional.")})
+        if self.subscription_id:
+            if self.subscription.organization_id != self.organization_id:
+                raise ValidationError({"subscription": _("A mensalidade pertence a outra organização.")})
+            if self.patient_id and self.subscription.patient_id != self.patient_id:
+                raise ValidationError({"subscription": _("A mensalidade pertence a outro paciente.")})
+            if self.subscription.therapist_id != self.therapist_id:
+                raise ValidationError({"subscription": _("A mensalidade pertence a outro profissional.")})
 
     def can_pay(self) -> bool:
         return self.payment_status in {self.PaymentStatus.PENDING, self.PaymentStatus.PARTIAL}
