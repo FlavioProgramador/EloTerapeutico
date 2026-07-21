@@ -21,6 +21,7 @@ from apps.finances.services import (
     delete_financial_transaction,
     update_financial_transaction,
 )
+from apps.organizations.services.tenant_context import ensure_request_organization
 
 
 class FinancialTransactionViewSetBase(AuditLogMixin, viewsets.ModelViewSet):
@@ -28,8 +29,18 @@ class FinancialTransactionViewSetBase(AuditLogMixin, viewsets.ModelViewSet):
     filterset_class = FinancialTransactionFilter
     ordering_fields = ["created_at", "due_date", "amount", "payment_status"]
 
+    def _organization(self):
+        organization, _ = ensure_request_organization(
+            request=self.request,
+            required=True,
+        )
+        return organization
+
     def get_queryset(self):
-        return transactions_accessible_to(self.request.user)
+        return transactions_accessible_to(
+            self.request.user,
+            organization=self._organization(),
+        )
 
     def get_serializer_class(self):
         if self.action in ["create", "update", "partial_update"]:
@@ -42,24 +53,37 @@ class FinancialTransactionViewSetBase(AuditLogMixin, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.instance = create_financial_transaction(
-            actor=self.request.user, validated_data=serializer.validated_data
+            actor=self.request.user,
+            organization=self._organization(),
+            validated_data=serializer.validated_data,
         )
-        self._record_instance(AuditLog.Action.CREATE, serializer.instance, on_commit=True)
+        self._record_instance(
+            AuditLog.Action.CREATE,
+            serializer.instance,
+            on_commit=True,
+        )
 
     def perform_update(self, serializer):
         serializer.instance = update_financial_transaction(
             actor=self.request.user,
+            organization=self._organization(),
             financial_transaction=serializer.instance,
             validated_data=serializer.validated_data,
         )
-        self._record_instance(AuditLog.Action.UPDATE, serializer.instance, on_commit=True)
+        self._record_instance(
+            AuditLog.Action.UPDATE,
+            serializer.instance,
+            on_commit=True,
+        )
 
     def perform_destroy(self, instance):
         resource_label = instance._meta.label
         resource_id = instance.pk
         resource_repr = safe_resource_repr(instance)
         delete_financial_transaction(
-            actor=self.request.user, financial_transaction=instance
+            actor=self.request.user,
+            organization=self._organization(),
+            financial_transaction=instance,
         )
         record_audit_event(
             action=AuditLog.Action.DELETE,
@@ -75,7 +99,9 @@ class FinancialTransactionViewSetBase(AuditLogMixin, viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="pending")
     def pending(self, request):
         queryset = pending_transactions(
-            user=request.user, patient_id=request.query_params.get("patient")
+            user=request.user,
+            organization=self._organization(),
+            patient_id=request.query_params.get("patient"),
         )
         page = self.paginate_queryset(queryset)
         if page is not None:
