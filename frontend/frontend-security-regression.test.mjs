@@ -25,17 +25,50 @@ test("navegação não utiliza pessoa fictícia como fallback", async () => {
   assert.doesNotMatch(sidebar, /text-\[(?:9|10|11)px\]/);
 });
 
-test("detalhes do paciente minimizam dados por padrão", async () => {
+test("cadastro usa BFF e não persiste tokens no navegador", async () => {
+  const register = await source("./src/app/register/page.tsx");
+  const authService = await source(
+    "./src/features/auth/services/auth.service.ts",
+  );
+
+  assert.match(register, /authService\.register/);
+  assert.match(register, /safeInternalPath/);
+  assert.doesNotMatch(register, /persistAuthTokens|persistAuthRole/);
+  assert.doesNotMatch(register, /localStorage|sessionStorage/);
+  assert.doesNotMatch(register, /response\.data\.tokens/);
+  assert.match(authService, /"\/api\/auth\/register\/"/);
+});
+
+test("detalhes e listas de pacientes minimizam dados por padrão", async () => {
   const patient = await source("./src/app/dashboard/patients/[id]/page.tsx");
+  const list = await source(
+    "./src/features/patients/components/patient-list-panel.tsx",
+  );
+  const detailPanel = await source(
+    "./src/features/patients/components/patient-detail-panel.tsx",
+  );
+  const sidePanel = await source(
+    "./src/features/patients/components/patient-side-panel.tsx",
+  );
 
   assert.match(patient, /patient\.masked_cpf \|\| maskCpf/);
   assert.match(patient, /maskEmail\(patient\.email\)/);
   assert.match(patient, /maskPhone\(patient\.phone\)/);
   assert.match(patient, /maskAddress\(address\)/);
   assert.match(patient, /maskDate\(patient\.birth_date\)/);
+  assert.match(list, /maskEmail\(patient\.email\)/);
+  assert.match(list, /maskPhone\(patient\.phone\)/);
+  assert.match(detailPanel, /maskEmail\(patient\.email\)/);
+  assert.match(detailPanel, /maskPhone\(patient\.phone\)/);
+  assert.match(sidePanel, /maskEmail\(patient\.email\)/);
+  assert.match(sidePanel, /maskPhone\(patient\.phone\)/);
+  assert.doesNotMatch(detailPanel, /latest_evolution\.summary/);
+  assert.doesNotMatch(detailPanel, /document\.name/);
   assert.doesNotMatch(patient, /value=\{patient\.phone\}/);
   assert.doesNotMatch(patient, /value=\{patient\.email\}/);
-  assert.doesNotMatch(patient, /text-\[(?:9|10|11)px\]/);
+  for (const content of [patient, list, detailPanel, sidePanel]) {
+    assert.doesNotMatch(content, /text-\[(?:9|10|11)px\]/);
+  }
 });
 
 test("prontuário usa tokens semânticos e tipografia legível", async () => {
@@ -50,12 +83,15 @@ test("prontuário usa tokens semânticos e tipografia legível", async () => {
   assert.match(overview, /bg-success-soft/);
 });
 
-test("canais não exibem erros internos diretamente", async () => {
+test("canais e notificações não exibem conteúdo interno diretamente", async () => {
   const modal = await source(
     "./src/features/communications/channel-configuration-modal.tsx",
   );
   const page = await source(
     "./src/features/communications/communications-page.tsx",
+  );
+  const bell = await source(
+    "./src/features/communications/notification-bell.tsx",
   );
 
   assert.match(modal, /getPublicErrorMessage/);
@@ -66,8 +102,11 @@ test("canais não exibem erros internos diretamente", async () => {
   assert.doesNotMatch(page, /last_error\.message/);
   assert.doesNotMatch(modal, /Object\.values\(response/);
   assert.doesNotMatch(modal, /backend está na versão/);
-  assert.doesNotMatch(modal, /text-\[(?:9|10|11)px\]/);
-  assert.doesNotMatch(page, /text-\[(?:9|10|11)px\]/);
+  assert.doesNotMatch(bell, /notification\.message/);
+  assert.doesNotMatch(bell, /notification\.title/);
+  for (const content of [modal, page, bell]) {
+    assert.doesNotMatch(content, /text-\[(?:9|10|11)px\]/);
+  }
 });
 
 test("providers não suprimem globalmente erros do console", async () => {
@@ -81,8 +120,11 @@ test("erros de comunicação usam a política pública central", async () => {
   const utilities = await source(
     "./src/features/communications/communications.utils.ts",
   );
+  const shared = await source("./src/lib/utils.ts");
 
   assert.match(utilities, /getPublicErrorMessage/);
   assert.doesNotMatch(utilities, /response\?\.data/);
   assert.doesNotMatch(utilities, /firstErrorMessage/);
+  assert.match(shared, /getPublicErrorMessage/);
+  assert.doesNotMatch(shared, /response\.data/);
 });
