@@ -15,3 +15,16 @@
 @import "./pricing-dynamic.css";
 @import "./faq-final-footer.css";
 @import "./responsive.css";
+
+/*
+ * A landing page preserva o verde escuro como apoio institucional, mas a
+ * identidade de ação, seleção e foco é o laranja terroso do produto.
+ */
+.landing-page {
+  --primary: 31 67% 50%;
+  --primary-hover: 31 67% 43%;
+  --primary-active: 31 67% 38%;
+  --primary-soft: 31 67% 95%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 31 67% 50%;
+}
