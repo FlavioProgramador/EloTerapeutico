@@ -1,0 +1,16 @@
+/*
+ * Guarda temporária de migração. Componentes novos não devem usar classes
+ * arbitrárias de tipografia; esta camada impede que consumidores antigos
+ * renderizem conteúdo relevante abaixo da escala oficial do produto.
+ */
+[class~="text-[9px]"],
+[class~="text-[10px]"],
+[class~="text-[11px]"] {
+  font-size: var(--text-xs) !important;
+  line-height: 1.25rem !important;
+}
+
+[class~="text-[13px]"] {
+  font-size: var(--text-sm) !important;
+  line-height: 1.25rem !important;
+}
