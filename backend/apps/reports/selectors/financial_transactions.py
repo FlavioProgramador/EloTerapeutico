@@ -10,12 +10,31 @@ from apps.organizations.models import OrganizationMembership
 from apps.scheduling.models import PatientPackage
 
 
-def transactions_for_period(*, user, organization, start, end):
-    return transactions_accessible_to(user, organization=organization).filter(
+def _period_filter(start, end):
+    return (
         Q(due_date__range=(start, end))
         | Q(paid_at__date__range=(start, end))
         | Q(created_at__date__range=(start, end))
     )
+
+
+def transactions_for_period(
+    *,
+    start,
+    end,
+    user=None,
+    organization=None,
+    owner=None,
+):
+    actor = user or owner
+    if actor is None:
+        from apps.finances.models import FinancialTransaction
+
+        return FinancialTransaction.objects.none()
+    return transactions_accessible_to(
+        actor,
+        organization=organization,
+    ).filter(_period_filter(start, end))
 
 
 def all_transactions_for_user(*, user, organization):
@@ -49,11 +68,7 @@ def active_packages_for_user(*, user, organization):
 
 # Fachadas legadas mantidas para adapters antigos.
 def transactions_for_period_legacy(*, owner, start, end):
-    return transactions_accessible_to(owner).filter(
-        Q(due_date__range=(start, end))
-        | Q(paid_at__date__range=(start, end))
-        | Q(created_at__date__range=(start, end))
-    )
+    return transactions_for_period(owner=owner, start=start, end=end)
 
 
 def all_transactions_for_owner(*, owner):
