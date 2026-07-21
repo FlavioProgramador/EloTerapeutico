@@ -77,9 +77,10 @@ class TherapeuticForm(models.Model):
 
     def clean(self):
         super().clean()
-        if self.source_template_id and (
-            not self.source_template.is_system_template
-            and self.source_template.organization_id != self.organization_id
+        source_template = self.source_template if self.source_template_id else None
+        if source_template is not None and (
+            not source_template.is_system_template
+            and source_template.organization_id != self.organization_id
         ):
             raise ValidationError(
                 {"source_template": "O template pertence a outra organização."}
