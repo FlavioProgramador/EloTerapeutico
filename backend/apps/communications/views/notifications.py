@@ -9,9 +9,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.audit.models import AuditLog
+from apps.organizations.services.tenant_context import ensure_request_organization
 
 from ..models import InAppNotification
-from ..serializers import InAppNotificationSerializer, NotificationPreferenceSerializer
+from ..permissions import CanAccessCommunications
+from ..serializers import (
+    InAppNotificationSerializer,
+    NotificationPreferenceSerializer,
+)
 from ..services import (
     get_notification_preferences,
     notification_archive,
@@ -26,16 +31,24 @@ class InAppNotificationViewSet(
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
 ):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, CanAccessCommunications]
     serializer_class = InAppNotificationSerializer
     lookup_field = "public_id"
     lookup_url_kwarg = "public_id"
 
+    def _organization(self):
+        organization, _ = ensure_request_organization(
+            request=self.request,
+            required=True,
+        )
+        return organization
+
     def get_queryset(self):
         now = timezone.now()
-        queryset = InAppNotification.objects.filter(recipient=self.request.user).filter(
-            Q(expires_at__isnull=True) | Q(expires_at__gt=now)
-        )
+        queryset = InAppNotification.objects.filter(
+            organization=self._organization(),
+            recipient=self.request.user,
+        ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
         archived = self.request.query_params.get("archived")
         if archived == "true":
             queryset = queryset.filter(archived_at__isnull=False)
@@ -52,7 +65,9 @@ class InAppNotificationViewSet(
             queryset = queryset.filter(priority=priority)
         search = self.request.query_params.get("search", "").strip()
         if search:
-            queryset = queryset.filter(Q(title__icontains=search) | Q(message__icontains=search))
+            queryset = queryset.filter(
+                Q(title__icontains=search) | Q(message__icontains=search)
+            )
         start_date = self.request.query_params.get("start_date")
         end_date = self.request.query_params.get("end_date")
         if start_date:
@@ -60,9 +75,20 @@ class InAppNotificationViewSet(
         if end_date:
             queryset = queryset.filter(created_at__date__lte=end_date)
         ordering = self.request.query_params.get("ordering", "-created_at")
-        if ordering not in {"created_at", "-created_at", "priority", "-priority"}:
+        if ordering not in {
+            "created_at",
+            "-created_at",
+            "priority",
+            "-priority",
+        }:
             ordering = "-created_at"
-        return queryset.order_by(ordering)
+        return queryset.select_related(
+            "organization",
+            "owner",
+            "recipient",
+            "actor",
+            "communication",
+        ).order_by(ordering)
 
     @action(detail=True, methods=["post"])
     def read(self, request, public_id=None):
@@ -77,19 +103,37 @@ class InAppNotificationViewSet(
     @action(detail=True, methods=["post"])
     def archive(self, request, public_id=None):
         notification = notification_archive(self.get_object())
-        _audit(request, AuditLog.Action.UPDATE, notification, "notification_archived")
+        _audit(
+            request,
+            AuditLog.Action.UPDATE,
+            notification,
+            "notification_archived",
+        )
         return Response(self.get_serializer(notification).data)
 
     @action(detail=False, methods=["post"], url_path="read-all")
     def read_all(self, request):
-        _rate_limit(f"notifications:read-all:{request.user.pk}", limit=20, window_seconds=60)
-        updated = self.get_queryset().filter(is_read=False).update(is_read=True, read_at=timezone.now())
+        _rate_limit(
+            f"notifications:read-all:{self._organization().pk}:{request.user.pk}",
+            limit=20,
+            window_seconds=60,
+        )
+        updated = self.get_queryset().filter(is_read=False).update(
+            is_read=True,
+            read_at=timezone.now(),
+        )
         return Response({"updated": updated})
 
     @action(detail=False, methods=["post"], url_path="archive-read")
     def archive_read(self, request):
-        _rate_limit(f"notifications:archive-read:{request.user.pk}", limit=10, window_seconds=60)
-        updated = self.get_queryset().filter(is_read=True).update(archived_at=timezone.now())
+        _rate_limit(
+            f"notifications:archive-read:{self._organization().pk}:{request.user.pk}",
+            limit=10,
+            window_seconds=60,
+        )
+        updated = self.get_queryset().filter(is_read=True).update(
+            archived_at=timezone.now()
+        )
         return Response({"updated": updated})
 
     @action(detail=False, methods=["get"], url_path="unread-count")
@@ -124,5 +168,13 @@ class NotificationPreferenceView(APIView):
         )
         serializer.is_valid(raise_exception=True)
         preference = serializer.save()
-        _audit(request, AuditLog.Action.UPDATE, preference, "notification_preferences_updated")
-        return Response(NotificationPreferenceSerializer(preference).data, status=status.HTTP_200_OK)
+        _audit(
+            request,
+            AuditLog.Action.UPDATE,
+            preference,
+            "notification_preferences_updated",
+        )
+        return Response(
+            NotificationPreferenceSerializer(preference).data,
+            status=status.HTTP_200_OK,
+        )
