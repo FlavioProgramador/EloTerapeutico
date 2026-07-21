@@ -2,9 +2,9 @@ import {
   DEFAULT_PUBLIC_ERROR,
   HTTP_PUBLIC_MESSAGES,
   PUBLIC_ERROR_MESSAGES,
-} from "./error-codes";
-import { PUBLIC_FIELD_LABELS } from "./field-labels";
-import { sanitizePublicMessage } from "./sanitize-error";
+} from "./error-codes.ts";
+import { PUBLIC_FIELD_LABELS } from "./field-labels.ts";
+import { sanitizePublicMessage } from "./sanitize-error.ts";
 
 type UnknownRecord = Record<string, unknown>;
 
