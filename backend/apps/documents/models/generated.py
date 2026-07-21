@@ -124,11 +124,14 @@ class GeneratedDocument(models.Model):
 
     def clean(self):
         super().clean()
-        if self.patient_id and self.patient.organization_id != self.organization_id:
+        patient = self.patient if self.patient_id else None
+        if patient is not None and patient.organization_id != self.organization_id:
             raise ValidationError({"patient": "O paciente pertence a outra organização."})
-        if self.template_id and (
-            not self.template.is_library_template
-            and self.template.organization_id != self.organization_id
+
+        template = self.template if self.template_id else None
+        if template is not None and (
+            not template.is_library_template
+            and template.organization_id != self.organization_id
         ):
             raise ValidationError({"template": "O template pertence a outra organização."})
 
