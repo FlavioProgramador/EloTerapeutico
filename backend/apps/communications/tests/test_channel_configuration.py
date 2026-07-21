@@ -34,6 +34,25 @@ def authenticated_client(therapist):
 
 @pytest.mark.django_db
 @override_settings(BILLING_REQUIRE_SUBSCRIPTION=False)
+def test_channel_catalog_does_not_expose_internal_requirements(
+    authenticated_client,
+    therapist,
+):
+    ensure_default_channels(therapist)
+    response = authenticated_client.get("/api/v1/communications/channels/")
+
+    assert response.status_code == 200
+    serialized = str(response.data)
+    assert "internal_requirements" not in serialized
+    assert "admin_instructions" not in serialized
+    assert "deployment_notes" not in serialized
+    assert "EMAIL_BACKEND" not in serialized
+    assert "DEFAULT_FROM_EMAIL" not in serialized
+    assert "variáveis de ambiente" not in serialized
+
+
+@pytest.mark.django_db
+@override_settings(BILLING_REQUIRE_SUBSCRIPTION=False)
 def test_smtp_secret_is_encrypted_masked_and_preserved(authenticated_client, therapist):
     ensure_default_channels(therapist)
     response = authenticated_client.patch(
