@@ -9,7 +9,7 @@ from apps.organizations.exceptions import (
     OrganizationContextRequiredError,
     OrganizationSuspendedError,
 )
-from apps.organizations.models import Organization, OrganizationMembership
+from apps.organizations.models import Organization
 from apps.organizations.selectors import list_active_memberships_for_user
 
 ORGANIZATION_HEADER = "HTTP_X_ORGANIZATION_ID"
@@ -55,6 +55,21 @@ def resolve_request_organization(*, request, user, required: bool = True):
     request.organization = organization
     request.organization_membership = membership
     return organization, membership
+
+
+def ensure_request_organization(*, request, required: bool = True):
+    """Resolve o tenant quando autenticações de teste ou adapters pulam o JWT canônico."""
+
+    organization = getattr(request, "organization", None)
+    membership = getattr(request, "organization_membership", None)
+    if organization is not None and membership is not None:
+        return organization, membership
+    user = getattr(request, "user", None)
+    if user is None or not getattr(user, "is_authenticated", False):
+        if required:
+            raise OrganizationContextRequiredError()
+        return None, None
+    return resolve_request_organization(request=request, user=user, required=required)
 
 
 def require_organization_context(request):

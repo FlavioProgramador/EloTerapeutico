@@ -15,6 +15,7 @@ from apps.audit.models import AuditLog
 from apps.billing.services.features import enforce_patient_limit
 from apps.organizations.models import OrganizationMembership
 from apps.organizations.permissions import has_capability
+from apps.organizations.services.tenant_context import ensure_request_organization
 from apps.patients.api.serializers.legacy_serializers import (
     PatientCreateUpdateSerializer,
     PatientDetailSerializer,
@@ -110,7 +111,7 @@ class OrganizationPatientPermission(IsAuthenticated):
     def has_permission(self, request, view):
         if not super().has_permission(request, view):
             return False
-        membership = getattr(request, "organization_membership", None)
+        _, membership = ensure_request_organization(request=request, required=True)
         if request.method in {"GET", "HEAD", "OPTIONS"}:
             return has_capability(membership, "patients.view")
         if getattr(view, "action", "") in {"deactivate", "restore"}:
@@ -124,7 +125,7 @@ class OrganizationPatientPermission(IsAuthenticated):
         return False
 
     def has_object_permission(self, request, view, obj):
-        membership = getattr(request, "organization_membership", None)
+        _, membership = ensure_request_organization(request=request, required=True)
         if request.method in {"GET", "HEAD", "OPTIONS"}:
             return can_access_patient(
                 request.user,
