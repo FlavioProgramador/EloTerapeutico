@@ -9,15 +9,31 @@ from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
 from apps.patients.models import Patient
-from apps.reports.selectors import patients_for_owner
-from apps.reports.services.periods import iter_months, label_month, month_key, page_queryset, resolve_period, safe_int
+from apps.reports.selectors import patients_for_user
+from apps.reports.services.periods import (
+    iter_months,
+    label_month,
+    month_key,
+    page_queryset,
+    resolve_period,
+    safe_int,
+)
+from apps.reports.services.tenant import resolve_report_organization
 from apps.scheduling.models import Appointment
 
 
 def serialize_patient_risk(patient: Patient, threshold: int) -> dict[str, Any]:
     today = timezone.localdate()
-    last = patient.last_appointment.date() if getattr(patient, "last_appointment", None) else None
-    next_appt = patient.next_appointment.date() if getattr(patient, "next_appointment", None) else None
+    last = (
+        patient.last_appointment.date()
+        if getattr(patient, "last_appointment", None)
+        else None
+    )
+    next_appt = (
+        patient.next_appointment.date()
+        if getattr(patient, "next_appointment", None)
+        else None
+    )
     days_without = (today - last).days if last else threshold
     return {
         "id": patient.id,
@@ -32,13 +48,14 @@ def serialize_patient_risk(patient: Patient, threshold: int) -> dict[str, Any]:
     }
 
 
-def patients_report(user, params) -> dict[str, Any]:
+def patients_report(user, params, organization=None) -> dict[str, Any]:
     start, end = resolve_period(params)
+    organization = resolve_report_organization(user=user, organization=organization)
     risk_days = safe_int(params.get("risk_days"), 30, 1, 3650)
     today = timezone.localdate()
     cutoff = today - timedelta(days=risk_days)
 
-    patients = patients_for_owner(owner=user)
+    patients = patients_for_user(user=user, organization=organization)
     active = patients.filter(
         is_active=True,
         status__in=[
@@ -49,11 +66,26 @@ def patients_report(user, params) -> dict[str, Any]:
     )
     active_total = active.count()
     new_in_period = patients.filter(created_at__date__range=(start, end)).count()
-    active_with_appointment = active.filter(appointments__start_time__date__range=(start, end)).distinct().count()
-    retention = round((active_with_appointment / active_total) * 100, 1) if active_total else 0
+    active_with_appointment = (
+        active.filter(
+            appointments__organization=organization,
+            appointments__start_time__date__range=(start, end),
+        )
+        .distinct()
+        .count()
+    )
+    retention = (
+        round((active_with_appointment / active_total) * 100, 1)
+        if active_total
+        else 0
+    )
 
     monthly = {
-        month_key(month): {"month": month_key(month), "label": label_month(month), "value": 0}
+        month_key(month): {
+            "month": month_key(month),
+            "label": label_month(month),
+            "value": 0,
+        }
         for month in iter_months(start, end)
     }
     for item in (
@@ -67,7 +99,12 @@ def patients_report(user, params) -> dict[str, Any]:
             monthly[key]["value"] = item["count"]
 
     inactive_total = patients.exclude(id__in=active.values("id")).count()
-    by_professional = [{"label": user.full_name or "Sem profissional", "value": patients.count()}]
+    by_professional = [
+        {"label": row["therapist__full_name"] or "Sem profissional", "value": row["value"]}
+        for row in patients.values("therapist__full_name")
+        .annotate(value=Count("id"))
+        .order_by("therapist__full_name")
+    ]
 
     age_buckets = [
         (0, 5, "0-5"),
@@ -79,7 +116,9 @@ def patients_report(user, params) -> dict[str, Any]:
         (46, 60, "46-60"),
         (61, 200, "60+"),
     ]
-    age_distribution = [{"label": label, "value": 0} for _, _, label in age_buckets]
+    age_distribution = [
+        {"label": label, "value": 0} for _, _, label in age_buckets
+    ]
     age_distribution.append({"label": "Sem data", "value": 0})
     for patient in patients:
         age = patient.age
@@ -92,10 +131,17 @@ def patients_report(user, params) -> dict[str, Any]:
                 break
 
     risk_query = active.annotate(
-        last_appointment=Max("appointments__start_time", filter=Q(appointments__status=Appointment.Status.COMPLETED)),
+        last_appointment=Max(
+            "appointments__start_time",
+            filter=Q(
+                appointments__organization=organization,
+                appointments__status=Appointment.Status.COMPLETED,
+            ),
+        ),
         next_appointment=Max(
             "appointments__start_time",
             filter=Q(
+                appointments__organization=organization,
                 appointments__start_time__date__gte=today,
                 appointments__status__in=[
                     Appointment.Status.SCHEDULED,
@@ -103,7 +149,10 @@ def patients_report(user, params) -> dict[str, Any]:
                 ],
             ),
         ),
-    ).filter(Q(last_appointment__date__lt=cutoff) | Q(last_appointment__isnull=True))
+    ).filter(
+        Q(last_appointment__date__lt=cutoff)
+        | Q(last_appointment__isnull=True)
+    )
 
     status_filter = params.get("status")
     professional_filter = params.get("professional")
@@ -112,7 +161,10 @@ def patients_report(user, params) -> dict[str, Any]:
     if professional_filter and professional_filter != "all":
         risk_query = risk_query.filter(therapist_id=professional_filter)
 
-    paginated = page_queryset(risk_query.order_by("last_appointment", "full_name"), params)
+    paginated = page_queryset(
+        risk_query.order_by("last_appointment", "full_name"),
+        params,
+    )
     return {
         "period": {"start_date": start.isoformat(), "end_date": end.isoformat()},
         "kpis": {
@@ -134,6 +186,9 @@ def patients_report(user, params) -> dict[str, Any]:
             "count": paginated["count"],
             "page": paginated["page"],
             "page_size": paginated["page_size"],
-            "results": [serialize_patient_risk(item, risk_days) for item in paginated["items"]],
+            "results": [
+                serialize_patient_risk(item, risk_days)
+                for item in paginated["items"]
+            ],
         },
     }
