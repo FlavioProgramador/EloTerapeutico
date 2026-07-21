@@ -41,7 +41,7 @@ def selectable_appointments_for_finance(*, organization):
     )
 
 
-def transactions_accessible_to(user, *, organization=None):
+def transactions_accessible_to(user, *, organization=None, membership=None):
     queryset = FinancialTransaction.objects.select_related(
         "organization",
         "patient",
@@ -57,7 +57,13 @@ def transactions_accessible_to(user, *, organization=None):
         status=OrganizationMembership.Status.ACTIVE,
     )
     if organization is not None:
-        membership = memberships.filter(organization=organization).first()
+        if (
+            membership is None
+            or membership.user_id != user.pk
+            or membership.organization_id != organization.pk
+            or membership.status != OrganizationMembership.Status.ACTIVE
+        ):
+            membership = memberships.filter(organization=organization).first()
         if membership is None:
             return queryset.none()
         queryset = queryset.filter(organization=organization)
@@ -77,10 +83,12 @@ def transactions_accessible_to(user, *, organization=None):
     )
 
 
-def transaction_for_user(*, user, transaction_id, organization=None):
-    return transactions_accessible_to(user, organization=organization).filter(
-        pk=transaction_id
-    ).first()
+def transaction_for_user(*, user, transaction_id, organization=None, membership=None):
+    return transactions_accessible_to(
+        user,
+        organization=organization,
+        membership=membership,
+    ).filter(pk=transaction_id).first()
 
 
 def transactions_for_owner(*, owner, organization=None):
@@ -99,8 +107,12 @@ def transactions_for_owner_period(*, owner, start: date, end: date, organization
     )
 
 
-def pending_transactions(*, user, patient_id=None, organization=None):
-    queryset = transactions_accessible_to(user, organization=organization).filter(
+def pending_transactions(*, user, patient_id=None, organization=None, membership=None):
+    queryset = transactions_accessible_to(
+        user,
+        organization=organization,
+        membership=membership,
+    ).filter(
         payment_status__in=[
             FinancialTransaction.PaymentStatus.PENDING,
             FinancialTransaction.PaymentStatus.PARTIAL,
@@ -119,7 +131,7 @@ def transaction_for_appointment(*, appointment):
     ).first()
 
 
-def transactions_for_admin(*, user, organization=None):
+def transactions_for_admin(*, user, organization=None, membership=None):
     queryset = FinancialTransaction.objects.select_related(
         "organization",
         "therapist",
@@ -127,5 +139,9 @@ def transactions_for_admin(*, user, organization=None):
         "appointment",
     )
     if organization is not None:
-        return transactions_accessible_to(user, organization=organization)
+        return transactions_accessible_to(
+            user,
+            organization=organization,
+            membership=membership,
+        )
     return queryset if user.is_superuser else transactions_accessible_to(user)
