@@ -122,7 +122,8 @@ CELERY_RESULT_BACKEND = env(  # noqa: F405
 )
 
 # Arquivos estáticos e mídia privada
-INSTALLED_APPS = ["whitenoise.runserver_nostatic"] + INSTALLED_APPS  # noqa: F405
+if "whitenoise.runserver_nostatic" not in INSTALLED_APPS:  # noqa: F405
+    INSTALLED_APPS.insert(0, "whitenoise.runserver_nostatic")  # noqa: F405
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa: F405
 STORAGES: dict[str, dict[str, Any]] = {
     "default": {
