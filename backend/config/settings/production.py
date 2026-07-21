@@ -47,6 +47,17 @@ if "sandbox" in ASAAS_BASE_URL.lower():  # noqa: F405
 if not ASAAS_API_KEY:  # noqa: F405
     raise ImproperlyConfigured("ASAAS_API_KEY deve ser configurada em produção.")
 
+# Multi-tenancy é obrigatório em produção. O app é registrado aqui para manter
+# compatibilidade com settings legados de desenvolvimento durante a migração.
+if "apps.organizations.apps.OrganizationsConfig" not in INSTALLED_APPS:  # noqa: F405
+    INSTALLED_APPS.insert(2, "apps.organizations.apps.OrganizationsConfig")  # noqa: F405
+REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] = (  # noqa: F405
+    "apps.organizations.authentication.TenantSubscriptionJWTAuthentication",
+)
+if "x-organization-id" not in CORS_ALLOW_HEADERS:  # noqa: F405
+    CORS_ALLOW_HEADERS.append("x-organization-id")  # noqa: F405
+TENANT_ENFORCEMENT_ENABLED = True
+
 # Segurança e proxy reverso
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
