@@ -744,7 +744,11 @@ class ClinicalAiSummaryStatusView(ClinicalPatientMixin, APIView):
 class ClinicalFormResponseListCreateView(ClinicalPatientMixin, APIView):
     def get(self, request, patient_id):
         patient = self.get_patient(patient_id)
-        queryset = ClinicalFormResponse.objects.filter(patient=patient).order_by("-completed_at", "-created_at")
+        queryset = (
+            ClinicalFormResponse.objects.filter(patient=patient)
+            .select_related("therapist")
+            .order_by("-completed_at", "-created_at")
+        )
 
         search = request.query_params.get("search")
         if search:
@@ -798,7 +802,11 @@ class ClinicalExportListCreateView(ClinicalPatientMixin, APIView):
                 message="Secretárias não possuem acesso a exportações clínicas.",
             )
         patient = self.get_patient(patient_id)
-        queryset = ClinicalExport.objects.filter(patient=patient).order_by("-created_at")
+        queryset = (
+            ClinicalExport.objects.filter(patient=patient)
+            .select_related("created_by")
+            .order_by("-created_at")
+        )
 
         if not request.user.is_admin_role:
             queryset = queryset.filter(created_by=request.user)

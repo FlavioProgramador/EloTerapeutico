@@ -86,7 +86,11 @@ class SecureClinicalExportListCreateView(ClinicalExportListCreateView):
                 message="Secretárias não possuem acesso a exportações clínicas.",
             )
         patient = self.get_patient(patient_id)
-        queryset = ClinicalExport.objects.filter(patient=patient).order_by("-created_at")
+        queryset = (
+            ClinicalExport.objects.filter(patient=patient)
+            .select_related("created_by")
+            .order_by("-created_at")
+        )
         can_review_all = bool(
             request.user.is_admin_role
             and has_explicit_records_permission(request.user, "export_confidential_evolution")
