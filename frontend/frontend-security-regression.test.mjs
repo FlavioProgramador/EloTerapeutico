@@ -38,17 +38,36 @@ test("detalhes do paciente minimizam dados por padrão", async () => {
   assert.doesNotMatch(patient, /text-\[(?:9|10|11)px\]/);
 });
 
-test("modal de canais não exibe erros internos diretamente", async () => {
+test("prontuário usa tokens semânticos e tipografia legível", async () => {
+  const overview = await source(
+    "./src/features/records/components/record-overview.tsx",
+  );
+
+  assert.doesNotMatch(overview, /text-\[(?:9|10|11)px\]/);
+  assert.doesNotMatch(overview, /(?:emerald|sky|violet|cyan|lime|rose)-/);
+  assert.doesNotMatch(overview, /bg-gradient/);
+  assert.match(overview, /bg-primary-soft/);
+  assert.match(overview, /bg-success-soft/);
+});
+
+test("canais não exibem erros internos diretamente", async () => {
   const modal = await source(
     "./src/features/communications/channel-configuration-modal.tsx",
+  );
+  const page = await source(
+    "./src/features/communications/communications-page.tsx",
   );
 
   assert.match(modal, /getPublicErrorMessage/);
   assert.match(modal, /getPublicIntegrationError/);
+  assert.match(page, /getPublicIntegrationError/);
+  assert.match(page, /maskRecipient/);
   assert.doesNotMatch(modal, /last_error\.message/);
+  assert.doesNotMatch(page, /last_error\.message/);
   assert.doesNotMatch(modal, /Object\.values\(response/);
   assert.doesNotMatch(modal, /backend está na versão/);
   assert.doesNotMatch(modal, /text-\[(?:9|10|11)px\]/);
+  assert.doesNotMatch(page, /text-\[(?:9|10|11)px\]/);
 });
 
 test("providers não suprimem globalmente erros do console", async () => {
