@@ -15,6 +15,24 @@ interface AuthResponse {
   next?: string;
 }
 
+export interface RegisterPayload {
+  email: string;
+  password: string;
+  password_confirm: string;
+  full_name: string;
+  phone?: string;
+  role?: "therapist" | "secretary" | "admin";
+  crp?: string;
+  specialty?: string;
+  terms_accepted: boolean;
+  privacy_accepted: boolean;
+  plan?: string;
+  plan_price_slug?: string;
+  billing_cycle?: "MONTHLY" | "YEARLY";
+  payment_mode?: "RECURRING" | "ONE_TIME" | "INSTALLMENT";
+  access_mode?: "TRIAL" | "PAID";
+}
+
 function csrfHeaders(): Record<string, string> {
   const token = getCsrfToken();
   return token ? { "X-CSRF-Token": token } : {};
@@ -59,13 +77,7 @@ export const authService = {
     );
   },
 
-  register: async (data: {
-    email: string;
-    password: string;
-    password_confirm: string;
-    full_name: string;
-    role?: string;
-  }): Promise<AuthResponse> => {
+  register: async (data: RegisterPayload): Promise<AuthResponse> => {
     const response = await axios.post<AuthResponse>(
       "/api/auth/register/",
       data,
