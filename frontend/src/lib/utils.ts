@@ -52,7 +52,7 @@ export function formatTime(timeStr: string): string {
  */
 export function extractApiError(
   error: unknown,
-  fallback = "Não foi possível concluir a operação. Tente novamente.",
+  fallback = "Ocorreu um erro inesperado. Tente novamente.",
 ): string {
   return getPublicErrorMessage(error, fallback);
 }
