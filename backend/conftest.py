@@ -32,7 +32,7 @@ def _test_pw(suffix: str = "") -> str:
 
 
 def _membership_role_for_user(user: User) -> str:
-    if user.role == User.Role.ADMIN:
+    if user.role == User.Role.ADMIN or user.is_superuser:
         return OrganizationMembership.Role.ADMIN
     if user.role == User.Role.SECRETARY:
         return OrganizationMembership.Role.RECEPTIONIST
@@ -68,9 +68,16 @@ def _ensure_test_organization(user: User) -> Organization:
             ).exists(),
         },
     )
+    changed_fields = []
+    expected_role = _membership_role_for_user(user)
     if membership.status != OrganizationMembership.Status.ACTIVE:
         membership.status = OrganizationMembership.Status.ACTIVE
-        membership.save(update_fields=["status", "updated_at"])
+        changed_fields.append("status")
+    if membership.role != expected_role:
+        membership.role = expected_role
+        changed_fields.append("role")
+    if changed_fields:
+        membership.save(update_fields=[*changed_fields, "updated_at"])
     if membership.role in {
         OrganizationMembership.Role.OWNER,
         OrganizationMembership.Role.ADMIN,
@@ -129,6 +136,22 @@ pre_save.connect(
 )
 
 
+@pytest.fixture(autouse=True)
+def _tenant_aware_force_authenticate(monkeypatch):
+    """Garante tenant apenas quando um teste legado autentica um APIClient."""
+
+    original = APIClient.force_authenticate
+
+    def force_authenticate(client, user=None, token=None):
+        if user is not None and getattr(user, "pk", None):
+            organization = _ensure_test_organization(user)
+            if not client._credentials.get("HTTP_X_ORGANIZATION_ID"):
+                client.credentials(HTTP_X_ORGANIZATION_ID=str(organization.pk))
+        return original(client, user=user, token=token)
+
+    monkeypatch.setattr(APIClient, "force_authenticate", force_authenticate)
+
+
 @pytest.fixture
 def api_client():
     """APIClient não autenticado."""
@@ -185,9 +208,6 @@ def auth_client(api_client, therapist_user):
     """APIClient autenticado como terapeuta."""
 
     api_client.force_authenticate(user=therapist_user)
-    api_client.credentials(
-        HTTP_X_ORGANIZATION_ID=str(_ensure_test_organization(therapist_user).pk)
-    )
     return api_client
 
 
@@ -196,7 +216,4 @@ def admin_client(api_client, admin_user):
     """APIClient autenticado como admin."""
 
     api_client.force_authenticate(user=admin_user)
-    api_client.credentials(
-        HTTP_X_ORGANIZATION_ID=str(_ensure_test_organization(admin_user).pk)
-    )
     return api_client
