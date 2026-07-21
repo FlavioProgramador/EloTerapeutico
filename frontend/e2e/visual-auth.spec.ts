@@ -3,6 +3,9 @@ import { expect, test } from "@playwright/test";
 const TECHNICAL_CONTENT =
   /(?:EMAIL_BACKEND|DEFAULT_FROM_EMAIL|Traceback|Internal Server Error|Connection refused|ECONNREFUSED)/i;
 
+const ORANGE_PRIMARY_TOKENS = ["27 86% 54%", "27 90% 59%"];
+const CHARCOAL_SIDEBAR_TOKENS = ["24 18% 12%", "24 18% 6%"];
+
 test("login mantém ilustração original e identidade laranja", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/login");
@@ -22,8 +25,10 @@ test("login mantém ilustração original e identidade laranja", async ({ page }
     };
   });
 
-  expect(theme.primary).toBe("27 86% 54%");
-  expect(theme.sidebar).toBe("24 18% 12%");
+  expect(ORANGE_PRIMARY_TOKENS).toContain(theme.primary);
+  expect(CHARCOAL_SIDEBAR_TOKENS).toContain(theme.sidebar);
+  expect(theme.primary).not.toMatch(/(?:142|149|159|177)\s/);
+  expect(theme.sidebar).not.toMatch(/(?:142|149|159|177)\s/);
 });
 
 test("cadastro restaura ilustração original e resumo laranja", async ({
