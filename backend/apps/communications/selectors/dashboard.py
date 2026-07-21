@@ -9,14 +9,17 @@ from django.utils import timezone
 from apps.communications.models import Communication
 
 
-def communication_dashboard(user, start_date=None, end_date=None):
+def communication_dashboard(user, start_date=None, end_date=None, *, organization=None):
     end = end_date or timezone.now()
     start = start_date or end - timedelta(days=30)
     queryset = Communication.objects.filter(
-        owner=user,
         created_at__gte=start,
         created_at__lte=end,
     )
+    if organization is not None:
+        queryset = queryset.filter(organization=organization)
+    else:
+        queryset = queryset.filter(owner=user)
     total = queryset.count()
     sent_like = queryset.filter(
         status__in=[
