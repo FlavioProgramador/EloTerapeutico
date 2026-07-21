@@ -19,7 +19,7 @@ def _ensure_access(*, actor, organization, submission=None):
         organization=organization,
         status=OrganizationMembership.Status.ACTIVE,
     ).first()
-    if not has_capability(membership, "forms.manage"):
+    if membership is None or not has_capability(membership, "forms.manage"):
         raise PermissionDenied("Você não pode gerenciar submissões nesta organização.")
     if (
         membership.role == OrganizationMembership.Role.THERAPIST
