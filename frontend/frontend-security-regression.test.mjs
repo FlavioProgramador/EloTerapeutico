@@ -6,6 +6,30 @@ async function source(path) {
   return readFile(path, "utf8");
 }
 
+test("tema global prioriza laranja e mantém verde apenas semântico", async () => {
+  const layout = await source("./src/app/layout.tsx");
+  const theme = await source("./src/app/orange-theme.css");
+  const brand = await source("./src/features/landing/brand.tsx");
+  const login = await source("./src/app/login/page.tsx");
+  const register = await source("./src/app/register/page.tsx");
+
+  assert.match(layout, /import "\.\/orange-theme\.css"/);
+  assert.match(theme, /--primary:\s*27 86% 54%/);
+  assert.match(theme, /--sidebar:\s*24 18% 12%/);
+  assert.match(theme, /--color-green-500:\s*hsl\(var\(--primary\)\)/);
+  assert.match(theme, /--color-emerald-500:\s*hsl\(var\(--primary\)\)/);
+  assert.match(theme, /--sage:\s*30 82% 72%/);
+  assert.match(brand, /bg-primary text-primary-foreground/);
+  assert.doesNotMatch(brand, /177,57%|147,30%/);
+
+  assert.match(login, /src="\/login_illustration\.svg"/);
+  assert.match(register, /src="\/register_illustration\.svg"/);
+  assert.match(login, /from-primary\/24/);
+  assert.match(register, /from-primary\/24/);
+  assert.doesNotMatch(login, /bg-sidebar|text-sidebar/);
+  assert.doesNotMatch(register, /bg-sidebar|text-sidebar/);
+});
+
 test("landing mantém o laranja como ação principal", async () => {
   const landing = await source("./src/features/landing/styles/landing.css");
   const hero = await source("./src/features/landing/styles/hero-main.css");

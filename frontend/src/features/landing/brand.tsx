@@ -1,5 +1,6 @@
-import Link from "next/link";
 import { HeartHandshake } from "lucide-react";
+import Link from "next/link";
+
 import { cn } from "@/lib/utils";
 
 interface BrandProps {
@@ -12,7 +13,7 @@ export function BrandMark({ className }: { className?: string }) {
     <span
       aria-hidden="true"
       className={cn(
-        "grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[hsl(177,57%,15%)]/25 bg-[hsl(177,57%,15%)] text-[hsl(130,10%,93%)] shadow-lg",
+        "grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-primary/25 bg-primary text-primary-foreground shadow-lg shadow-primary/20",
         className,
       )}
     >
@@ -27,17 +28,17 @@ export function Brand({ className, compact = false }: BrandProps) {
       href="/"
       aria-label="Ir para o início do Elo Terapêutico"
       className={cn(
-        "inline-flex items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(31,67%,55%)] focus-visible:ring-offset-4 focus-visible:ring-offset-[hsl(87,22%,95%)]",
+        "inline-flex items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background",
         className,
       )}
     >
       <BrandMark className={compact ? "h-9 w-9 rounded-lg" : undefined} />
       <span className="flex flex-col leading-none">
-        <span className="text-[0.98rem] font-extrabold tracking-[-0.02em] text-[hsl(147,30%,12%)] sm:text-base">
+        <span className="text-[0.98rem] font-extrabold tracking-[-0.02em] text-foreground sm:text-base">
           Elo Terapêutico
         </span>
         {!compact && (
-          <span className="mt-1 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-[hsl(147,12%,42%)]">
+          <span className="mt-1 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
             Gestão clínica
           </span>
         )}

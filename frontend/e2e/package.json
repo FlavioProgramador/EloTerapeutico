@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "test": "playwright test",
-    "test:auth": "playwright test auth.spec.ts",
+    "test:auth": "playwright test auth.spec.ts visual-auth.spec.ts",
     "test:gateway": "playwright test gateway.spec.ts"
   },
   "devDependencies": {
