@@ -1,5 +1,7 @@
 """Selectors financeiros consumidos pelo módulo de relatórios."""
 
+from django.db.models import Q
+
 from apps.finances.selectors import (
     monthly_subscriptions_accessible_to,
     transactions_accessible_to,
@@ -10,7 +12,9 @@ from apps.scheduling.models import PatientPackage
 
 def transactions_for_period(*, user, organization, start, end):
     return transactions_accessible_to(user, organization=organization).filter(
-        due_date__range=(start, end)
+        Q(due_date__range=(start, end))
+        | Q(paid_at__date__range=(start, end))
+        | Q(created_at__date__range=(start, end))
     )
 
 
@@ -45,7 +49,11 @@ def active_packages_for_user(*, user, organization):
 
 # Fachadas legadas mantidas para adapters antigos.
 def transactions_for_period_legacy(*, owner, start, end):
-    return transactions_accessible_to(owner).filter(due_date__range=(start, end))
+    return transactions_accessible_to(owner).filter(
+        Q(due_date__range=(start, end))
+        | Q(paid_at__date__range=(start, end))
+        | Q(created_at__date__range=(start, end))
+    )
 
 
 def all_transactions_for_owner(*, owner):
