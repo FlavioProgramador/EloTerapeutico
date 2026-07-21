@@ -21,39 +21,49 @@ class TemplateRemovalResult:
     template: DocumentTemplate | None
 
 
-def _resolve_organization(*, actor, organization=None):
+def _resolve_membership(*, actor, organization=None):
+    memberships = OrganizationMembership.objects.filter(
+        user=actor,
+        status=OrganizationMembership.Status.ACTIVE,
+    ).select_related("organization")
     if organization is not None:
-        resolved = organization
+        membership = memberships.filter(organization=organization).first()
     else:
-        memberships = OrganizationMembership.objects.filter(
-            user=actor,
-            status=OrganizationMembership.Status.ACTIVE,
-        ).select_related("organization")
         membership = memberships.filter(is_default=True).first()
         if membership is None:
             first_two = list(memberships[:2])
             membership = first_two[0] if len(first_two) == 1 else None
-        if membership is None:
-            raise DocumentDomainError("Selecione uma organização.")
-        resolved = membership.organization
-    membership = OrganizationMembership.objects.filter(
-        organization=resolved,
-        user=actor,
-        status=OrganizationMembership.Status.ACTIVE,
-    ).first()
-    if not has_capability(membership, "documents.manage"):
-        raise DocumentDomainError("Você não pode gerenciar documentos nesta organização.")
-    return resolved
+    if membership is None or not has_capability(membership, "documents.manage"):
+        raise DocumentDomainError(
+            "Você não pode gerenciar documentos nesta organização."
+        )
+    return membership
 
 
-def _ensure_owned_template(*, actor, template: DocumentTemplate, organization=None) -> None:
-    organization = _resolve_organization(actor=actor, organization=organization or template.organization)
-    if (
-        template.is_library_template
-        or template.organization_id != organization.pk
-        or template.owner_id != actor.id
-    ):
+def _resolve_organization(*, actor, organization=None):
+    return _resolve_membership(
+        actor=actor,
+        organization=organization,
+    ).organization
+
+
+def _ensure_owned_template(
+    *,
+    actor,
+    template: DocumentTemplate,
+    organization=None,
+) -> None:
+    membership = _resolve_membership(
+        actor=actor,
+        organization=organization or template.organization,
+    )
+    if template.is_library_template or template.organization_id != membership.organization_id:
         raise DocumentDomainError("Template não autorizado.")
+    if (
+        membership.role == OrganizationMembership.Role.THERAPIST
+        and template.owner_id != actor.id
+    ):
+        raise DocumentDomainError("Template pertence a outro profissional.")
 
 
 def _available_template_name(*, organization, base_name: str) -> str:
@@ -153,7 +163,11 @@ def duplicate_template(
     organization=None,
 ) -> DocumentTemplate:
     organization = _resolve_organization(actor=actor, organization=organization)
-    ensure_template_access(actor=actor, template=template, organization=organization)
+    ensure_template_access(
+        actor=actor,
+        template=template,
+        organization=organization,
+    )
     return DocumentTemplate.objects.create(
         organization=organization,
         owner=actor,
@@ -186,7 +200,11 @@ def archive_template(
     organization=None,
 ) -> DocumentTemplate:
     if actor is not None:
-        _ensure_owned_template(actor=actor, template=template, organization=organization)
+        _ensure_owned_template(
+            actor=actor,
+            template=template,
+            organization=organization,
+        )
         template.updated_by = actor
     template.archive()
     if actor is not None:
@@ -215,7 +233,11 @@ def remove_or_archive_template(
             template=archived,
         )
     template.delete()
-    return TemplateRemovalResult(object_id=object_id, archived=False, template=None)
+    return TemplateRemovalResult(
+        object_id=object_id,
+        archived=False,
+        template=None,
+    )
 
 
 @transaction.atomic
