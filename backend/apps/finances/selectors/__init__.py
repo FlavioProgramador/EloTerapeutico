@@ -3,6 +3,8 @@
 from .communication_reminders import transactions_requiring_reminder
 from .financial_transactions import (
     pending_transactions,
+    selectable_appointments_for_finance,
+    selectable_patients_for_finance,
     transaction_for_appointment,
     transaction_for_user,
     transactions_accessible_to,
@@ -23,6 +25,8 @@ __all__ = [
     "monthly_subscriptions_accessible_to",
     "monthly_summary",
     "pending_transactions",
+    "selectable_appointments_for_finance",
+    "selectable_patients_for_finance",
     "transaction_for_appointment",
     "transaction_for_user",
     "transactions_accessible_to",
