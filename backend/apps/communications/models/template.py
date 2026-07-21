@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 
@@ -8,6 +9,13 @@ from .communication import Communication
 
 
 class CommunicationTemplate(models.Model):
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="communication_templates",
+    )
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -46,18 +54,62 @@ class CommunicationTemplate(models.Model):
     class Meta:
         ordering = ["name"]
         constraints = [
-            models.UniqueConstraint(fields=["owner", "slug", "channel"], name="comm_template_owner_slug_uniq"),
+            models.UniqueConstraint(
+                fields=["organization", "slug", "channel"],
+                condition=Q(
+                    is_system_template=False,
+                    organization__isnull=False,
+                ),
+                name="comm_template_org_slug_uniq",
+            ),
             models.UniqueConstraint(
                 fields=["slug", "channel"],
-                condition=Q(owner__isnull=True),
+                condition=Q(
+                    is_system_template=True,
+                    organization__isnull=True,
+                    owner__isnull=True,
+                ),
                 name="comm_system_template_slug_uniq",
             ),
             models.CheckConstraint(
-                condition=(Q(is_system_template=False) | Q(owner__isnull=True)),
-                name="comm_system_template_without_owner",
+                condition=(
+                    Q(
+                        is_system_template=True,
+                        organization__isnull=True,
+                        owner__isnull=True,
+                    )
+                    | Q(
+                        is_system_template=False,
+                        organization__isnull=False,
+                        owner__isnull=False,
+                    )
+                ),
+                name="comm_template_scope_consistent",
             ),
         ]
-        indexes = [models.Index(fields=["owner", "is_active", "is_archived"], name="comm_template_owner_idx")]
+        indexes = [
+            models.Index(
+                fields=["organization", "is_active", "is_archived"],
+                name="comm_template_org_idx",
+            ),
+            models.Index(
+                fields=["owner", "is_active", "is_archived"],
+                name="comm_template_owner_idx",
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.is_system_template:
+            if self.organization_id or self.owner_id:
+                raise ValidationError(
+                    "Templates do sistema não podem pertencer a organização ou usuário."
+                )
+            return
+        if not self.organization_id or not self.owner_id:
+            raise ValidationError(
+                "Templates personalizados exigem organização e responsável."
+            )
 
     def __str__(self) -> str:
         return self.name
