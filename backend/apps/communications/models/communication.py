@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 
@@ -57,13 +58,60 @@ class Communication(models.Model):
         HIGH = "high", "Alta"
 
     public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="communications", verbose_name="Proprietário")
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="created_communications")
-    patient = models.ForeignKey("patients.Patient", null=True, blank=True, on_delete=models.PROTECT, related_name="communications")
-    appointment = models.ForeignKey("agenda.Appointment", null=True, blank=True, on_delete=models.SET_NULL, related_name="communications")
-    form_submission = models.ForeignKey("forms.FormSubmission", null=True, blank=True, on_delete=models.SET_NULL, related_name="communications")
-    document = models.ForeignKey("documents.GeneratedDocument", null=True, blank=True, on_delete=models.SET_NULL, related_name="communications")
-    financial_transaction = models.ForeignKey("financeiro.FinancialTransaction", null=True, blank=True, on_delete=models.SET_NULL, related_name="communications")
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="communications",
+        db_index=True,
+    )
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="communications",
+        verbose_name="Proprietário",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="created_communications",
+    )
+    patient = models.ForeignKey(
+        "patients.Patient",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="communications",
+    )
+    appointment = models.ForeignKey(
+        "agenda.Appointment",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="communications",
+    )
+    form_submission = models.ForeignKey(
+        "forms.FormSubmission",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="communications",
+    )
+    document = models.ForeignKey(
+        "documents.GeneratedDocument",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="communications",
+    )
+    financial_transaction = models.ForeignKey(
+        "financeiro.FinancialTransaction",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="communications",
+    )
     direction = models.CharField(max_length=12, choices=Direction.choices, default=Direction.OUTBOUND)
     channel = models.CharField(max_length=24, choices=Channel.choices, db_index=True)
     category = models.CharField(max_length=40, choices=Category.choices, default=Category.OTHER, db_index=True)
@@ -73,7 +121,13 @@ class Communication(models.Model):
     body = EncryptedTextField(blank=True)
     body_html = EncryptedTextField(blank=True)
     structured_content = models.JSONField(default=dict, blank=True)
-    template = models.ForeignKey("CommunicationTemplate", null=True, blank=True, on_delete=models.SET_NULL, related_name="communications")
+    template = models.ForeignKey(
+        "CommunicationTemplate",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="communications",
+    )
     template_snapshot = models.JSONField(default=dict, blank=True)
     variables_snapshot = models.JSONField(default=dict, blank=True)
     scheduled_at = models.DateTimeField(null=True, blank=True, db_index=True)
@@ -103,22 +157,68 @@ class Communication(models.Model):
         verbose_name = "Comunicação"
         verbose_name_plural = "Comunicações"
         constraints = [
-            models.UniqueConstraint(fields=["owner", "idempotency_key"], name="comm_owner_idempotency_uniq"),
+            models.UniqueConstraint(
+                fields=["organization", "idempotency_key"],
+                name="comm_org_idempotency_uniq",
+            ),
             models.CheckConstraint(
-                condition=Q(scheduled_at__isnull=True) | Q(status__in=["scheduled", "queued", "processing", "sent", "delivered", "read", "responded", "failed", "canceled", "expired"]),
+                condition=Q(scheduled_at__isnull=True)
+                | Q(status__in=[
+                    "scheduled",
+                    "queued",
+                    "processing",
+                    "sent",
+                    "delivered",
+                    "read",
+                    "responded",
+                    "failed",
+                    "canceled",
+                    "expired",
+                ]),
                 name="comm_schedule_status_valid",
             ),
         ]
         indexes = [
+            models.Index(fields=["organization", "status"], name="comm_org_status_idx"),
+            models.Index(fields=["organization", "channel"], name="comm_org_channel_idx"),
+            models.Index(fields=["organization", "patient"], name="comm_org_patient_idx"),
             models.Index(fields=["owner", "status"], name="comm_owner_status_idx"),
             models.Index(fields=["owner", "channel"], name="comm_owner_channel_idx"),
             models.Index(fields=["owner", "patient"], name="comm_owner_patient_idx"),
             models.Index(fields=["scheduled_at", "status"], name="comm_due_queue_idx"),
         ]
 
+    def clean(self):
+        super().clean()
+        for field_name in (
+            "patient",
+            "appointment",
+            "form_submission",
+            "document",
+            "financial_transaction",
+        ):
+            relation_id = getattr(self, f"{field_name}_id", None)
+            if relation_id:
+                relation = getattr(self, field_name)
+                if relation.organization_id != self.organization_id:
+                    raise ValidationError(
+                        {field_name: "O recurso pertence a outra organização."}
+                    )
+        if self.template_id and (
+            not self.template.is_system_template
+            and self.template.organization_id != self.organization_id
+        ):
+            raise ValidationError({"template": "O template pertence a outra organização."})
+
     def __str__(self) -> str:
         return f"Comunicação #{self.pk} ({self.channel}/{self.status})"
 
     @property
     def is_terminal(self) -> bool:
-        return self.status in {self.Status.DELIVERED, self.Status.READ, self.Status.RESPONDED, self.Status.CANCELED, self.Status.EXPIRED}
+        return self.status in {
+            self.Status.DELIVERED,
+            self.Status.READ,
+            self.Status.RESPONDED,
+            self.Status.CANCELED,
+            self.Status.EXPIRED,
+        }
