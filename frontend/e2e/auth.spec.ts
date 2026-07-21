@@ -102,11 +102,13 @@ test("cadastro usa BFF, cookies HttpOnly e não persiste tokens", async ({
   await checkboxes.nth(0).check();
   await checkboxes.nth(1).check();
 
-  const responsePromise = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/auth/register/") &&
-      response.request().method() === "POST",
-  );
+  const responsePromise = page.waitForResponse((response) => {
+    const pathname = new URL(response.url()).pathname;
+    return (
+      pathname === "/api/auth/register" &&
+      response.request().method() === "POST"
+    );
+  });
   await page.getByRole("button", { name: "Criar conta" }).click();
   const response = await responsePromise;
 
