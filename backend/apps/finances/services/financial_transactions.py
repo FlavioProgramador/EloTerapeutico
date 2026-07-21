@@ -17,11 +17,16 @@ FINANCE_ROLES = {
     OrganizationMembership.Role.OWNER,
     OrganizationMembership.Role.ADMIN,
     OrganizationMembership.Role.FINANCE,
+    OrganizationMembership.Role.THERAPIST,
 }
 
 
 def _resolve_therapist(*, actor, patient=None, current=None):
     if actor.is_therapist:
+        if current is not None and current.therapist_id != actor.pk:
+            raise FinancialOwnershipError(
+                "Esta transação pertence a outro profissional."
+            )
         return actor
     if patient is not None:
         return patient.therapist
@@ -55,14 +60,20 @@ def _resolve_organization(*, actor, organization=None, patient=None, appointment
             raise FinancialOwnershipError("Selecione uma organização para operar o financeiro.")
         resolved = resolved_membership.organization
 
-    allowed = OrganizationMembership.objects.filter(
+    membership = OrganizationMembership.objects.filter(
         organization=resolved,
         user=actor,
         status=OrganizationMembership.Status.ACTIVE,
         role__in=FINANCE_ROLES,
-    ).exists()
-    if not allowed:
+    ).first()
+    if membership is None:
         raise FinancialOwnershipError("Você não possui acesso financeiro nesta organização.")
+    if (
+        membership.role == OrganizationMembership.Role.THERAPIST
+        and current is not None
+        and current.therapist_id != actor.pk
+    ):
+        raise FinancialOwnershipError("Esta transação pertence a outro profissional.")
     return resolved
 
 
