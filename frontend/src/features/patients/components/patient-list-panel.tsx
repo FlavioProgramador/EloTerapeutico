@@ -1,8 +1,9 @@
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { maskEmail, maskPhone } from "@/lib/privacy/masks";
 import type { PatientDashboardItem } from "../types";
 
 interface Props {
@@ -53,13 +54,13 @@ function PatientTags({ tags }: { tags: string[] }) {
       {tags.slice(0, 2).map((tag) => (
         <span
           key={tag}
-          className="rounded-md bg-primary/8 px-2 py-1 text-[9px] text-primary"
+          className="rounded-md bg-primary/8 px-2 py-1 text-xs text-primary"
         >
           {tag}
         </span>
       ))}
       {tags.length > 2 && (
-        <span className="rounded-md bg-secondary px-2 py-1 text-[9px] text-muted-foreground">
+        <span className="rounded-md bg-secondary px-2 py-1 text-xs text-muted-foreground">
           +{tags.length - 2}
         </span>
       )}
@@ -113,7 +114,7 @@ export function PatientListPanel({
     <section className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[720px] border-collapse text-left">
-          <thead className="border-b border-border bg-secondary/35 text-[10px] uppercase tracking-wide text-muted-foreground">
+          <thead className="border-b border-border bg-secondary/35 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-4 py-3">Paciente</th>
               <th className="px-3 py-3">Contato</th>
@@ -150,7 +151,7 @@ export function PatientListPanel({
                     <div className="flex items-center gap-3">
                       <span
                         aria-hidden="true"
-                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-primary/25 bg-primary/8 text-[11px] font-bold text-primary"
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-primary/25 bg-primary/8 text-xs font-bold text-primary"
                       >
                         {initials(patient.display_name)}
                       </span>
@@ -158,7 +159,7 @@ export function PatientListPanel({
                         <p className="truncate text-xs font-semibold text-foreground">
                           {patient.display_name}
                         </p>
-                        <p className="mt-0.5 text-[10px] text-muted-foreground">
+                        <p className="mt-0.5 text-xs text-muted-foreground">
                           {patient.age
                             ? `${patient.age} anos`
                             : "Idade não informada"}{" "}
@@ -168,17 +169,17 @@ export function PatientListPanel({
                     </div>
                   </td>
                   <td className="max-w-48 px-3 py-3">
-                    <p className="truncate text-[11px] text-foreground">
-                      {patient.phone || "Sem telefone"}
+                    <p className="truncate text-xs text-foreground">
+                      {maskPhone(patient.phone)}
                     </p>
-                    <p className="truncate text-[10px] text-muted-foreground">
-                      {patient.email || "Sem e-mail"}
+                    <p className="truncate text-xs text-muted-foreground">
+                      {maskEmail(patient.email)}
                     </p>
                   </td>
-                  <td className="px-3 py-3 text-[10px] text-muted-foreground">
+                  <td className="px-3 py-3 text-xs text-muted-foreground">
                     {formatSession(patient.last_session)}
                   </td>
-                  <td className="px-3 py-3 text-[10px] text-foreground">
+                  <td className="px-3 py-3 text-xs text-foreground">
                     {formatSession(patient.next_session)}
                   </td>
                   <td className="px-3 py-3">
@@ -224,7 +225,7 @@ export function PatientListPanel({
                     <p className="truncate text-sm font-semibold text-foreground">
                       {patient.display_name}
                     </p>
-                    <p className="mt-1 text-[10px] text-muted-foreground">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {patient.age
                         ? `${patient.age} anos`
                         : "Idade não informada"}{" "}
@@ -237,13 +238,13 @@ export function PatientListPanel({
                 </Badge>
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-3 text-[10px]">
+              <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <p className="font-semibold uppercase tracking-wide text-muted-foreground">
                     Contato
                   </p>
                   <p className="mt-1 truncate text-foreground">
-                    {patient.phone || "Não informado"}
+                    {maskPhone(patient.phone)}
                   </p>
                 </div>
                 <div>
@@ -264,7 +265,7 @@ export function PatientListPanel({
         })}
       </div>
 
-      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/20 px-4 py-3 text-[11px] text-muted-foreground">
+      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/20 px-4 py-3 text-xs text-muted-foreground">
         <span>
           Mostrando {patients.length} de {total} pacientes
         </span>
@@ -276,7 +277,7 @@ export function PatientListPanel({
             onClick={() => onPageChange(page - 1)}
             aria-label="Página anterior"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           </Button>
           <span>
             Página {page} de {totalPages}
@@ -288,7 +289,7 @@ export function PatientListPanel({
             onClick={() => onPageChange(page + 1)}
             aria-label="Próxima página"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
       </footer>
