@@ -5,7 +5,7 @@ const TECHNICAL_PATTERNS: readonly RegExp[] = [
   /\b(?:access[_ -]?token|refresh[_ -]?token|api[_ -]?key|app[_ -]?secret|auth[_ -]?token)\b/i,
   /(?:postgres|redis|backend|localhost|127\.0\.0\.1):\d+/i,
   /\/(?:api|backend|admin)\/[\w./-]+/i,
-  /\b[A-Z][A-Z0-9_]{3,}\b/,
+  /\b[A-Z][A-Z0-9]*_[A-Z0-9_]+\b/,
 ];
 
 const PERSONAL_DATA_PATTERNS: readonly RegExp[] = [
