@@ -5,6 +5,19 @@ from __future__ import annotations
 from django.db.models import QuerySet
 
 from apps.documents.models import DocumentTemplate
+from apps.organizations.models import OrganizationMembership
+
+
+def _owner_organization(owner):
+    memberships = OrganizationMembership.objects.filter(
+        user=owner,
+        status=OrganizationMembership.Status.ACTIVE,
+    ).select_related("organization")
+    membership = memberships.filter(is_default=True).first()
+    if membership is None:
+        first_two = list(memberships[:2])
+        membership = first_two[0] if len(first_two) == 1 else None
+    return membership.organization if membership is not None else None
 
 
 def owned_templates(*, owner, organization=None) -> QuerySet[DocumentTemplate]:
@@ -47,10 +60,14 @@ def get_owned_template(*, owner, public_id, organization=None) -> DocumentTempla
 
 def template_name_exists(
     *,
-    organization,
     name: str,
+    organization=None,
+    owner=None,
     exclude_id: int | None = None,
 ) -> bool:
+    organization = organization or (_owner_organization(owner) if owner is not None else None)
+    if organization is None:
+        return False
     queryset = DocumentTemplate.objects.filter(
         organization=organization,
         is_library_template=False,
@@ -64,9 +81,13 @@ def template_name_exists(
 
 def find_imported_template(
     *,
-    organization,
     library_template: DocumentTemplate,
+    organization=None,
+    owner=None,
 ) -> DocumentTemplate | None:
+    organization = organization or (_owner_organization(owner) if owner is not None else None)
+    if organization is None:
+        return None
     return DocumentTemplate.objects.filter(
         organization=organization,
         source_library_template=library_template,
