@@ -36,7 +36,8 @@ test("cadastro usa BFF e não persiste tokens no navegador", async () => {
   assert.doesNotMatch(register, /persistAuthTokens|persistAuthRole/);
   assert.doesNotMatch(register, /localStorage|sessionStorage/);
   assert.doesNotMatch(register, /response\.data\.tokens/);
-  assert.match(authService, /"\/api\/auth\/register\/"/);
+  assert.match(authService, /"\/api\/auth\/register"/);
+  assert.doesNotMatch(authService, /"\/api\/auth\/register\/"/);
 });
 
 test("detalhes e listas de pacientes minimizam dados por padrão", async () => {
