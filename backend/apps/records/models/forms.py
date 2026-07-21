@@ -11,14 +11,35 @@ class ClinicalFormResponse(ClinicalTenantModel):
         PENDING = "pending", "Pendente"
         COMPLETED = "completed", "Concluído"
 
-    patient = models.ForeignKey("patients.Patient", on_delete=models.CASCADE, related_name="form_responses", verbose_name="Paciente")
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="records_clinicalformresponse_items",
+        db_index=True,
+    )
+    patient = models.ForeignKey(
+        "patients.Patient",
+        on_delete=models.CASCADE,
+        related_name="form_responses",
+        verbose_name="Paciente",
+    )
     form_name = models.CharField(max_length=255, verbose_name="Nome do formulário")
     category = models.CharField(max_length=100, verbose_name="Categoria")
     sent_at = models.DateTimeField(null=True, blank=True, verbose_name="Enviado em")
     completed_at = models.DateTimeField(null=True, blank=True, verbose_name="Preenchido em")
     completed_by = models.CharField(max_length=255, blank=True, verbose_name="Preenchido por")
-    therapist = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="form_responses", verbose_name="Profissional responsável")
-    status = models.CharField(max_length=50, choices=Status.choices, default=Status.COMPLETED, verbose_name="Status")
+    therapist = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="form_responses",
+        verbose_name="Profissional responsável",
+    )
+    status = models.CharField(
+        max_length=50,
+        choices=Status.choices,
+        default=Status.COMPLETED,
+        verbose_name="Status",
+    )
     answers_count = models.IntegerField(default=0, verbose_name="Quantidade de respostas")
     form_snapshot = models.JSONField(default=dict, blank=True, verbose_name="Snapshot do formulário")
     answers = models.JSONField(default=dict, blank=True, verbose_name="Respostas")
@@ -30,6 +51,9 @@ class ClinicalFormResponse(ClinicalTenantModel):
         verbose_name = "Resposta de Formulário"
         verbose_name_plural = "Respostas de Formulários"
         indexes = [
-            models.Index(fields=["organization", "patient", "status"], name="form_resp_org_patient_idx"),
+            models.Index(
+                fields=["organization", "patient", "status"],
+                name="form_resp_org_patient_idx",
+            ),
             models.Index(fields=["patient", "status"], name="form_resp_patient_status_idx"),
         ]
