@@ -1,8 +1,8 @@
 "use client";
 
+import { Bell, CheckCheck, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { Bell, CheckCheck, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import {
@@ -28,6 +28,7 @@ export function NotificationBell() {
   const markRead = useMarkNotificationRead();
   const readAll = useReadAllNotifications();
   const count = unread.data ?? 0;
+
   return (
     <div className="relative">
       <button
@@ -38,9 +39,9 @@ export function NotificationBell() {
         aria-label={`Notificações${count ? `, ${count} não lidas` : ""}`}
         aria-expanded={open}
       >
-        <Bell className="h-4 w-4" />
+        <Bell className="h-4 w-4" aria-hidden="true" />
         {count > 0 && (
-          <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-primary px-1 text-center text-[9px] font-bold leading-4 text-primary-foreground ring-2 ring-background">
+          <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-primary px-1 text-center text-xs font-bold leading-4 text-primary-foreground ring-2 ring-background">
             {count > 99 ? "99+" : count}
           </span>
         )}
@@ -59,7 +60,7 @@ export function NotificationBell() {
                 <p className="text-sm font-bold text-popover-foreground">
                   Notificações
                 </p>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {count} não lida{count === 1 ? "" : "s"}
                 </p>
               </div>
@@ -67,12 +68,15 @@ export function NotificationBell() {
                 type="button"
                 disabled={!count || readAll.isPending}
                 onClick={() => readAll.mutate(undefined)}
-                className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-semibold text-primary transition hover:bg-primary/10 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/10 disabled:opacity-50"
               >
                 {readAll.isPending ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <Loader2
+                    className="h-3.5 w-3.5 animate-spin"
+                    aria-hidden="true"
+                  />
                 ) : (
-                  <CheckCheck className="h-3.5 w-3.5" />
+                  <CheckCheck className="h-3.5 w-3.5" aria-hidden="true" />
                 )}
                 Marcar todas
               </button>
@@ -80,34 +84,42 @@ export function NotificationBell() {
             <div className="max-h-96 overflow-y-auto p-1.5">
               {notifications.isLoading && (
                 <div className="flex items-center justify-center gap-2 p-8 text-xs text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
+                  <Loader2
+                    className="h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />{" "}
+                  Carregando...
                 </div>
               )}
               {notifications.isError && (
-                <p className="p-6 text-center text-xs text-destructive">
+                <p className="p-6 text-center text-xs text-destructive" role="alert">
                   Não foi possível carregar as notificações.
                 </p>
               )}
-              {!notifications.isLoading && notifications.data?.results.length === 0 && (
-                <p className="p-8 text-center text-xs text-muted-foreground">
-                  Nenhuma notificação registrada.
-                </p>
-              )}
+              {!notifications.isLoading &&
+                notifications.data?.results.length === 0 && (
+                  <p className="p-8 text-center text-xs text-muted-foreground">
+                    Nenhuma notificação registrada.
+                  </p>
+                )}
               {notifications.data?.results.map((notification) => {
                 const content = (
                   <span className="block min-w-0">
                     <span className="flex items-center gap-2">
                       <span className="truncate text-xs font-bold text-popover-foreground">
-                        {notification.title}
+                        {notification.category_display}
                       </span>
                       {!notification.is_read && (
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                        <span
+                          className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
+                          aria-label="Não lida"
+                        />
                       )}
                     </span>
-                    <span className="mt-1 line-clamp-2 block text-[11px] leading-relaxed text-muted-foreground">
-                      {notification.message}
+                    <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-muted-foreground">
+                      Há uma nova atualização disponível. Abra para consultar os detalhes.
                     </span>
-                    <span className="mt-1.5 block text-[9px] text-muted-foreground/80">
+                    <span className="mt-1.5 block text-xs text-muted-foreground/80">
                       {formatNotificationDate(notification.created_at)}
                     </span>
                   </span>
@@ -116,14 +128,15 @@ export function NotificationBell() {
                   "block w-full rounded-lg px-3 py-3 text-left transition hover:bg-secondary",
                   !notification.is_read && "bg-primary/5",
                 );
-                if (notification.internal_url)
+                if (notification.internal_url) {
                   return (
                     <Link
                       key={notification.public_id}
                       href={notification.internal_url}
                       onClick={() => {
-                        if (!notification.is_read)
+                        if (!notification.is_read) {
                           markRead.mutate(notification.public_id);
+                        }
                         setOpen(false);
                       }}
                       className={className}
@@ -131,12 +144,14 @@ export function NotificationBell() {
                       {content}
                     </Link>
                   );
+                }
                 return (
                   <button
                     key={notification.public_id}
                     type="button"
                     onClick={() =>
-                      !notification.is_read && markRead.mutate(notification.public_id)
+                      !notification.is_read &&
+                      markRead.mutate(notification.public_id)
                     }
                     className={className}
                   >
