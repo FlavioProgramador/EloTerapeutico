@@ -9,10 +9,11 @@ A interface deve transmitir profissionalismo, calma, segurança e clareza sem pa
 Princípios:
 
 - clareza antes de decoração;
-- laranja terroso para identidade principal, ações importantes, seleção e foco;
-- verde escuro como apoio institucional e referência espacial;
-- verde sálvia apenas para sucesso e confirmação;
-- superfícies neutras com contraste progressivo;
+- laranja quente como identidade principal, ação, seleção, foco e destaque editorial;
+- neutros quentes para fundos, textos, superfícies e bordas;
+- carvão quente para navegação lateral e áreas escuras;
+- verde exclusivamente para sucesso, confirmação e disponibilidade positiva;
+- nenhuma área estrutural, institucional ou decorativa deve usar verde como cor dominante;
 - bordas finas e sombras discretas;
 - nenhuma informação clínica deve depender somente da cor;
 - dados pessoais e clínicos devem ser minimizados por padrão.
@@ -21,68 +22,91 @@ Princípios:
 
 ## Paleta semântica
 
-A implementação oficial está em `frontend/src/app/globals.css`. Componentes devem usar tokens como `bg-card`, `text-foreground`, `bg-primary` e `border-border`, sem repetir valores HSL ou HEX diretamente.
+A base histórica está em `frontend/src/app/globals.css`. A direção visual vigente é aplicada em `frontend/src/app/orange-theme.css`, importado depois de `globals.css` em `frontend/src/app/layout.tsx`. Componentes devem usar tokens como `bg-card`, `text-foreground`, `bg-primary` e `border-border`, sem repetir valores HSL ou HEX diretamente.
 
-### Tema claro
-
-| Token | HSL | HEX aproximado | Uso |
-|---|---:|---:|---|
-| `--background` | `84 10% 95%` | `#EFF1EC` | Fundo geral do app |
-| `--foreground` | `159 24% 11%` | `#15241E` | Texto padrão |
-| `--card` | `0 0% 100%` | `#FFFFFF` | Cards e painéis |
-| `--primary` | `31 67% 50%` | `#D98E3F` | Cor principal laranja |
-| `--primary-hover` | `31 67% 43%` | `#B97633` | Hover da ação principal |
-| `--primary-active` | `31 67% 38%` | `#A3682D` | Clique da ação principal |
-| `--primary-soft` | `31 67% 95%` | `#FCF3EA` | Seleção e foco suave |
-| `--secondary` | `142 24% 92%` | `#E7F0EA` | Ações secundárias |
-| `--border` | `147 18% 88%` | `#DCE6E0` | Bordas padrão |
-| `--success` | `149 32% 36%` | `#3E795C` | Sucesso e confirmação |
-| `--warning` | `31 67% 55%` | `#E19A4B` | Atenção não bloqueante |
-| `--info` | `199 89% 48%` | `#0EA5E9` | Informação contextual |
-| `--danger` | `15 59% 45%` | `#B9502F` | Erro e ação destrutiva |
-| `--sidebar` | `177 57% 15%` | `#103C39` | Navegação institucional |
-| `--sidebar-active` | `31 67% 55%` | `#E19A4B` | Item ativo da navegação |
-
-### Tema escuro
+### Tema claro vigente
 
 | Token | HSL | Uso |
 |---|---:|---|
-| `--background` | `220 15% 10%` | Fundo geral |
-| `--foreground` | `220 10% 94%` | Texto principal |
-| `--card` | `220 12% 14%` | Cards e painéis |
-| `--primary` | `31 75% 55%` | Ação principal laranja |
-| `--primary-soft` | `31 75% 15%` | Seleção suave |
-| `--secondary` | `220 12% 12%` | Ações secundárias |
-| `--border` | `220 10% 18%` | Bordas e divisores |
-| `--success` | `149 32% 42%` | Sucesso |
+| `--background` | `30 38% 97%` | Fundo geral neutro quente |
+| `--foreground` | `24 18% 15%` | Texto padrão carvão quente |
+| `--card` | `0 0% 100%` | Cards e painéis |
+| `--primary` | `27 86% 54%` | Cor principal laranja |
+| `--primary-hover` | `24 86% 48%` | Hover da ação principal |
+| `--primary-active` | `22 82% 42%` | Clique da ação principal |
+| `--primary-soft` | `28 92% 94%` | Destaque, seleção e foco suave |
+| `--secondary` | `30 55% 93%` | Ações e superfícies secundárias |
+| `--border` | `30 22% 86%` | Bordas padrão |
+| `--success` | `149 32% 36%` | Sucesso e confirmação somente |
+| `--warning` | `31 67% 55%` | Atenção não bloqueante |
+| `--info` | `199 89% 48%` | Informação contextual |
+| `--danger` | `15 59% 45%` | Erro e ação destrutiva |
+| `--sidebar` | `24 18% 12%` | Navegação em carvão quente |
+| `--sidebar-active` | `27 86% 58%` | Item ativo da navegação |
+
+### Tema escuro vigente
+
+| Token | HSL | Uso |
+|---|---:|---|
+| `--background` | `24 16% 9%` | Fundo geral |
+| `--foreground` | `30 28% 95%` | Texto principal |
+| `--card` | `24 14% 13%` | Cards e painéis |
+| `--primary` | `27 90% 59%` | Ação principal laranja |
+| `--primary-soft` | `25 68% 15%` | Seleção suave laranja |
+| `--secondary` | `24 12% 16%` | Ações secundárias |
+| `--border` | `24 10% 21%` | Bordas e divisores |
+| `--success` | `149 32% 42%` | Sucesso somente |
 | `--danger` | `15 67% 55%` | Erro e destrutivo |
-| `--sidebar` | `220 18% 7%` | Navegação lateral |
-| `--sidebar-active` | `31 75% 55%` | Item ativo |
+| `--sidebar` | `24 18% 6%` | Navegação lateral carvão |
+| `--sidebar-active` | `27 90% 59%` | Item ativo laranja |
 
 ### Regras de estado
 
-- `primary`: ação principal, seleção, link importante e foco;
-- `success`: operação concluída, pagamento recebido, conexão validada;
+- `primary`: ação principal, seleção, link importante, navegação ativa, foco e destaque de marca;
+- `success`: operação concluída, pagamento recebido, conexão validada ou disponibilidade confirmada;
 - `warning`: pendência ou atenção não bloqueante;
 - `info`: ajuda e informação contextual;
 - `danger` ou `destructive`: erro, remoção, cancelamento e bloqueio.
 
-Não use `primary` para erro, alerta ou indisponibilidade. Estados devem combinar cor, ícone e texto.
+Não use verde como fundo institucional, sidebar, destaque de marca, CTA ou decoração. Não use `primary` para erro, alerta ou indisponibilidade. Estados devem combinar cor, ícone e texto.
+
+### Compatibilidade legada
+
+Classes antigas das famílias `green`, `emerald`, `teal` e `lime` são redirecionadas para a escala laranja em `orange-theme.css`. Isso evita que componentes antigos reintroduzam verde estrutural. Novos componentes devem usar tokens semânticos diretamente.
 
 ---
 
 ## Landing page
 
-A landing page preserva o verde escuro como apoio institucional em fundos e áreas editoriais, mas não redefine semanticamente a cor principal do produto.
+A landing page segue a mesma identidade laranja do produto. Áreas editoriais escuras usam carvão quente, não verde. Tons antes chamados de `sage` permanecem apenas como nomes técnicos legados e são convertidos para variações quentes de laranja.
 
 Obrigatório:
 
 - CTA principal laranja;
 - links de destaque laranja;
 - foco e seleção laranja;
-- verde escuro apenas como fundo ou apoio;
-- verde sálvia apenas como estado positivo;
+- fundos claros em branco ou neutros quentes;
+- áreas escuras em carvão quente;
+- verde somente para confirmação positiva real;
 - texto de botão principal com `primary-foreground`.
+
+---
+
+## Autenticação
+
+As páginas de login e cadastro preservam as ilustrações originais do produto:
+
+- login: `/login_illustration.svg`;
+- cadastro: `/register_illustration.svg`.
+
+Regras:
+
+- as imagens devem permanecer visíveis em desktop;
+- não substituir as ilustrações por blocos verdes, painéis genéricos ou fundos chapados;
+- sobreposições devem usar laranja suave e transparência moderada;
+- cards sobre as imagens usam branco ou superfície neutra com contraste adequado;
+- no mobile, a coluna ilustrada pode ser ocultada para priorizar o formulário;
+- o fluxo seguro via BFF, cookies HttpOnly e mensagens públicas sanitizadas não pode ser alterado por mudanças visuais.
 
 ---
 
@@ -138,9 +162,8 @@ Raios:
 - `rounded-md` ou `rounded-lg`: inputs e botões;
 - `rounded-lg`: navegação;
 - `rounded-xl`: cards, drawers e modais;
-- `rounded-full`: avatar, status e progresso circular.
-
-Evite `rounded-2xl` e `rounded-3xl` em interfaces operacionais.
+- `rounded-full`: avatar, status e progresso circular;
+- `rounded-2xl` e `rounded-3xl` podem ser usados em páginas públicas e autenticação, mas devem ser evitados em interfaces operacionais densas.
 
 ---
 
@@ -278,6 +301,8 @@ A suíte deve impedir regressões relacionadas a:
 - CPF completo na tela de paciente;
 - renderização direta de erros internos;
 - uso de Web Storage em fluxos sensíveis;
+- retorno de verde como cor estrutural ou institucional;
+- remoção das ilustrações originais de login e cadastro;
 - cores literais em componentes;
 - texto relevante menor que 12px;
 - supressão global do console;
@@ -287,7 +312,8 @@ Ao editar uma tela antiga:
 
 1. substitua cores literais por tokens;
 2. valide tema claro e escuro;
-3. aplique minimização de dados;
-4. revise estados loading, vazio e erro;
-5. teste teclado, foco, hover, disabled e erro;
-6. remova a compatibilidade antiga quando não houver consumidores.
+3. verifique que o laranja continua como destaque principal;
+4. aplique minimização de dados;
+5. revise estados loading, vazio e erro;
+6. teste teclado, foco, hover, disabled e erro;
+7. remova a compatibilidade antiga quando não houver consumidores.
