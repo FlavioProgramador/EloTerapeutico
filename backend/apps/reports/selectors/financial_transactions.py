@@ -2,6 +2,7 @@
 
 from django.db.models import Q
 
+from apps.finances.models import FinancialTransaction
 from apps.finances.selectors import (
     monthly_subscriptions_accessible_to,
     transactions_accessible_to,
@@ -28,8 +29,6 @@ def transactions_for_period(
 ):
     actor = user or owner
     if actor is None:
-        from apps.finances.models import FinancialTransaction
-
         return FinancialTransaction.objects.none()
     return transactions_accessible_to(
         actor,
