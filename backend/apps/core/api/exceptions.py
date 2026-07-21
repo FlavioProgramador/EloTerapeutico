@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import re
 import secrets
+from collections.abc import Mapping, Sequence
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import OperationalError, ProgrammingError
@@ -41,11 +42,12 @@ def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
 
     if response is not None:
+        details = _normalize_api_details(response.data)
         response.data = {
             "error": {
                 "code": _get_error_code(exc, response.status_code),
-                "message": _get_error_message(exc, response),
-                "details": response.data if isinstance(response.data, dict) else None,
+                "message": _get_error_message(exc, response, details),
+                "details": details if isinstance(details, dict) else None,
             }
         }
         return _secure_error_response(response, request_id)
@@ -140,6 +142,37 @@ def custom_exception_handler(exc, context):
     return _secure_error_response(response, request_id)
 
 
+def _normalize_api_details(value):
+    """Converte ErrorDetail e estruturas DRF em dados JSON simples e seguros."""
+
+    if isinstance(value, Mapping):
+        return {
+            str(key): _normalize_api_details(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        return [_normalize_api_details(item) for item in value]
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    return str(value)
+
+
+def _first_error_message(details) -> str | None:
+    if isinstance(details, dict):
+        for field, value in details.items():
+            nested = _first_error_message(value)
+            if nested:
+                return nested if field in {"detail", "non_field_errors"} else f"{field}: {nested}"
+    elif isinstance(details, list):
+        for value in details:
+            nested = _first_error_message(value)
+            if nested:
+                return nested
+    elif isinstance(details, str) and details:
+        return details
+    return None
+
+
 def _validation_error_message(exc: ValidationError) -> str:
     messages = getattr(exc, "messages", None)
     if messages:
@@ -185,12 +218,10 @@ def _get_error_code(exc, status_code: int) -> str:
     return str(code).upper() if code else code_map.get(status_code, "API_ERROR")
 
 
-def _get_error_message(exc, response: Response) -> str:
+def _get_error_message(exc, response: Response, details=None) -> str:
     detail = getattr(exc, "detail", None)
     if isinstance(detail, str):
         return detail
-    if isinstance(response.data, dict):
-        response_detail = response.data.get("detail")
-        if response_detail:
-            return str(response_detail)
-    return "A solicitação não pôde ser processada."
+    normalized = details if details is not None else _normalize_api_details(response.data)
+    first = _first_error_message(normalized)
+    return first or "A solicitação não pôde ser processada."
