@@ -1,6 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
+from apps.organizations.services.tenant_context import ensure_request_organization
 from apps.patients.api.serializers.form_serializers import PatientFormSerializer
 from apps.patients.api.serializers.legacy_serializers import PatientDetailSerializer
 from apps.patients.api.serializers.list_serializers import PatientReferenceListSerializer
@@ -18,19 +19,24 @@ class PatientDashboardViewSet(
     PatientViewSet,
 ):
     def get_queryset(self):
+        organization, membership = ensure_request_organization(
+            request=self.request,
+            required=True,
+        )
         requested_statuses = set(self.request.query_params.getlist("status"))
-        include_deleted = self.action == "restore" or bool(requested_statuses.intersection({"archived", "inactive"}))
+        include_deleted = self.action == "restore" or bool(
+            requested_statuses.intersection({"archived", "inactive"})
+        )
         queryset = patients_accessible_to(
             self.request.user,
+            organization=organization,
+            membership=membership,
             include_deleted=include_deleted,
         )
 
-        # Otimização: Aplicar anotações pesadas apenas quando necessário.
-        # As métricas não precisam de nenhuma anotação.
         if self.action == "dashboard_metrics":
             return queryset.order_by("full_name")
 
-        # A listagem e exportação usam apenas anotações essenciais.
         if self.action in ["list", "export_csv"]:
             return annotate_essential(queryset.order_by("full_name"))
 
