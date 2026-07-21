@@ -32,9 +32,19 @@ export function maskPhone(value: string | null | undefined): string {
 export function maskAddress(value: string | null | undefined): string {
   const normalized = String(value ?? "").trim();
   if (!normalized) return "Não informado";
-  const parts = normalized.split(",").map((part) => part.trim()).filter(Boolean);
+  const parts = normalized
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
   if (parts.length >= 2) return `${parts[0]}, dados complementares protegidos`;
   return "Endereço cadastrado";
+}
+
+export function maskDate(value: string | null | undefined): string {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return "Não informado";
+  const year = normalized.match(/\b(19|20)\d{2}\b/)?.[0];
+  return year ? `••/••/${year}` : "Data protegida";
 }
 
 export function maskToken(value: string | null | undefined): string {
