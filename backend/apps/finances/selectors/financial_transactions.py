@@ -9,7 +9,7 @@ from django.db.models import Q
 from apps.finances.models import FinancialTransaction
 from apps.organizations.models import OrganizationMembership
 
-FINANCE_ROLES = {
+FULL_FINANCE_ROLES = {
     OrganizationMembership.Role.OWNER,
     OrganizationMembership.Role.ADMIN,
     OrganizationMembership.Role.FINANCE,
@@ -26,20 +26,30 @@ def transactions_accessible_to(user, *, organization=None):
     )
     if not user or user.is_anonymous:
         return queryset.none()
-    if organization is not None:
-        allowed = OrganizationMembership.objects.filter(
-            organization=organization,
-            user=user,
-            status=OrganizationMembership.Status.ACTIVE,
-            role__in=FINANCE_ROLES,
-        ).exists()
-        return queryset.filter(organization=organization) if allowed else queryset.none()
-    organization_ids = OrganizationMembership.objects.filter(
+
+    memberships = OrganizationMembership.objects.filter(
         user=user,
         status=OrganizationMembership.Status.ACTIVE,
-        role__in=FINANCE_ROLES,
+    )
+    if organization is not None:
+        membership = memberships.filter(organization=organization).first()
+        if membership is None:
+            return queryset.none()
+        queryset = queryset.filter(organization=organization)
+        if membership.role == OrganizationMembership.Role.THERAPIST:
+            return queryset.filter(therapist=user)
+        return queryset if membership.role in FULL_FINANCE_ROLES else queryset.none()
+
+    full_scope_orgs = memberships.filter(
+        role__in=FULL_FINANCE_ROLES,
     ).values_list("organization_id", flat=True)
-    return queryset.filter(organization_id__in=organization_ids)
+    therapist_orgs = memberships.filter(
+        role=OrganizationMembership.Role.THERAPIST,
+    ).values_list("organization_id", flat=True)
+    return queryset.filter(
+        Q(organization_id__in=full_scope_orgs)
+        | Q(organization_id__in=therapist_orgs, therapist=user)
+    )
 
 
 def transaction_for_user(*, user, transaction_id, organization=None):
@@ -92,5 +102,5 @@ def transactions_for_admin(*, user, organization=None):
         "appointment",
     )
     if organization is not None:
-        return queryset.filter(organization=organization)
+        return transactions_accessible_to(user, organization=organization)
     return queryset if user.is_superuser else transactions_accessible_to(user)
