@@ -15,17 +15,26 @@ FINANCE_ROLES = {
     OrganizationMembership.Role.OWNER,
     OrganizationMembership.Role.ADMIN,
     OrganizationMembership.Role.FINANCE,
+    OrganizationMembership.Role.THERAPIST,
 }
 
 
-def _ensure_finance_access(*, actor, organization):
-    if not OrganizationMembership.objects.filter(
+def _ensure_finance_access(*, actor, organization, current=None):
+    membership = OrganizationMembership.objects.filter(
         organization=organization,
         user=actor,
         status=OrganizationMembership.Status.ACTIVE,
         role__in=FINANCE_ROLES,
-    ).exists():
+    ).first()
+    if membership is None:
         raise FinancialOwnershipError("Você não possui acesso financeiro nesta organização.")
+    if (
+        membership.role == OrganizationMembership.Role.THERAPIST
+        and current is not None
+        and current.therapist_id != actor.pk
+    ):
+        raise FinancialOwnershipError("A mensalidade pertence a outro profissional.")
+    return membership
 
 
 def _resolve_therapist(*, actor, patient, current=None):
@@ -99,7 +108,11 @@ def update_monthly_subscription(
         "patient",
     ).get(pk=monthly_subscription.pk)
     organization = organization or current.organization
-    _ensure_finance_access(actor=actor, organization=organization)
+    _ensure_finance_access(
+        actor=actor,
+        organization=organization,
+        current=current,
+    )
     if current.organization_id != organization.pk:
         raise FinancialOwnershipError("A mensalidade pertence a outra organização.")
     data = dict(validated_data)
@@ -131,7 +144,11 @@ def change_monthly_subscription_status(
         "patient",
     ).get(pk=monthly_subscription.pk)
     organization = organization or current.organization
-    _ensure_finance_access(actor=actor, organization=organization)
+    _ensure_finance_access(
+        actor=actor,
+        organization=organization,
+        current=current,
+    )
     if current.organization_id != organization.pk:
         raise FinancialOwnershipError("A mensalidade pertence a outra organização.")
     _resolve_therapist(actor=actor, patient=current.patient, current=current)
