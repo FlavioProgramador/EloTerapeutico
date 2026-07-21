@@ -11,7 +11,11 @@ from django.db import IntegrityError, models, transaction
 from apps.documents.exceptions import DocumentDomainError
 from apps.documents.models import DocumentTemplate, GeneratedDocument
 from apps.documents.selectors import find_by_idempotency_key
-from apps.documents.services.access import ensure_document_access, ensure_patient_access, ensure_template_access
+from apps.documents.services.access import (
+    ensure_document_access,
+    ensure_patient_access,
+    ensure_template_access,
+)
 from apps.documents.services.placeholders import (
     build_document_context,
     render_safe_markdown,
@@ -29,8 +33,6 @@ class GeneratedDocumentResult:
 
 @dataclass(frozen=True)
 class DocumentRemovalResult:
-    """Resultado da política de remoção de um documento gerado."""
-
     object_id: int
     archived: bool
     document: GeneratedDocument | None
@@ -38,8 +40,6 @@ class DocumentRemovalResult:
 
 @dataclass(frozen=True)
 class DocumentDownload:
-    """Arquivo validado e preparado para resposta HTTP privada."""
-
     file: Any
     filename: str
     content_type: str = "application/pdf"
@@ -55,18 +55,29 @@ def create_generated_document(
     local_emissao: str = "",
     idempotency_key: str | None = None,
 ) -> GeneratedDocumentResult:
+    organization = patient.organization
     ensure_patient_access(actor=actor, patient=patient)
-    ensure_template_access(actor=actor, template=template)
+    ensure_template_access(
+        actor=actor,
+        template=template,
+        organization=organization,
+    )
 
     normalized_key = (idempotency_key or "").strip() or None
     if normalized_key and len(normalized_key) > 128:
-        raise DocumentDomainError("A chave de idempotência deve possuir no máximo 128 caracteres.")
+        raise DocumentDomainError(
+            "A chave de idempotência deve possuir no máximo 128 caracteres."
+        )
     if normalized_key:
-        existing = find_by_idempotency_key(owner=actor, idempotency_key=normalized_key)
+        existing = find_by_idempotency_key(
+            organization=organization,
+            idempotency_key=normalized_key,
+        )
         if existing:
+            ensure_document_access(actor=actor, document=existing)
             return GeneratedDocumentResult(document=existing, created=False)
 
-    number = reserve_document_number(owner=actor)
+    number = reserve_document_number(organization=organization, owner=actor)
     context = build_document_context(
         patient=patient,
         professional=actor,
@@ -78,6 +89,7 @@ def create_generated_document(
 
     try:
         document = GeneratedDocument.objects.create(
+            organization=organization,
             owner=actor,
             professional=actor,
             patient=patient,
@@ -102,12 +114,18 @@ def create_generated_document(
         )
     except IntegrityError:
         if normalized_key:
-            existing = find_by_idempotency_key(owner=actor, idempotency_key=normalized_key)
+            existing = find_by_idempotency_key(
+                organization=organization,
+                idempotency_key=normalized_key,
+            )
             if existing:
+                ensure_document_access(actor=actor, document=existing)
                 return GeneratedDocumentResult(document=existing, created=False)
         raise
 
-    DocumentTemplate.objects.filter(pk=template.pk).update(usage_count=models.F("usage_count") + 1)
+    DocumentTemplate.objects.filter(pk=template.pk).update(
+        usage_count=models.F("usage_count") + 1
+    )
     return GeneratedDocumentResult(document=document, created=True)
 
 
@@ -125,7 +143,11 @@ def update_document_draft(
     for field, value in validated_data.items():
         setattr(document, field, value)
     context = json.loads(document.context_snapshot or "{}")
-    document.rendered_content = render_safe_markdown(document.template_content_snapshot, context)
+    document.rendered_content = render_safe_markdown(
+        document.template_content_snapshot,
+        context,
+    )
+    document.full_clean()
     document.save()
     return document
 
@@ -139,16 +161,26 @@ def archive_document(*, document: GeneratedDocument, actor=None) -> GeneratedDoc
 
 
 @transaction.atomic
-def remove_or_archive_document(*, actor, document: GeneratedDocument) -> DocumentRemovalResult:
-    """Exclui rascunhos sem arquivo e arquiva documentos com histórico."""
-
+def remove_or_archive_document(
+    *,
+    actor,
+    document: GeneratedDocument,
+) -> DocumentRemovalResult:
     ensure_document_access(actor=actor, document=document)
     object_id = document.pk
     if document.status == GeneratedDocument.Status.DRAFT and not document.pdf_file:
         document.delete()
-        return DocumentRemovalResult(object_id=object_id, archived=False, document=None)
+        return DocumentRemovalResult(
+            object_id=object_id,
+            archived=False,
+            document=None,
+        )
     archived = archive_document(actor=actor, document=document)
-    return DocumentRemovalResult(object_id=object_id, archived=True, document=archived)
+    return DocumentRemovalResult(
+        object_id=object_id,
+        archived=True,
+        document=archived,
+    )
 
 
 @transaction.atomic
@@ -159,15 +191,19 @@ def cancel_document(*, document: GeneratedDocument, actor=None) -> GeneratedDocu
         GeneratedDocument.Status.DRAFT,
         GeneratedDocument.Status.FAILED,
     ):
-        raise DocumentDomainError("Somente rascunhos ou documentos com falha podem ser cancelados.")
+        raise DocumentDomainError(
+            "Somente rascunhos ou documentos com falha podem ser cancelados."
+        )
     document.status = GeneratedDocument.Status.CANCELLED
     document.save(update_fields=["status", "updated_at"])
     return document
 
 
-def prepare_document_download(*, actor, document: GeneratedDocument) -> DocumentDownload:
-    """Valida acesso e disponibilidade antes de abrir o arquivo privado."""
-
+def prepare_document_download(
+    *,
+    actor,
+    document: GeneratedDocument,
+) -> DocumentDownload:
     ensure_document_access(actor=actor, document=document)
     if document.status != GeneratedDocument.Status.COMPLETED or not document.pdf_file:
         raise DocumentDomainError("O arquivo ainda não está disponível.")
