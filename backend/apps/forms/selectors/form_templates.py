@@ -5,15 +5,20 @@ from django.db.models import Q, QuerySet
 from apps.forms.models import FormTemplate
 
 
-def active_form_templates(*, params=None) -> QuerySet[FormTemplate]:
-    queryset = FormTemplate.objects.filter(is_active=True)
+def active_form_templates(*, params=None, organization=None) -> QuerySet[FormTemplate]:
+    scope = Q(is_system_template=True, organization__isnull=True)
+    if organization is not None:
+        scope |= Q(is_system_template=False, organization=organization)
+    queryset = FormTemplate.objects.filter(is_active=True).filter(scope)
     params = params or {}
     search = params.get("search", "").strip()
     category = params.get("category", "").strip()
     if search:
         queryset = queryset.filter(
-            Q(name__icontains=search) | Q(description__icontains=search) | Q(category__icontains=search)
+            Q(name__icontains=search)
+            | Q(description__icontains=search)
+            | Q(category__icontains=search)
         )
     if category:
         queryset = queryset.filter(category=category)
-    return queryset
+    return queryset.order_by("category", "name")
