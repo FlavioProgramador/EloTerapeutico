@@ -23,21 +23,51 @@ class TreatmentGoal(ClinicalTenantModel):
         COMPLETED = "completed", "Concluída"
         ARCHIVED = "archived", "Arquivada"
 
-    patient = models.ForeignKey("patients.Patient", on_delete=models.PROTECT, related_name="treatment_goals")
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="records_treatmentgoal_items",
+        db_index=True,
+    )
+    patient = models.ForeignKey(
+        "patients.Patient",
+        on_delete=models.PROTECT,
+        related_name="treatment_goals",
+    )
     title = models.CharField(max_length=180)
     description = EncryptedTextField(blank=True, default="")
     category = models.CharField(max_length=80, blank=True)
-    priority = models.CharField(max_length=12, choices=Priority.choices, default=Priority.MEDIUM)
+    priority = models.CharField(
+        max_length=12,
+        choices=Priority.choices,
+        default=Priority.MEDIUM,
+    )
     start_date = models.DateField(default=timezone.localdate)
     target_date = models.DateField(null=True, blank=True)
-    status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE, db_index=True)
-    progress = models.PositiveSmallIntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.ACTIVE,
+        db_index=True,
+    )
+    progress = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
     strategies = EncryptedTextField(blank=True, default="")
     evaluation_criteria = EncryptedTextField(blank=True, default="")
     observations = EncryptedTextField(blank=True, default="")
     sort_order = models.PositiveIntegerField(default=0)
-    evolutions = models.ManyToManyField("records.Evolution", blank=True, related_name="treatment_goals")
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="treatment_goals_created")
+    evolutions = models.ManyToManyField(
+        "records.Evolution",
+        blank=True,
+        related_name="treatment_goals",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="treatment_goals_created",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     archived_at = models.DateTimeField(null=True, blank=True)
@@ -45,15 +75,26 @@ class TreatmentGoal(ClinicalTenantModel):
     class Meta:
         ordering = ["sort_order", "-priority", "created_at"]
         indexes = [
-            models.Index(fields=["organization", "patient", "status"], name="goal_org_patient_idx"),
-            models.Index(fields=["patient", "status"], name="goal_patient_status_idx"),
+            models.Index(
+                fields=["organization", "patient", "status"],
+                name="goal_org_patient_idx",
+            ),
+            models.Index(
+                fields=["patient", "status"],
+                name="goal_patient_status_idx",
+            ),
         ]
 
     def clean(self):
         super().clean()
         for evolution in self.evolutions.all() if self.pk else []:
-            if evolution.organization_id != self.organization_id or evolution.patient_id != self.patient_id:
-                raise ValidationError({"evolutions": "A evolução pertence a outro paciente ou organização."})
+            if (
+                evolution.organization_id != self.organization_id
+                or evolution.patient_id != self.patient_id
+            ):
+                raise ValidationError(
+                    {"evolutions": "A evolução pertence a outro paciente ou organização."}
+                )
 
     def archive(self):
         self.status = self.Status.ARCHIVED
