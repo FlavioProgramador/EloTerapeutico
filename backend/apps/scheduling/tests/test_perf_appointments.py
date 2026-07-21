@@ -36,10 +36,14 @@ def api_client(therapist):
 
 
 @pytest.mark.django_db
-def test_appointment_list_optimized_queries(api_client, therapist, patient, django_assert_num_queries):
-    """
-    Verifica que a listagem de agendamentos não possui N+1 queries para evoluções.
-    """
+def test_appointment_list_optimized_queries(
+    api_client,
+    therapist,
+    patient,
+    django_assert_num_queries,
+):
+    """Verifica ausência de N+1 incluindo a resolução constante do tenant."""
+
     num_appointments = 5
     for i in range(num_appointments):
         start = timezone.now() + timedelta(days=i)
@@ -57,15 +61,17 @@ def test_appointment_list_optimized_queries(api_client, therapist, patient, djan
             created_by=therapist,
             content=f"Evolution {i}",
         )
-        EvolutionClinicalData.objects.create(evolution=evo, status="finalized", updated_by=therapist)
+        EvolutionClinicalData.objects.create(
+            evolution=evo,
+            status="finalized",
+            updated_by=therapist,
+        )
 
     url = reverse("appointment-list")
 
-    # Com a otimização select_related('evolution', 'evolution__clinical_data')
-    # e remoção de prefetches desnecessários (participants, reminders),
-    # o número total de queries caiu de 4 para 2 (Count + Main List).
-    # (O User é autenticado via force_authenticate e não gera query se já carregado no fixture).
-    with django_assert_num_queries(2):
+    # Membership ativa + Count + listagem principal. O total permanece constante,
+    # mesmo com evoluções e dados clínicos relacionados.
+    with django_assert_num_queries(3):
         response = api_client.get(url)
 
     assert response.status_code == status.HTTP_200_OK
