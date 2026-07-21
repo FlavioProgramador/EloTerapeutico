@@ -1,13 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import axios from "axios";
 import {
-  ArrowLeft,
   ArrowRight,
   CheckCircle2,
   Eye,
@@ -18,21 +12,24 @@ import {
   ShieldCheck,
   User,
 } from "lucide-react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { api } from "@/lib/api";
-import { persistAuthRole, persistAuthTokens } from "@/lib/auth-session";
 import {
   registerSchema,
   type RegisterFormData,
 } from "@/features/auth/schemas/auth.schemas";
+import { authService } from "@/features/auth/services/auth.service";
 import { listPlans } from "@/features/billing/api";
 import type { Plan, PlanPrice } from "@/features/billing/types";
 import { Brand } from "@/features/landing/brand";
-
-const SELECTION_KEY = "elo:registration-selection";
+import { safeInternalPath } from "@/lib/auth-flow";
+import { getPublicErrorMessage } from "@/lib/errors/public-error";
 
 type AccessMode = "TRIAL" | "PAID";
 type BillingCycle = "MONTHLY" | "YEARLY";
@@ -46,24 +43,15 @@ interface RegistrationSelection {
   paymentMode?: PaymentMode;
 }
 
-interface RegistrationResponse {
-  next: string;
-  tokens?: { access: string; refresh: string };
-  user?: { role?: string };
-}
-
-function readSelection(): RegistrationSelection {
-  if (typeof window === "undefined") {
-    return { plan: "", price: "", accessMode: "TRIAL" };
-  }
-  const params = new URLSearchParams(window.location.search);
-  const rawBillingCycle = (
+function selectionFromParams(params: URLSearchParams): RegistrationSelection {
+  const billingCycle = (
     params.get("billing_cycle") ||
     params.get("interval") ||
     ""
   ).toUpperCase();
-  const rawPaymentMode = (params.get("payment_mode") || "").toUpperCase();
-  const querySelection: RegistrationSelection = {
+  const paymentMode = (params.get("payment_mode") || "").toUpperCase();
+
+  return {
     plan: params.get("plan") || params.get("plan_slug") || "",
     price:
       params.get("price") ||
@@ -71,35 +59,11 @@ function readSelection(): RegistrationSelection {
       params.get("plan_price_id") ||
       "",
     accessMode: params.get("mode")?.toUpperCase() === "PAID" ? "PAID" : "TRIAL",
-    billingCycle: rawBillingCycle
-      ? (rawBillingCycle as BillingCycle)
+    billingCycle: billingCycle
+      ? (billingCycle as BillingCycle)
       : undefined,
-    paymentMode: rawPaymentMode ? (rawPaymentMode as PaymentMode) : undefined,
+    paymentMode: paymentMode ? (paymentMode as PaymentMode) : undefined,
   };
-  if (querySelection.plan || querySelection.price) {
-    sessionStorage.setItem(SELECTION_KEY, JSON.stringify(querySelection));
-    return querySelection;
-  }
-  try {
-    const stored = sessionStorage.getItem(SELECTION_KEY);
-    return stored
-      ? (JSON.parse(stored) as RegistrationSelection)
-      : querySelection;
-  } catch {
-    return querySelection;
-  }
-}
-
-function registrationSelection(): RegistrationSelection {
-  return readSelection();
-}
-
-function loginHrefAfterRegister(): string {
-  const current = registrationSelection();
-  const params = new URLSearchParams();
-  if (current.plan) params.set("plan", current.plan);
-  if (current.price) params.set("price", current.price);
-  return `/login${params.size ? `?${params.toString()}` : ""}`;
 }
 
 function currency(value: string, currencyCode = "BRL") {
@@ -123,6 +87,7 @@ function findPrice(
       ),
     );
   if (!selectedPlan) return {};
+
   const selectedPrice =
     selectedPlan.prices.find(
       (price) =>
@@ -137,40 +102,48 @@ function findPrice(
       return intervalMatches && modeMatches && price.available;
     }) ||
     selectedPlan.prices.find((price) => price.available);
+
   return { plan: selectedPlan, price: selectedPrice };
 }
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
-  const [selection, setSelection] = useState<RegistrationSelection>({
-    plan: "",
-    price: "",
-    accessMode: "TRIAL",
-  });
+  const searchParams = useSearchParams();
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [plansLoading, setPlansLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-    setSelection(registrationSelection());
-    void listPlans()
-      .then(setPlans)
-      .catch(() => setPlans([]));
-  }, []);
-
+  const selection = useMemo(
+    () => selectionFromParams(new URLSearchParams(searchParams.toString())),
+    [searchParams],
+  );
   const selected = useMemo(
     () => findPrice(plans, selection),
     [plans, selection],
   );
 
+  useEffect(() => {
+    let active = true;
+    void listPlans()
+      .then((result) => {
+        if (active) setPlans(result);
+      })
+      .catch(() => {
+        if (active) setPlans([]);
+      })
+      .finally(() => {
+        if (active) setPlansLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const {
     register,
     handleSubmit,
-    setError,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -180,271 +153,219 @@ export default function RegisterPage() {
     },
   });
 
-  const loginHref = mounted ? loginHrefAfterRegister() : "/login";
-  const accessMode = mounted ? registrationSelection().accessMode : "TRIAL";
+  const loginParams = new URLSearchParams();
+  if (selection.plan) loginParams.set("plan", selection.plan);
+  if (selection.price) loginParams.set("price", selection.price);
+  const loginHref = `/login${loginParams.size ? `?${loginParams.toString()}` : ""}`;
 
   const onSubmit = async (data: RegisterFormData) => {
-    setIsLoading(true);
-    const payload = {
-      email: data.email,
-      full_name: data.full_name,
-      phone: data.phone || "",
-      password: data.password,
-      password_confirm: data.confirm_password,
-      crp: data.crp || "",
-      specialty: data.specialty || "",
-      terms_accepted: data.terms_accepted,
-      privacy_accepted: data.privacy_accepted,
-      plan: selection.plan || undefined,
-      plan_price_slug: selection.price || undefined,
-      billing_cycle: selection.billingCycle,
-      payment_mode: selection.paymentMode,
-      access_mode: accessMode,
-    };
-
     try {
-      const response = await api.post<RegistrationResponse>(
-        "auth/register/",
-        payload,
-      );
-      if (response.data.tokens?.access) {
-        persistAuthTokens(
-          response.data.tokens.access,
-          response.data.tokens.refresh,
-        );
-      }
-      if (response.data.user?.role) persistAuthRole(response.data.user.role);
-      sessionStorage.removeItem(SELECTION_KEY);
+      const response = await authService.register({
+        email: data.email,
+        full_name: data.full_name,
+        phone: data.phone || "",
+        password: data.password,
+        password_confirm: data.confirm_password,
+        role: data.role,
+        crp: data.crp || "",
+        specialty: data.specialty || "",
+        terms_accepted: data.terms_accepted,
+        privacy_accepted: data.privacy_accepted,
+        plan: selection.plan || undefined,
+        plan_price_slug: selection.price || undefined,
+        billing_cycle: selection.billingCycle,
+        payment_mode: selection.paymentMode,
+        access_mode: selection.accessMode,
+      });
+
       toast.success("Conta criada com sucesso", {
         description:
-          accessMode === "TRIAL" && selection.plan
-            ? "Seu teste gratuito de 7 dias foi iniciado."
-            : selection.plan
-              ? "Agora conclua o pagamento para liberar as ferramentas."
-              : "Escolha um plano para continuar.",
+          selection.accessMode === "TRIAL"
+            ? "Seu acesso de avaliação foi iniciado."
+            : "Continue para concluir a assinatura selecionada.",
       });
-      if (response.data.next && response.data.next.includes("checkout")) {
-        window.location.href = response.data.next;
-      } else {
-        window.location.href = "/planos";
-      }
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const responseData = error.response?.data;
-        const serverErrors = responseData?.error?.details || responseData;
-        if (serverErrors && typeof serverErrors === "object") {
-          const fieldMap: Record<string, keyof RegisterFormData> = {
-            email: "email",
-            full_name: "full_name",
-            phone: "phone",
-            password: "password",
-            password_confirm: "confirm_password",
-            crp: "crp",
-            crp_number: "crp",
-            specialty: "specialty",
-            terms_accepted: "terms_accepted",
-            privacy_accepted: "privacy_accepted",
-          };
-          for (const [key, value] of Object.entries(serverErrors)) {
-            const field = fieldMap[key];
-            if (field) {
-              setError(field, {
-                message: Array.isArray(value)
-                  ? String(value[0])
-                  : String(value),
-              });
-            }
-          }
-        }
-        toast.error("Não foi possível criar sua conta", {
-          description:
-            responseData?.error?.message ||
-            responseData?.detail ||
-            "Revise os dados e tente novamente.",
-        });
-      } else {
-        toast.error("Não foi possível criar sua conta");
-      }
-    } finally {
-      setIsLoading(false);
+
+      router.replace(
+        safeInternalPath(
+          response.next,
+          selection.plan ? "/onboarding" : "/planos",
+        ),
+      );
+    } catch (error: unknown) {
+      toast.error("Não foi possível criar sua conta", {
+        description: getPublicErrorMessage(
+          error,
+          "Revise os dados informados e tente novamente.",
+        ),
+      });
     }
   };
 
   return (
-    <main className="h-screen flex bg-[#F9F9F9] font-sans text-[#1A2E26] overflow-hidden">
-      {/* Left Column - Form */}
-      <div className="w-full lg:w-[45%] xl:w-[40%] flex flex-col justify-center px-6 sm:px-10 lg:px-16 z-10 bg-[#F9F9F9] overflow-y-auto py-12">
-        <div className="mx-auto w-full max-w-xl mt-12 lg:mt-0">
-          <div className="inline-block flex-shrink-0 [&_span]:!text-[#F97316] [&_.grid]:!bg-white [&_.grid]:!border-[#F97316]/30 [&_.grid]:!shadow-none [&_.grid]:!w-14 [&_.grid]:!h-14 [&_svg]:!w-8 [&_svg]:!h-8 hover:opacity-80 transition-opacity">
-            <Brand />
-          </div>
+    <main className="grid min-h-screen bg-background font-sans text-foreground lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.72fr)]">
+      <section className="flex items-center px-5 py-10 sm:px-10 lg:px-16">
+        <div className="mx-auto w-full max-w-2xl">
+          <Brand />
           <div className="mt-8">
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#F97316]">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
               Crie sua conta
             </p>
-            <h1 className="mt-3 text-4xl font-extrabold tracking-tight text-[#1A2E26]">
+            <h1 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
               Comece com segurança e sem surpresas.
             </h1>
-            <p className="mt-3 text-sm leading-6 text-gray-500">
-              A conta é criada primeiro. O acesso às ferramentas só é liberado
-              com assinatura ativa ou teste gratuito válido.
+            <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
+              A conta é criada primeiro. O acesso às ferramentas depende de uma
+              assinatura ativa ou período de avaliação válido.
             </p>
           </div>
 
           <form
-            className="mt-9 grid gap-5"
+            className="mt-8 grid gap-5"
             onSubmit={handleSubmit(onSubmit)}
             noValidate
           >
-            <div className="space-y-2 group">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">
-                Nome completo
-              </label>
+            <Input
+              id="register-full-name"
+              label="Nome completo"
+              type="text"
+              autoComplete="name"
+              error={errors.full_name?.message}
+              leftIcon={
+                <User className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              }
+              {...register("full_name")}
+            />
+
+            <div className="grid gap-5 sm:grid-cols-2">
               <Input
-                type="text"
-                error={errors.full_name?.message}
-                autoComplete="name"
+                id="register-email"
+                label="E-mail"
+                type="email"
+                autoComplete="email"
+                error={errors.email?.message}
                 leftIcon={
-                  <User className="h-5 w-5 text-gray-400 group-focus-within:text-[#F97316] transition-colors duration-300" />
+                  <Mail
+                    className="h-5 w-5 text-muted-foreground"
+                    aria-hidden="true"
+                  />
                 }
-                {...register("full_name")}
-                className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none !pl-10 pr-2 shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base transition-all duration-300"
+                {...register("email")}
+              />
+              <Input
+                id="register-phone"
+                label="Telefone"
+                type="tel"
+                autoComplete="tel"
+                error={errors.phone?.message}
+                leftIcon={
+                  <Phone
+                    className="h-5 w-5 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                }
+                {...register("phone")}
               />
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2">
-              <div className="space-y-2 group">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">
-                  E-mail
-                </label>
-                <Input
-                  type="email"
-                  error={errors.email?.message}
-                  autoComplete="email"
-                  leftIcon={
-                    <Mail className="h-5 w-5 text-gray-400 group-focus-within:text-[#F97316] transition-colors duration-300" />
-                  }
-                  {...register("email")}
-                  className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none !pl-10 pr-2 shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base transition-all duration-300"
-                />
-              </div>
-              <div className="space-y-2 group">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">
-                  Telefone
-                </label>
-                <Input
-                  type="tel"
-                  error={errors.phone?.message}
-                  autoComplete="tel"
-                  leftIcon={
-                    <Phone className="h-5 w-5 text-gray-400 group-focus-within:text-[#F97316] transition-colors duration-300" />
-                  }
-                  {...register("phone")}
-                  className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none !pl-10 pr-2 shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base transition-all duration-300"
-                />
-              </div>
+              <Input
+                id="register-crp"
+                label="Registro profissional"
+                type="text"
+                autoComplete="off"
+                error={errors.crp?.message}
+                placeholder="Opcional"
+                {...register("crp")}
+              />
+              <Input
+                id="register-specialty"
+                label="Especialidade"
+                type="text"
+                autoComplete="organization-title"
+                error={errors.specialty?.message}
+                placeholder="Opcional"
+                {...register("specialty")}
+              />
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2">
-              <div className="space-y-2 group">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">
-                  Senha
-                </label>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    error={errors.password?.message}
-                    autoComplete="new-password"
-                    leftIcon={
-                      <Lock className="h-5 w-5 text-gray-400 group-focus-within:text-[#F97316] transition-colors duration-300" />
-                    }
-                    {...register("password")}
-                    className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none !pl-10 shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base pr-10 transition-all duration-300"
+              <Input
+                id="register-password"
+                label="Senha"
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                error={errors.password?.message}
+                leftIcon={
+                  <Lock
+                    className="h-5 w-5 text-muted-foreground"
+                    aria-hidden="true"
                   />
+                }
+                rightIcon={
                   <button
                     type="button"
-                    onClick={() => setShowPassword((value) => !value)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#F97316] transition-colors"
+                    onClick={() => setShowPassword((current) => !current)}
+                    className="text-muted-foreground hover:text-primary"
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   >
-                    <span className="sr-only">Mostrar ou ocultar senha</span>
                     {showPassword ? (
-                      <EyeOff className="h-5 w-5" />
+                      <EyeOff className="h-5 w-5" aria-hidden="true" />
                     ) : (
-                      <Eye className="h-5 w-5" />
+                      <Eye className="h-5 w-5" aria-hidden="true" />
                     )}
                   </button>
-                </div>
-              </div>
-              <div className="space-y-2 group">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">
-                  Confirmar Senha
-                </label>
-                <div className="relative">
-                  <Input
-                    type={showConfirmPassword ? "text" : "password"}
-                    error={errors.confirm_password?.message}
-                    autoComplete="new-password"
-                    leftIcon={
-                      <Lock className="h-5 w-5 text-gray-400 group-focus-within:text-[#F97316] transition-colors duration-300" />
-                    }
-                    {...register("confirm_password")}
-                    className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none !pl-10 shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base pr-10 transition-all duration-300"
+                }
+                {...register("password")}
+              />
+              <Input
+                id="register-confirm-password"
+                label="Confirmar senha"
+                type={showConfirmPassword ? "text" : "password"}
+                autoComplete="new-password"
+                error={errors.confirm_password?.message}
+                leftIcon={
+                  <Lock
+                    className="h-5 w-5 text-muted-foreground"
+                    aria-hidden="true"
                   />
+                }
+                rightIcon={
                   <button
                     type="button"
-                    onClick={() => setShowConfirmPassword((value) => !value)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#F97316] transition-colors"
+                    onClick={() =>
+                      setShowConfirmPassword((current) => !current)
+                    }
+                    className="text-muted-foreground hover:text-primary"
+                    aria-label={
+                      showConfirmPassword ? "Ocultar senha" : "Mostrar senha"
+                    }
                   >
-                    <span className="sr-only">
-                      Mostrar ou ocultar confirmação de senha
-                    </span>
                     {showConfirmPassword ? (
-                      <EyeOff className="h-5 w-5" />
+                      <EyeOff className="h-5 w-5" aria-hidden="true" />
                     ) : (
-                      <Eye className="h-5 w-5" />
+                      <Eye className="h-5 w-5" aria-hidden="true" />
                     )}
                   </button>
-                </div>
-              </div>
+                }
+                {...register("confirm_password")}
+              />
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div className="space-y-2 group">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">
-                  Registro profissional
-                </label>
-                <Input
-                  placeholder="Ex.: 06/123456"
-                  error={errors.crp?.message}
-                  {...register("crp")}
-                  className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base transition-all duration-300"
-                />
-              </div>
-              <div className="space-y-2 group">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider group-focus-within:text-[#F97316] transition-colors duration-300">
-                  Especialidade
-                </label>
-                <Input
-                  placeholder="Ex.: Psicologia clínica"
-                  error={errors.specialty?.message}
-                  {...register("specialty")}
-                  className="bg-transparent focus:bg-[#F97316]/[0.03] border-0 border-b-2 focus:border-b-[3px] border-gray-200 rounded-none shadow-none !outline-none focus:!outline-none focus-visible:!outline-none focus:!ring-0 focus-visible:!ring-0 focus:border-[#F97316] text-[#1A2E26] font-medium text-base transition-all duration-300"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-3 rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm mt-2">
-              <label className="flex items-start gap-3 cursor-pointer">
+            <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+              <label className="flex items-start gap-3 text-sm text-muted-foreground">
                 <input
                   type="checkbox"
-                  className="mt-1 h-4 w-4 accent-[#F97316] rounded border-gray-300 cursor-pointer"
+                  className="mt-1 h-4 w-4 rounded border-input accent-primary"
+                  aria-invalid={Boolean(errors.terms_accepted)}
                   {...register("terms_accepted")}
                 />
-                <span className="text-gray-600 font-medium">
-                  Aceito os{" "}
+                <span>
+                  Li e aceito os{" "}
                   <Link
                     href="/termos-de-uso"
-                    className="font-bold text-[#F97316] hover:underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-primary hover:underline"
                   >
                     Termos de Uso
                   </Link>
@@ -452,22 +373,25 @@ export default function RegisterPage() {
                 </span>
               </label>
               {errors.terms_accepted && (
-                <p className="text-xs text-red-600 font-medium">
+                <p className="text-xs text-danger" role="alert">
                   {errors.terms_accepted.message}
                 </p>
               )}
 
-              <label className="flex items-start gap-3 cursor-pointer">
+              <label className="flex items-start gap-3 text-sm text-muted-foreground">
                 <input
                   type="checkbox"
-                  className="mt-1 h-4 w-4 accent-[#F97316] rounded border-gray-300 cursor-pointer"
+                  className="mt-1 h-4 w-4 rounded border-input accent-primary"
+                  aria-invalid={Boolean(errors.privacy_accepted)}
                   {...register("privacy_accepted")}
                 />
-                <span className="text-gray-600 font-medium">
-                  Aceito a{" "}
+                <span>
+                  Li e aceito a{" "}
                   <Link
                     href="/politica-de-privacidade"
-                    className="font-bold text-[#F97316] hover:underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-primary hover:underline"
                   >
                     Política de Privacidade
                   </Link>
@@ -475,134 +399,106 @@ export default function RegisterPage() {
                 </span>
               </label>
               {errors.privacy_accepted && (
-                <p className="text-xs text-red-600 font-medium">
+                <p className="text-xs text-danger" role="alert">
                   {errors.privacy_accepted.message}
                 </p>
               )}
             </div>
 
             <Button
+              id="register-submit"
               type="submit"
-              isLoading={isLoading}
-              className="mt-4 h-12 rounded-full bg-[#F97316] font-bold text-white hover:bg-[#EA580C] shadow-none transition-all"
+              className="w-full font-bold sm:w-auto"
+              isLoading={isSubmitting}
+              rightIcon={<ArrowRight className="h-4 w-4" />}
             >
-              {selection.plan
-                ? accessMode === "TRIAL"
-                  ? "Iniciar teste gratuito"
-                  : "Criar conta e ir ao checkout"
-                : "Criar conta e escolher plano"}
-              <ArrowRight className="ml-2 h-4 w-4" />
+              Criar conta
             </Button>
           </form>
 
-          <p className="mt-8 text-sm text-gray-500 font-medium">
-            Já possui conta?{" "}
+          <p className="mt-6 text-sm text-muted-foreground">
+            Já possui uma conta?{" "}
             <Link
               href={loginHref}
-              className="font-bold text-[#F97316] hover:underline"
+              className="font-semibold text-primary hover:underline"
             >
               Entrar
             </Link>
           </p>
         </div>
-      </div>
+      </section>
 
-      {/* Right Column - Illustration & Floating Summary */}
-      <aside className="hidden lg:block lg:w-[55%] xl:w-[60%] relative bg-[#F9F9F9] overflow-hidden">
-        {/* Background Illustration */}
-        <div className="absolute inset-0">
-          <img
-            src="/register_illustration.svg"
-            alt="Ambiente Terapêutico"
-            className="w-full h-full object-cover object-[left_center] scale-[1.05] origin-left"
-          />
-        </div>
-
-        {/* Floating Resumo da Contratação (Glassmorphism) */}
-        <div className="absolute bottom-8 right-8 z-10 w-96 rounded-3xl border border-white/40 bg-white/60 backdrop-blur-xl p-7 shadow-2xl">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#2F855A]/10">
-              <ShieldCheck className="h-6 w-6 text-[#2F855A]" />
-            </div>
-            <h2 className="text-lg font-extrabold text-gray-900">
-              Resumo da contratação
-            </h2>
-          </div>
-
-          {selected.plan && selected.price ? (
-            <div className="space-y-4">
+      <aside className="flex items-center border-l border-sidebar-border bg-sidebar p-6 text-sidebar-foreground sm:p-10">
+        <div className="mx-auto w-full max-w-md space-y-6">
+          <div className="rounded-xl border border-sidebar-border bg-sidebar-surface/80 p-6">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-lg border border-sidebar-active/25 bg-sidebar-active/10 text-sidebar-active">
+                <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+              </span>
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                  Plano Selecionado
+                <p className="text-xs font-semibold uppercase tracking-wide text-sidebar-muted">
+                  Seleção atual
                 </p>
-                <p className="text-xl font-extrabold text-gray-900">
-                  {selected.plan.name}
-                </p>
+                <h2 className="text-base font-bold text-sidebar-foreground">
+                  {selected.plan?.name || "Avaliação do Elo Terapêutico"}
+                </h2>
               </div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-xl bg-white/50 p-3 border border-white/30">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Ciclo
-                  </span>
-                  <strong className="mt-1 block text-gray-900">
-                    {selected.price.billing_interval === "YEARLY"
-                      ? "Anual"
-                      : "Mensal"}
-                  </strong>
-                </div>
-                <div className="rounded-xl bg-white/50 p-3 border border-white/30">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Modalidade
-                  </span>
-                  <strong className="mt-1 block text-gray-900">
-                    {selected.price.billing_model === "INSTALLMENT"
-                      ? "Parcelado"
-                      : selected.price.billing_model === "ONE_TIME"
-                        ? "À vista"
-                        : "Recorrente"}
-                  </strong>
-                </div>
-              </div>
-              <div className="rounded-2xl bg-[#F97316]/10 p-4 border border-[#F97316]/20">
-                <p className="text-xs font-bold uppercase tracking-wider text-[#F97316]">
-                  Valor total
-                </p>
-                <p className="mt-1 text-3xl font-extrabold text-[#F97316]">
-                  {currency(
-                    selected.price.total_amount,
-                    selected.price.currency,
-                  )}
-                </p>
-                {selected.price.billing_model === "INSTALLMENT" && (
-                  <p className="mt-1 text-xs text-[#F97316]/70">
-                    Até {selected.price.max_installments} parcelas, conforme o
-                    checkout.
+            </div>
+
+            <div className="mt-5 border-t border-sidebar-border pt-5">
+              {plansLoading ? (
+                <p className="text-sm text-sidebar-muted">Carregando plano...</p>
+              ) : selected.price ? (
+                <>
+                  <p className="text-2xl font-bold text-sidebar-active">
+                    {currency(selected.price.amount, selected.price.currency)}
                   </p>
-                )}
-              </div>
-              {accessMode === "TRIAL" && (
-                <div className="flex items-center gap-3 rounded-2xl bg-[#ECFDF5]/80 p-3 text-sm text-[#166534] border border-[#2F855A]/20">
-                  <CheckCircle2 className="h-5 w-5 shrink-0" />
-                  <span className="font-medium leading-tight">
-                    7 dias gratuitos incluídos.
-                  </span>
-                </div>
+                  <p className="mt-1 text-xs text-sidebar-muted">
+                    {selected.price.billing_interval_display} •{" "}
+                    {selected.price.billing_model_display}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-sidebar-muted">
+                  Você poderá escolher ou revisar o plano após criar a conta.
+                </p>
               )}
             </div>
-          ) : (
-            <div className="rounded-2xl bg-white/50 p-5 text-sm text-gray-600 border border-white/30 font-medium">
-              Nenhum plano selecionado. Sua conta será criada e você será
-              direcionado para comparar os planos disponíveis.
-            </div>
-          )}
-          <Link
-            href="/planos"
-            className="mt-5 flex items-center justify-center gap-2 text-sm font-bold text-[#F97316] hover:text-[#EA580C] hover:underline transition-colors w-full rounded-xl p-2 hover:bg-[#F97316]/5"
-          >
-            Alterar ou escolher plano <ArrowRight className="h-4 w-4" />
-          </Link>
+          </div>
+
+          <ul className="space-y-3 text-sm text-sidebar-muted">
+            {[
+              "Tokens de acesso protegidos em cookies HttpOnly.",
+              "Dados clínicos não participam do fluxo de cobrança.",
+              "A assinatura só é ativada após confirmação segura do pagamento.",
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-3">
+                <CheckCircle2
+                  className="mt-0.5 h-4 w-4 shrink-0 text-sidebar-active"
+                  aria-hidden="true"
+                />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </aside>
     </main>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="grid min-h-screen place-items-center bg-background p-6">
+          <p className="text-sm text-muted-foreground">
+            Carregando cadastro...
+          </p>
+        </main>
+      }
+    >
+      <RegisterForm />
+    </Suspense>
   );
 }
