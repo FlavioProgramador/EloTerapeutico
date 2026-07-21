@@ -12,6 +12,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.audit.models import AuditLog
+from apps.organizations.services.tenant_context import ensure_request_organization
 
 from ..models import Communication
 from ..permissions import CanAccessCommunications, CanSendCommunication
@@ -32,16 +33,41 @@ from ..services import (
 from .common import _audit, _rate_limit
 
 
-class CommunicationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
-    permission_classes = [IsAuthenticated, CanAccessCommunications, CanSendCommunication]
+class CommunicationViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    permission_classes = [
+        IsAuthenticated,
+        CanAccessCommunications,
+        CanSendCommunication,
+    ]
     lookup_field = "public_id"
 
+    def _organization(self):
+        organization, _ = ensure_request_organization(
+            request=self.request,
+            required=True,
+        )
+        return organization
+
     def get_queryset(self):
-        queryset = communications_for_user(self.request.user)
+        queryset = communications_for_user(
+            self.request.user,
+            organization=self._organization(),
+        )
         params = self.request.query_params
         if params.get("search"):
             search = params["search"].strip()
-            queryset = queryset.filter(Q(subject__icontains=search) | Q(patient__full_name__icontains=search) | Q(source_event__icontains=search))
+            queryset = queryset.filter(
+                Q(subject__icontains=search)
+                | Q(patient__full_name__icontains=search)
+                | Q(source_event__icontains=search)
+            )
         for field in ("channel", "category", "status"):
             if params.get(field):
                 queryset = queryset.filter(**{field: params[field]})
@@ -59,37 +85,75 @@ class CommunicationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mix
         return CommunicationListSerializer
 
     def create(self, request, *args, **kwargs):
-        _rate_limit(f"create:{request.user.pk}", limit=30, window_seconds=60)
+        organization = self._organization()
+        _rate_limit(
+            f"create:{organization.pk}:{request.user.pk}",
+            limit=30,
+            window_seconds=60,
+        )
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        communication = serializer.save()
-        _audit(request, AuditLog.Action.CREATE, communication, "communication_created")
-        return Response(CommunicationDetailSerializer(communication).data, status=status.HTTP_201_CREATED)
+        communication = serializer.save(organization=organization)
+        _audit(
+            request,
+            AuditLog.Action.CREATE,
+            communication,
+            "communication_created",
+        )
+        return Response(
+            CommunicationDetailSerializer(communication).data,
+            status=status.HTTP_201_CREATED,
+        )
 
     def perform_update(self, serializer):
         communication = serializer.save()
-        _audit(self.request, AuditLog.Action.UPDATE, communication, "communication_draft_updated")
+        _audit(
+            self.request,
+            AuditLog.Action.UPDATE,
+            communication,
+            "communication_draft_updated",
+        )
 
     def destroy(self, request, *args, **kwargs):
         communication = self.get_object()
-        if not communication.is_terminal and communication.status != Communication.Status.FAILED:
+        if (
+            not communication.is_terminal
+            and communication.status != Communication.Status.FAILED
+        ):
             cancel_communication(communication, actor=request.user)
         communication.archived_at = timezone.now()
         communication.save(update_fields=["archived_at", "updated_at"])
-        _audit(request, AuditLog.Action.DELETE, communication, "communication_archived")
+        _audit(
+            request,
+            AuditLog.Action.DELETE,
+            communication,
+            "communication_archived",
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["post"])
     def send(self, request, public_id=None):
         communication = self.get_object()
         if communication.status != Communication.Status.DRAFT:
-            raise ValidationError("Somente rascunhos podem ser enviados por esta ação.")
-        if communication.channel == Communication.Channel.WHATSAPP_MANUAL and communication.metadata.get("manual_url"):
-            raise ValidationError("Abra o WhatsApp e confirme o envio manual em vez de reenfileirar esta mensagem.")
+            raise ValidationError(
+                "Somente rascunhos podem ser enviados por esta ação."
+            )
+        if (
+            communication.channel == Communication.Channel.WHATSAPP_MANUAL
+            and communication.metadata.get("manual_url")
+        ):
+            raise ValidationError(
+                "Abra o WhatsApp e confirme o envio manual em vez de reenfileirar esta mensagem."
+            )
         communication.status = Communication.Status.QUEUED
         communication.queued_at = timezone.now()
         communication.save(update_fields=["status", "queued_at", "updated_at"])
-        _audit(request, AuditLog.Action.UPDATE, communication, "communication_queued")
+        _audit(
+            request,
+            AuditLog.Action.UPDATE,
+            communication,
+            "communication_queued",
+        )
         return Response(CommunicationDetailSerializer(communication).data)
 
     @action(detail=True, methods=["post"])
@@ -110,38 +174,66 @@ class CommunicationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mix
             raise ValidationError({"scheduled_at": "A data deve estar no futuro."})
         communication.status = Communication.Status.SCHEDULED
         communication.scheduled_at = scheduled_at
-        communication.save(update_fields=["status", "scheduled_at", "updated_at"])
+        communication.save(
+            update_fields=["status", "scheduled_at", "updated_at"]
+        )
         return Response(CommunicationDetailSerializer(communication).data)
 
     @action(detail=True, methods=["post"])
     def cancel(self, request, public_id=None):
         communication = cancel_communication(self.get_object(), actor=request.user)
-        _audit(request, AuditLog.Action.UPDATE, communication, "communication_canceled")
+        _audit(
+            request,
+            AuditLog.Action.UPDATE,
+            communication,
+            "communication_canceled",
+        )
         return Response(CommunicationDetailSerializer(communication).data)
 
     @action(detail=True, methods=["post"])
     def retry(self, request, public_id=None):
-        _rate_limit(f"retry:{request.user.pk}", limit=10, window_seconds=60)
+        organization = self._organization()
+        _rate_limit(
+            f"retry:{organization.pk}:{request.user.pk}",
+            limit=10,
+            window_seconds=60,
+        )
         communication = retry_communication(self.get_object())
-        _audit(request, AuditLog.Action.UPDATE, communication, "communication_retried")
+        _audit(
+            request,
+            AuditLog.Action.UPDATE,
+            communication,
+            "communication_retried",
+        )
         return Response(CommunicationDetailSerializer(communication).data)
 
     @action(detail=True, methods=["post"], url_path="open-manual")
     def open_manual(self, request, public_id=None):
         communication = mark_manual_opened(self.get_object())
-        _audit(request, AuditLog.Action.VIEW, communication, "communication_manual_link_opened")
+        _audit(
+            request,
+            AuditLog.Action.VIEW,
+            communication,
+            "communication_manual_link_opened",
+        )
         return Response({"url": communication.metadata.get("manual_url", "")})
 
     @action(detail=True, methods=["post"], url_path="mark-manually-sent")
     def mark_manually_sent(self, request, public_id=None):
         communication = mark_manually_sent(self.get_object())
-        _audit(request, AuditLog.Action.UPDATE, communication, "communication_manually_sent")
+        _audit(
+            request,
+            AuditLog.Action.UPDATE,
+            communication,
+            "communication_manually_sent",
+        )
         return Response(CommunicationDetailSerializer(communication).data)
 
     @action(detail=True, methods=["post"])
     def duplicate(self, request, public_id=None):
         source = self.get_object()
         duplicate = create_communication(
+            organization=source.organization,
             owner=request.user,
             created_by=request.user,
             channel=source.channel,
@@ -155,4 +247,7 @@ class CommunicationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mix
             source_event="manual.duplicate",
             draft=True,
         )
-        return Response(CommunicationDetailSerializer(duplicate).data, status=status.HTTP_201_CREATED)
+        return Response(
+            CommunicationDetailSerializer(duplicate).data,
+            status=status.HTTP_201_CREATED,
+        )
