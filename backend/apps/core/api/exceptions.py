@@ -91,7 +91,9 @@ def custom_exception_handler(exc, context):
 
     if isinstance(exc, (OperationalError, ProgrammingError)) and _is_communications_view(context):
         logger.error(
-            "communications_database_not_ready",
+            "communications_database_not_ready type=%s view=%s",
+            exc.__class__.__name__,
+            _view_name(context),
             extra={
                 "request_id": request_id,
                 "exception_type": exc.__class__.__name__,
@@ -113,16 +115,16 @@ def custom_exception_handler(exc, context):
         )
         return _secure_error_response(response, request_id)
 
-    # Não use logger.exception aqui: a representação textual da exceção pode
-    # conter SQL, tokens, CPF ou conteúdo clínico. O tipo e o request_id são
-    # suficientes para correlação; detalhes devem ser coletados por uma solução
-    # de observabilidade com redaction explícita.
+    exception_type = exc.__class__.__name__
+    view_name = _view_name(context)
     logger.error(
-        "api_unhandled_exception",
+        "api_unhandled_exception type=%s view=%s",
+        exception_type,
+        view_name,
         extra={
             "request_id": request_id,
-            "exception_type": exc.__class__.__name__,
-            "view": _view_name(context),
+            "exception_type": exception_type,
+            "view": view_name,
         },
     )
     response = Response(
@@ -178,23 +180,17 @@ def _get_error_code(exc, status_code: int) -> str:
         409: "CONFLICT",
         429: "TOO_MANY_REQUESTS",
         500: "INTERNAL_ERROR",
-        503: "SERVICE_UNAVAILABLE",
     }
-    if hasattr(exc, "default_code"):
-        return exc.default_code.upper()
-    return code_map.get(status_code, "ERROR")
+    code = getattr(exc, "default_code", None)
+    return str(code).upper() if code else code_map.get(status_code, "API_ERROR")
 
 
-def _get_error_message(exc, response) -> str:
-    if hasattr(exc, "detail"):
-        detail = exc.detail
-        if isinstance(detail, str):
-            return detail
-        if isinstance(detail, list) and detail:
-            return str(detail[0])
-        if isinstance(detail, dict):
-            for key, value in detail.items():
-                if isinstance(value, list):
-                    return f"{key}: {value[0]}"
-                return f"{key}: {value}"
-    return "Ocorreu um erro. Por favor, tente novamente."
+def _get_error_message(exc, response: Response) -> str:
+    detail = getattr(exc, "detail", None)
+    if isinstance(detail, str):
+        return detail
+    if isinstance(response.data, dict):
+        response_detail = response.data.get("detail")
+        if response_detail:
+            return str(response_detail)
+    return "A solicitação não pôde ser processada."
