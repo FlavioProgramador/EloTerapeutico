@@ -53,11 +53,13 @@ export function TelemedicinePreJoin({
           }
           onSubmit={(values) =>
             onJoin({
-              username: values.username || (role === "patient" ? "Paciente" : "Profissional"),
-              audioEnabled: values.audioEnabled,
-              videoEnabled: values.videoEnabled,
-              audioDeviceId: values.audioDeviceId,
-              videoDeviceId: values.videoDeviceId,
+              username:
+                values.username ||
+                (role === "patient" ? "Paciente" : "Profissional"),
+              audioEnabled: Boolean(values.audioEnabled),
+              videoEnabled: Boolean(values.videoEnabled),
+              audioDeviceId: values.audioDeviceId || "",
+              videoDeviceId: values.videoDeviceId || "",
             })
           }
         />
