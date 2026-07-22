@@ -246,7 +246,6 @@ export function createBackendHeaders(
     if (value) headers.set(name, value);
   }
   if (accessToken) headers.set("authorization", `Bearer ${accessToken}`);
-  headers.set("connection", "close");
   return headers;
 }
 
