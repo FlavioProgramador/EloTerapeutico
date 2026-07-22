@@ -8,7 +8,7 @@ from apps.scheduling.telemedicine_config import get_telemedicine_config
 def check_telemedicine_configuration(app_configs, **kwargs):
     del app_configs, kwargs
     config = get_telemedicine_config()
-    issues = []
+    issues: list[Error | Warning] = []
 
     if config.enabled and not config.provider_configured:
         issues.append(
