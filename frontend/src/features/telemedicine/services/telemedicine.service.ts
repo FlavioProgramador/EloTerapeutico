@@ -39,10 +39,12 @@ export const telemedicinePublicService = {
   consent: (
     token: string,
     payload: { accepted: boolean; responsible_guardian_name?: string },
-  ) => publicPost<{ accepted: true; document_version: string; accepted_at: string }>(
-    "consent",
-    { token, ...payload },
-  ),
+  ) =>
+    publicPost<{
+      accepted: true;
+      document_version: string;
+      accepted_at: string;
+    }>("consent", { token, ...payload }),
   join: (token: string) =>
     publicPost<TelemedicineCredentials>("join", { token }),
   leave: (token: string, identity: string) =>
@@ -63,6 +65,17 @@ export const telemedicineProfessionalService = {
         `scheduling/telemedicine/${roomId}/create-invitation/`,
         {},
       )
+    ).data,
+  sendInvitation: async (
+    roomId: number,
+    channel: "email" | "whatsapp_manual" = "email",
+  ) =>
+    (
+      await api.post<{
+        communication_id: number;
+        status: string;
+        channel: string;
+      }>(`scheduling/telemedicine/${roomId}/send-invitation/`, { channel })
     ).data,
   revokeInvitation: async (roomId: number) =>
     (
