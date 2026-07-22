@@ -98,3 +98,7 @@ class TelemedicineConsentSerializer(TelemedicineInvitationTokenSerializer):
 
 class TelemedicineParticipantRemovalSerializer(serializers.Serializer):
     identity = serializers.CharField(min_length=16, max_length=180)
+
+
+class TelemedicinePublicLeaveSerializer(TelemedicineInvitationTokenSerializer):
+    identity = serializers.CharField(min_length=16, max_length=180)
