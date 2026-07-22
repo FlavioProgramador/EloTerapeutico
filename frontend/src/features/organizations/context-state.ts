@@ -2,7 +2,7 @@ import type {
   Organization,
   OrganizationContextPayload,
   OrganizationMembership,
-} from "@/features/organizations/types";
+} from "./types";
 
 export interface OrganizationActivationPayload {
   organization: Organization;
