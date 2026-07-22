@@ -52,19 +52,45 @@ https://staging.example/api/v1/scheduling/integrations/livekit/webhook/
 
 A tarefa `apps.scheduling.tasks.expire_stale_telemedicine_rooms` deve aparecer no Beat.
 
+## Comunicações operacionais
+
+O sistema não cria convite público silenciosamente. O primeiro envio depende de ação explícita do profissional no painel.
+
+Depois desse primeiro envio:
+
+- o convite é colocado na fila persistente de Comunicações;
+- um lembrete é agendado para duas horas antes, quando o horário ainda estiver no futuro;
+- reagendamento cancela mensagens pendentes, revoga o convite anterior e cria novo convite no mesmo canal;
+- cancelamento ou mudança para presencial revogam o acesso e enfileiram aviso administrativo;
+- falhas de automação são registradas sem incluir link, paciente ou conteúdo clínico.
+
+Para diagnosticar a fila, verificar `Communication.status`, `scheduled_at`, `next_retry_at` e o worker `communications`. O link do convite está dentro do corpo criptografado e não deve ser copiado para logs ou tickets.
+
 ## Monitoramento
 
-Monitorar sem PII:
+A visão autenticada abaixo retorna apenas contadores agregados do tenant atual:
 
-- tentativas e falhas de entrada;
+```text
+GET /api/v1/scheduling/telemedicine/operational-metrics/
+```
+
+A janela padrão é de 24 horas e inclui:
+
+- salas por status e total de falhas;
+- participantes ativos, entradas e conexões abortadas;
+- convites criados, usados e ativos;
+- webhooks recebidos e erros de processamento.
+
+Monitorar também:
+
 - erros do provider;
-- webhooks rejeitados;
+- webhooks rejeitados antes da persistência;
 - salas presas em `waiting` ou `in_progress`;
 - atraso do Celery Beat;
-- consumo de minutos e transferência do LiveKit;
+- consumo de minutos e transferência do LiveKit no console do provedor;
 - falhas de câmera, microfone e E2EE reportadas pelo frontend.
 
-Não usar room name, convite, paciente, e-mail ou appointment ID como label de alta cardinalidade.
+Não usar room name, convite, paciente, e-mail, appointment ID ou identidade de participante como label de alta cardinalidade.
 
 ## Diagnóstico
 
@@ -99,6 +125,17 @@ Verificar:
 - profissional responsável;
 - assinatura do proprietário da organização;
 - sala não cancelada ou finalizada.
+
+### Convite ou lembrete não enviado
+
+Verificar:
+
+- canal ativo e configurado;
+- entitlement e limite mensal de Comunicações;
+- endereço do paciente;
+- worker `communications`;
+- comunicação em estado `scheduled`, `queued` ou `failed`;
+- se o reagendamento cancelou corretamente a mensagem anterior.
 
 ### Webhook não processa
 
