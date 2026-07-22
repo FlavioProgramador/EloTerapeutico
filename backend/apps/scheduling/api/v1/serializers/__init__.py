@@ -17,6 +17,7 @@ from .telemedicine import (
     TelemedicineConsentSerializer,
     TelemedicineInvitationTokenSerializer,
     TelemedicineParticipantRemovalSerializer,
+    TelemedicinePublicLeaveSerializer,
     TelemedicineRoomSerializer,
 )
 
@@ -36,5 +37,6 @@ __all__ = [
     "TelemedicineConsentSerializer",
     "TelemedicineInvitationTokenSerializer",
     "TelemedicineParticipantRemovalSerializer",
+    "TelemedicinePublicLeaveSerializer",
     "TelemedicineRoomSerializer",
 ]
