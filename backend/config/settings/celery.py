@@ -61,6 +61,7 @@ CELERY_TASK_ROUTES = {
         "routing_key": "communications",
     },
     "apps.billing.tasks.*": {"queue": "default", "routing_key": "default"},
+    "apps.scheduling.tasks.*": {"queue": "default", "routing_key": "default"},
 }
 CELERY_TASK_SOFT_TIME_LIMIT = env.int("CELERY_TASK_SOFT_TIME_LIMIT_SECONDS", default=300)  # noqa: F405
 CELERY_TASK_TIME_LIMIT = env.int("CELERY_TASK_TIME_LIMIT_SECONDS", default=360)  # noqa: F405
@@ -123,6 +124,11 @@ CELERY_BEAT_SCHEDULE = {
     "billing-reconcile-payments": {
         "task": "apps.billing.tasks.reconcile_asaas_payments",
         "schedule": env.int("BILLING_RECONCILIATION_INTERVAL_MINUTES", default=60) * 60,  # noqa: F405
+        "options": {"queue": "default"},
+    },
+    "telemedicine-expire-stale-rooms": {
+        "task": "apps.scheduling.tasks.expire_stale_telemedicine_rooms",
+        "schedule": env.int("TELEMEDICINE_MAINTENANCE_INTERVAL_SECONDS", default=300),  # noqa: F405
         "options": {"queue": "default"},
     },
 }
