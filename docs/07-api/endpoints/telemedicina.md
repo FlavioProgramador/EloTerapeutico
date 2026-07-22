@@ -9,9 +9,10 @@ Todas as respostas com convite, JWT ou chave E2EE usam `Cache-Control: no-store`
 | Método | Rota | Finalidade |
 | --- | --- | --- |
 | `GET` | `telemedicine/` | Lista salas do tenant sem tokens ou IDs internos do provedor |
+| `GET` | `telemedicine/operational-metrics/` | Retorna contadores operacionais agregados do tenant, sem PII |
 | `GET` | `telemedicine/{id}/` | Detalha estado operacional da sala |
 | `POST` | `telemedicine/{id}/create-invitation/` | Revoga convite anterior e devolve um novo link uma única vez |
-| `POST` | `telemedicine/{id}/send-invitation/` | Cria convite novo e o enfileira em Comunicações |
+| `POST` | `telemedicine/{id}/send-invitation/` | Cria convite novo, enfileira o envio e agenda lembrete quando aplicável |
 | `POST` | `telemedicine/{id}/revoke-invitation/` | Revoga o convite ativo |
 | `POST` | `telemedicine/{id}/join-professional/` | Emite credenciais efêmeras do profissional |
 | `POST` | `telemedicine/{id}/finish/` | Fecha a sala técnica e revoga acessos |
@@ -47,6 +48,45 @@ Canais aceitos no MVP:
 - `whatsapp_manual`.
 
 Resposta `202` contém somente ID administrativo, canal e status da fila; não contém o link.
+
+Após o primeiro envio explícito pelo profissional:
+
+- um lembrete é agendado para duas horas antes, quando ainda estiver no futuro;
+- reagendamentos cancelam comunicações pendentes, revogam o convite anterior e geram novo acesso no mesmo canal;
+- cancelamento ou mudança para modalidade presencial revogam o acesso e enfileiram aviso administrativo;
+- idempotency keys impedem duplicação de mensagens para o mesmo evento.
+
+### Métricas operacionais
+
+`GET telemedicine/operational-metrics/` retorna uma janela agregada de 24 horas:
+
+```json
+{
+  "generated_at": "2026-07-22T18:00:00Z",
+  "window_hours": 24,
+  "rooms": {
+    "total": 12,
+    "by_status": {"available": 5, "finished": 7},
+    "failed": 0
+  },
+  "participants": {
+    "active": 1,
+    "joined_in_window": 8,
+    "aborted_in_window": 1
+  },
+  "invitations": {
+    "created_in_window": 6,
+    "used_in_window": 5,
+    "active": 3
+  },
+  "webhooks": {
+    "received_in_window": 22,
+    "processing_errors_in_window": 0
+  }
+}
+```
+
+A resposta respeita o tenant atual e não contém nomes, e-mails, tokens, IDs públicos de sala, identidades de participantes ou conteúdo clínico.
 
 ## Endpoints públicos via BFF
 
