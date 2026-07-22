@@ -36,12 +36,16 @@ class AnamnesisView(generics.GenericAPIView):
 
     def _get_patient(self, patient_id):
         from apps.patients.models import Patient
+        from apps.patients.services.access_control import patient_access_q
 
-        # Obter o paciente ou retornar 404
-        patient = get_object_or_404(Patient, id=patient_id)
+        # Obter o paciente ou retornar 404 (garantindo restrição por tenant/permissão mínima)
+        user = self.request.user
+        patient = get_object_or_404(
+            Patient.objects.filter(patient_access_q(user)),
+            id=patient_id,
+        )
 
         # Validar permissão: apenas o terapeuta responsável, admin ou vinculado
-        user = self.request.user
         if not can_access_patient(user, patient):
             self.permission_denied(
                 self.request,
