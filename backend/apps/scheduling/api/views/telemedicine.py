@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import Q
 from django.utils.decorators import method_decorator
 from django_ratelimit.decorators import ratelimit
@@ -11,9 +12,11 @@ from rest_framework.views import APIView
 
 from apps.audit.models import AuditLog
 from apps.audit.services import log_access
+from apps.communications.services import CommunicationBlocked
 from apps.scheduling.api.v1.serializers import (
     AppointmentReminderSerializer,
     TelemedicineConsentSerializer,
+    TelemedicineInvitationSendSerializer,
     TelemedicineInvitationTokenSerializer,
     TelemedicineParticipantRemovalSerializer,
     TelemedicinePublicLeaveSerializer,
@@ -29,6 +32,9 @@ from apps.scheduling.exceptions import (
     TelemedicineOutsideJoinWindowError,
     TelemedicineProviderUnavailableError,
     TelemedicineUnavailableError,
+)
+from apps.scheduling.integrations.communications import (
+    send_telemedicine_invitation,
 )
 from apps.scheduling.integrations.telemedicine import (
     TelemedicineWebhookVerificationError,
@@ -148,6 +154,40 @@ class TelemedicineRoomViewSet(ScopedAgendaMixin, viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=["post"], url_path="regenerate-link")
     def regenerate_link(self, request, pk=None):
         return self._create_invitation_response(request, self.get_object())
+
+    @action(detail=True, methods=["post"], url_path="send-invitation")
+    def send_invitation(self, request, pk=None):
+        serializer = TelemedicineInvitationSendSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        room = self.get_object()
+        try:
+            communication = send_telemedicine_invitation(
+                actor=request.user,
+                room=room,
+                channel=serializer.validated_data["channel"],
+            )
+        except TelemedicineUnavailableError as exc:
+            return _telemedicine_error_response(exc)
+        except (CommunicationBlocked, PermissionDenied, ValidationError) as exc:
+            detail = getattr(exc, "message", None) or str(exc)
+            return Response(
+                {"detail": detail},
+                status=status.HTTP_409_CONFLICT,
+            )
+        log_access(
+            request,
+            AuditLog.Action.UPDATE,
+            room.appointment,
+            "Convite de telemedicina enfileirado para envio",
+        )
+        return Response(
+            {
+                "communication_id": communication.pk,
+                "status": communication.status,
+                "channel": communication.channel,
+            },
+            status=status.HTTP_202_ACCEPTED,
+        )
 
     @action(detail=True, methods=["post"], url_path="revoke-invitation")
     def revoke_invitation(self, request, pk=None):
