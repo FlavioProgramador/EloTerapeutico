@@ -124,8 +124,14 @@ async function proxyRequest(
   };
 
   if (request.method !== "GET" && request.method !== "HEAD" && request.body) {
-    init.body = request.body;
-    init.duplex = "half";
+    const contentType = request.headers.get("content-type") || "";
+    if (contentType.includes("multipart/form-data")) {
+      init.body = await request.formData();
+      headers.delete("content-type");
+      headers.delete("content-length");
+    } else {
+      init.body = await request.arrayBuffer();
+    }
   }
 
   try {
@@ -134,11 +140,15 @@ async function proxyRequest(
       init,
       request.nextUrl.search,
     );
+    if (backendResponse.status === 404) {
+      console.log("BACKEND RETURNED 404 for:", normalizedPath);
+    }
     if (normalizedLowerPath === "auth/register") {
       return registrationResponse(request, backendResponse);
     }
     return backendResponseToNext(backendResponse);
   } catch (error: unknown) {
+    console.log("PROXY ERROR:", error);
     return gatewayUnavailableResponse(request, error);
   }
 }

@@ -245,6 +245,12 @@ export function createBackendHeaders(
     const value = request.headers.get(name);
     if (value) headers.set(name, value);
   }
+  
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    const contentLength = request.headers.get("content-length");
+    if (contentLength) headers.set("content-length", contentLength);
+  }
+
   if (accessToken) headers.set("authorization", `Bearer ${accessToken}`);
   headers.set("connection", "close");
   return headers;

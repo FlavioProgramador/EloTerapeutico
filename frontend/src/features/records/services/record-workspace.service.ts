@@ -131,7 +131,6 @@ export const recordWorkspaceService = {
     const response = await api.post<ClinicalDocument>(
       `records/patients/${patientId}/documents/`,
       formData,
-      { headers: { "Content-Type": "multipart/form-data" } },
     );
     return response.data;
   },

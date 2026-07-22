@@ -46,6 +46,7 @@ def create_quarantined_document(
     with transaction.atomic():
         document = ClinicalDocument.objects.create(
             patient=patient,
+            organization=patient.organization,
             uploaded_by=uploaded_by,
             quarantine_file=uploaded_file,
             file=None,

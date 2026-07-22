@@ -86,7 +86,7 @@ async function resolveRedirectAfterLogin(): Promise<string> {
 }
 
 async function readBrowserSession(): Promise<BrowserSessionSnapshot> {
-  const response = await axios.get<BrowserSessionSnapshot>("/api/auth/session/", {
+  const response = await axios.get<BrowserSessionSnapshot>("/api/auth/session", {
     withCredentials: true,
     headers: { Accept: "application/json" },
   });
@@ -142,7 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     setUser(null);
     try {
-      await axios.post("/api/auth/login/", credentials, {
+      await axios.post("/api/auth/login", credentials, {
         withCredentials: true,
         headers: { "Content-Type": "application/json" },
       });
@@ -160,7 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     setIsLoading(true);
     try {
-      await postAuthAction("/api/auth/logout/");
+      await postAuthAction("/api/auth/logout");
     } finally {
       clearClientAuthState();
       setUser(null);
@@ -172,7 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logoutAll = async () => {
     setIsLoading(true);
     try {
-      await postAuthAction("/api/auth/logout-all/");
+      await postAuthAction("/api/auth/logout-all");
     } finally {
       clearClientAuthState();
       setUser(null);
