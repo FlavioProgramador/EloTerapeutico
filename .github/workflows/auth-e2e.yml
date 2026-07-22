@@ -224,6 +224,53 @@ jobs:
           tail -n 80 /tmp/elo-frontend.log
           exit 1
 
+      - name: Smoke test logout through BFF
+        shell: bash
+        run: |
+          python - <<'PY'
+          import http.cookiejar
+          import json
+          import os
+          import urllib.request
+
+          cookie_jar = http.cookiejar.CookieJar()
+          opener = urllib.request.build_opener(
+              urllib.request.HTTPCookieProcessor(cookie_jar)
+          )
+          login_request = urllib.request.Request(
+              "http://127.0.0.1:3000/api/auth/login",
+              data=json.dumps(
+                  {
+                      "email": os.environ["E2E_USER_EMAIL"],
+                      "password": os.environ["E2E_USER_PASSWORD"],
+                  }
+              ).encode(),
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          with opener.open(login_request, timeout=15) as response:
+              if response.status != 200:
+                  raise SystemExit(f"Login BFF retornou {response.status}.")
+              response.read()
+
+          csrf = next(
+              (cookie.value for cookie in cookie_jar if cookie.name == "elo_csrf"),
+              "",
+          )
+          if not csrf:
+              raise SystemExit("Cookie CSRF não foi emitido pelo login BFF.")
+
+          logout_request = urllib.request.Request(
+              "http://127.0.0.1:3000/api/auth/logout",
+              headers={"X-CSRF-Token": csrf},
+              method="POST",
+          )
+          with opener.open(logout_request, timeout=15) as response:
+              if response.status != 200:
+                  raise SystemExit(f"Logout BFF retornou {response.status}.")
+              response.read()
+          PY
+
       - name: Run auth E2E scenarios
         working-directory: frontend/e2e
         env:
@@ -267,5 +314,8 @@ jobs:
           path: |
             frontend/e2e/playwright-report
             frontend/e2e/test-results
+            /tmp/elo-backend.log
+            /tmp/elo-frontend.log
+            /tmp/elo-gateway-frontend.log
           if-no-files-found: ignore
           retention-days: 5
