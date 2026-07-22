@@ -1,0 +1,66 @@
+name: Adicionar logs ao E2E de autenticação
+
+on:
+  push:
+    branches:
+      - agent/telemedicina-livekit
+    paths:
+      - .github/workflows/patch-auth-e2e-logs.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/patch-auth-e2e-logs.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-logs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout da branch
+        uses: actions/checkout@v7
+        with:
+          ref: agent/telemedicina-livekit
+          fetch-depth: 0
+
+      - name: Configurar Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Incluir logs dos processos nos artefatos
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path(".github/workflows/auth-e2e.yml")
+          source = path.read_text(encoding="utf-8")
+          old = '''          path: |
+            frontend/e2e/playwright-report
+            frontend/e2e/test-results
+'''
+          new = '''          path: |
+            frontend/e2e/playwright-report
+            frontend/e2e/test-results
+            /tmp/elo-backend.log
+            /tmp/elo-frontend.log
+            /tmp/elo-gateway-frontend.log
+'''
+          if old not in source:
+              raise SystemExit("Bloco de artefatos não encontrado.")
+          path.write_text(source.replace(old, new, 1), encoding="utf-8")
+          PY
+          git add .github/workflows/auth-e2e.yml
+          git commit -m "ci(e2e): preserva logs do frontend e backend"
+          git push origin HEAD:agent/telemedicina-livekit
+
+      - name: Remover workflow temporário
+        run: |
+          git pull --rebase origin agent/telemedicina-livekit
+          rm .github/workflows/patch-auth-e2e-logs.yml
+          git add .github/workflows/patch-auth-e2e-logs.yml
+          git commit -m "ci: remove workflow temporário de logs"
+          git push origin HEAD:agent/telemedicina-livekit
