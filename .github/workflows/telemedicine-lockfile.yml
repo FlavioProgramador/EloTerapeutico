@@ -7,6 +7,12 @@ on:
     paths:
       - frontend/package.json
       - .github/workflows/telemedicine-lockfile.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - frontend/package.json
+      - .github/workflows/telemedicine-lockfile.yml
 
 permissions:
   contents: write
