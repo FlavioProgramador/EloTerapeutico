@@ -1,25 +1,22 @@
 name: PR218 Lockfile Repair
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/corrige-onboarding-organizacao
+      - main
     paths:
       - ".github/workflows/pr218-fix-lock.yml"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   repair-lockfile:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout branch
+      - name: Checkout pull request
         uses: actions/checkout@v7
-        with:
-          ref: agent/corrige-onboarding-organizacao
-          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -32,14 +29,17 @@ jobs:
         working-directory: frontend
         run: npm update brace-expansion js-yaml --package-lock-only --ignore-scripts
 
-      - name: Commit repaired lockfile
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "$(git status --short frontend/package-lock.json)"
-          printf '%s\n' 'Lockfile reparado.' > .github/pr218-lock-repaired
-          git add frontend/package-lock.json .github/pr218-lock-repaired
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "fix(deps): atualiza dependencias transitivas vulneraveis"
-          git push origin HEAD:agent/corrige-onboarding-organizacao
+      - name: Validate clean installation
+        working-directory: frontend
+        run: npm ci --ignore-scripts
+
+      - name: Validate high severity audit gate
+        working-directory: frontend
+        run: npm audit --audit-level=high
+
+      - name: Upload repaired lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr218-repaired-lockfile
+          path: frontend/package-lock.json
+          retention-days: 1
