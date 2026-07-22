@@ -119,15 +119,17 @@ class TelemedicineRoom(models.Model):
     def transition_to(self, new_status: str, *, save: bool = True) -> None:
         if new_status == self.status:
             return
-        allowed = self.ALLOWED_TRANSITIONS.get(self.status, set())
-        if new_status not in allowed:
+        current_status = self.Status(self.status)
+        target_status = self.Status(new_status)
+        allowed = self.ALLOWED_TRANSITIONS.get(current_status, set())
+        if target_status not in allowed:
             raise ValidationError(
                 {"status": f"Transição inválida de {self.status} para {new_status}."}
             )
-        self.status = new_status
-        if new_status == self.Status.IN_PROGRESS and not self.started_at:
+        self.status = target_status
+        if target_status == self.Status.IN_PROGRESS and not self.started_at:
             self.started_at = timezone.now()
-        if new_status in self.TERMINAL_STATUSES and not self.ended_at:
+        if target_status in self.TERMINAL_STATUSES and not self.ended_at:
             self.ended_at = timezone.now()
         if save:
             self.save()
