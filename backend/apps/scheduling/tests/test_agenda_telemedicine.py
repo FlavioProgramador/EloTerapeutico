@@ -19,6 +19,7 @@ from apps.organizations.models import (
 )
 from apps.patients.models import Patient
 from apps.scheduling.exceptions import (
+    TelemedicineAccessDeniedError,
     TelemedicineConsentRequiredError,
     TelemedicineInvitationExpiredError,
 )
@@ -44,7 +45,8 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture(autouse=True)
-def telemedicine_environment(monkeypatch):
+def telemedicine_environment(monkeypatch, settings):
+    settings.DEBUG = True
     monkeypatch.setenv("TELEMEDICINE_ENABLED", "True")
     monkeypatch.setenv("TELEMEDICINE_PROVIDER", "fake")
     monkeypatch.setenv("TELEMEDICINE_REQUIRE_E2EE", "True")
@@ -284,7 +286,7 @@ def test_plan_without_telemedicine_blocks_invitation():
         telemedicine_plan=False,
     )
 
-    with pytest.raises(Exception) as captured:
+    with pytest.raises(TelemedicineAccessDeniedError) as captured:
         create_patient_invitation(actor=therapist, room=room)
 
     assert "plano atual" in str(captured.value).lower()
