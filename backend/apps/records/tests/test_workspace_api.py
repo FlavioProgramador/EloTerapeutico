@@ -49,7 +49,8 @@ def test_outro_terapeuta_nao_acessa_workspace(patient):
 
     response = api_client.get(f"/api/v1/records/patients/{patient.id}/workspace/")
 
-    assert response.status_code == 403
+    # Deve retornar 404 Not Found para evitar vazamento de existência (IDOR / side-channel)
+    assert response.status_code == 404
 
 
 @pytest.mark.django_db

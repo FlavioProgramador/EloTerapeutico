@@ -71,11 +71,13 @@ class ClinicalPatientMixin:
     permission_classes = [IsAuthenticated]
 
     def get_patient(self, patient_id):
+        from apps.patients.services.access_control import patient_access_q
+
+        user = self.request.user
         patient = get_object_or_404(
-            Patient.objects.select_related("therapist"),
+            Patient.objects.filter(patient_access_q(user)).select_related("therapist"),
             pk=patient_id,
         )
-        user = self.request.user
         if not can_access_patient(user, patient, allow_secretary=False):
             self.permission_denied(
                 self.request,
