@@ -2,6 +2,7 @@ from django.urls import path
 
 from apps.billing.api.public.views import PlanRegistrationView
 
+from .api.logout import LogoutView
 from .api.onboarding import OnboardingView
 from .api.views import (
     AuthSessionListView,
@@ -9,7 +10,6 @@ from .api.views import (
     ChangePasswordView,
     LoginView,
     LogoutAllView,
-    LogoutView,
     MeView,
     PasswordResetConfirmView,
     PasswordResetRequestView,

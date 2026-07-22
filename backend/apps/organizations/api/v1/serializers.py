@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
+from apps.billing.models import Subscription
 from apps.organizations.models import (
     Organization,
     OrganizationInvitation,
@@ -11,6 +12,7 @@ from apps.organizations.models import (
     OrganizationSettings,
     ProfessionalProfile,
 )
+from apps.scheduling.telemedicine_config import get_telemedicine_config
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -128,10 +130,91 @@ class InvitationAcceptSerializer(serializers.Serializer):
 
 
 class OrganizationSettingsSerializer(serializers.ModelSerializer):
+    telemedicine_available = serializers.SerializerMethodField()
+    telemedicine_unavailable_reason = serializers.SerializerMethodField()
+
     class Meta:
         model = OrganizationSettings
         exclude = ["organization"]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "updated_at",
+            "telemedicine_available",
+            "telemedicine_unavailable_reason",
+        ]
+
+    def _billing_user(self):
+        organization = getattr(self.instance, "organization", None)
+        if organization is not None:
+            membership = (
+                OrganizationMembership.objects.select_related("user")
+                .filter(
+                    organization=organization,
+                    role=OrganizationMembership.Role.OWNER,
+                    status=OrganizationMembership.Status.ACTIVE,
+                )
+                .order_by("created_at")
+                .first()
+            )
+            if membership:
+                return membership.user
+
+        request = self.context.get("request")
+        request_user = getattr(request, "user", None)
+        if request_user is not None and request_user.is_authenticated:
+            return request_user
+        return None
+
+    def _telemedicine_state(self) -> tuple[bool, str]:
+        config = get_telemedicine_config()
+        if not config.enabled or not config.provider_configured:
+            return (
+                False,
+                "O atendimento online ainda não está disponível para esta organização.",
+            )
+
+        user = self._billing_user()
+        if user is None:
+            # Em serializers de escrita sem instance o service transacional realiza
+            # a validação final usando a organização e o ator autenticado.
+            return True, ""
+
+        subscription = (
+            Subscription.objects.select_related("plan")
+            .filter(
+                user=user,
+                status__in=[
+                    Subscription.Status.TRIALING,
+                    Subscription.Status.ACTIVE,
+                    Subscription.Status.PAST_DUE,
+                ],
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        if not (
+            subscription
+            and subscription.has_access
+            and subscription.plan.has_telemedicine
+        ):
+            return False, "O plano atual não inclui atendimento online."
+        return True, ""
+
+    def get_telemedicine_available(self, obj):
+        del obj
+        return self._telemedicine_state()[0]
+
+    def get_telemedicine_unavailable_reason(self, obj):
+        del obj
+        return self._telemedicine_state()[1]
+
+    def validate_allow_telemedicine(self, value):
+        if value:
+            available, reason = self._telemedicine_state()
+            if not available:
+                raise serializers.ValidationError(reason)
+        return value
 
 
 class ProfessionalProfileSerializer(serializers.ModelSerializer):

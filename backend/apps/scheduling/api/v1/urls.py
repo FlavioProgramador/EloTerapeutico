@@ -7,11 +7,17 @@ from .views import (
     AppointmentRecurrenceViewSet,
     AppointmentReminderViewSet,
     AppointmentViewSet,
+    LiveKitWebhookView,
     PackageSessionViewSet,
     PatientPackageViewSet,
     RoomViewSet,
     ScheduleBlockViewSet,
     TelemedicineAccessView,
+    TelemedicineOperationalMetricsView,
+    TelemedicinePublicConsentView,
+    TelemedicinePublicExchangeView,
+    TelemedicinePublicJoinView,
+    TelemedicinePublicLeaveView,
     TelemedicineRoomViewSet,
 )
 
@@ -30,6 +36,36 @@ router.register(r"telemedicine", TelemedicineRoomViewSet, basename="telemedicine
 router.register(r"reminders", AppointmentReminderViewSet, basename="appointment-reminder")
 
 urlpatterns = [
+    path(
+        "telemedicine/operational-metrics/",
+        TelemedicineOperationalMetricsView.as_view(),
+        name="telemedicine-operational-metrics",
+    ),
+    path(
+        "telemedicine/public/exchange/",
+        TelemedicinePublicExchangeView.as_view(),
+        name="telemedicine-public-exchange",
+    ),
+    path(
+        "telemedicine/public/consent/",
+        TelemedicinePublicConsentView.as_view(),
+        name="telemedicine-public-consent",
+    ),
+    path(
+        "telemedicine/public/join/",
+        TelemedicinePublicJoinView.as_view(),
+        name="telemedicine-public-join",
+    ),
+    path(
+        "telemedicine/public/leave/",
+        TelemedicinePublicLeaveView.as_view(),
+        name="telemedicine-public-leave",
+    ),
+    path(
+        "integrations/livekit/webhook/",
+        LiveKitWebhookView.as_view(),
+        name="livekit-webhook",
+    ),
     path(
         "telemedicine-access/<str:role>/<uuid:token>/",
         TelemedicineAccessView.as_view(),

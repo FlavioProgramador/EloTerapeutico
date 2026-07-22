@@ -555,7 +555,7 @@ function RegisterForm() {
       <aside className="relative hidden overflow-hidden bg-[#f9f9f9] lg:block lg:w-[55%] xl:w-[60%]">
         <Image
           src="/register_illustration.svg"
-          alt="Bem-vindo ao Elo Terapêutico"
+          alt="Ilustração de um ambiente terapêutico acolhedor"
           fill
           priority
           className="object-cover object-right"

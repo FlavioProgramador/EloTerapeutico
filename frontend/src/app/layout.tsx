@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Mono, Outfit, Piazzolla, Work_Sans } from "next/font/google";
 
 import { Providers } from "@/providers/providers";
+import "@livekit/components-styles";
 import "./globals.css";
 import "./orange-theme.css";
 import "./legacy-typography.css";

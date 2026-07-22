@@ -51,6 +51,10 @@ class Plan(models.Model):
     has_documents = models.BooleanField(default=False, verbose_name="Documentos")
     has_forms = models.BooleanField(default=False, verbose_name="Formulários")
     has_reports = models.BooleanField(default=False, verbose_name="Relatórios")
+    has_telemedicine = models.BooleanField(
+        default=False,
+        verbose_name="Telemedicina",
+    )
     has_ai = models.BooleanField(default=False, verbose_name="IA")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")

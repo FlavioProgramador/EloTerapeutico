@@ -1,50 +1,80 @@
+import { request as httpRequest } from "node:http";
+import { request as httpsRequest } from "node:https";
+
 import { NextResponse, type NextRequest } from "next/server";
 
 import {
+  buildBackendUrl,
   clearAuthCookies,
   createBackendHeaders,
   csrfRejectedResponse,
-  fetchBackend,
   gatewayUnavailableResponse,
-  getAccessCookie,
   getRefreshCookie,
   hasValidCsrf,
   parseBackendJson,
-  refreshTokenPair,
   withoutTokenFields,
 } from "@/lib/server/auth-bff";
 
 export const runtime = "nodejs";
 
-async function revokeCurrentSession(
+function requestLogout(
   request: NextRequest,
-  accessToken: string | null,
   refreshToken: string,
 ): Promise<Response> {
-  const callLogout = (access: string, refresh: string) =>
-    fetchBackend("auth/logout/", {
-      method: "POST",
-      headers: {
-        ...Object.fromEntries(createBackendHeaders(request, access).entries()),
-        "content-type": "application/json",
+  const url = buildBackendUrl("auth/logout/");
+  const body = Buffer.from(JSON.stringify({ refresh: refreshToken }), "utf8");
+  const headers = createBackendHeaders(request);
+  headers.set("content-type", "application/json");
+  headers.set("content-length", String(body.byteLength));
+  headers.set("connection", "close");
+
+  const sendRequest = url.protocol === "https:" ? httpsRequest : httpRequest;
+
+  return new Promise<Response>((resolve, reject) => {
+    const upstreamRequest = sendRequest(
+      url,
+      {
+        method: "POST",
+        headers: Object.fromEntries(headers.entries()),
+        agent: false,
+        timeout: 10_000,
       },
-      body: JSON.stringify({ refresh }),
+      (upstreamResponse) => {
+        const chunks: Buffer[] = [];
+        upstreamResponse.on("data", (chunk: Buffer | string) => {
+          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+        });
+        upstreamResponse.on("end", () => {
+          const responseHeaders = new Headers();
+          for (const [name, value] of Object.entries(upstreamResponse.headers)) {
+            if (Array.isArray(value)) {
+              for (const item of value) responseHeaders.append(name, item);
+            } else if (value !== undefined) {
+              responseHeaders.set(name, String(value));
+            }
+          }
+
+          resolve(
+            new Response(Buffer.concat(chunks), {
+              status: upstreamResponse.statusCode ?? 502,
+              headers: responseHeaders,
+            }),
+          );
+        });
+      },
+    );
+
+    upstreamRequest.on("timeout", () => {
+      upstreamRequest.destroy(new Error("AUTH_LOGOUT_UPSTREAM_TIMEOUT"));
     });
-
-  if (accessToken) {
-    const firstAttempt = await callLogout(accessToken, refreshToken);
-    if (firstAttempt.status !== 401) return firstAttempt;
-  }
-
-  const refreshed = await refreshTokenPair(request, refreshToken);
-  if (!refreshed.response.ok || !refreshed.tokens) return refreshed.response;
-  return callLogout(refreshed.tokens.access, refreshed.tokens.refresh);
+    upstreamRequest.on("error", reject);
+    upstreamRequest.end(body);
+  });
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!hasValidCsrf(request)) return csrfRejectedResponse();
 
-  const accessToken = getAccessCookie(request);
   const refreshToken = getRefreshCookie(request);
   if (!refreshToken) {
     const response = NextResponse.json(
@@ -62,11 +92,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const backendResponse = await revokeCurrentSession(
-      request,
-      accessToken,
-      refreshToken,
-    );
+    const backendResponse = await requestLogout(request, refreshToken);
     const payload = await parseBackendJson(backendResponse);
     const response = NextResponse.json(
       payload

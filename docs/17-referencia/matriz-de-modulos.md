@@ -11,11 +11,11 @@
 | Módulo | Backend | Frontend | API | Testes | Integração externa | Maturidade | Pendência principal |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Autenticação e usuários | `apps/users`, JWT, rotação, blacklist, lockout e reset | BFF Next.js com cookies HttpOnly e double-submit CSRF | Sim | Backend, unitários BFF e E2E | SMTP para recuperação | ✅ Implementado e validado | Validar os workflows desta revisão no PR e manter CSP/monitoramento em produção. |
-| Organizações/multi-tenancy | Não há entidade explícita de clínica/organização | Não há gestão de equipes por clínica | Não | Não | Não | 🔴 Não implementado / ⚠️ | Isolamento predominante por terapeuta; bloqueador para clínicas e múltiplos profissionais. |
-| Pacientes | `apps/patients`, responsáveis, lifecycle, importação/exportação | `features/patients` | Sim | Backend relevante | Não | 🟡 Implementado parcialmente | Migrar ownership de terapeuta para tenant explícito e ampliar E2E. |
-| Prontuário | `apps/records`, anamnese, evoluções, metas, anexos e exportações | `features/records` | Sim | Backend amplo | Azure Blob configurável; antivírus ausente | 🟡 Implementado parcialmente / ⚠️ | Tenant explícito, política de retenção, optimistic locking e pipeline antimalware. |
+| Organizações/multi-tenancy | Domínio explícito em `apps/organizations` com memberships e settings | Contexto de organização e configurações | Sim | Backend relevante | Não | 🟡 Implementado parcialmente | Ampliar cobertura E2E e revisar ownership dos módulos legados. |
+| Pacientes | `apps/patients`, responsáveis, lifecycle, importação/exportação | `features/patients` | Sim | Backend relevante | Não | 🟡 Implementado parcialmente | Migrar ownership residual e ampliar E2E. |
+| Prontuário | `apps/records`, anamnese, evoluções, metas, anexos e exportações | `features/records` | Sim | Backend amplo | Azure Blob configurável; antivírus ausente | 🟡 Implementado parcialmente / ⚠️ | Política de retenção, optimistic locking e pipeline antimalware. |
 | Agenda | `apps/scheduling`, consultas, recorrências, bloqueios, salas e pacotes | `features/agenda` | `/api/v1/scheduling/` | Backend e calendário frontend | Comunicações para lembretes | 🟡 Implementado parcialmente | Validar timezone, recorrência mensal e concorrência em PostgreSQL. |
-| Telemedicina | Tokens, sala lógica, expiração e controle de acesso | Tela pública de acesso | Sim | Testes de acesso/sala | Provedor de áudio e vídeo não configurado | 🟡 Implementado parcialmente / ⚠️ | Não há infraestrutura WebRTC/SFU nem chamada de áudio e vídeo funcional. |
+| Telemedicina | Salas, convites com hash, consentimento, E2EE, provider, webhooks, Celery e tenant | Lobby e chamada LiveKit para paciente e profissional | Sim | Backend e testes estruturais frontend | LiveKit e canais de Comunicações | 🟠 Implementado, depende de configuração / ⚠️ | Atualizar lockfile, validar CI e executar smoke test com credenciais reais em staging. |
 | Financeiro clínico | `apps/finances`, receitas, despesas, pagamentos e relatórios | `features/financeiro` | `/api/v1/finances/` | Backend relevante | Gateway não é necessário para lançamentos internos | 🟡 Implementado parcialmente | Validar ownership por tenant, transições e conciliação ponta a ponta. |
 | Documentos | Templates, biblioteca, geração e hash | Feature de documentos | Sim | Backend relevante | Azure Blob configurável; WeasyPrint | 🟠 Depende de integração/configuração / ⚠️ | Storage privado obrigatório, retenção, versionamento e assinatura eletrônica. |
 | Formulários | Templates, submissões e respostas | Construtor e consumo no prontuário | Sim | Parcial | Link/portal público | 🟡 Implementado parcialmente | Versionamento por snapshot, portal seguro e testes completos. |
@@ -32,7 +32,7 @@
 ## Observações
 
 1. A presença de model, tela ou endpoint isolado não torna um módulo pronto para produção.
-2. Telemedicina refere-se atualmente à sala lógica e ao controle de acesso, não à mídia em tempo real.
+2. A telemedicina possui mídia em tempo real no código, mas continua indisponível até configurar LiveKit, HTTPS/WSS, webhook e staging.
 3. IA está planejada e condicionada por plano, mas não possui provedor ou fluxo clínico funcional.
 4. As integrações externas devem ser validadas em staging com credenciais próprias antes do uso real.
 5. Consulte também a [matriz de integrações](matriz-de-integracoes.md), as [limitações](../01-visao-geral/limitacoes.md) e a [auditoria do backlog](auditoria-backlog.md).
