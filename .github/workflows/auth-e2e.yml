@@ -5,8 +5,13 @@ on:
     branches: [main]
     paths:
       - "backend/apps/users/**"
+      - "backend/apps/scheduling/**"
+      - "backend/apps/organizations/**"
+      - "backend/apps/billing/**"
       - "frontend/src/app/api/auth/**"
       - "frontend/src/app/api/backend/**"
+      - "frontend/src/app/consulta-online/**"
+      - "frontend/src/features/telemedicine/**"
       - "frontend/src/lib/auth-constants.ts"
       - "frontend/src/lib/auth-session.ts"
       - "frontend/src/lib/server/auth-bff*.ts"
@@ -16,8 +21,13 @@ on:
     branches: [main]
     paths:
       - "backend/apps/users/**"
+      - "backend/apps/scheduling/**"
+      - "backend/apps/organizations/**"
+      - "backend/apps/billing/**"
       - "frontend/src/app/api/auth/**"
       - "frontend/src/app/api/backend/**"
+      - "frontend/src/app/consulta-online/**"
+      - "frontend/src/features/telemedicine/**"
       - "frontend/src/lib/auth-constants.ts"
       - "frontend/src/lib/auth-session.ts"
       - "frontend/src/lib/server/auth-bff*.ts"
@@ -34,7 +44,7 @@ concurrency:
 
 jobs:
   auth-e2e:
-    name: Cookies, CSRF, refresh and logout
+    name: Cookies, CSRF, refresh, logout and telemedicine
     runs-on: ubuntu-latest
     timeout-minutes: 35
     services:
@@ -62,6 +72,14 @@ jobs:
       E2E_USER_EMAIL: auth-e2e@example.test
       BACKEND_API_URL: http://127.0.0.1:8000/api/v1/
       NEXT_PUBLIC_API_URL: http://127.0.0.1:8000/api/v1/
+      TELEMEDICINE_ENABLED: "True"
+      TELEMEDICINE_PROVIDER: livekit
+      LIVEKIT_URL: wss://e2e-livekit.example.test
+      LIVEKIT_API_KEY: e2e-livekit-key
+      LIVEKIT_API_SECRET: e2e-livekit-secret
+      TELEMEDICINE_REQUIRE_E2EE: "True"
+      TELEMEDICINE_JOIN_BEFORE_MINUTES: "15"
+      TELEMEDICINE_JOIN_AFTER_MINUTES: "30"
 
     steps:
       - name: Checkout repository
@@ -158,6 +176,10 @@ jobs:
           user.save()
           PY
 
+      - name: Create deterministic telemedicine invitation
+        working-directory: backend
+        run: python manage.py shell < ../frontend/e2e/seed-telemedicine.py
+
       - name: Start Django backend
         working-directory: backend
         run: |
@@ -207,6 +229,12 @@ jobs:
         env:
           E2E_BASE_URL: http://localhost:3000
         run: npm run test:auth
+
+      - name: Run telemedicine E2E scenarios
+        working-directory: frontend/e2e
+        env:
+          E2E_BASE_URL: http://localhost:3000
+        run: npm run test:telemedicine
 
       - name: Start isolated frontend with unavailable gateway
         working-directory: frontend
