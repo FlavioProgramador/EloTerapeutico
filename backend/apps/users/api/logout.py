@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from typing import Any, ClassVar, cast
+
 from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.authentication import BaseAuthentication
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -14,7 +17,7 @@ from apps.users.services.sessions import revoke_refresh_token
 
 
 def _refresh_owner(raw_token: str) -> tuple[RefreshToken, User]:
-    refresh = RefreshToken(raw_token)
+    refresh = RefreshToken(cast(Any, raw_token))
     claim_name = settings.SIMPLE_JWT.get("USER_ID_CLAIM", "user_id")
     user_id = refresh.payload.get(claim_name)
     if user_id is None:
@@ -30,7 +33,7 @@ class LogoutView(APIView):
     """Revoga a sessão identificada pelo refresh, sem depender do access token."""
 
     permission_classes = [AllowAny]
-    authentication_classes = []
+    authentication_classes: ClassVar[list[type[BaseAuthentication]]] = []
 
     def post(self, request):
         raw_token = request.data.get("refresh")
