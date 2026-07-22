@@ -1,7 +1,7 @@
 "use client";
 
 import { useDeferredValue, useMemo, useState } from "react";
-import { Ban, Copy, RefreshCw, Send, Video } from "lucide-react";
+import { Ban, ChevronDown, Copy, RefreshCw, Send, Video } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,7 @@ import { SearchInput, StatusBadge, TableShell, Toolbar } from "./agenda-ui";
 export function TelemedicinePanel() {
   const [search, setSearch] = useState("");
   const [pendingOnly, setPendingOnly] = useState(false);
+  const [closedGroups, setClosedGroups] = useState<Record<string, boolean>>({});
   const deferredSearch = useDeferredValue(search);
   const { data: page, isLoading } = useTelemedicineRooms({
     search: deferredSearch || undefined,
@@ -110,17 +111,28 @@ export function TelemedicinePanel() {
           {null}
         </TableShell>
       ) : (
-        grouped.map(([dateKey, items]) => (
-          <div key={dateKey} className="rounded-xl border border-border bg-card">
-            <div className="border-b border-border px-4 py-3 text-sm font-semibold capitalize">
-              {new Date(dateKey).toLocaleDateString("pt-BR", {
-                weekday: "long",
-                day: "2-digit",
-                month: "long",
-              })}
-            </div>
-            <div className="divide-y divide-border">
-              {items.map((room) => {
+        grouped.map(([dateKey, items]) => {
+          const isClosed = closedGroups[dateKey];
+          return (
+          <div key={dateKey} className="rounded-xl border border-border bg-card overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setClosedGroups(prev => ({ ...prev, [dateKey]: !prev[dateKey] }))}
+              className="flex w-full items-center justify-between border-b border-border px-4 py-3 text-left text-sm font-semibold capitalize transition-colors hover:bg-secondary/20"
+            >
+              <span>
+                {new Date(dateKey).toLocaleDateString("pt-BR", {
+                  weekday: "long",
+                  day: "2-digit",
+                  month: "long",
+                })}
+              </span>
+              <ChevronDown className={cn("size-4 text-muted-foreground transition-transform duration-300", isClosed && "-rotate-90")} />
+            </button>
+            <div className={cn("grid transition-all duration-300 ease-in-out", isClosed ? "grid-rows-[0fr]" : "grid-rows-[1fr]")}>
+              <div className="overflow-hidden min-h-0">
+                <div className="divide-y divide-border">
+                  {items.map((room) => {
                 const invitationValid = room.invitation_status.status === "valid";
                 const participantState = room.patient_joined_at
                   ? "Paciente já entrou"
@@ -209,9 +221,12 @@ export function TelemedicinePanel() {
                   </div>
                 );
               })}
+                </div>
+              </div>
             </div>
           </div>
-        ))
+          );
+        })
       )}
     </section>
   );
