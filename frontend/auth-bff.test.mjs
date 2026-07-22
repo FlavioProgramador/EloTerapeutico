@@ -48,6 +48,15 @@ test("cliente não lê access ou refresh token", async () => {
   assert.equal(sessionSource.includes("setCookie(AUTH_REFRESH_COOKIE"), false);
 });
 
+test("BFF não encaminha headers hop-by-hop", async () => {
+  const source = await readFile("./src/lib/server/auth-bff.ts", "utf8");
+
+  assert.equal(source.includes('headers.set("connection"'), false);
+  assert.equal(source.includes('"connection",'), false);
+  assert.equal(source.includes('"keep-alive",'), false);
+  assert.equal(source.includes('"transfer-encoding",'), false);
+});
+
 test("middleware não usa papel controlado pelo navegador", async () => {
   const source = await readFile("./src/middleware.ts", "utf8");
   assert.equal(source.includes("auth_role"), false);
