@@ -102,3 +102,13 @@ class TelemedicineParticipantRemovalSerializer(serializers.Serializer):
 
 class TelemedicinePublicLeaveSerializer(TelemedicineInvitationTokenSerializer):
     identity = serializers.CharField(min_length=16, max_length=180)
+
+
+class TelemedicineInvitationSendSerializer(serializers.Serializer):
+    channel = serializers.ChoiceField(
+        choices=[
+            ("email", "E-mail"),
+            ("whatsapp_manual", "WhatsApp manual"),
+        ],
+        default="email",
+    )
