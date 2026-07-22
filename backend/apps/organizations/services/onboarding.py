@@ -2,13 +2,49 @@
 
 from __future__ import annotations
 
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
+from apps.billing.models import Subscription
 from apps.organizations.exceptions import OnboardingIncompleteError
 from apps.organizations.models import Organization, OrganizationSettings, ProfessionalProfile
+from apps.scheduling.telemedicine_config import get_telemedicine_config
 
 from .audit import audit_organization_action
+
+
+def _validate_telemedicine_activation(*, actor) -> None:
+    config = get_telemedicine_config()
+    if not config.enabled or not config.provider_configured:
+        raise ValidationError(
+            {
+                "allow_telemedicine": (
+                    "O atendimento online ainda não está disponível para esta organização."
+                )
+            }
+        )
+    subscription = (
+        Subscription.objects.select_related("plan")
+        .filter(
+            user=actor,
+            status__in=[
+                Subscription.Status.TRIALING,
+                Subscription.Status.ACTIVE,
+                Subscription.Status.PAST_DUE,
+            ],
+        )
+        .order_by("-created_at")
+        .first()
+    )
+    if not (
+        subscription
+        and subscription.has_access
+        and subscription.plan.has_telemedicine
+    ):
+        raise ValidationError(
+            {"allow_telemedicine": "O plano atual não inclui atendimento online."}
+        )
 
 
 @transaction.atomic
@@ -18,6 +54,9 @@ def update_onboarding(
     organization_data = data.get("organization") or {}
     settings_data = data.get("settings") or {}
     profile_data = data.get("professional_profile") or {}
+
+    if settings_data.get("allow_telemedicine") is True:
+        _validate_telemedicine_activation(actor=actor)
 
     for field in {
         "name",
