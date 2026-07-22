@@ -1,10 +1,5 @@
-import type {
-  Organization,
-  OrganizationMembership,
-} from "@/features/organizations/types";
-import type {
-  OrganizationOnboardingForm,
-} from "@/features/organizations/schemas/onboarding";
+import type { OrganizationOnboardingForm } from "./schemas/onboarding";
+import type { Organization, OrganizationMembership } from "./types";
 
 export interface OrganizationOnboardingPayload {
   organization: Organization;
@@ -120,7 +115,8 @@ export function onboardingPayloadToForm(
   const settings = payload.settings ?? {};
   const specialties = Array.isArray(profile.specialties)
     ? profile.specialties.filter(
-        (item): item is string => typeof item === "string" && Boolean(item.trim()),
+        (item): item is string =>
+          typeof item === "string" && Boolean(item.trim()),
       )
     : [];
 
