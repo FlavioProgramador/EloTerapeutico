@@ -145,25 +145,26 @@ class OrganizationSettingsSerializer(serializers.ModelSerializer):
         ]
 
     def _billing_user(self):
+        organization = getattr(self.instance, "organization", None)
+        if organization is not None:
+            membership = (
+                OrganizationMembership.objects.select_related("user")
+                .filter(
+                    organization=organization,
+                    role=OrganizationMembership.Role.OWNER,
+                    status=OrganizationMembership.Status.ACTIVE,
+                )
+                .order_by("created_at")
+                .first()
+            )
+            if membership:
+                return membership.user
+
         request = self.context.get("request")
         request_user = getattr(request, "user", None)
         if request_user is not None and request_user.is_authenticated:
             return request_user
-
-        organization = getattr(self.instance, "organization", None)
-        if organization is None:
-            return None
-        membership = (
-            OrganizationMembership.objects.select_related("user")
-            .filter(
-                organization=organization,
-                role=OrganizationMembership.Role.OWNER,
-                status=OrganizationMembership.Status.ACTIVE,
-            )
-            .order_by("created_at")
-            .first()
-        )
-        return membership.user if membership else None
+        return None
 
     def _telemedicine_state(self) -> tuple[bool, str]:
         config = get_telemedicine_config()
@@ -176,7 +177,7 @@ class OrganizationSettingsSerializer(serializers.ModelSerializer):
         user = self._billing_user()
         if user is None:
             # Em serializers de escrita sem instance o service transacional realiza
-            # a validação final usando o ator autenticado.
+            # a validação final usando a organização e o ator autenticado.
             return True, ""
 
         subscription = (
