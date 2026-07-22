@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny
@@ -14,7 +15,8 @@ from apps.users.services.sessions import revoke_refresh_token
 
 def _refresh_owner(raw_token: str) -> tuple[RefreshToken, User]:
     refresh = RefreshToken(raw_token)
-    user_id = refresh.payload.get("user_id")
+    claim_name = settings.SIMPLE_JWT.get("USER_ID_CLAIM", "user_id")
+    user_id = refresh.payload.get(claim_name)
     if user_id is None:
         raise TokenError("Refresh token sem usuário.")
     user = User.objects.filter(pk=user_id, is_active=True).first()
