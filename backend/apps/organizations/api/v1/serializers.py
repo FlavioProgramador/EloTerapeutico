@@ -144,6 +144,27 @@ class OrganizationSettingsSerializer(serializers.ModelSerializer):
             "telemedicine_unavailable_reason",
         ]
 
+    def _billing_user(self):
+        request = self.context.get("request")
+        request_user = getattr(request, "user", None)
+        if request_user is not None and request_user.is_authenticated:
+            return request_user
+
+        organization = getattr(self.instance, "organization", None)
+        if organization is None:
+            return None
+        membership = (
+            OrganizationMembership.objects.select_related("user")
+            .filter(
+                organization=organization,
+                role=OrganizationMembership.Role.OWNER,
+                status=OrganizationMembership.Status.ACTIVE,
+            )
+            .order_by("created_at")
+            .first()
+        )
+        return membership.user if membership else None
+
     def _telemedicine_state(self) -> tuple[bool, str]:
         config = get_telemedicine_config()
         if not config.enabled or not config.provider_configured:
@@ -152,10 +173,11 @@ class OrganizationSettingsSerializer(serializers.ModelSerializer):
                 "O atendimento online ainda não está disponível para esta organização.",
             )
 
-        request = self.context.get("request")
-        user = getattr(request, "user", None)
-        if user is None or not user.is_authenticated:
-            return False, "Não foi possível validar a disponibilidade do recurso."
+        user = self._billing_user()
+        if user is None:
+            # Em serializers de escrita sem instance o service transacional realiza
+            # a validação final usando o ator autenticado.
+            return True, ""
 
         subscription = (
             Subscription.objects.select_related("plan")
