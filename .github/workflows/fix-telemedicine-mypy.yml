@@ -6,6 +6,11 @@ on:
       - agent/telemedicina-livekit
     paths:
       - .github/workflows/fix-telemedicine-mypy.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/fix-telemedicine-mypy.yml
   workflow_dispatch:
 
 permissions:
@@ -33,30 +38,36 @@ jobs:
 
           path = Path("backend/apps/scheduling/models/remote.py")
           source = path.read_text(encoding="utf-8")
-          old = '''        allowed = self.ALLOWED_TRANSITIONS.get(self.status, set())
-          if new_status not in allowed:
-              raise ValidationError(
-                  {"status": f"Transição inválida de {self.status} para {new_status}."}
-              )
-          self.status = new_status
-          if new_status == self.Status.IN_PROGRESS and not self.started_at:
-              self.started_at = timezone.now()
-          if new_status in self.TERMINAL_STATUSES and not self.ended_at:
-              self.ended_at = timezone.now()
-          '''
-          new = '''        current_status = self.Status(self.status)
-          target_status = self.Status(new_status)
-          allowed = self.ALLOWED_TRANSITIONS.get(current_status, set())
-          if target_status not in allowed:
-              raise ValidationError(
-                  {"status": f"Transição inválida de {self.status} para {new_status}."}
-              )
-          self.status = target_status
-          if target_status == self.Status.IN_PROGRESS and not self.started_at:
-              self.started_at = timezone.now()
-          if target_status in self.TERMINAL_STATUSES and not self.ended_at:
-              self.ended_at = timezone.now()
-          '''
+          old = "\n".join(
+              [
+                  "        allowed = self.ALLOWED_TRANSITIONS.get(self.status, set())",
+                  "        if new_status not in allowed:",
+                  "            raise ValidationError(",
+                  "                {\"status\": f\"Transição inválida de {self.status} para {new_status}.\"}",
+                  "            )",
+                  "        self.status = new_status",
+                  "        if new_status == self.Status.IN_PROGRESS and not self.started_at:",
+                  "            self.started_at = timezone.now()",
+                  "        if new_status in self.TERMINAL_STATUSES and not self.ended_at:",
+                  "            self.ended_at = timezone.now()",
+              ]
+          )
+          new = "\n".join(
+              [
+                  "        current_status = self.Status(self.status)",
+                  "        target_status = self.Status(new_status)",
+                  "        allowed = self.ALLOWED_TRANSITIONS.get(current_status, set())",
+                  "        if target_status not in allowed:",
+                  "            raise ValidationError(",
+                  "                {\"status\": f\"Transição inválida de {self.status} para {new_status}.\"}",
+                  "            )",
+                  "        self.status = target_status",
+                  "        if target_status == self.Status.IN_PROGRESS and not self.started_at:",
+                  "            self.started_at = timezone.now()",
+                  "        if target_status in self.TERMINAL_STATUSES and not self.ended_at:",
+                  "            self.ended_at = timezone.now()",
+              ]
+          )
           if old not in source:
               raise SystemExit("Bloco da máquina de estados não encontrado.")
           path.write_text(source.replace(old, new, 1), encoding="utf-8")
@@ -73,8 +84,11 @@ jobs:
 
           path = Path("backend/apps/scheduling/checks.py")
           source = path.read_text(encoding="utf-8")
-          source = source.replace("    issues = []\n", "    issues: list[Error | Warning] = []\n", 1)
-          path.write_text(source, encoding="utf-8")
+          old = "    issues = []\n"
+          new = "    issues: list[Error | Warning] = []\n"
+          if old not in source:
+              raise SystemExit("Declaração de issues não encontrada.")
+          path.write_text(source.replace(old, new, 1), encoding="utf-8")
           PY
           git add backend/apps/scheduling/checks.py
           git commit -m "fix(telemedicina): tipa mensagens dos system checks"
@@ -88,18 +102,23 @@ jobs:
 
           path = Path("backend/apps/scheduling/receivers/appointments.py")
           source = path.read_text(encoding="utf-8")
+          old_none = "        instance._telemedicine_previous_state = None\n"
+          old_assignment = "    instance._telemedicine_previous_state = (\n"
+          old_close = "        .first()\n    )\n\n\n@receiver(\n"
+          if old_none not in source or old_assignment not in source or old_close not in source:
+              raise SystemExit("Bloco do estado anterior não encontrado.")
           source = source.replace(
-              "        instance._telemedicine_previous_state = None\n",
+              old_none,
               "        setattr(instance, \"_telemedicine_previous_state\", None)\n",
               1,
           )
           source = source.replace(
-              "    instance._telemedicine_previous_state = (\n",
+              old_assignment,
               "    setattr(instance, \"_telemedicine_previous_state\", (\n",
               1,
           )
           source = source.replace(
-              "        .first()\n    )\n\n\n@receiver(\n",
+              old_close,
               "        .first()\n    ))\n\n\n@receiver(\n",
               1,
           )
