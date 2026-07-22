@@ -18,13 +18,22 @@ Cobertura principal:
 - resposta pública minimizada e `no-store`;
 - bloqueio de plano sem entitlement;
 - idempotência do webhook;
-- presença de participante.
+- presença de participante;
+- envio explícito do primeiro convite;
+- lembrete agendado duas horas antes;
+- substituição do convite e do lembrete ao reagendar;
+- revogação e aviso administrativo ao cancelar;
+- métricas agregadas sem PII e isoladas por tenant.
 
-Executar:
+Executar os testes específicos:
 
 ```bash
 cd backend
-pytest apps/scheduling/tests/test_agenda_telemedicine.py --create-db
+pytest \
+  apps/scheduling/tests/test_agenda_telemedicine.py \
+  apps/scheduling/tests/test_telemedicine_communications.py \
+  apps/scheduling/tests/test_telemedicine_metrics.py \
+  --create-db
 ```
 
 Validação completa:
@@ -38,6 +47,8 @@ ruff check .
 mypy .
 pytest --create-db
 ```
+
+O workflow `Django CI` preserva relatórios de check, migrations, Ruff, mypy, pytest e cobertura como artefatos, inclusive quando um gate anterior falha.
 
 ## Frontend
 
@@ -61,6 +72,29 @@ npm run lint
 npm run typecheck
 npm run build
 ```
+
+## Playwright E2E
+
+`frontend/e2e/telemedicine.spec.ts` utiliza organização, assinatura, paciente, consulta e convite sintéticos. Câmera e microfone são simulados pelo Chromium; nenhuma conexão com o LiveKit é realizada nesse cenário.
+
+O teste valida:
+
+- remoção do fragmento antes da primeira interação;
+- contexto público mínimo;
+- aceite do consentimento;
+- chegada à pré-entrada;
+- ausência do convite no DOM, URL e storages;
+- ausência de JWT e chave E2EE persistidos;
+- mensagem genérica quando o convite não existe.
+
+Executar com frontend e backend de teste já iniciados:
+
+```bash
+cd frontend/e2e
+E2E_TELEMEDICINE_TOKEN=token-sintetico npm run test:telemedicine
+```
+
+Na CI, o workflow `Auth E2E` cria todo o contexto determinístico, instala Chromium e executa autenticação, telemedicina e indisponibilidade controlada do gateway.
 
 ## Smoke test de staging
 
