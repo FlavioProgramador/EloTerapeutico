@@ -13,6 +13,7 @@ from .views import (
     RoomViewSet,
     ScheduleBlockViewSet,
     TelemedicineAccessView,
+    TelemedicineOperationalMetricsView,
     TelemedicinePublicConsentView,
     TelemedicinePublicExchangeView,
     TelemedicinePublicJoinView,
@@ -35,6 +36,11 @@ router.register(r"telemedicine", TelemedicineRoomViewSet, basename="telemedicine
 router.register(r"reminders", AppointmentReminderViewSet, basename="appointment-reminder")
 
 urlpatterns = [
+    path(
+        "telemedicine/operational-metrics/",
+        TelemedicineOperationalMetricsView.as_view(),
+        name="telemedicine-operational-metrics",
+    ),
     path(
         "telemedicine/public/exchange/",
         TelemedicinePublicExchangeView.as_view(),
