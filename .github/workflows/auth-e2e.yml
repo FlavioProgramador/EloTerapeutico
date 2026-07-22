@@ -183,7 +183,14 @@ jobs:
       - name: Start Django backend
         working-directory: backend
         run: |
-          nohup python manage.py runserver 127.0.0.1:8000 --noreload >/tmp/elo-backend.log 2>&1 &
+          nohup gunicorn config.wsgi:application \
+            --bind 127.0.0.1:8000 \
+            --workers 2 \
+            --threads 2 \
+            --timeout 30 \
+            --access-logfile - \
+            --error-logfile - \
+            >/tmp/elo-backend.log 2>&1 &
           for attempt in {1..30}; do
             if curl --fail --silent http://127.0.0.1:8000/health/live/ >/dev/null; then
               exit 0
