@@ -24,8 +24,8 @@ test("tema global prioriza laranja e mantém verde apenas semântico", async () 
 
   assert.match(login, /src="\/login_illustration\.svg"/);
   assert.match(register, /src="\/register_illustration\.svg"/);
-  assert.match(login, /from-primary\/24/);
-  assert.match(register, /from-primary\/24/);
+  assert.match(login, /bg-primary\/8/);
+  assert.match(register, /bg-primary\/8/);
   assert.doesNotMatch(login, /bg-sidebar|text-sidebar/);
   assert.doesNotMatch(register, /bg-sidebar|text-sidebar/);
 });
