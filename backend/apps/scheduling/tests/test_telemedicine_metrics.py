@@ -22,7 +22,7 @@ def add_operational_events(room):
     TelemedicineInvitation.objects.create(
         organization=room.organization,
         room=room,
-        token_hash="a" * 64,
+        token_hash=room.public_id.hex * 2,
         expires_at=room.expires_at,
         last_used_at=timezone.now(),
     )
