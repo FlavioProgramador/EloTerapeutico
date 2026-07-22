@@ -7,6 +7,7 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   error?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  variant?: "default" | "underline";
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
@@ -19,6 +20,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       leftIcon,
       rightIcon,
       id,
+      variant = "default",
       ...props
     },
     ref,
@@ -31,18 +33,26 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       .join(" ");
 
     return (
-      <div className="flex w-full flex-col gap-1.5">
+      <div className="flex w-full flex-col gap-1.5 group">
         {label && (
           <label
             htmlFor={inputId}
-            className="text-sm font-semibold text-foreground"
+            className={cn(
+              "font-semibold transition-colors",
+              variant === "underline"
+                ? "text-xs uppercase tracking-wider text-muted-foreground group-focus-within:text-primary"
+                : "text-sm text-foreground"
+            )}
           >
             {label}
           </label>
         )}
         <div className="relative flex items-center">
           {leftIcon && (
-            <div className="pointer-events-none absolute left-3.5 flex items-center justify-center text-muted-foreground">
+            <div className={cn(
+              "pointer-events-none absolute flex items-center justify-center transition-colors",
+              variant === "default" ? "left-3.5 text-muted-foreground" : "left-0 text-muted-foreground group-focus-within:text-primary"
+            )}>
               {leftIcon}
             </div>
           )}
@@ -53,20 +63,32 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             aria-describedby={ariaDescribedBy || undefined}
             aria-invalid={error ? "true" : props["aria-invalid"]}
             className={cn(
-              "h-11 w-full rounded-lg border border-input bg-card px-3.5 text-base text-text-primary transition-all duration-150",
-              "placeholder:text-text-muted/60",
-              "focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary-soft",
-              "disabled:cursor-not-allowed disabled:bg-background-subtle disabled:text-text-muted disabled:opacity-60",
-              leftIcon && "pl-10.5",
-              rightIcon && "pr-10.5",
-              error &&
-                "border-danger focus:border-danger focus:ring-danger-soft",
+              "h-11 w-full text-base text-text-primary transition-all duration-150",
+              "placeholder:text-text-muted/60 focus:outline-none",
+              "[&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]",
+              variant === "default" && [
+                "rounded-lg border border-input bg-card px-3.5",
+                "focus:border-primary focus:ring-4 focus:ring-primary-soft",
+                "disabled:bg-background-subtle",
+                error && "border-danger focus:border-danger focus:ring-danger-soft",
+              ],
+              variant === "underline" && [
+                "rounded-none border-0 border-b-2 border-border bg-transparent px-0 py-2 !outline-none focus:!outline-none",
+                "focus:border-primary focus:border-b-primary focus:ring-0",
+                error && "border-danger focus:border-danger focus:border-b-danger",
+              ],
+              "disabled:cursor-not-allowed disabled:text-text-muted disabled:opacity-60",
+              leftIcon && (variant === "default" ? "pl-10.5" : "pl-8"),
+              rightIcon && (variant === "default" ? "pr-10.5" : "pr-8"),
               className,
             )}
             {...props}
           />
           {rightIcon && (
-            <div className="absolute right-3.5 flex items-center justify-center text-text-muted">
+            <div className={cn(
+              "absolute flex items-center justify-center transition-colors",
+              variant === "default" ? "right-3.5 text-text-muted" : "right-0 text-muted-foreground group-focus-within:text-primary"
+            )}>
               {rightIcon}
             </div>
           )}
