@@ -9,6 +9,7 @@ from django.db import connection
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.renderers import JSONRenderer
 from rest_framework.test import APIClient
 
 from apps.billing.models import Plan, Subscription
@@ -132,7 +133,10 @@ def test_online_appointment_creates_exactly_one_tenant_room():
     assert room.appointment == appointment
     assert TelemedicineRoom.objects.filter(appointment=appointment).count() == 1
     assert room.provider_room_name.startswith("tm_")
-    assert str(appointment.pk) not in room.provider_room_name
+    opaque_suffix = room.provider_room_name.removeprefix("tm_")
+    assert len(opaque_suffix) == 32
+    int(opaque_suffix, 16)
+    assert appointment.patient.full_name not in room.provider_room_name
 
 
 def test_invitation_persists_only_hash_and_regeneration_revokes_previous():
@@ -209,7 +213,7 @@ def test_e2ee_key_is_encrypted_at_rest():
 
     assert room.e2ee_key == credentials["e2ee_key"]
     assert stored_value != credentials["e2ee_key"]
-    assert str(stored_value).startswith("gAAAA")
+    assert str(stored_value).startswith("v1:gAAAA")
 
 
 def test_revoked_invitation_cannot_be_exchanged():
@@ -233,7 +237,7 @@ def test_dashboard_serializer_never_exposes_tokens_or_provider_secrets():
     response = client.get(reverse("telemedicine-list"))
 
     assert response.status_code == status.HTTP_200_OK
-    serialized = json.dumps(response.data)
+    serialized = JSONRenderer().render(response.data).decode()
     for forbidden in [
         "patient_token",
         "professional_token",
