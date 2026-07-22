@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useId } from "react";
 import {
   Activity,
   BookOpen,
@@ -141,6 +141,7 @@ export function AnamnesisTab({
   onSave,
   onExport,
 }: AnamnesisTabProps) {
+  const baseId = useId();
   const [selectedSectionId, setSelectedSectionId] = useState<string>(
     sections[0].id,
   );
@@ -198,6 +199,7 @@ export function AnamnesisTab({
   };
 
   const selectSection = (sectionId: string) => {
+    if (saving) return;
     if (
       dirty &&
       !window.confirm("Descartar alterações não salvas desta seção?")
@@ -239,9 +241,12 @@ export function AnamnesisTab({
               <button
                 key={section.id}
                 type="button"
+                disabled={saving}
                 onClick={() => selectSection(section.id)}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
                   selected
                     ? "border-emerald-400/35 bg-emerald-500/10 shadow-sm"
                     : "border-border bg-card hover:border-emerald-400/20 hover:bg-emerald-500/5",
@@ -305,14 +310,16 @@ export function AnamnesisTab({
           </header>
 
           <div className="grid gap-4 p-4 md:grid-cols-2">
-            {selectedSection.fields.map(([field, label]) => (
-              <label
-                key={field}
-                className="space-y-1.5 text-[10px] font-semibold text-muted-foreground"
-              >
-                {label}
-                {editing ? (
+            {selectedSection.fields.map(([field, label]) => {
+              const textareaId = `${baseId}-${field}`;
+              return editing ? (
+                <div key={field} className="space-y-1.5 text-[10px] font-semibold text-muted-foreground">
+                  <label htmlFor={textareaId} className="block">
+                    {label}
+                  </label>
                   <textarea
+                    id={textareaId}
+                    disabled={saving}
                     value={String(draft[field] ?? "")}
                     onChange={(event) => {
                       setDraft((current) => ({
@@ -322,16 +329,21 @@ export function AnamnesisTab({
                       setDirty(true);
                     }}
                     rows={5}
-                    className="w-full resize-y rounded-lg border border-border bg-background/80 p-3 text-xs font-normal leading-5 text-foreground outline-none transition focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/10"
+                    className="w-full resize-y rounded-lg border border-border bg-background/80 p-3 text-xs font-normal leading-5 text-foreground outline-none transition focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/10 disabled:opacity-50"
                     placeholder={`Registre ${label.toLowerCase()}...`}
                   />
-                ) : (
+                </div>
+              ) : (
+                <div key={field} className="space-y-1.5 text-[10px] font-semibold text-muted-foreground">
+                  <span className="block">
+                    {label}
+                  </span>
                   <div className="min-h-28 whitespace-pre-wrap rounded-lg border border-border/70 bg-background/40 p-3 text-xs font-normal leading-5 text-muted-foreground">
                     {String(draft[field] ?? "").trim() || "Não informado."}
                   </div>
-                )}
-              </label>
-            ))}
+                </div>
+              );
+            })}
           </div>
 
           {editing && (
@@ -342,13 +354,13 @@ export function AnamnesisTab({
                   : "Nenhuma alteração pendente."}
               </span>
               <div className="flex gap-2">
-                <Button size="sm" variant="ghost" onClick={cancelEditing}>
+                <Button size="sm" variant="ghost" disabled={saving} onClick={cancelEditing}>
                   Cancelar
                 </Button>
                 <Button
                   size="sm"
                   isLoading={saving}
-                  disabled={!dirty}
+                  disabled={!dirty || saving}
                   onClick={saveSection}
                   leftIcon={<Save className="h-3.5 w-3.5" />}
                   className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
