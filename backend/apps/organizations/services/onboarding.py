@@ -8,13 +8,32 @@ from django.utils import timezone
 
 from apps.billing.models import Subscription
 from apps.organizations.exceptions import OnboardingIncompleteError
-from apps.organizations.models import Organization, OrganizationSettings, ProfessionalProfile
+from apps.organizations.models import (
+    Organization,
+    OrganizationMembership,
+    OrganizationSettings,
+    ProfessionalProfile,
+)
 from apps.scheduling.telemedicine_config import get_telemedicine_config
 
 from .audit import audit_organization_action
 
 
-def _validate_telemedicine_activation(*, actor) -> None:
+def _organization_billing_user(*, organization: Organization, fallback_actor):
+    owner = (
+        OrganizationMembership.objects.select_related("user")
+        .filter(
+            organization=organization,
+            role=OrganizationMembership.Role.OWNER,
+            status=OrganizationMembership.Status.ACTIVE,
+        )
+        .order_by("created_at")
+        .first()
+    )
+    return owner.user if owner else fallback_actor
+
+
+def _validate_telemedicine_activation(*, actor, organization: Organization) -> None:
     config = get_telemedicine_config()
     if not config.enabled or not config.provider_configured:
         raise ValidationError(
@@ -24,10 +43,14 @@ def _validate_telemedicine_activation(*, actor) -> None:
                 )
             }
         )
+    billing_user = _organization_billing_user(
+        organization=organization,
+        fallback_actor=actor,
+    )
     subscription = (
         Subscription.objects.select_related("plan")
         .filter(
-            user=actor,
+            user=billing_user,
             status__in=[
                 Subscription.Status.TRIALING,
                 Subscription.Status.ACTIVE,
@@ -56,7 +79,10 @@ def update_onboarding(
     profile_data = data.get("professional_profile") or {}
 
     if settings_data.get("allow_telemedicine") is True:
-        _validate_telemedicine_activation(actor=actor)
+        _validate_telemedicine_activation(
+            actor=actor,
+            organization=organization,
+        )
 
     for field in {
         "name",
