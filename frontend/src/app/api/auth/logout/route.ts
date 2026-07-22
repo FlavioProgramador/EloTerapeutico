@@ -24,12 +24,11 @@ function logLogoutStage(stage: string, details: Record<string, unknown> = {}): v
   );
 }
 
-async function revokeCurrentSession(
+function requestLogout(
   request: NextRequest,
   refreshToken: string,
 ): Promise<Response> {
-  logLogoutStage("upstream_start");
-  const response = await fetchBackend("auth/logout/", {
+  return fetchBackend("auth/logout/", {
     method: "POST",
     headers: {
       ...Object.fromEntries(createBackendHeaders(request).entries()),
@@ -37,8 +36,24 @@ async function revokeCurrentSession(
     },
     body: JSON.stringify({ refresh: refreshToken }),
   });
-  logLogoutStage("upstream_complete", { status: response.status });
-  return response;
+}
+
+async function revokeCurrentSession(
+  request: NextRequest,
+  refreshToken: string,
+): Promise<Response> {
+  logLogoutStage("upstream_start");
+  try {
+    const response = await requestLogout(request, refreshToken);
+    logLogoutStage("upstream_complete", { status: response.status });
+    return response;
+  } catch (error: unknown) {
+    if (!(error instanceof TypeError)) throw error;
+    logLogoutStage("upstream_retry");
+    const response = await requestLogout(request, refreshToken);
+    logLogoutStage("upstream_complete_after_retry", { status: response.status });
+    return response;
+  }
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
