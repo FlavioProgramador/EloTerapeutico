@@ -141,6 +141,25 @@ services:
       timeout: 10s
       retries: 5
 
+  celery-worker-uploads:
+    build: *backend_build
+    command: >
+      celery -A config worker --loglevel=INFO --queues=uploads
+      --concurrency=${CELERY_UPLOADS_CONCURRENCY:-1} --hostname=uploads@%h
+    env_file:
+      - .env
+    environment: *backend_environment
+    depends_on: *worker_dependencies
+    restart: unless-stopped
+    stop_grace_period: 45s
+    volumes:
+      - ./backend:/app
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping --destination=uploads@$$HOSTNAME --timeout=5 | grep pong"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
   celery-worker-communications:
     build: *backend_build
     command: >
