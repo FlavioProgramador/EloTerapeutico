@@ -1,0 +1,270 @@
+name: Adicionar E2E de telemedicina
+
+on:
+  push:
+    branches:
+      - agent/telemedicina-livekit
+    paths:
+      - .github/workflows/add-telemedicine-e2e.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  add-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout da branch
+        uses: actions/checkout@v7
+        with:
+          ref: agent/telemedicina-livekit
+          fetch-depth: 0
+
+      - name: Adicionar cenário Playwright
+        run: |
+          cat > frontend/e2e/telemedicine.spec.ts <<'EOF'
+          import { expect, test } from "@playwright/test";
+
+          const token = process.env.E2E_TELEMEDICINE_TOKEN;
+
+          test.describe("telemedicina segura", () => {
+            test("remove o convite da URL, registra consentimento e abre a pré-entrada", async ({ page }) => {
+              expect(token, "E2E_TELEMEDICINE_TOKEN deve ser configurado").toBeTruthy();
+
+              await page.goto(
+                `/consulta-online/paciente#token=${encodeURIComponent(token || "")}`,
+              );
+
+              await expect(page).toHaveURL(/\/consulta-online\/paciente$/);
+              await expect(
+                page.getByRole("heading", { name: "Antes de entrar no atendimento" }),
+              ).toBeVisible();
+              await expect(page.getByText("Sem gravação")).toBeVisible();
+              await expect(page.locator("body")).not.toContainText(token || "");
+
+              await page.getByRole("checkbox").check();
+              await page
+                .getByRole("button", { name: "Aceitar e testar dispositivos" })
+                .click();
+
+              await expect(
+                page.getByRole("heading", { name: "Confira seus dispositivos" }),
+              ).toBeVisible();
+              await expect(
+                page.getByRole("button", { name: "Entrar no atendimento" }),
+              ).toBeVisible();
+
+              const browserState = await page.evaluate(() => ({
+                hash: window.location.hash,
+                local: Object.entries(window.localStorage),
+                session: Object.entries(window.sessionStorage),
+              }));
+              expect(browserState.hash).toBe("");
+              expect(JSON.stringify(browserState.local)).not.toContain(token || "");
+              expect(JSON.stringify(browserState.session)).not.toContain(token || "");
+              expect(JSON.stringify(browserState)).not.toMatch(/e2ee_key|access_token|livekit/i);
+            });
+
+            test("convite ausente falha de forma genérica", async ({ page }) => {
+              await page.goto("/consulta-online/paciente");
+              await expect(
+                page.getByText("O convite é inválido ou não está mais disponível."),
+              ).toBeVisible();
+              await expect(page.locator("body")).not.toContainText(/Traceback|Internal Server Error/i);
+            });
+          });
+          EOF
+
+      - name: Atualizar pacote e configuração do Playwright
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          package_path = Path("frontend/e2e/package.json")
+          package = json.loads(package_path.read_text(encoding="utf-8"))
+          package["scripts"]["test:telemedicine"] = "playwright test telemedicine.spec.ts"
+          package_path.write_text(
+              json.dumps(package, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+
+          config_path = Path("frontend/e2e/playwright.config.ts")
+          config = config_path.read_text(encoding="utf-8")
+          marker = '    video: "off",\n'
+          addition = (
+              '    video: "off",\n'
+              '    permissions: ["camera", "microphone"],\n'
+              '    launchOptions: {\n'
+              '      args: [\n'
+              '        "--use-fake-device-for-media-stream",\n'
+              '        "--use-fake-ui-for-media-stream",\n'
+              '      ],\n'
+              '    },\n'
+          )
+          if "--use-fake-device-for-media-stream" not in config:
+              if marker not in config:
+                  raise SystemExit("Bloco use do Playwright não encontrado.")
+              config = config.replace(marker, addition, 1)
+          config_path.write_text(config, encoding="utf-8")
+          PY
+
+      - name: Integrar cenário ao workflow E2E
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path(".github/workflows/auth-e2e.yml")
+          source = path.read_text(encoding="utf-8")
+
+          path_marker = '      - "backend/apps/users/**"\n'
+          path_addition = (
+              path_marker
+              + '      - "backend/apps/scheduling/**"\n'
+              + '      - "backend/apps/organizations/**"\n'
+              + '      - "backend/apps/billing/**"\n'
+              + '      - "frontend/src/app/consulta-online/**"\n'
+              + '      - "frontend/src/features/telemedicine/**"\n'
+          )
+          source = source.replace(path_marker, path_addition)
+
+          env_marker = '      NEXT_PUBLIC_API_URL: http://127.0.0.1:8000/api/v1/\n'
+          env_addition = (
+              env_marker
+              + '      TELEMEDICINE_ENABLED: "True"\n'
+              + '      TELEMEDICINE_PROVIDER: fake\n'
+              + '      TELEMEDICINE_REQUIRE_E2EE: "True"\n'
+              + '      TELEMEDICINE_JOIN_BEFORE_MINUTES: "15"\n'
+              + '      TELEMEDICINE_JOIN_AFTER_MINUTES: "30"\n'
+          )
+          if "TELEMEDICINE_PROVIDER: fake" not in source:
+              source = source.replace(env_marker, env_addition, 1)
+
+          seed_marker = '           user.save()\n           PY\n\n      - name: Start Django backend\n'
+          seed_step = '''           user.save()
+           PY
+
+      - name: Create deterministic telemedicine invitation
+        working-directory: backend
+        shell: bash
+        run: |
+          python manage.py shell <<'PY'
+          import os
+          from datetime import timedelta
+          from decimal import Decimal
+
+          from django.utils import timezone
+
+          from apps.billing.models import Plan, Subscription
+          from apps.organizations.models import (
+              Organization,
+              OrganizationMembership,
+              OrganizationSettings,
+          )
+          from apps.patients.models import Patient
+          from apps.scheduling.models import Appointment, TelemedicineRoom
+          from apps.scheduling.services.telemedicine import create_patient_invitation
+          from apps.users.models import User
+
+          user = User.objects.get(email=os.environ["E2E_USER_EMAIL"])
+          organization = Organization.objects.create(
+              name="Clínica E2E Telemedicina",
+              slug="clinica-e2e-telemedicina",
+              organization_type=Organization.Type.CLINIC,
+              status=Organization.Status.ACTIVE,
+              created_by=user,
+          )
+          OrganizationSettings.objects.create(
+              organization=organization,
+              allow_telemedicine=True,
+          )
+          OrganizationMembership.objects.create(
+              organization=organization,
+              user=user,
+              role=OrganizationMembership.Role.OWNER,
+              status=OrganizationMembership.Status.ACTIVE,
+              is_default=True,
+          )
+          plan = Plan.objects.create(
+              name="Plano E2E Telemedicina",
+              slug="plano-e2e-telemedicina",
+              price=Decimal("99.00"),
+              has_telemedicine=True,
+          )
+          now = timezone.now()
+          Subscription.objects.create(
+              user=user,
+              plan=plan,
+              status=Subscription.Status.ACTIVE,
+              started_at=now - timedelta(days=1),
+              access_starts_at=now - timedelta(days=1),
+              access_ends_at=now + timedelta(days=30),
+          )
+          patient = Patient.objects.create(
+              organization=organization,
+              therapist=user,
+              full_name="Paciente E2E Telemedicina",
+          )
+          start = now + timedelta(minutes=5)
+          appointment = Appointment.objects.create(
+              organization=organization,
+              patient=patient,
+              therapist=user,
+              start_time=start,
+              end_time=start + timedelta(minutes=50),
+              status=Appointment.Status.CONFIRMED,
+              modality=Appointment.Modality.ONLINE,
+              session_value=Decimal("150.00"),
+              created_by=user,
+              updated_by=user,
+          )
+          room = TelemedicineRoom.objects.get(appointment=appointment)
+          _, raw_token, _ = create_patient_invitation(actor=user, room=room)
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env_file:
+              env_file.write(f"E2E_TELEMEDICINE_TOKEN={raw_token}\\n")
+          PY
+
+      - name: Start Django backend
+'''
+          if "Create deterministic telemedicine invitation" not in source:
+              if seed_marker not in source:
+                  raise SystemExit("Ponto de inserção do seed E2E não encontrado.")
+              source = source.replace(seed_marker, seed_step, 1)
+
+          run_marker = '''      - name: Run auth E2E scenarios
+        working-directory: frontend/e2e
+        env:
+          E2E_BASE_URL: http://localhost:3000
+        run: npm run test:auth
+'''
+          run_addition = run_marker + '''
+      - name: Run telemedicine E2E scenarios
+        working-directory: frontend/e2e
+        env:
+          E2E_BASE_URL: http://localhost:3000
+        run: npm run test:telemedicine
+'''
+          if "Run telemedicine E2E scenarios" not in source:
+              if run_marker not in source:
+                  raise SystemExit("Ponto de execução Playwright não encontrado.")
+              source = source.replace(run_marker, run_addition, 1)
+
+          path.write_text(source, encoding="utf-8")
+          PY
+
+      - name: Publicar teste E2E em commit próprio
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/e2e .github/workflows/auth-e2e.yml
+          git commit -m "test(e2e): cobre fluxo seguro de telemedicina"
+          git push origin HEAD:agent/telemedicina-livekit
+
+      - name: Remover workflow temporário
+        run: |
+          git pull --rebase origin agent/telemedicina-livekit
+          rm .github/workflows/add-telemedicine-e2e.yml
+          git add .github/workflows/add-telemedicine-e2e.yml
+          git commit -m "ci: remove workflow temporário do E2E"
+          git push origin HEAD:agent/telemedicina-livekit
