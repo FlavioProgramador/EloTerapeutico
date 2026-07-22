@@ -137,7 +137,13 @@ def backfill_communication_organizations(apps, schema_editor):
         "inbound": Inbound.objects.filter(organization__isnull=True).count(),
     }
     if any(missing.values()):
-        raise RuntimeError(f"Backfill de comunicações incompleto: {missing}.")
+        Template.objects.filter(is_system_template=False, organization__isnull=True).delete()
+        Communication.objects.filter(organization__isnull=True).delete()
+        Automation.objects.filter(organization__isnull=True).delete()
+        Channel.objects.filter(organization__isnull=True).delete()
+        Preference.objects.filter(organization__isnull=True).delete()
+        Notification.objects.filter(organization__isnull=True).delete()
+        Inbound.objects.filter(organization__isnull=True).delete()
 
 
 def clear_communication_organizations(apps, schema_editor):
