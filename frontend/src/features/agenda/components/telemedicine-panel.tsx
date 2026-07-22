@@ -1,12 +1,13 @@
 "use client";
 
 import { useDeferredValue, useMemo, useState } from "react";
-import { Ban, Copy, RefreshCw, Video } from "lucide-react";
+import { Ban, Copy, RefreshCw, Send, Video } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
   useCreateTelemedicineInvitation,
   useRevokeTelemedicineInvitation,
+  useSendTelemedicineInvitation,
   useTelemedicineRooms,
 } from "@/features/telemedicine/hooks/use-telemedicine";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,7 @@ export function TelemedicinePanel() {
     page_size: 100,
   });
   const createInvitation = useCreateTelemedicineInvitation();
+  const sendInvitation = useSendTelemedicineInvitation();
   const revokeInvitation = useRevokeTelemedicineInvitation();
   const rooms = (page?.results || []).filter(
     (room) =>
@@ -46,6 +48,18 @@ export function TelemedicinePanel() {
       return;
     }
     createInvitation.mutate(roomId);
+  }
+
+  function sendByEmail(roomId: number, hasValidInvitation: boolean) {
+    if (
+      hasValidInvitation &&
+      !window.confirm(
+        "O envio cria um novo convite e revoga o anterior. Deseja continuar?",
+      )
+    ) {
+      return;
+    }
+    sendInvitation.mutate({ roomId, channel: "email" });
   }
 
   function revoke(roomId: number) {
@@ -155,6 +169,15 @@ export function TelemedicinePanel() {
                         }
                       >
                         Iniciar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={!room.is_accessible || sendInvitation.isPending}
+                        leftIcon={<Send className="size-3.5" />}
+                        onClick={() => sendByEmail(room.id, invitationValid)}
+                      >
+                        Enviar convite
                       </Button>
                       <Button
                         size="sm"
