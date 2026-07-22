@@ -110,7 +110,7 @@ function ToggleField({
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
   const {
     activeOrganization,
     isLoading: organizationLoading,
@@ -419,7 +419,7 @@ export default function OnboardingPage() {
           {stepContent}
           {pageError ? <p className="mt-5 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{pageError}</p> : null}
           <div className="mt-8 flex items-center justify-between border-t border-border pt-5">
-            <button type="button" disabled={step === 1 || saving} onClick={() => setStep((current) => Math.max(current - 1, 1))} className="inline-flex h-10 items-center gap-2 rounded-lg border border-border px-4 text-sm disabled:opacity-40"><ChevronLeft className="h-4 w-4" />Voltar</button>
+            <button type="button" disabled={saving} onClick={() => step === 1 ? logout() : setStep((current) => Math.max(current - 1, 1))} className="inline-flex h-10 items-center gap-2 rounded-lg border border-border px-4 text-sm disabled:opacity-40"><ChevronLeft className="h-4 w-4" />Voltar</button>
             <button type="button" disabled={saving} onClick={activeOrganization ? (step === 6 ? complete : saveStep) : createFirstOrganization} className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:opacity-60">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{step === 6 ? "Concluir onboarding" : "Salvar e continuar"}{!saving && step < 6 ? <ChevronRight className="h-4 w-4" /> : null}</button>
           </div>
         </section>
