@@ -451,7 +451,7 @@ class TreatmentGoalListCreateView(ClinicalPatientMixin, APIView):
             context={"request": request, "patient": patient},
         )
         serializer.is_valid(raise_exception=True)
-        goal = serializer.save(patient=patient, created_by=request.user)
+        goal = serializer.save(patient=patient, organization=patient.organization, created_by=request.user)
         log_access(
             request,
             AuditLog.Action.CREATE,
@@ -557,6 +557,7 @@ class ClinicalDocumentListCreateView(ClinicalPatientMixin, APIView):
         if not uploaded_file:
             return Response({"file": ["Selecione um arquivo."]}, status=status.HTTP_400_BAD_REQUEST)
         document = serializer.save(
+            organization=patient.organization,
             patient=patient,
             uploaded_by=request.user,
             original_name=uploaded_file.name[:255],
@@ -769,7 +770,7 @@ class ClinicalFormResponseListCreateView(ClinicalPatientMixin, APIView):
         patient = self.get_patient(patient_id)
         serializer = ClinicalFormResponseSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
-        instance = serializer.save(patient=patient, therapist=request.user)
+        instance = serializer.save(patient=patient, organization=patient.organization, therapist=request.user)
         log_access(
             request,
             AuditLog.Action.CREATE,
@@ -845,6 +846,7 @@ class ClinicalExportListCreateView(ClinicalPatientMixin, APIView):
         filename = f"prontuario_{clean_name}_{timezone.now():%Y%m%d%H%M%S}.pdf"
 
         instance = serializer.save(
+            organization=patient.organization,
             patient=patient,
             created_by=request.user,
             filename=filename,

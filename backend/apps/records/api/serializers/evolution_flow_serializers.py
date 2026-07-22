@@ -106,6 +106,7 @@ class EvolutionAttachmentSerializer(serializers.ModelSerializer):
         evolution = self.context["evolution"]
         request = self.context["request"]
         return ClinicalDocument.objects.create(
+            organization=evolution.patient.organization,
             patient=evolution.patient,
             evolution=evolution,
             category=ClinicalDocument.Category.OTHER,
@@ -414,6 +415,7 @@ class EvolutionFlowSerializer(serializers.ModelSerializer):
         patient = self.context["patient"]
         user = self.context["request"].user
         evolution = Evolution.objects.create(
+            organization=patient.organization,
             patient=patient,
             created_by=user,
             **validated_data,

@@ -305,6 +305,7 @@ class EvolutionWorkspaceSerializer(serializers.ModelSerializer):
         supplied_content = validated_data.pop("content", "")
         content = supplied_content or clinical_data.get("therapist_observations") or "Evolução em rascunho"
         evolution = Evolution.objects.create(
+            organization=patient.organization,
             patient=patient,
             created_by=user,
             content=content,

@@ -418,10 +418,12 @@ function FieldSettings({
 function BuilderModal({
   initial,
   templateId,
+  initialTab = "editor",
   onClose,
 }: {
   initial?: Partial<FormPayload> & { id?: number };
   templateId?: number;
+  initialTab?: "editor" | "preview";
   onClose: () => void;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
@@ -432,7 +434,7 @@ function BuilderModal({
   const [fields, setFields] = useState<FormField[]>(() =>
     normalizeClientFields(initial?.fields ?? []),
   );
-  const [tab, setTab] = useState<"editor" | "preview">("editor");
+  const [tab, setTab] = useState<"editor" | "preview">(initialTab);
   const [editing, setEditing] = useState<string | number | null>(null);
   const createForm = useCreateForm();
   const updateForm = useUpdateForm();
@@ -747,7 +749,7 @@ function FormCard({
   onEdit,
 }: {
   form: TherapeuticForm;
-  onEdit: (form: TherapeuticForm) => void;
+  onEdit: (form: TherapeuticForm, initialTab?: "editor" | "preview") => void;
 }) {
   const duplicate = useFormAction("duplicate");
   const archive = useFormAction(
@@ -806,7 +808,7 @@ function FormCard({
               size="sm"
               variant="outline"
               leftIcon={<Eye className="h-4 w-4" />}
-              onClick={() => onEdit(form)}
+              onClick={() => onEdit(form, "preview")}
             >
               Visualizar
             </Button>
@@ -861,6 +863,7 @@ export function FormsPage() {
   const [builder, setBuilder] = useState<{
     initial?: Partial<FormPayload> & { id?: number };
     templateId?: number;
+    initialTab?: "editor" | "preview";
   } | null>(null);
   const filters = useMemo(() => ({ search, page_size: 50 }), [search]);
   const forms = useForms(filters);
@@ -879,10 +882,11 @@ export function FormsPage() {
     });
   }
 
-  async function editForm(form: TherapeuticForm) {
+  async function editForm(form: TherapeuticForm, initialTab: "editor" | "preview" = "editor") {
     try {
       const freshForm = await formsService.get(form.id);
       setBuilder({
+        initialTab,
         initial: {
           id: freshForm.id,
           name: freshForm.name,
@@ -893,6 +897,7 @@ export function FormsPage() {
       });
     } catch {
       setBuilder({
+        initialTab,
         initial: {
           id: form.id,
           name: form.name,
@@ -1006,6 +1011,7 @@ export function FormsPage() {
         <BuilderModal
           initial={builder.initial}
           templateId={builder.templateId}
+          initialTab={builder.initialTab}
           onClose={() => setBuilder(null)}
         />
       )}

@@ -52,6 +52,7 @@ def create_evolution(*, patient, actor, validated_data: dict[str, Any]) -> Evolu
     clinical_data = payload.pop("clinical_data", {})
 
     evolution = Evolution.objects.create(
+        organization=patient.organization,
         patient=patient,
         created_by=actor,
         **payload,
