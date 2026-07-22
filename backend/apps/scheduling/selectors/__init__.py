@@ -13,6 +13,7 @@ from .resources import (
     telemedicine_rooms_queryset,
 )
 from .telemedicine import get_telemedicine_room_by_token
+from .telemedicine_metrics import get_telemedicine_operational_metrics
 from .users import get_accessible_therapist
 
 __all__ = [
@@ -22,6 +23,7 @@ __all__ = [
     "available_slots",
     "get_accessible_therapist",
     "get_appointment_conflicts",
+    "get_telemedicine_operational_metrics",
     "get_telemedicine_room_by_token",
     "package_sessions_queryset",
     "patient_packages_queryset",
