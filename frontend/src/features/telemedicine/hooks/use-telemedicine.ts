@@ -16,7 +16,11 @@ interface TelemedicinePage {
   results: TelemedicineDashboardRoom[];
 }
 
-export const TELEMEDICINE_QUERY_KEY = ["agenda", "telemedicine", "secure"] as const;
+export const TELEMEDICINE_QUERY_KEY = [
+  "agenda",
+  "telemedicine",
+  "secure",
+] as const;
 
 function buildQuery(filters?: Record<string, unknown>) {
   const params = new URLSearchParams();
@@ -51,6 +55,28 @@ export function useCreateTelemedicineInvitation() {
       toast.success("Convite criado e copiado.");
     },
     onError: () => toast.error("Não foi possível criar o convite."),
+  });
+}
+
+export function useSendTelemedicineInvitation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      roomId,
+      channel = "email",
+    }: {
+      roomId: number;
+      channel?: "email" | "whatsapp_manual";
+    }) => telemedicineProfessionalService.sendInvitation(roomId, channel),
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({ queryKey: TELEMEDICINE_QUERY_KEY });
+      toast.success(
+        data.channel === "email"
+          ? "Convite enfileirado para envio por e-mail."
+          : "Convite preparado para envio manual pelo WhatsApp.",
+      );
+    },
+    onError: () => toast.error("Não foi possível enviar o convite."),
   });
 }
 
