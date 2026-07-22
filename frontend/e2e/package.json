@@ -5,7 +5,8 @@
   "scripts": {
     "test": "playwright test",
     "test:auth": "playwright test auth.spec.ts visual-auth.spec.ts",
-    "test:gateway": "playwright test gateway.spec.ts"
+    "test:gateway": "playwright test gateway.spec.ts",
+    "test:telemedicine": "playwright test telemedicine.spec.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.61.1"
