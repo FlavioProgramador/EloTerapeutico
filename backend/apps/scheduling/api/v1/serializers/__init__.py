@@ -13,7 +13,12 @@ from .recurrences import AppointmentRecurrenceSerializer
 from .reminders import AppointmentReminderSerializer
 from .rooms import RoomSerializer
 from .schedule_blocks import ScheduleBlockSerializer
-from .telemedicine import TelemedicineRoomSerializer
+from .telemedicine import (
+    TelemedicineConsentSerializer,
+    TelemedicineInvitationTokenSerializer,
+    TelemedicineParticipantRemovalSerializer,
+    TelemedicineRoomSerializer,
+)
 
 __all__ = [
     "AppointmentCreateSerializer",
@@ -28,5 +33,8 @@ __all__ = [
     "PatientPackageSerializer",
     "RoomSerializer",
     "ScheduleBlockSerializer",
+    "TelemedicineConsentSerializer",
+    "TelemedicineInvitationTokenSerializer",
+    "TelemedicineParticipantRemovalSerializer",
     "TelemedicineRoomSerializer",
 ]
