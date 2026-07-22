@@ -45,9 +45,14 @@ def recurrences_queryset():
 
 def telemedicine_rooms_queryset():
     return TelemedicineRoom.objects.select_related(
+        "organization",
+        "organization__settings",
         "appointment",
         "appointment__patient",
         "appointment__therapist",
+    ).prefetch_related(
+        "invitations",
+        "participant_sessions",
     )
 
 
