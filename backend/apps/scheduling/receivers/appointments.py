@@ -26,13 +26,13 @@ def capture_telemedicine_appointment_state(
 ):
     del sender, kwargs
     if raw or not instance.pk:
-        instance._telemedicine_previous_state = None
+        setattr(instance, "_telemedicine_previous_state", None)
         return
-    instance._telemedicine_previous_state = (
+    setattr(instance, "_telemedicine_previous_state", (
         Appointment.objects.filter(pk=instance.pk)
         .values("start_time", "status", "modality")
         .first()
-    )
+    ))
 
 
 @receiver(
