@@ -30,6 +30,10 @@ const PUBLIC_ORIGIN_ONLY_PATHS = new Set([
   "auth/register",
   "auth/password/reset",
   "auth/password/reset/confirm",
+  "scheduling/telemedicine/public/exchange",
+  "scheduling/telemedicine/public/consent",
+  "scheduling/telemedicine/public/join",
+  "scheduling/telemedicine/public/leave",
 ]);
 
 function validOrganizationId(value: string | null): value is string {
