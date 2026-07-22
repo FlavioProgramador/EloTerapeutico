@@ -11,7 +11,10 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "@/contexts/auth";
-import { api } from "@/lib/api";
+import {
+  mergeActivatedOrganizationContext,
+  type OrganizationActivationPayload,
+} from "@/features/organizations/context-state";
 import {
   getStoredOrganizationId,
   storeOrganizationId,
@@ -21,6 +24,7 @@ import type {
   OrganizationContextPayload,
   OrganizationMembership,
 } from "@/features/organizations/types";
+import { api } from "@/lib/api";
 
 const ORGANIZATION_CONTEXT_QUERY_KEY = ["organization-context"] as const;
 
@@ -75,22 +79,32 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
 
   const switchOrganization = useCallback(
     async (organizationId: string) => {
-      const target = query.data?.organizations.find(
-        (organization) => organization.id === organizationId,
-      );
-      if (!target || target.status !== "active") {
-        throw new Error("ORGANIZATION_NOT_AVAILABLE");
-      }
+      await queryClient.cancelQueries({
+        queryKey: ORGANIZATION_CONTEXT_QUERY_KEY,
+      });
 
-      await queryClient.cancelQueries();
-      await api.post(`organizations/${organizationId}/activate/`, {});
+      const { data: activation } = await api.post<OrganizationActivationPayload>(
+        `organizations/${organizationId}/activate/`,
+        {},
+      );
+
       storeOrganizationId(organizationId);
+      queryClient.setQueryData<OrganizationContextPayload>(
+        ORGANIZATION_CONTEXT_QUERY_KEY,
+        (current) => mergeActivatedOrganizationContext(current, activation),
+      );
       queryClient.removeQueries({
         predicate: (candidate) =>
           candidate.queryKey[0] !== "auth-me" &&
           candidate.queryKey[0] !== ORGANIZATION_CONTEXT_QUERY_KEY[0],
       });
-      await query.refetch();
+
+      try {
+        await query.refetch();
+      } catch {
+        // A resposta do endpoint de ativação já é a fonte de verdade autorizada.
+        // A sincronização do contexto será tentada novamente no próximo acesso.
+      }
     },
     [query, queryClient],
   );
@@ -109,7 +123,13 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       switchOrganization,
       refreshOrganizations,
     }),
-    [query.data, query.isFetching, query.isLoading, refreshOrganizations, switchOrganization],
+    [
+      query.data,
+      query.isFetching,
+      query.isLoading,
+      refreshOrganizations,
+      switchOrganization,
+    ],
   );
 
   return (
