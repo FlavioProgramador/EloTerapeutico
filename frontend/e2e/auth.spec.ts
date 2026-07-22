@@ -54,6 +54,24 @@ async function csrfFromDocument(page: Page): Promise<string> {
   return value;
 }
 
+async function browserPostWithCsrf(
+  page: Page,
+  path: string,
+  csrf: string,
+): Promise<number> {
+  return page.evaluate(
+    async ({ requestPath, csrfToken }) => {
+      const response = await fetch(requestPath, {
+        method: "POST",
+        credentials: "include",
+        headers: { "x-csrf-token": csrfToken },
+      });
+      return response.status;
+    },
+    { requestPath: path, csrfToken: csrf },
+  );
+}
+
 async function sensitiveStorageKeys(page: Page) {
   return page.evaluate(() => {
     const sensitive = /(?:access|refresh|token|auth[_-]?role)/i;
@@ -228,11 +246,9 @@ test("logout limpa cookies, revoga refresh e permanece controlado", async ({
   const refreshBefore = await cookieByName(context, REFRESH_COOKIE);
   expect(refreshBefore).toBeDefined();
 
-  const logout = await context.request.post("/api/auth/logout", {
-    headers: { "x-csrf-token": csrf },
-  });
-  expect(logout.status()).toBeGreaterThanOrEqual(200);
-  expect(logout.status()).toBeLessThan(300);
+  const logoutStatus = await browserPostWithCsrf(page, "/api/auth/logout", csrf);
+  expect(logoutStatus).toBeGreaterThanOrEqual(200);
+  expect(logoutStatus).toBeLessThan(300);
 
   expect(await cookieByName(context, ACCESS_COOKIE)).toBeUndefined();
   expect(await cookieByName(context, REFRESH_COOKIE)).toBeUndefined();
@@ -273,8 +289,10 @@ test("logout limpa cookies, revoga refresh e permanece controlado", async ({
       sameSite: "Lax",
     },
   ]);
-  const repeatedLogout = await context.request.post("/api/auth/logout", {
-    headers: { "x-csrf-token": csrf },
-  });
-  expect(repeatedLogout.status()).toBe(200);
+  const repeatedLogoutStatus = await browserPostWithCsrf(
+    page,
+    "/api/auth/logout",
+    csrf,
+  );
+  expect(repeatedLogoutStatus).toBe(200);
 });
