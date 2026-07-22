@@ -7,6 +7,9 @@ RUN npm ci --silent
 
 COPY . .
 
+ARG LIVEKIT_URL=""
+ENV LIVEKIT_URL=${LIVEKIT_URL}
+
 RUN npm run build
 
 EXPOSE 3000
