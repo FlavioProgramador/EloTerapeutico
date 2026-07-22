@@ -25,7 +25,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Update vulnerable transitive dependencies
+      - name: Update known vulnerable transitive dependencies
         working-directory: frontend
         run: npm update brace-expansion js-yaml --package-lock-only --ignore-scripts
 
@@ -33,13 +33,21 @@ jobs:
         working-directory: frontend
         run: npm ci --ignore-scripts
 
+      - name: Generate complete npm audit report
+        working-directory: frontend
+        shell: bash
+        run: npm audit --json > npm-audit.json || true
+
+      - name: Upload repaired lockfile and audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr218-lockfile-diagnostics
+          path: |
+            frontend/package-lock.json
+            frontend/npm-audit.json
+          retention-days: 1
+
       - name: Validate high severity audit gate
         working-directory: frontend
         run: npm audit --audit-level=high
-
-      - name: Upload repaired lockfile
-        uses: actions/upload-artifact@v4
-        with:
-          name: pr218-repaired-lockfile
-          path: frontend/package-lock.json
-          retention-days: 1
