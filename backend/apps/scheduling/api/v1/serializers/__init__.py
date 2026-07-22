@@ -15,6 +15,7 @@ from .rooms import RoomSerializer
 from .schedule_blocks import ScheduleBlockSerializer
 from .telemedicine import (
     TelemedicineConsentSerializer,
+    TelemedicineInvitationSendSerializer,
     TelemedicineInvitationTokenSerializer,
     TelemedicineParticipantRemovalSerializer,
     TelemedicinePublicLeaveSerializer,
@@ -35,6 +36,7 @@ __all__ = [
     "RoomSerializer",
     "ScheduleBlockSerializer",
     "TelemedicineConsentSerializer",
+    "TelemedicineInvitationSendSerializer",
     "TelemedicineInvitationTokenSerializer",
     "TelemedicineParticipantRemovalSerializer",
     "TelemedicinePublicLeaveSerializer",
