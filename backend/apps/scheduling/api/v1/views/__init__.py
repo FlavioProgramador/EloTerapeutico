@@ -16,6 +16,7 @@ from .telemedicine import (
     TelemedicinePublicLeaveView,
     TelemedicineRoomViewSet,
 )
+from .telemedicine_metrics import TelemedicineOperationalMetricsView
 
 __all__ = [
     "AppointmentRecurrenceViewSet",
@@ -27,6 +28,7 @@ __all__ = [
     "RoomViewSet",
     "ScheduleBlockViewSet",
     "TelemedicineAccessView",
+    "TelemedicineOperationalMetricsView",
     "TelemedicinePublicConsentView",
     "TelemedicinePublicExchangeView",
     "TelemedicinePublicJoinView",
