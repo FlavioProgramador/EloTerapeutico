@@ -8,15 +8,18 @@ on:
       - ".github/workflows/pr218-fix-lock.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   repair-lockfile:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout pull request
+      - name: Checkout source branch
         uses: actions/checkout@v7
+        with:
+          ref: agent/corrige-onboarding-organizacao
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -46,22 +49,17 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      - name: Generate complete npm audit report
-        working-directory: frontend
-        shell: bash
-        run: npm audit --json > npm-audit.json || true
-
-      - name: Upload repaired manifests and audit report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pr218-lockfile-diagnostics
-          path: |
-            frontend/package.json
-            frontend/package-lock.json
-            frontend/npm-audit.json
-          retention-days: 1
-
       - name: Validate high severity audit gate
         working-directory: frontend
         run: npm audit --audit-level=high
+
+      - name: Publish validated manifests and remove temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/pr218-fix-lock.yml
+          git add frontend/package.json frontend/package-lock.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix(deps): corrige dependencias transitivas vulneraveis"
+          git push origin HEAD:agent/corrige-onboarding-organizacao
