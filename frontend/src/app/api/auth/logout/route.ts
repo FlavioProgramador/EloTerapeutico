@@ -17,16 +17,6 @@ import {
 
 export const runtime = "nodejs";
 
-function logLogoutStage(stage: string, details: Record<string, unknown> = {}): void {
-  console.info(
-    JSON.stringify({
-      event: "auth_logout_stage",
-      stage,
-      ...details,
-    }),
-  );
-}
-
 function requestLogout(
   request: NextRequest,
   refreshToken: string,
@@ -82,25 +72,10 @@ function requestLogout(
   });
 }
 
-async function revokeCurrentSession(
-  request: NextRequest,
-  refreshToken: string,
-): Promise<Response> {
-  logLogoutStage("upstream_start");
-  const response = await requestLogout(request, refreshToken);
-  logLogoutStage("upstream_complete", { status: response.status });
-  return response;
-}
-
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  logLogoutStage("request_received");
-  if (!hasValidCsrf(request)) {
-    logLogoutStage("csrf_rejected");
-    return csrfRejectedResponse();
-  }
+  if (!hasValidCsrf(request)) return csrfRejectedResponse();
 
   const refreshToken = getRefreshCookie(request);
-  logLogoutStage("csrf_accepted", { has_refresh_cookie: Boolean(refreshToken) });
   if (!refreshToken) {
     const response = NextResponse.json(
       { message: "Sessão encerrada." },
@@ -113,15 +88,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     );
     clearAuthCookies(response);
-    logLogoutStage("local_session_cleared");
     return response;
   }
 
   try {
-    const backendResponse = await revokeCurrentSession(request, refreshToken);
-    logLogoutStage("upstream_parse_start");
+    const backendResponse = await requestLogout(request, refreshToken);
     const payload = await parseBackendJson(backendResponse);
-    logLogoutStage("upstream_parse_complete", { has_payload: Boolean(payload) });
     const response = NextResponse.json(
       payload
         ? withoutTokenFields(payload)
@@ -141,12 +113,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     );
     clearAuthCookies(response);
-    logLogoutStage("response_ready", { status: backendResponse.status });
     return response;
   } catch (error: unknown) {
-    logLogoutStage("upstream_error", {
-      error_type: error instanceof Error ? error.name : typeof error,
-    });
     const response = gatewayUnavailableResponse(request, error);
     clearAuthCookies(response);
     return response;
