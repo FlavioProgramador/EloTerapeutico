@@ -7,16 +7,29 @@ from .recurrences import AppointmentRecurrenceViewSet
 from .reminders import AppointmentReminderViewSet
 from .rooms import RoomViewSet
 from .schedule_blocks import ScheduleBlockViewSet
-from .telemedicine import TelemedicineAccessView, TelemedicineRoomViewSet
+from .telemedicine import (
+    LiveKitWebhookView,
+    TelemedicineAccessView,
+    TelemedicinePublicConsentView,
+    TelemedicinePublicExchangeView,
+    TelemedicinePublicJoinView,
+    TelemedicinePublicLeaveView,
+    TelemedicineRoomViewSet,
+)
 
 __all__ = [
     "AppointmentRecurrenceViewSet",
     "AppointmentReminderViewSet",
     "AppointmentViewSet",
+    "LiveKitWebhookView",
     "PackageSessionViewSet",
     "PatientPackageViewSet",
     "RoomViewSet",
     "ScheduleBlockViewSet",
     "TelemedicineAccessView",
+    "TelemedicinePublicConsentView",
+    "TelemedicinePublicExchangeView",
+    "TelemedicinePublicJoinView",
+    "TelemedicinePublicLeaveView",
     "TelemedicineRoomViewSet",
 ]
