@@ -1,8 +1,8 @@
 # Elo Terapêutico
 
-Plataforma web de gestão para profissionais de saúde e terapeutas, com agenda, pacientes, prontuário eletrônico, financeiro clínico, documentos, formulários, comunicações, relatórios e cobrança de assinaturas.
+Plataforma web de gestão para profissionais de saúde e terapeutas, com agenda, pacientes, prontuário eletrônico, telemedicina, financeiro clínico, documentos, formulários, comunicações, relatórios e cobrança de assinaturas.
 
-> **Situação atual:** desenvolvimento ativo e pré-produção. A base funcional é ampla, mas ainda existem bloqueadores arquiteturais e requisitos operacionais antes do uso com dados clínicos reais.
+> **Situação atual:** desenvolvimento ativo e pré-produção. A base funcional é ampla, mas integrações externas e controles operacionais ainda precisam ser validados antes do uso com dados clínicos reais.
 
 ## Índice
 
@@ -20,29 +20,30 @@ Plataforma web de gestão para profissionais de saúde e terapeutas, com agenda,
 
 ## Visão geral
 
-O Elo Terapêutico centraliza tarefas administrativas e clínicas que normalmente ficam distribuídas entre agendas, planilhas, arquivos e sistemas de cobrança. O público principal é composto por terapeutas e profissionais que realizam atendimentos individuais, em grupo, presenciais ou remotos.
+O Elo Terapêutico centraliza tarefas administrativas e clínicas que normalmente ficam distribuídas entre agendas, planilhas, arquivos e sistemas de cobrança. O público principal é composto por terapeutas e profissionais que realizam atendimentos individuais, presenciais, híbridos ou remotos.
 
-O código atual implementa isolamento de diversos recursos pelo profissional autenticado. Entretanto, **não existe uma entidade explícita de clínica/tenant** que permita afirmar que uma arquitetura multi-clínica está concluída. Consulte [escopo e limitações](docs/01-visao-geral/escopo-atual.md).
+O domínio `apps.organizations` fornece organização, memberships, papéis e configurações para isolamento multi-tenant. Alguns módulos legados ainda precisam de revisão transversal antes que a plataforma seja considerada pronta para clínicas com equipes complexas.
 
 ## Módulos
 
 | Módulo | Situação resumida |
 | --- | --- |
 | Autenticação e usuários | JWT, rotação, blacklist, lockout, reset e BFF Next.js com cookies HttpOnly e CSRF |
-| Pacientes | Cadastro, responsáveis, status, importação/exportação e arquivamento lógico; ainda isolado principalmente por terapeuta |
-| Prontuário | Anamnese, evoluções, aditivos, documentos, anexos, metas e exportações; exige controles operacionais adicionais |
-| Agenda | Consultas, recorrências, salas, bloqueios, pacotes e lembretes; timezone/concorrência ainda precisam de validação dedicada |
-| Telemedicina | Sala lógica, tokens e acesso temporário; **não possui áudio/vídeo em tempo real** |
+| Organizações | Tenant explícito, memberships, papéis, onboarding e configurações institucionais |
+| Pacientes | Cadastro, responsáveis, status, importação/exportação e arquivamento lógico |
+| Prontuário | Anamnese, evoluções, aditivos, documentos, anexos, metas e exportações |
+| Agenda | Consultas, recorrências, salas, bloqueios, pacotes e lembretes |
+| Telemedicina | Áudio e vídeo LiveKit, convites com hash, consentimento, E2EE e webhooks; depende de configuração e staging |
 | Financeiro clínico | Receitas, despesas, mensalidades, pagamentos e relatórios |
 | Documentos | Modelos, biblioteca, geração e integridade por hash; storage privado depende da infraestrutura |
 | Formulários | Construtor, templates, submissões e respostas |
 | Comunicações | Notificações, templates, automações, Celery e webhooks; canais externos dependem de provedores |
 | Relatórios | Consultas, pacientes, financeiro, agendamento e exportações |
 | Billing | Planos, preços, assinaturas, entitlements, pagamentos e integração configurável com Asaas |
-| Auditoria | Trilha para ações sensíveis; refatoração específica em andamento |
+| Auditoria | Trilha para ações sensíveis e sanitização de metadados |
 | Administração | Django Admin e Django Unfold |
 | Dashboard | Agregação frontend dos módulos, com cobertura parcial |
-| Portal do paciente | Não implementado como módulo completo |
+| Portal do paciente | Não implementado como domínio completo |
 | Inteligência artificial | Planejada; existe somente flag comercial e placeholder, sem integração funcional |
 
 Detalhes, maturidade e pendências estão na [matriz de módulos](docs/17-referencia/matriz-de-modulos.md).
@@ -57,19 +58,23 @@ flowchart LR
     A --> P[(PostgreSQL)]
     A --> S[Storage local ou Azure Blob]
     A --> G[Asaas]
+    A --> L[LiveKit API]
+    F -->|WebRTC / WSS com E2EE| L
     R[(Redis)] --> C[Celery]
     C --> EX[Exportações]
     C --> UP[Uploads]
     C --> CO[Comunicações]
     C --> BI[Billing]
+    C --> TM[Manutenção de telemedicina]
 ```
 
-- **Frontend:** Next.js App Router, React, TypeScript, Tailwind CSS e TanStack Query.
-- **BFF:** Route Handlers do Next.js guardam access/refresh em cookies `HttpOnly`, aplicam double-submit CSRF e adicionam `Authorization` somente no servidor.
-- **Backend:** Django, Django REST Framework e Simple JWT.
+- **Frontend:** Next.js App Router, React, TypeScript, Tailwind CSS, TanStack Query e componentes LiveKit.
+- **BFF:** Route Handlers guardam access/refresh em cookies `HttpOnly`, aplicam double-submit CSRF e limitam os endpoints públicos de telemedicina por origem confiável.
+- **Backend:** Django, Django REST Framework, Simple JWT e abstração de provedor de mídia.
 - **Banco:** PostgreSQL 15 no Docker e no CI principal; SQLite pode ser usado somente em cenários locais específicos.
 - **Processamento assíncrono:** Redis, Celery workers separados e Celery Beat.
 - **Arquivos:** filesystem no desenvolvimento; Azure Blob privado deve ser configurado em produção.
+- **Telemedicina:** LiveKit fornece transporte WebRTC; o Elo Terapêutico controla autorização, convite, consentimento, E2EE e ciclo da sala.
 
 Leia a [visão geral de arquitetura](docs/02-arquitetura/README.md), o [mapa dos apps](docs/architecture/backend-architecture-map.md) e as [convenções de camadas](docs/backend-architecture.md).
 
@@ -83,6 +88,7 @@ Leia a [visão geral de arquitetura](docs/02-arquitetura/README.md), o [mapa dos
 - PostgreSQL 15;
 - Redis e Celery;
 - Simple JWT, django-filter, drf-spectacular e django-ratelimit;
+- `livekit-api` para salas, participantes, tokens e webhooks;
 - WeasyPrint para PDFs;
 - cryptography/Fernet para campos textuais sensíveis;
 - Django Unfold para o backoffice.
@@ -95,6 +101,7 @@ Leia a [visão geral de arquitetura](docs/02-arquitetura/README.md), o [mapa dos
 - TypeScript 6;
 - Tailwind CSS 4;
 - Axios, TanStack Query, React Hook Form e Zod;
+- `livekit-client` e `@livekit/components-react`;
 - Playwright isolado para autenticação E2E.
 
 ## Início rápido
@@ -163,6 +170,8 @@ Acesse `http://localhost:3000`. A API fica em `http://localhost:8000/api/v1/` e 
 
 Para processamento assíncrono, execute workers/beat do Celery ou utilize o Docker Compose.
 
+A telemedicina permanece desligada por padrão. Consulte a [operação de telemedicina](docs/12-operacao/telemedicina.md) antes de configurar LiveKit.
+
 ## Docker
 
 Na raiz do repositório:
@@ -182,7 +191,7 @@ Serviços principais:
 - workers Celery para `default`, `exports` e `communications`;
 - Celery Beat para tarefas periódicas.
 
-Consulte o [guia Docker](docs/03-instalacao/instalacao-docker.md) e a [operação de Comunicações](docs/05-modulos/comunicacoes/README.md).
+Consulte o [guia Docker](docs/03-instalacao/instalacao-docker.md), a [operação de Comunicações](docs/05-modulos/comunicacoes/README.md) e a [operação de telemedicina](docs/12-operacao/telemedicina.md).
 
 ## Testes e qualidade
 
@@ -229,7 +238,7 @@ npm run test:auth
 
 O workflow `.github/workflows/auth-e2e.yml` provisiona PostgreSQL, backend e frontend reais e valida cookies HttpOnly, CSRF, refresh, logout e falha segura do gateway.
 
-Os números de cobertura variam por commit e não são apresentados como garantia permanente. Veja [testes e qualidade](docs/10-testes/README.md).
+Os números de cobertura variam por commit e não são apresentados como garantia permanente. Veja [testes e qualidade](docs/10-testes/README.md) e [testes de telemedicina](docs/10-testes/telemedicina.md).
 
 ## Segurança e dados clínicos
 
@@ -246,12 +255,16 @@ O projeto contém controles de segurança, mas não deve ser considerado automat
 - validação de extensão, MIME e assinatura de uploads clínicos;
 - auditoria de ações sensíveis;
 - destinos de comunicação criptografados e mascarados;
-- tokens públicos persistidos somente como hash, com expiração e uso único;
-- validação de segredos e headers de segurança no settings de produção.
+- tokens públicos persistidos somente como hash, com expiração e revogação;
+- JWTs LiveKit de curta duração sem dados pessoais em identidade ou metadata;
+- chave E2EE individual por sala, criptografada em repouso e mantida apenas em memória no navegador;
+- webhook LiveKit assinado e idempotente;
+- ausência deliberada de gravação, transcrição, chat persistente e compartilhamento de tela;
+- validação de segredos e headers de segurança no ambiente de produção.
 
 Antes de armazenar dados reais, configure HTTPS, segredos independentes, PostgreSQL gerenciado, Redis, storage privado persistente, backup/restauração, monitoramento, alertas, e-mail e tokens de webhook. Cookies HttpOnly reduzem exfiltração de JWT por XSS, mas não eliminam ações em nome do usuário; CSP e sanitização continuam obrigatórias.
 
-Leia o [guia de segurança](docs/08-seguranca/README.md), a [autenticação da API](docs/07-api/autenticacao.md), o [mapeamento técnico de LGPD](docs/09-lgpd/README.md) e a [documentação de Comunicações](docs/05-modulos/comunicacoes/README.md).
+Leia o [guia de segurança](docs/08-seguranca/README.md), a [segurança da telemedicina](docs/08-seguranca/telemedicina.md), a [autenticação da API](docs/07-api/autenticacao.md), o [mapeamento técnico de LGPD](docs/09-lgpd/README.md) e a [documentação de Comunicações](docs/05-modulos/comunicacoes/README.md).
 
 ## Estrutura do projeto
 
@@ -269,6 +282,9 @@ EloTerapeutico/
 
 O portal principal está em [`docs/README.md`](docs/README.md). Referências importantes:
 
+- [telemedicina](docs/05-modulos/telemedicina/README.md);
+- [API de telemedicina](docs/07-api/endpoints/telemedicina.md);
+- [operação de telemedicina](docs/12-operacao/telemedicina.md);
 - [status do projeto](docs/17-referencia/status-do-projeto.md);
 - [matriz de módulos](docs/17-referencia/matriz-de-modulos.md);
 - [matriz de integrações](docs/17-referencia/matriz-de-integracoes.md);
@@ -286,9 +302,9 @@ Consulte [como contribuir](docs/14-contribuicao/README.md).
 
 ## Limitações conhecidas
 
-- multi-tenancy por clínica não está concluído;
-- telemedicina não possui áudio/vídeo funcional;
-- portal do paciente não está implementado como domínio completo;
+- o isolamento multi-tenant de módulos legados ainda precisa de validação transversal;
+- a telemedicina depende de credenciais LiveKit, HTTPS/WSS, webhook e smoke test em staging;
+- o portal do paciente não está implementado como domínio completo;
 - IA não possui integração funcional;
 - storage privado e persistente depende de configuração operacional;
 - e-mail, WhatsApp Business e SMS dependem de provedores oficiais;
