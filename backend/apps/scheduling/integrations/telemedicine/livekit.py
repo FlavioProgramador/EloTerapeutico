@@ -4,8 +4,9 @@ import json
 from datetime import datetime, timedelta, timezone
 
 from asgiref.sync import async_to_sync
-from django.conf import settings
 from livekit import api
+
+from apps.scheduling.telemedicine_config import get_telemedicine_config
 
 from .exceptions import (
     TelemedicineProviderConfigurationError,
@@ -20,19 +21,21 @@ class LiveKitTelemedicineProvider:
 
     @property
     def configured(self) -> bool:
-        return all(
-            [
-                getattr(settings, "LIVEKIT_URL", ""),
-                getattr(settings, "LIVEKIT_API_KEY", ""),
-                getattr(settings, "LIVEKIT_API_SECRET", ""),
-            ]
-        )
+        return get_telemedicine_config().provider_configured
 
     def _ensure_configured(self) -> None:
         if not self.configured:
             raise TelemedicineProviderConfigurationError(
                 "O provedor de atendimento online não está disponível."
             )
+
+    def _client(self):
+        config = get_telemedicine_config()
+        return api.LiveKitAPI(
+            config.livekit_url,
+            config.livekit_api_key,
+            config.livekit_api_secret,
+        )
 
     async def _create_room(
         self,
@@ -41,11 +44,7 @@ class LiveKitTelemedicineProvider:
         max_participants: int,
         empty_timeout_seconds: int,
     ) -> ProviderRoom:
-        client = api.LiveKitAPI(
-            getattr(settings, "LIVEKIT_URL", ""),
-            getattr(settings, "LIVEKIT_API_KEY", ""),
-            getattr(settings, "LIVEKIT_API_SECRET", ""),
-        )
+        client = self._client()
         try:
             room = await client.room.create_room(
                 api.CreateRoomRequest(
@@ -80,11 +79,7 @@ class LiveKitTelemedicineProvider:
             ) from exc
 
     async def _close_room(self, *, room_name: str) -> None:
-        client = api.LiveKitAPI(
-            getattr(settings, "LIVEKIT_URL", ""),
-            getattr(settings, "LIVEKIT_API_KEY", ""),
-            getattr(settings, "LIVEKIT_API_SECRET", ""),
-        )
+        client = self._client()
         try:
             await client.room.delete_room(api.DeleteRoomRequest(room=room_name))
         finally:
@@ -112,11 +107,12 @@ class LiveKitTelemedicineProvider:
         ttl_seconds: int,
     ) -> ParticipantCredentials:
         self._ensure_configured()
+        config = get_telemedicine_config()
         try:
             token = (
                 api.AccessToken(
-                    getattr(settings, "LIVEKIT_API_KEY", ""),
-                    getattr(settings, "LIVEKIT_API_SECRET", ""),
+                    config.livekit_api_key,
+                    config.livekit_api_secret,
                 )
                 .with_identity(identity)
                 .with_name(display_name)
@@ -135,7 +131,7 @@ class LiveKitTelemedicineProvider:
                 .to_jwt()
             )
             return ParticipantCredentials(
-                server_url=getattr(settings, "LIVEKIT_URL", ""),
+                server_url=config.livekit_url,
                 token=token,
                 identity=identity,
                 room_name=room_name,
@@ -146,11 +142,7 @@ class LiveKitTelemedicineProvider:
             ) from exc
 
     async def _remove_participant(self, *, room_name: str, identity: str) -> None:
-        client = api.LiveKitAPI(
-            getattr(settings, "LIVEKIT_URL", ""),
-            getattr(settings, "LIVEKIT_API_KEY", ""),
-            getattr(settings, "LIVEKIT_API_SECRET", ""),
-        )
+        client = self._client()
         try:
             await client.room.remove_participant(
                 api.RoomParticipantIdentity(room=room_name, identity=identity)
@@ -177,11 +169,12 @@ class LiveKitTelemedicineProvider:
         authorization: str,
     ) -> ProviderWebhookEvent:
         self._ensure_configured()
+        config = get_telemedicine_config()
         try:
             receiver = api.WebhookReceiver(
                 api.TokenVerifier(
-                    getattr(settings, "LIVEKIT_API_KEY", ""),
-                    getattr(settings, "LIVEKIT_API_SECRET", ""),
+                    config.livekit_api_key,
+                    config.livekit_api_secret,
                 )
             )
             event = receiver.receive(body, authorization)
