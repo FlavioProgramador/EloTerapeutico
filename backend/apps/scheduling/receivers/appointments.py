@@ -1,4 +1,5 @@
 from functools import partial
+from typing import Any, cast
 
 from django.db import transaction
 from django.db.models.signals import post_save, pre_save
@@ -25,14 +26,15 @@ def capture_telemedicine_appointment_state(
     **kwargs,
 ):
     del sender, kwargs
+    stateful_instance = cast(Any, instance)
     if raw or not instance.pk:
-        setattr(instance, "_telemedicine_previous_state", None)
+        stateful_instance._telemedicine_previous_state = None
         return
-    setattr(instance, "_telemedicine_previous_state", (
+    stateful_instance._telemedicine_previous_state = (
         Appointment.objects.filter(pk=instance.pk)
         .values("start_time", "status", "modality")
         .first()
-    ))
+    )
 
 
 @receiver(
