@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 from asgiref.sync import async_to_sync
 from livekit import api
@@ -185,7 +185,7 @@ class LiveKitTelemedicineProvider:
 
         created_at = getattr(event, "created_at", 0) or 0
         occurred_at = (
-            datetime.fromtimestamp(created_at, tz=timezone.utc)
+            datetime.fromtimestamp(created_at, tz=UTC)
             if created_at
             else None
         )

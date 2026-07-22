@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 from .types import ParticipantCredentials, ProviderRoom, ProviderWebhookEvent
 
@@ -67,7 +67,7 @@ class FakeTelemedicineProvider:
             participant_identity=str(payload.get("participant_identity", "")),
             participant_sid=str(payload.get("participant_sid", "")),
             occurred_at=(
-                datetime.fromisoformat(occurred_at).astimezone(timezone.utc)
+                datetime.fromisoformat(occurred_at).astimezone(UTC)
                 if occurred_at
                 else None
             ),
