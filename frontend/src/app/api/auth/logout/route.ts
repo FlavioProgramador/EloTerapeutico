@@ -1,10 +1,13 @@
+import { request as httpRequest } from "node:http";
+import { request as httpsRequest } from "node:https";
+
 import { NextResponse, type NextRequest } from "next/server";
 
 import {
+  buildBackendUrl,
   clearAuthCookies,
   createBackendHeaders,
   csrfRejectedResponse,
-  fetchBackend,
   gatewayUnavailableResponse,
   getRefreshCookie,
   hasValidCsrf,
@@ -28,13 +31,54 @@ function requestLogout(
   request: NextRequest,
   refreshToken: string,
 ): Promise<Response> {
-  return fetchBackend("auth/logout/", {
-    method: "POST",
-    headers: {
-      ...Object.fromEntries(createBackendHeaders(request).entries()),
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({ refresh: refreshToken }),
+  const url = buildBackendUrl("auth/logout/");
+  const body = Buffer.from(JSON.stringify({ refresh: refreshToken }), "utf8");
+  const headers = createBackendHeaders(request);
+  headers.set("content-type", "application/json");
+  headers.set("content-length", String(body.byteLength));
+  headers.set("connection", "close");
+
+  const sendRequest = url.protocol === "https:" ? httpsRequest : httpRequest;
+
+  return new Promise<Response>((resolve, reject) => {
+    const upstreamRequest = sendRequest(
+      url,
+      {
+        method: "POST",
+        headers: Object.fromEntries(headers.entries()),
+        agent: false,
+        timeout: 10_000,
+      },
+      (upstreamResponse) => {
+        const chunks: Buffer[] = [];
+        upstreamResponse.on("data", (chunk: Buffer | string) => {
+          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+        });
+        upstreamResponse.on("end", () => {
+          const responseHeaders = new Headers();
+          for (const [name, value] of Object.entries(upstreamResponse.headers)) {
+            if (Array.isArray(value)) {
+              for (const item of value) responseHeaders.append(name, item);
+            } else if (value !== undefined) {
+              responseHeaders.set(name, String(value));
+            }
+          }
+
+          resolve(
+            new Response(Buffer.concat(chunks), {
+              status: upstreamResponse.statusCode ?? 502,
+              headers: responseHeaders,
+            }),
+          );
+        });
+      },
+    );
+
+    upstreamRequest.on("timeout", () => {
+      upstreamRequest.destroy(new Error("AUTH_LOGOUT_UPSTREAM_TIMEOUT"));
+    });
+    upstreamRequest.on("error", reject);
+    upstreamRequest.end(body);
   });
 }
 
@@ -43,17 +87,9 @@ async function revokeCurrentSession(
   refreshToken: string,
 ): Promise<Response> {
   logLogoutStage("upstream_start");
-  try {
-    const response = await requestLogout(request, refreshToken);
-    logLogoutStage("upstream_complete", { status: response.status });
-    return response;
-  } catch (error: unknown) {
-    if (!(error instanceof TypeError)) throw error;
-    logLogoutStage("upstream_retry");
-    const response = await requestLogout(request, refreshToken);
-    logLogoutStage("upstream_complete_after_retry", { status: response.status });
-    return response;
-  }
+  const response = await requestLogout(request, refreshToken);
+  logLogoutStage("upstream_complete", { status: response.status });
+  return response;
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
