@@ -307,29 +307,49 @@ function RegisterForm() {
   };
 
   return (
-    <main className="flex min-h-screen overflow-hidden bg-background font-sans text-foreground">
-      <section className="relative z-10 flex w-full flex-col justify-center overflow-y-auto border-r border-primary/10 bg-background px-5 py-10 sm:px-10 lg:w-[45%] lg:px-14 xl:w-[40%] xl:px-16">
+    <main 
+      className="flex h-screen overflow-hidden bg-[#f9f9f9] font-sans text-[#1a1a1a]"
+      style={{
+        "--color-background": "hsl(0 0% 98%)",
+        "--color-foreground": "hsl(0 0% 10%)",
+        "--color-card": "hsl(0 0% 100%)",
+        "--color-card-foreground": "hsl(0 0% 10%)",
+        "--color-border": "hsl(220 13% 91%)",
+        "--color-input": "hsl(220 13% 91%)",
+        "--color-text-primary": "hsl(0 0% 10%)",
+        "--color-text-muted": "hsl(0 0% 40%)",
+        "--color-muted": "hsl(0 0% 96%)",
+        "--color-muted-foreground": "hsl(0 0% 40%)",
+        "--color-primary": "hsl(31 67% 50%)",
+        "--color-primary-hover": "hsl(31 67% 43%)",
+        "--color-primary-active": "hsl(31 67% 38%)",
+        "--color-primary-soft": "hsl(31 67% 95%)",
+        "--color-primary-foreground": "hsl(0 0% 100%)",
+        "--color-danger": "hsl(15 59% 45%)",
+      } as React.CSSProperties}
+    >
+      <section className="relative z-10 flex w-full flex-col justify-center overflow-hidden bg-[#f9f9f9] px-5 sm:px-10 lg:w-[45%] lg:px-14 xl:w-[40%] xl:px-16">
         <div
           className="pointer-events-none absolute -left-28 top-1/3 h-80 w-80 rounded-full bg-primary/8 blur-3xl"
           aria-hidden="true"
         />
-        <div className="relative mx-auto w-full max-w-2xl py-8 lg:py-12">
+        <div className="relative mx-auto w-full max-w-2xl">
           <Brand />
-          <div className="mt-7">
+          <div className="mt-4">
             <span className="inline-flex rounded-full border border-primary/20 bg-primary-soft px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-primary">
               Crie sua conta
             </span>
-            <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
               Comece com segurança e sem surpresas.
             </h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
+            <p className="mt-1 max-w-xl text-xs leading-5 text-slate-600">
               A conta é criada primeiro. O acesso às ferramentas depende de uma
               assinatura ativa ou período de avaliação válido.
             </p>
           </div>
 
           <form
-            className="mt-8 grid gap-5 rounded-2xl border border-primary/10 bg-card p-5 shadow-sm shadow-primary/5 sm:p-6"
+            className="mt-4 grid gap-3"
             onSubmit={handleSubmit(onSubmit)}
             noValidate
           >
@@ -338,22 +358,24 @@ function RegisterForm() {
               label="Nome completo"
               type="text"
               autoComplete="name"
+              variant="underline"
               error={errors.full_name?.message}
               leftIcon={
-                <User className="h-5 w-5 text-primary" aria-hidden="true" />
+                <User className="h-5 w-5" aria-hidden="true" />
               }
               {...register("full_name")}
             />
 
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <Input
                 id="register-email"
                 label="E-mail"
                 type="email"
                 autoComplete="email"
+                variant="underline"
                 error={errors.email?.message}
                 leftIcon={
-                  <Mail className="h-5 w-5 text-primary" aria-hidden="true" />
+                  <Mail className="h-5 w-5" aria-hidden="true" />
                 }
                 {...register("email")}
               />
@@ -362,20 +384,22 @@ function RegisterForm() {
                 label="Telefone"
                 type="tel"
                 autoComplete="tel"
+                variant="underline"
                 error={errors.phone?.message}
                 leftIcon={
-                  <Phone className="h-5 w-5 text-primary" aria-hidden="true" />
+                  <Phone className="h-5 w-5" aria-hidden="true" />
                 }
                 {...register("phone")}
               />
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <Input
                 id="register-crp"
                 label="Registro profissional"
                 type="text"
                 autoComplete="off"
+                variant="underline"
                 error={errors.crp?.message}
                 placeholder="Opcional"
                 {...register("crp")}
@@ -385,27 +409,29 @@ function RegisterForm() {
                 label="Especialidade"
                 type="text"
                 autoComplete="organization-title"
+                variant="underline"
                 error={errors.specialty?.message}
                 placeholder="Opcional"
                 {...register("specialty")}
               />
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <Input
                 id="register-password"
                 label="Senha"
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
+                variant="underline"
                 error={errors.password?.message}
                 leftIcon={
-                  <Lock className="h-5 w-5 text-primary" aria-hidden="true" />
+                  <Lock className="h-5 w-5" aria-hidden="true" />
                 }
                 rightIcon={
                   <button
                     type="button"
                     onClick={() => setShowPassword((current) => !current)}
-                    className="text-muted-foreground hover:text-primary"
+                    className="transition-colors hover:text-primary"
                     aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   >
                     {showPassword ? (
@@ -422,9 +448,10 @@ function RegisterForm() {
                 label="Confirmar senha"
                 type={showConfirmPassword ? "text" : "password"}
                 autoComplete="new-password"
+                variant="underline"
                 error={errors.confirm_password?.message}
                 leftIcon={
-                  <Lock className="h-5 w-5 text-primary" aria-hidden="true" />
+                  <Lock className="h-5 w-5" aria-hidden="true" />
                 }
                 rightIcon={
                   <button
@@ -432,7 +459,7 @@ function RegisterForm() {
                     onClick={() =>
                       setShowConfirmPassword((current) => !current)
                     }
-                    className="text-muted-foreground hover:text-primary"
+                    className="transition-colors hover:text-primary"
                     aria-label={
                       showConfirmPassword ? "Ocultar senha" : "Mostrar senha"
                     }
@@ -525,17 +552,16 @@ function RegisterForm() {
         </div>
       </section>
 
-      <aside className="relative hidden overflow-hidden bg-primary-soft lg:block lg:w-[55%] xl:w-[60%]">
+      <aside className="relative hidden overflow-hidden bg-[#f9f9f9] lg:block lg:w-[55%] xl:w-[60%]">
         <Image
           src="/register_illustration.svg"
-          alt="Ilustração de um ambiente terapêutico acolhedor"
+          alt="Bem-vindo ao Elo Terapêutico"
           fill
           priority
-          sizes="(min-width: 1280px) 60vw, 55vw"
-          className="object-cover object-left"
+          className="object-cover object-right"
         />
         <div
-          className="absolute inset-0 bg-gradient-to-t from-primary/24 via-primary/5 to-transparent"
+          className="absolute inset-0 bg-gradient-to-t from-white/24 via-white/5 to-transparent"
           aria-hidden="true"
         />
         <PlanSummary

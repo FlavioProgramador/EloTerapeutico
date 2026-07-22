@@ -46,8 +46,28 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen overflow-hidden bg-background font-sans">
-      <section className="relative z-10 flex w-full flex-col justify-center overflow-y-auto border-r border-primary/10 bg-background p-6 sm:p-10 lg:w-[45%] lg:p-14 xl:w-[40%] xl:p-20">
+    <main 
+      className="flex min-h-screen overflow-hidden bg-[#f9f9f9] font-sans text-[#1a1a1a]"
+      style={{
+        "--color-background": "hsl(0 0% 98%)",
+        "--color-foreground": "hsl(0 0% 10%)",
+        "--color-card": "hsl(0 0% 100%)",
+        "--color-card-foreground": "hsl(0 0% 10%)",
+        "--color-border": "hsl(220 13% 91%)",
+        "--color-input": "hsl(220 13% 91%)",
+        "--color-text-primary": "hsl(0 0% 10%)",
+        "--color-text-muted": "hsl(0 0% 40%)",
+        "--color-muted": "hsl(0 0% 96%)",
+        "--color-muted-foreground": "hsl(0 0% 40%)",
+        "--color-primary": "hsl(31 67% 50%)",
+        "--color-primary-hover": "hsl(31 67% 43%)",
+        "--color-primary-active": "hsl(31 67% 38%)",
+        "--color-primary-soft": "hsl(31 67% 95%)",
+        "--color-primary-foreground": "hsl(0 0% 100%)",
+        "--color-danger": "hsl(15 59% 45%)",
+      } as React.CSSProperties}
+    >
+      <section className="relative z-10 flex w-full flex-col justify-center overflow-y-auto bg-[#f9f9f9] p-6 sm:p-10 lg:w-[45%] lg:p-14 xl:w-[40%] xl:p-20">
         <div
           className="pointer-events-none absolute -left-24 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-primary/8 blur-3xl"
           aria-hidden="true"
@@ -67,10 +87,10 @@ export default function LoginPage() {
               <span className="mb-3 inline-flex rounded-full border border-primary/20 bg-primary-soft px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-primary">
                 Área do profissional
               </span>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
                 Bem-vindo de volta
               </h1>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-1 max-w-xl text-xs leading-5 text-slate-600">
                 Acesse sua conta para gerenciar seus atendimentos com segurança.
               </p>
             </div>
@@ -78,7 +98,7 @@ export default function LoginPage() {
 
           <form
             onSubmit={handleSubmit(onSubmit)}
-            className="space-y-5 rounded-2xl border border-primary/10 bg-card p-5 shadow-sm shadow-primary/5 sm:p-6"
+            className="grid gap-4 mt-6"
             noValidate
           >
             <Input
@@ -87,29 +107,31 @@ export default function LoginPage() {
               placeholder="seuemail@exemplo.com"
               type="email"
               autoComplete="email"
+              variant="underline"
               error={errors.email?.message}
               leftIcon={
-                <Mail className="h-5 w-5 text-primary" aria-hidden="true" />
+                <Mail className="h-5 w-5" aria-hidden="true" />
               }
               {...register("email")}
             />
 
-            <div className="space-y-2">
+            <div className="grid gap-2">
               <Input
                 id="login-password"
                 label="Senha"
                 placeholder="••••••••"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
+                variant="underline"
                 error={errors.password?.message}
                 leftIcon={
-                  <Lock className="h-5 w-5 text-primary" aria-hidden="true" />
+                  <Lock className="h-5 w-5" aria-hidden="true" />
                 }
                 rightIcon={
                   <button
                     type="button"
                     onClick={() => setShowPassword((current) => !current)}
-                    className="text-muted-foreground transition-colors hover:text-primary"
+                    className="transition-colors hover:text-primary"
                     aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   >
                     {showPassword ? (
@@ -121,7 +143,7 @@ export default function LoginPage() {
                 }
                 {...register("password")}
               />
-              <div className="flex justify-end">
+              <div className="mt-2 flex justify-end">
                 <Link
                   href="/forgot-password"
                   className="text-xs font-semibold text-primary hover:text-primary-hover hover:underline"
@@ -134,14 +156,14 @@ export default function LoginPage() {
             <Button
               id="login-submit"
               type="submit"
-              className="w-full font-bold shadow-lg shadow-primary/20"
+              className="mt-2 w-full font-bold shadow-lg shadow-primary/20"
               isLoading={isSubmitting}
             >
               Entrar
             </Button>
           </form>
 
-          <p className="text-sm text-muted-foreground">
+          <p className="mt-6 text-sm text-muted-foreground">
             Ainda não possui acesso?{" "}
             <Link
               href="/register"
@@ -153,8 +175,8 @@ export default function LoginPage() {
         </div>
       </section>
 
-      <section
-        className="relative hidden overflow-hidden bg-primary-soft lg:block lg:w-[55%] xl:w-[60%]"
+      <aside
+        className="relative hidden overflow-hidden bg-[#f9f9f9] lg:block lg:w-[55%] xl:w-[60%]"
         aria-label="Apresentação do Elo Terapêutico"
       >
         <Image
@@ -163,22 +185,10 @@ export default function LoginPage() {
           fill
           priority
           sizes="(min-width: 1280px) 60vw, 55vw"
-          className="object-cover object-left"
+          className="object-cover object-right"
         />
-        <div
-          className="absolute inset-0 bg-gradient-to-t from-primary/24 via-primary/5 to-transparent"
-          aria-hidden="true"
-        />
-        <div className="absolute inset-x-8 bottom-8 rounded-2xl border border-primary/20 bg-white/90 p-6 shadow-xl shadow-primary/15 backdrop-blur-md xl:inset-x-10 xl:bottom-10">
-          <span className="mb-3 block h-1 w-12 rounded-full bg-primary" />
-          <p className="text-base font-bold text-foreground">
-            Organização clínica com segurança e acolhimento.
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Agenda, pacientes, prontuários e financeiro em um único ambiente.
-          </p>
-        </div>
-      </section>
+
+      </aside>
     </main>
   );
 }
