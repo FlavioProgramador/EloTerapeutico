@@ -16,7 +16,7 @@ test.describe("telemedicina segura", () => {
     await expect(
       page.getByRole("heading", { name: "Antes de entrar no atendimento" }),
     ).toBeVisible();
-    await expect(page.getByText("Sem gravação")).toBeVisible();
+    await expect(page.getByText("Sem gravação", { exact: true })).toBeVisible();
     await expect(page.locator("body")).not.toContainText(token || "");
 
     await page.getByRole("checkbox").check();
