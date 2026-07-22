@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, forwardRef } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
@@ -68,25 +68,23 @@ const defaultValues: OrganizationOnboardingForm = {
   document_footer: "",
 };
 
-function TextField({
-  label,
-  error,
-  ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & {
-  label: string;
-  error?: string;
-}) {
+const TextField = forwardRef<
+  HTMLInputElement,
+  React.InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string }
+>(({ label, error, ...props }, ref) => {
   return (
     <label className="space-y-1.5 text-xs font-medium text-foreground">
       <span>{label}</span>
       <input
+        ref={ref}
         {...props}
         className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition focus:border-primary/60 focus:ring-2 focus:ring-primary/10"
       />
       {error ? <span className="block text-[11px] text-destructive">{error}</span> : null}
     </label>
   );
-}
+});
+TextField.displayName = "TextField";
 
 function ToggleField({
   label,
@@ -192,7 +190,18 @@ export default function OnboardingPage() {
   const values = form.watch();
   const loading = authLoading || organizationLoading || onboarding.isLoading;
 
-  const createFirstOrganization = form.handleSubmit(async (data) => {
+  const createFirstOrganization = async () => {
+    const isValid = await form.trigger([
+      "name",
+      "organization_type",
+      "legal_name",
+      "document",
+      "email",
+      "phone",
+    ]);
+    if (!isValid) return;
+
+    const data = form.getValues();
     setSaving(true);
     setPageError("");
     try {
@@ -205,6 +214,7 @@ export default function OnboardingPage() {
         phone: data.phone,
         timezone: data.timezone,
       });
+      await api.patch(`organizations/${response.data.id}/onboarding/`, { step: 2 });
       await refreshOrganizations();
       await switchOrganization(response.data.id);
       setStep(2);
@@ -213,10 +223,22 @@ export default function OnboardingPage() {
     } finally {
       setSaving(false);
     }
-  });
+  };
 
   const saveStep = async () => {
     if (!activeOrganization) return;
+    
+    let fieldsToValidate: any[] = [];
+    if (step === 1) fieldsToValidate = ["name", "organization_type", "legal_name", "document", "email", "phone", "timezone"];
+    else if (step === 2) fieldsToValidate = ["display_name", "professional_title", "council_type", "council_number", "council_region", "specialties_text", "bio", "public_email", "professional_phone"];
+    else if (step === 3) fieldsToValidate = ["default_appointment_duration", "default_session_value", "minimum_booking_notice_minutes", "maximum_booking_days", "cancellation_notice_hours"];
+    else if (step === 4) fieldsToValidate = ["reminder_hours_before", "business_name_on_documents", "document_header", "document_footer"];
+    
+    if (fieldsToValidate.length > 0) {
+      const isValid = await form.trigger(fieldsToValidate);
+      if (!isValid) return;
+    }
+
     setSaving(true);
     setPageError("");
     try {
@@ -312,10 +334,10 @@ export default function OnboardingPage() {
               <option value="company">Empresa</option>
             </select>
           </label>
-          <TextField label="Nome legal (opcional)" {...form.register("legal_name")} />
-          <TextField label="CPF ou CNPJ (opcional)" {...form.register("document")} />
+          <TextField label="Nome legal (opcional)" {...form.register("legal_name")} error={form.formState.errors.legal_name?.message} />
+          <TextField label="CPF ou CNPJ (opcional)" {...form.register("document")} error={form.formState.errors.document?.message} />
           <TextField label="E-mail" type="email" {...form.register("email")} error={form.formState.errors.email?.message} />
-          <TextField label="Telefone" {...form.register("phone")} />
+          <TextField label="Telefone" {...form.register("phone")} error={form.formState.errors.phone?.message} />
         </div>
       );
     }
@@ -323,16 +345,17 @@ export default function OnboardingPage() {
       return (
         <div className="grid gap-4 md:grid-cols-2">
           <TextField label="Nome profissional" {...form.register("display_name")} error={form.formState.errors.display_name?.message} />
-          <TextField label="Título profissional" {...form.register("professional_title")} />
-          <TextField label="Conselho" placeholder="CRP, CREFITO..." {...form.register("council_type")} />
-          <TextField label="Número do conselho" {...form.register("council_number")} />
-          <TextField label="UF ou região" {...form.register("council_region")} />
-          <TextField label="Especialidades separadas por vírgula" {...form.register("specialties_text")} />
+          <TextField label="Título profissional" {...form.register("professional_title")} error={form.formState.errors.professional_title?.message} />
+          <TextField label="Conselho" placeholder="CRP, CREFITO..." {...form.register("council_type")} error={form.formState.errors.council_type?.message} />
+          <TextField label="Número do conselho" {...form.register("council_number")} error={form.formState.errors.council_number?.message} />
+          <TextField label="UF ou região" {...form.register("council_region")} error={form.formState.errors.council_region?.message} />
+          <TextField label="Especialidades separadas por vírgula" {...form.register("specialties_text")} error={form.formState.errors.specialties_text?.message} />
           <TextField label="E-mail público" type="email" {...form.register("public_email")} error={form.formState.errors.public_email?.message} />
-          <TextField label="Telefone profissional" {...form.register("professional_phone")} />
+          <TextField label="Telefone profissional" {...form.register("professional_phone")} error={form.formState.errors.professional_phone?.message} />
           <label className="space-y-1.5 text-xs font-medium md:col-span-2">
             <span>Apresentação profissional</span>
             <textarea {...form.register("bio")} rows={4} className="w-full rounded-lg border border-border bg-background p-3 text-sm" />
+            {form.formState.errors.bio?.message ? <span className="block text-[11px] text-destructive">{form.formState.errors.bio.message}</span> : null}
           </label>
         </div>
       );
