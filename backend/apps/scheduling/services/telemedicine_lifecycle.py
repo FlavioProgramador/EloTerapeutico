@@ -92,13 +92,20 @@ def sync_telemedicine_for_appointment(
     if room is None or room.status in room.TERMINAL_STATUSES:
         return room
 
-    target_status = (
-        TelemedicineRoom.Status.FINISHED
-        if appointment.status == Appointment.Status.COMPLETED
-        else TelemedicineRoom.Status.CANCELLED
-    )
     provider_room_name = room.provider_room_name
-    room.revoke(actor=actor, status=target_status)
+    now = timezone.now()
+    if appointment.status == Appointment.Status.COMPLETED:
+        room.status = TelemedicineRoom.Status.FINISHED
+        room.ended_at = room.ended_at or now
+        room.revoked_at = now
+        room.closed_by = actor
+        room.save()
+        room.invitations.filter(revoked_at__isnull=True).update(
+            revoked_at=now,
+            updated_at=now,
+        )
+    else:
+        room.revoke(actor=actor, status=TelemedicineRoom.Status.CANCELLED)
     transaction.on_commit(
         lambda room_name=provider_room_name: _close_provider_room_safely(room_name)
     )
