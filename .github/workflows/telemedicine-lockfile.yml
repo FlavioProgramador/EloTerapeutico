@@ -1,0 +1,45 @@
+name: Atualizar lockfile de telemedicina
+
+on:
+  push:
+    branches:
+      - agent/telemedicina-livekit
+    paths:
+      - frontend/package.json
+      - .github/workflows/telemedicine-lockfile.yml
+
+permissions:
+  contents: write
+
+jobs:
+  update-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout da branch
+        uses: actions/checkout@v7
+        with:
+          ref: agent/telemedicina-livekit
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Atualizar package-lock
+        working-directory: frontend
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Publicar lockfile atualizado
+        shell: bash
+        run: |
+          if git diff --quiet -- frontend/package-lock.json; then
+            echo "Lockfile já está atualizado."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/package-lock.json
+          git commit -m "chore(frontend): atualiza lockfile do LiveKit"
+          git push origin HEAD:agent/telemedicina-livekit
