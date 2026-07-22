@@ -49,9 +49,7 @@ export function TelemedicineSession({
   useEffect(() => {
     let active = true;
     const keyProvider = new ExternalE2EEKeyProvider();
-    const worker = new Worker(
-      new URL("livekit-client/e2ee-worker", import.meta.url),
-    );
+    const worker = new Worker("/livekit-client.e2ee.worker.js");
     const nextRoom = new Room({
       adaptiveStream: true,
       dynacast: true,

@@ -177,6 +177,7 @@ const statusLabels: Record<string, string> = {
   expired: "Expirado",
   pending: "Pendente",
   available: "Disponível",
+  waiting: "Aguardando",
   in_progress: "Em andamento",
   finished: "Finalizada",
 };
