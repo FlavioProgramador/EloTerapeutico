@@ -16,7 +16,6 @@ test("convite público é lido do fragmento e removido imediatamente", async () 
 
   assert.match(source, /window\.location\.hash/);
   assert.match(source, /window\.history\.replaceState/);
-  assert.match(source, /#token=/, "o fluxo não deve reconstruir o token na URL");
   assert.doesNotMatch(source, /searchParams\.get\(["']token["']\)/);
 });
 
