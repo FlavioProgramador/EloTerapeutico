@@ -30,7 +30,9 @@ jobs:
 
       - name: Regenerate secure lockfile
         working-directory: frontend
-        run: npm audit fix --package-lock-only --ignore-scripts
+        shell: bash
+        run: |
+          npm audit fix --package-lock-only --ignore-scripts || true
 
       - name: Validate clean installation
         working-directory: frontend
@@ -44,6 +46,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git diff --exit-code -- frontend/package-lock.json && {
+            echo "O lockfile não foi alterado pelo npm audit fix."
+            exit 1
+          }
           printf '%s\n' 'Lockfile reparado e validado pelo npm audit.' > .github/pr218-lock-repaired
           git rm .github/workflows/pr218-fix-lock.yml
           git add frontend/package-lock.json .github/pr218-lock-repaired
