@@ -36,7 +36,16 @@ from apps.scheduling.services.telemedicine_rooms import (
 from apps.scheduling.telemedicine_config import get_telemedicine_config
 
 TELEMEDICINE_CONSENT_VERSION = "2026-07-v1"
-TELEMEDICINE_CONSENT_TEXT = """Ao prosseguir, declaro que fui informado(a) de que o atendimento ocorrerá por áudio e vídeo, em ambiente digital protegido, sem gravação pelo Elo Terapêutico. Compreendo que posso recusar esta modalidade e solicitar orientação sobre alternativa presencial. Comprometo-me a buscar um ambiente reservado, utilizar uma conexão confiável e comunicar ao profissional qualquer falha técnica ou risco à privacidade. Em situações de emergência, devo procurar os serviços públicos de urgência da minha região, pois esta sala não substitui atendimento emergencial."""
+TELEMEDICINE_CONSENT_TEXT = (
+    "Ao prosseguir, declaro que fui informado(a) de que o atendimento ocorrerá "
+    "por áudio e vídeo, em ambiente digital protegido, sem gravação pelo Elo "
+    "Terapêutico. Compreendo que posso recusar esta modalidade e solicitar "
+    "orientação sobre alternativa presencial. Comprometo-me a buscar um ambiente "
+    "reservado, utilizar uma conexão confiável e comunicar ao profissional qualquer "
+    "falha técnica ou risco à privacidade. Em situações de emergência, devo "
+    "procurar os serviços públicos de urgência da minha região, pois esta sala não "
+    "substitui atendimento emergencial."
+)
 TELEMEDICINE_CONSENT_HASH = hashlib.sha256(
     TELEMEDICINE_CONSENT_TEXT.encode()
 ).hexdigest()
