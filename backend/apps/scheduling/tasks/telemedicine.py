@@ -4,6 +4,7 @@ from apps.scheduling.services.telemedicine import expire_telemedicine_rooms
 
 
 @shared_task(
+    name="apps.scheduling.tasks.expire_stale_telemedicine_rooms",
     bind=True,
     autoretry_for=(Exception,),
     retry_backoff=True,
