@@ -25,7 +25,6 @@ from apps.scheduling.models import (
 )
 from apps.scheduling.selectors.telemedicine import (
     get_active_telemedicine_consent,
-    get_telemedicine_invitation_by_token,
     invitation_token_hash,
 )
 from apps.scheduling.services.telemedicine_rooms import (
