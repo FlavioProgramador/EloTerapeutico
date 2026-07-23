@@ -37,7 +37,7 @@ test("sala exige E2EE e não habilita gravação chat ou tela", async () => {
   const source = await read("components/telemedicine-session.tsx");
 
   assert.match(source, /ExternalE2EEKeyProvider/);
-  assert.match(source, /livekit-client\/e2ee-worker/);
+  assert.match(source, /livekit-client\.e2ee\.worker/);
   assert.match(source, /setE2EEEnabled\(true\)/);
   assert.match(source, /screenShare: false/);
   assert.match(source, /chat: false/);
