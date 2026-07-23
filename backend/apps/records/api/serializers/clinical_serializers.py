@@ -94,6 +94,9 @@ class ClinicalAnamnesisSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         profile = getattr(instance, "profile", None)
+        version_count = getattr(instance, "version_count", None)
+        if version_count is None:
+            version_count = instance.versions.count()
         values = {
             "id": instance.id,
             "patient": instance.patient_id,
@@ -103,7 +106,7 @@ class ClinicalAnamnesisSerializer(serializers.Serializer):
                 profile.updated_at if profile else instance.updated_at,
             ),
             "updated_by_name": (profile.updated_by.full_name if profile and profile.updated_by else ""),
-            "version_count": instance.versions.count(),
+            "version_count": version_count,
         }
         for field in ANAMNESIS_LEGACY_FIELDS:
             values[field] = getattr(instance, field, "") or ""
