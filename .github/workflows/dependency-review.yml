@@ -53,7 +53,7 @@ jobs:
 
       - name: Upload Python audit report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: pip-audit-report
           path: backend/pip-audit.json
@@ -83,7 +83,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Audit npm dependencies
         run: npm audit --audit-level=high
