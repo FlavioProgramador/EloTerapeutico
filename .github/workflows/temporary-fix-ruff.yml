@@ -1,0 +1,51 @@
+name: Temporary fix Ruff
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/temporary-fix-ruff.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    name: Apply Ruff fixes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout working branch
+        uses: actions/checkout@v7
+        with:
+          ref: agent/estabilizacao-completa-site
+          fetch-depth: 0
+
+      - name: Apply deterministic fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          exceptions = Path("backend/apps/core/api/exceptions.py")
+          content = exceptions.read_text(encoding="utf-8")
+          old = "import logging\nfrom secrets import token_hex\nfrom collections.abc import Mapping, Sequence\n"
+          new = "import logging\nfrom collections.abc import Mapping, Sequence\nfrom secrets import token_hex\n"
+          if old not in content:
+              raise SystemExit("Bloco de imports esperado não encontrado")
+          exceptions.write_text(content.replace(old, new, 1), encoding="utf-8")
+
+          middleware = Path("backend/apps/core/middleware.py")
+          content = middleware.read_text(encoding="utf-8")
+          old = '        setattr(request, "request_id", request_id)\n'
+          new = "        request.request_id = request_id\n"
+          if old not in content:
+              raise SystemExit("Atribuição esperada não encontrada")
+          middleware.write_text(content.replace(old, new, 1), encoding="utf-8")
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/apps/core/api/exceptions.py backend/apps/core/middleware.py
+          git commit -m "style(core): corrige apontamentos do Ruff"
+          git push origin HEAD:agent/estabilizacao-completa-site
