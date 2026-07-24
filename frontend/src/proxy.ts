@@ -16,7 +16,7 @@ const publicRoutes = [
   "/politica-de-privacidade",
 ];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const hasSession = Boolean(
     request.cookies.get(AUTH_ACCESS_COOKIE)?.value ||
