@@ -77,12 +77,11 @@ class EvolutionAdmin(ModelAdmin):
 
     @admin.display(description="Status", boolean=False)
     def status_badge(self, obj: Evolution) -> str:
-        from django.utils.safestring import mark_safe
         if obj.is_locked:
-            return mark_safe('<span style="color:#b91c1c;font-weight:bold;">Bloqueada</span>')
+            return format_html('<span style="color:#b91c1c;font-weight:bold;">Bloqueada</span>')
         if obj.can_be_edited():
-            return mark_safe('<span style="color:#15803d;font-weight:bold;">Editável</span>')
-        return mark_safe('<span style="color:#ca8a04;font-weight:bold;">Pendente bloqueio</span>')
+            return format_html('<span style="color:#15803d;font-weight:bold;">Editável</span>')
+        return format_html('<span style="color:#ca8a04;font-weight:bold;">Pendente bloqueio</span>')
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request).select_related(
