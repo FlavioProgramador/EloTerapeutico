@@ -1,0 +1,40 @@
+name: Temporary fix stabilization gates
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/temporary-fix-stabilization-gates.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    name: Apply gate fixes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout working branch
+        uses: actions/checkout@v7
+        with:
+          ref: agent/estabilizacao-completa-site
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Apply validated fixes
+        run: |
+          git apply --check .tmp/fix-stabilization-gates.patch
+          git apply .tmp/fix-stabilization-gates.patch
+          git add \
+            backend/apps/organizations/management/commands/audit_tenant_integrity.py \
+            backend/apps/organizations/tests/test_multi_tenancy.py \
+            scripts/validate_api_contract.py \
+            docs/04-configuracao/variaveis-de-ambiente.md
+          git commit -m "fix(ci): corrige auditoria tenant e parser de contrato"
+          git push origin HEAD:agent/estabilizacao-completa-site
