@@ -16,9 +16,11 @@ export function clearClientAuthState(): void {
  * Os JWTs já são persistidos exclusivamente pelo Route Handler em cookies HttpOnly.
  */
 export function persistAuthTokens(
-  _access: string,
-  _refresh?: string | null,
+  access: string,
+  refresh?: string | null,
 ): void {
+  void access;
+  void refresh;
   // Intencionalmente vazio: credenciais nunca são persistidas pelo JavaScript.
 }
 
@@ -26,6 +28,7 @@ export function persistAuthTokens(
  * Compatibilidade temporária. O papel do usuário é obtido de `auth/me/` e toda
  * autorização continua sendo aplicada pelo backend.
  */
-export function persistAuthRole(_role: string): void {
+export function persistAuthRole(role: string): void {
+  void role;
   // Intencionalmente vazio: papel não é usado como cookie de autorização.
 }

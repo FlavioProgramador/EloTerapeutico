@@ -98,11 +98,6 @@ export function FinanceiroDashboard() {
           onCancel={(id) => page.cancel.mutate(id)}
           onDelete={(id) => page.remove.mutate(id)}
           onRefund={(id) => page.refund.mutate(id)}
-          onEdit={(id) => {
-            import("sonner").then(({ toast }) =>
-              toast.info("Edição de transação será implementada em breve."),
-            );
-          }}
           actionPending={
             page.markPaid.isPending ||
             page.cancel.isPending ||
