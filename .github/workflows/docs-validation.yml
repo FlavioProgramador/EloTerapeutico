@@ -61,15 +61,12 @@ jobs:
         run: cp .env.example .env
 
       - name: Validate documentation
-        id: documentation
-        continue-on-error: true
         run: |
           set -o pipefail
           python3 scripts/validate_docs.py 2>&1 | tee docs-validation.log
 
       - name: Validate Docker Compose
-        id: compose
-        continue-on-error: true
+        if: always()
         run: |
           set -o pipefail
           {
@@ -98,7 +95,3 @@ jobs:
       - name: Show Compose report
         if: always()
         run: cat compose-validation.log
-
-      - name: Fail when validation found errors
-        if: steps.documentation.outcome == 'failure' || steps.compose.outcome == 'failure'
-        run: exit 1
