@@ -170,7 +170,7 @@ def parse_compose_services() -> set[str]:
     services: set[str] = set()
     in_services = False
     for raw_line in compose.read_text(encoding="utf-8").splitlines():
-        if raw_line.strip() == "services:":
+        if raw_line.strip() == "services":
             in_services = True
             continue
         if in_services and raw_line and not raw_line.startswith(" "):
@@ -423,7 +423,7 @@ def main() -> int:
         text = path.read_text(encoding="utf-8")
         relative = path.relative_to(ROOT)
 
-        fence_count = sum(1 for line in text.splitlines() if line.strip().startswith("``"))
+        fence_count = sum(1 for line in text.splitlines() if line.strip().startswith("```") )
         if fence_count % 2:
             errors.append(f"{relative}: quantidade ímpar de cercas Markdown ({fence_count})")
 
