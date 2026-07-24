@@ -27,10 +27,74 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Apply validated fixes
+      - name: Apply validated transformations
         run: |
-          git apply --check .tmp/fix-stabilization-gates.patch
-          git apply .tmp/fix-stabilization-gates.patch
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              file_path = Path(path)
+              content = file_path.read_text(encoding="utf-8")
+              if old not in content:
+                  raise SystemExit(f"Trecho esperado não encontrado em {path}")
+              file_path.write_text(content.replace(old, new, 1), encoding="utf-8")
+
+          command_path = "backend/apps/organizations/management/commands/audit_tenant_integrity.py"
+          replace_once(
+              command_path,
+              "Report = dict[str, Any]\n\n\nclass Command(BaseCommand):",
+              "Report = dict[str, Any]\n\nGLOBAL_SCOPE_FLAGS = {\n"
+              "    \"documents.documenttemplate\": \"is_library_template\",\n"
+              "    \"forms.formtemplate\": \"is_system_template\",\n"
+              "    \"communications.communicationtemplate\": \"is_system_template\",\n"
+              "}\n\n\nclass Command(BaseCommand):",
+          )
+          replace_once(
+              command_path,
+              "            missing = model._default_manager.filter(organization__isnull=True).count()\n",
+              "            missing_queryset = model._default_manager.filter(organization__isnull=True)\n"
+              "            global_scope_flag = GLOBAL_SCOPE_FLAGS.get(label)\n"
+              "            if global_scope_flag and global_scope_flag in field_names:\n"
+              "                missing_queryset = missing_queryset.filter(\n"
+              "                    **{global_scope_flag: False}\n"
+              "                )\n"
+              "            missing = missing_queryset.count()\n",
+          )
+
+          tests_path = "backend/apps/organizations/tests/test_multi_tenancy.py"
+          replace_once(
+              tests_path,
+              "from __future__ import annotations\n\nimport pytest\nfrom django.db import IntegrityError, transaction\n",
+              "from __future__ import annotations\n\nimport json\nfrom io import StringIO\n\nimport pytest\nfrom django.core.management import call_command\nfrom django.db import IntegrityError, transaction\n",
+          )
+          tests_file = Path(tests_path)
+          tests_content = tests_file.read_text(encoding="utf-8")
+          regression_test = '''\n\ndef test_tenant_audit_accepts_intentional_global_templates():\n    output = StringIO()\n\n    call_command(\n        "audit_tenant_integrity",\n        "--fail-on-error",\n        "--format",\n        "json",\n        stdout=output,\n    )\n\n    report = json.loads(output.getvalue())\n    missing_errors = [\n        item for item in report["errors"] if item["code"] == "MISSING_ORGANIZATION"\n    ]\n    assert missing_errors == []\n'''
+          if "test_tenant_audit_accepts_intentional_global_templates" in tests_content:
+              raise SystemExit("Teste de regressão já existe")
+          tests_file.write_text(tests_content.rstrip() + regression_test, encoding="utf-8")
+
+          replace_once(
+              "scripts/validate_api_contract.py",
+              '    path = path.split("?", 1)[0].split("#", 1)[0]\n'
+              '    path = re.sub(r"\\$\\{[^}]+\\}", "{dynamic}", path)\n',
+              '    path = re.sub(r"\\$\\{[^}]+\\}", "{dynamic}", path)\n'
+              '    path = path.split("?", 1)[0].split("#", 1)[0]\n',
+          )
+
+          docs_path = Path("docs/04-configuracao/variaveis-de-ambiente.md")
+          docs_content = docs_path.read_text(encoding="utf-8")
+          if "SECURITY_PERMISSIONS_POLICY" not in docs_content:
+              section = '''\n## Headers defensivos e correlação\n\n| Variável | Componente | Obrigatória | Finalidade |\n| --- | --- | --- | --- |\n| `SECURITY_PERMISSIONS_POLICY` | backend | Não | Define recursos de navegador permitidos. O padrão bloqueia câmera, microfone, geolocalização, pagamentos e USB. |\n| `SECURITY_CROSS_ORIGIN_RESOURCE_POLICY` | backend | Não | Define `Cross-Origin-Resource-Policy`; o padrão é `same-site`. |\n| `SECURITY_CONTENT_SECURITY_POLICY` | backend | Produção | Define a CSP. Produção possui padrão restritivo e deve permitir somente os domínios realmente utilizados. |\n\nTodas as respostas incluem `X-Request-ID`. Um identificador externo somente é preservado quando contém caracteres seguros e possui no máximo 64 caracteres; caso contrário, o backend gera um identificador novo. O header é exposto por CORS para diagnóstico controlado.\n\n'''
+              marker = "[Voltar](README.md)"
+              if marker not in docs_content:
+                  raise SystemExit("Marcador final da documentação não encontrado")
+              docs_path.write_text(
+                  docs_content.replace(marker, section + marker, 1),
+                  encoding="utf-8",
+              )
+          PY
+
           git add \
             backend/apps/organizations/management/commands/audit_tenant_integrity.py \
             backend/apps/organizations/tests/test_multi_tenancy.py \
