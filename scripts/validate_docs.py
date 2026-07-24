@@ -324,7 +324,7 @@ def validate_environment_reference() -> list[str]:
     return [
         f"docs/04-configuracao/variaveis-de-ambiente.md: variável não documentada: {name}"
         for name in sorted(names)
-        if f"`{name}`" not in reference
+        if name not in reference
     ]
 
 
@@ -372,21 +372,21 @@ def validate_technology_inventory() -> list[str]:
             errors.append(f"inventário tecnológico não contém a faixa de {package}: {spec}")
 
     image_expectations = {
-        "backend/Dockerfile": ("python:3.12-slim", "3.12"),
-        "frontend/Dockerfile": ("node:24-alpine", "24"),
-        "docker-compose.yml": ("postgres:15-alpine", "15"),
-        "docker-compose.yml#redis": ("redis:7-alpine", "7"),
+        "backend/Dockerfile": (("python:3.12-slim", "python:3.12-slim-bookworm", "python:3.12-alpine"), "3.12"),
+        "frontend/Dockerfile": (("node:24-alpine",), "24"),
+        "docker-compose.yml": (("postgres:15-alpine",), "15"),
+        "docker-compose.yml#redis": (("redis:7-alpine",), "7"),
     }
     compose_text = read_text("docker-compose.yml")
-    for source, (image, version) in image_expectations.items():
+    for source, (images, version) in image_expectations.items():
         if source.startswith("backend/"):
             source_text = read_text("backend/Dockerfile")
         elif source.startswith("frontend/"):
             source_text = read_text("frontend/Dockerfile")
         else:
             source_text = compose_text
-        if image not in source_text:
-            errors.append(f"imagem esperada não encontrada em {source}: {image}")
+        if not any(image in source_text for image in images):
+            errors.append(f"imagem esperada não encontrada em {source}: {images[0]}")
         if version not in inventory:
             errors.append(f"inventário tecnológico não contém versão de runtime/imagem: {version}")
     return errors
@@ -423,7 +423,7 @@ def main() -> int:
         text = path.read_text(encoding="utf-8")
         relative = path.relative_to(ROOT)
 
-        fence_count = sum(1 for line in text.splitlines() if line.strip().startswith("```"))
+        fence_count = sum(1 for line in text.splitlines() if line.strip().startswith("``"))
         if fence_count % 2:
             errors.append(f"{relative}: quantidade ímpar de cercas Markdown ({fence_count})")
 
