@@ -72,16 +72,5 @@ jobs:
           git add -A frontend/auth-bff.test.mjs frontend/package.json frontend/src/middleware.ts frontend/src/proxy.ts
           git commit -m "refactor(frontend): migra middleware para proxy do Next"
 
-      - name: Remove temporary files
-        run: |
-          rm -f \
-            .tmp/stabilization-security.patch \
-            .tmp/stabilization-ci.patch \
-            .tmp/stabilization-frontend.patch \
-            .github/workflows/temporary-source-snapshot.yml \
-            .github/workflows/temporary-apply-stabilization.yml \
-            .github/workflows/temporary-apply-run.yml
-          rmdir .tmp 2>/dev/null || true
-          git add -A
-          git commit -m "ci: remove ferramentas temporárias"
-          git push origin HEAD:agent/estabilizacao-completa-site
+      - name: Push validated commits
+        run: git push origin HEAD:agent/estabilizacao-completa-site
