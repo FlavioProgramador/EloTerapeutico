@@ -4,7 +4,7 @@
 
 ## Stack atual
 
-- Next.js 16.2.9 com App Router;
+- Next.js 16.2.11 com App Router;
 - React 19.2.4;
 - TypeScript 6;
 - Tailwind CSS 4;
