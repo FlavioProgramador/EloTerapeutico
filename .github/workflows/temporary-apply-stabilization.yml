@@ -1,0 +1,141 @@
+name: Temporary apply stabilization
+
+on:
+  push:
+    branches:
+      - "agent/estabilizacao-completa-site"
+    paths:
+      - ".github/workflows/temporary-apply-stabilization.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    name: Apply validated stabilization patches
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout working branch
+        uses: actions/checkout@v7
+        with:
+          ref: agent/estabilizacao-completa-site
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Normalize temporary CI patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('.tmp/stabilization-ci.patch')
+          lines = path.read_text(encoding='utf-8').splitlines()
+          normalized = []
+          strip_prefix = False
+          for line in lines:
+              if line.startswith('+diff --git a/.github/workflows/backend-security.yml'):
+                  strip_prefix = True
+              if strip_prefix and line.startswith('+'):
+                  line = line[1:]
+              normalized.append(line)
+          path.write_text('\n'.join(normalized) + '\n', encoding='utf-8')
+          PY
+
+      - name: Apply security and observability
+        run: |
+          git apply --check .tmp/stabilization-security.patch
+          git apply .tmp/stabilization-security.patch
+          git add .env.example backend/.env.example backend/apps/audit/services/request_context.py backend/apps/core/api/exceptions.py backend/apps/core/middleware.py backend/apps/core/tests/test_request_security_middleware.py backend/config/settings/base.py backend/config/settings/production.py
+          git commit -m "security: adiciona correlação e headers defensivos"
+
+      - name: Apply API contract and tenant gates
+        run: |
+          git apply --check .tmp/stabilization-ci.patch
+          git apply .tmp/stabilization-ci.patch
+          git add .github/workflows/api-contract.yml .github/workflows/backend-security.yml .github/workflows/django-ci.yml scripts/validate_api_contract.py
+          git commit -m "ci: valida contrato OpenAPI e integridade tenant"
+
+      - name: Apply Next.js proxy migration
+        run: |
+          git apply --check .tmp/stabilization-frontend.patch
+          git apply .tmp/stabilization-frontend.patch
+          git add -A frontend/auth-bff.test.mjs frontend/package.json frontend/src/middleware.ts frontend/src/proxy.ts
+          git commit -m "refactor(frontend): migra middleware para proxy do Next"
+
+      - name: Reconcile canonical documentation
+        env:
+          LIMITATIONS_B64: "IyBMaW1pdGHDp8O1ZXMgZSByaXNjb3MgY29uaGVjaWRvcwoKRXN0ZSBkb2N1bWVudG8gcmVnaXN0cmEgc29tZW50ZSBsaW1pdGHDp8O1ZXMgYWluZGEgdmlnZW50ZXMuIFJlbGF0w7NyaW9zIGhpc3TDs3JpY29zIHBvZGVtIGRlc2NyZXZlciBlc3RhZG9zIGFudGVyaW9yZXMgZSBuw6NvIGRldmVtIHN1YnN0aXR1aXIgbyBjw7NkaWdvLCBhcyBtaWdyYXRpb25zLCBvcyB0ZXN0ZXMgZSBhcyBtYXRyaXplcyBjYW7DtG5pY2FzLgoKIyMgQXJxdWl0ZXR1cmEgZSBhY2Vzc28KCjEuICoqTyB0ZW5hbnQgZXhwbMOtY2l0byBleGlzdGUsIG1hcyBvIGlzb2xhbWVudG8gdHJhbnN2ZXJzYWwgYWluZGEgcHJlY2lzYSBkZSBjb21wcm92YcOnw6NvIGNvbnTDrW51YS4qKiBgYXBwcy5vcmdhbml6YXRpb25zYCBpbXBsZW1lbnRhIG9yZ2FuaXphw6fDtWVzLCBtZW1iZXJzaGlwcywgY29udGV4dG8gYXRpdm8gZSBhdXRlbnRpY2HDp8OjbyB0ZW5hbnQtYXdhcmU7IG8gcmlzY28gcmVzaWR1YWwgZXN0w6EgZW0gb3duZXJzaGlwIGxlZ2FkbywgdGFza3MsIGNhY2hlcywgcmVsYXTDs3Jpb3MsIGV4cG9ydHMsIHN0b3JhZ2UgZSBpbnRlZ3Jhw6fDtWVzIHF1ZSBhaW5kYSBkZXZlbSBzZXIgYXVkaXRhZG9zIHBvciBtw7NkdWxvLgoyLiAqKkFjY2VzcyBlIHJlZnJlc2ggdG9rZW5zIHPDo28gcHJvdGVnaWRvcyBwb3IgY29va2llcyBIdHRwT25seSBubyBCRkYqKiwgbWFzIFhTUyBhaW5kYSBwb2RlIGV4ZWN1dGFyIGHDp8O1ZXMgZW0gbm9tZSBkbyB1c3XDoXJpby4gQ1NQLCBzYW5pdGl6YcOnw6NvLCBkZXBlbmTDqm5jaWFzIGF0dWFsaXphZGFzLCBDU1JGIGUgcmV2aXPDo28gZGUgZnJvbnRlbmQgcGVybWFuZWNlbSBvYnJpZ2F0w7NyaW9zLgozLiAqKk8gcHJveHkgZG8gTmV4dC5qcyBuw6NvIHN1YnN0aXR1aSBhdXRvcml6YcOnw6NvIGJhY2tlbmQuKiogQSBuYXZlZ2HDp8OjbyBwb2RlIHVzYXIgc2luYWlzIGRlIHNlc3PDo28sIG1hcyByb2xlLCBhc3NpbmF0dXJhLCB0ZW5hbnQgZSBwZXJtaXNzw6NvIGRlIG9iamV0byBkZXZlbSBzZXIgY29uZmlybWFkb3MgcGVsbyBEamFuZ28uCjQuICoqQSByb3RhIGxlZ2FkYSBkZSBCaWxsaW5nIHBvZGUgc2VyIGhhYmlsaXRhZGEgZW0gYC9hcGkvYmlsbGluZy9gIGFsw6ltIGRlIGAvYXBpL3YxL2JpbGxpbmcvYC4qKiBBIGZlYXR1cmUgZmxhZyBkZXZlIHBlcm1hbmVjZXIgZGVzYWJpbGl0YWRhIGVtIHByb2R1w6fDo28gcXVhbmRvIG7Do28gaG91dmVyIGNvbnN1bWlkb3IgbGVnYWRvIGNvbXByb3ZhZG8uCjUuICoqT3MgZmx1eG9zIEUyRSBhdHVhaXMgY29icmVtIGF1dGVudGljYcOnw6NvLCBnYXRld2F5IGluZGlzcG9uw612ZWwgZSB0ZWxlbWVkaWNpbmEqKiwgbWFzIGFpbmRhIG7Do28gYWJyYW5nZW0gdG9kb3Mgb3MgbcOzZHVsb3MgY3LDrXRpY29zLCBwYXDDqWlzLCBmbHV4b3MgbW9iaWxlIGUgb3BlcmHDp8O1ZXMgbXVsdGktdGVuYW50LgoKIyMgRGFkb3MgZSBhcnF1aXZvcwoKNi4gKipTdG9yYWdlIGxvY2FsIG7Do28gw6kgYWRlcXVhZG8gcGFyYSBwcm9kdcOnw6NvIGNsw61uaWNhLioqIE8gc2V0dGluZ3MgZGUgcHJvZHXDp8OjbyBwb2RlIGV4aWdpciBBenVyZSBCbG9iIHByaXZhZG8sIHBvcsOpbSBhIGluZnJhZXN0cnV0dXJhLCBhcyBwZXJtaXNzw7VlcyBlIGEgcmVzdGF1cmHDp8OjbyBwcmVjaXNhbSBzZXIgdmFsaWRhZGFzIG5vIGFtYmllbnRlIGltcGxhbnRhZG8uCjcuICoqVXBsb2FkcyBjbMOtbmljb3MgcG9zc3VlbSB2YWxpZGHDp8OjbyBlc3RydXR1cmFsLCBxdWFyZW50ZW5hIGUgc2Nhbm5lciBjb25maWd1csOhdmVsIGVtIG1vZG8gZmFpbC1jbG9zZWQuKiogTyBhcnF1aXZvIG7Do28gw6kgbGliZXJhZG8gcXVhbmRvIG8gc2Nhbm5lciBlc3TDoSBpbmRpc3BvbsOtdmVsOyBhaW5kYSBmYWx0YSBjb21wcm92YXIgdW0gcHJvdmlkZXIgYW50aW1hbHdhcmUgZXh0ZXJubyBhdGl2byBlbSBzdGFnaW5nIGUgcHJvZHXDp8Ojby4KOC4gKipFeGlzdGVtIGxpbXBlemFzIGVzcGVjw61maWNhcyBwYXJhIHF1YXJlbnRlbmEsIGV4cG9ydHMsIHRva2VucyBlIG5vdGlmaWNhw6fDtWVzKiosIG1hcyBuw6NvIGjDoSB1bWEgcG9sw610aWNhIGluc3RpdHVjaW9uYWwgZ2xvYmFsIGRlIHJldGVuw6fDo28gZSBkZXNjYXJ0ZSBjb21wcm92YWRhIHBhcmEgdG9kb3Mgb3MgZG9tw61uaW9zLgo5LiAqKlJvdGHDp8OjbyBkZSBjaGF2ZSBjcmlwdG9ncsOhZmljYSBleGlnZSBwcm9jZWRpbWVudG8gb3BlcmFjaW9uYWwuKiogTyBjYW1wbyBzdXBvcnRhIHZlcnPDtWVzLCBwb3LDqW0gYSBtaWdyYcOnw6NvIGNvbXBsZXRhIGRvcyBkYWRvcyBlIG8gcm9sbGJhY2sgcHJlY2lzYW0gc2VyIGVuc2FpYWRvcy4KCiMjIEludGVncmHDp8O1ZXMgZSBvcGVyYcOnw6NvCgoxMC4gKipXZWJob29rIEFzYWFzIHNlbSB0b2tlbiBwb2RlIHNlciBhY2VpdG8gYXBlbmFzIGVtIGRlc2Vudm9sdmltZW50byBjb250cm9sYWRvLioqIFByb2R1w6fDo28gcmVqZWl0YSBpbmljaWFsaXphw6fDo28gc2VtIHNlZ3JlZG8gZm9ydGUsIG1hcyBpZGVtcG90w6puY2lhLCByZXBsYXkgZSByZWNvbmNpbGlhw6fDo28gZGV2ZW0gY29udGludWFyIHZhbGlkYWRvcyBlbSBzYW5kYm94LgoxMS4gKipBbGd1bnMgZmx1eG9zIGRlIGUtbWFpbCBhaW5kYSBwb2RlbSBleGVjdXRhciBlbnZpbyBzw61uY3Jvbm8qKiwgYWZldGFuZG8gbGF0w6puY2lhIGUgZGlzcG9uaWJpbGlkYWRlIHF1YW5kbyBvIFNNVFAgZXN0aXZlciBkZWdyYWRhZG8uCjEyLiAqKkZpbGFzIGFzc8OtbmNyb25hcyBkZXBlbmRlbSBkZSBSZWRpcywgcXVhdHJvIHdvcmtlcnMgZSBDZWxlcnkgQmVhdC4qKiBTZW0gZXNzZXMgcHJvY2Vzc29zLCBqb2JzIHBlcm1hbmVjZW0gcGVuZGVudGVzIG91IGVudHJhbSBlbSByZWN1cGVyYcOnw6NvLgoxMy4gKipCYWNrdXAsIHJlc3RhdXJhw6fDo28sIG1vbml0b3JhbWVudG8gZSBhbGVydGFzIGRlcGVuZGVtIGRhIGluZnJhZXN0cnV0dXJhLioqIE7Do28gc8OjbyBnYXJhbnRpZG9zIGFwZW5hcyBwZWxvIGPDs2RpZ28gb3UgcGVsb3MgcnVuYm9va3MuCjE0LiAqKk7Do28gaMOhIGNvbXByb3Zhw6fDo28gZGUgZGVwbG95IGF0aXZvIG5vIEF6dXJlKiogbm8gcmVwb3NpdMOzcmlvLgoxNS4gKipUZWxlbWVkaWNpbmEgcG9zc3VpIMOhdWRpbyBlIHbDrWRlbyBjb20gTGl2ZUtpdCwgRTJFRSwgY29udml0ZXMgZSB3ZWJob29rcyoqLCBtYXMgY29udGludWEgZGVzYXRpdmFkYSBwb3IgcGFkcsOjbyBlIGRlcGVuZGUgZGUgSFRUUFMvV1NTLCBjcmVkZW5jaWFpcywgd2ViaG9vayBww7pibGljbyBwcm90ZWdpZG8gZSBzbW9rZSB0ZXN0IGVtIHN0YWdpbmcuCjE2LiAqKklBIG7Do28gcG9zc3VpIGludGVncmHDp8OjbyBmdW5jaW9uYWwuKiogRW5xdWFudG8gbsOjbyBob3V2ZXIgcHJvdmlkZXIsIGNvbnNlbnRpbWVudG8sIGdvdmVybmFuw6dhLCBhdWRpdG9yaWEgZSByZXZpc8OjbyBodW1hbmEsIHByb21lc3NhcyBjb21lcmNpYWlzIGRlIElBIGRldmVtIHBlcm1hbmVjZXIgaW5kaXNwb27DrXZlaXMuCgojIyBRdWFsaWRhZGUKCjE3LiBObyBiYXNlbGluZSBkYSBlc3RhYmlsaXphw6fDo28gZGUgMjQvMDcvMjAyNiwgYSBzdcOtdGUgYmFja2VuZCBjb2JyaXUgKio2Nyw2MSUgZGFzIGxpbmhhcyBpbnN0cnVtZW50YWRhcyoqOyBvIG7Dum1lcm8gcGVydGVuY2UgYW8gY29tbWl0IGUgYW8gYW1iaWVudGUgbWVkaWRvcywgbsOjbyBjb25zdGl0dWkgZ2FyYW50aWEgcGVybWFuZW50ZS4KMTguIE8gZnJvbnRlbmQgcG9zc3VpIHRlc3RlcyBlc3RydXR1cmFpcyBlIGNvYmVydHVyYSBhbHRhIHNvYnJlIG9zIGFycXVpdm9zIGF0dWFsbWVudGUgaW5zdHJ1bWVudGFkb3MsIHBvcsOpbSBlc3NhIGluc3RydW1lbnRhw6fDo28gbsOjbyByZXByZXNlbnRhIG9zIDMzMCBhcnF1aXZvcyBkZSBgZnJvbnRlbmQvc3JjYC4KMTkuIE8gYmFzZWxpbmUgZG8gRVNMaW50IGNvbnTDqW0gKio5MSB3YXJuaW5ncyByZWFpcyoqOiBlZmVpdG9zIGNvbSBhdHVhbGl6YcOnw6NvIHPDrW5jcm9uYSBkZSBlc3RhZG8sIGBhbnlgLCB2YXJpw6F2ZWlzIG7Do28gdXRpbGl6YWRhcywgZGVwZW5kw6puY2lhcyBkZSBob29rcyBlIGFjZXNzaWJpbGlkYWRlLiBPIENJIGFpbmRhIG7Do28gdXNhIGAtLW1heC13YXJuaW5ncz0wYC4KMjAuIE8gYG15cHlgIGNvbnTDqW0gZXhjbHVzw7VlcyBlIHVtIG92ZXJyaWRlIGFtcGxvIGNvbSBgaWdub3JlX2Vycm9yc2AsIHJlZHV6aW5kbyBhIGdhcmFudGlhIGRlIHRpcGFnZW0gaW50ZWdyYWwuCjIxLiBPIENJIHByaW5jaXBhbCB1c2EgUG9zdGdyZVNRTCAxNSwgbWFzIGNlbsOhcmlvcyBkZSBjYXJnYSwgZmFpbG92ZXIgZSBhbHRhIGNvbmNvcnLDqm5jaWEgYWluZGEgZXhpZ2VtIGFtYmllbnRlIGRlZGljYWRvLgoKIyMgUHJvZHV0byBlIGNvbmZvcm1pZGFkZQoKMjIuIFJlY3Vyc29zIGRlIElBIG7Do28gZGV2ZW0gcHJvZHV6aXIgZGlhZ27Ds3N0aWNvLCBwcmVzY3Jpw6fDo28gb3UgZGVjaXPDo28gY2zDrW5pY2EgYXV0w7Rub21hLgoyMy4gQSBjb25mb3JtaWRhZGUgTEdQRCBkZXBlbmRlIGRlIHByb2Nlc3NvcyBodW1hbm9zLCBjb250cmF0b3MsIGJhc2UgbGVnYWwsIHJldGVuw6fDo28sIGF0ZW5kaW1lbnRvIGFvIHRpdHVsYXIgZSBzZWd1cmFuw6dhIG9wZXJhY2lvbmFsLgoyNC4gUG9ydGFsIGF1dGVudGljYWRvIGRvIHBhY2llbnRlIGUgYWdlbmRhbWVudG8gcMO6YmxpY28gcG9udGEgYSBwb250YSBhaW5kYSBuw6NvIGVzdMOjbyBjb25jbHXDrWRvcyBjb21vIGRvbcOtbmlvcyBjb21wbGV0b3MuCjI1LiBJbnRlZ3Jhw6fDtWVzIGV4dGVybmFzIHNvbWVudGUgcG9kZW0gc2VyIGNsYXNzaWZpY2FkYXMgY29tbyBvcGVyYWNpb25haXMgYXDDs3MgdmFsaWRhw6fDo28gZW0gc2FuZGJveCBvdSBzdGFnaW5nIGNvbSBjcmVkZW5jaWFpcyBwcsOzcHJpYXMuCgpbVm9sdGFyXShSRUFETUUubWQpCg=="
+          PLAN_B64: "IyBQbGFubyBkZSBlc3RhYmlsaXphw6fDo28gY29tcGxldGEKCiMjIFJlZmVyw6puY2lhCgotICoqYnJhbmNoOioqIGBhZ2VudC9lc3RhYmlsaXphY2FvLWNvbXBsZXRhLXNpdGVgOwotICoqU0hBIGluaWNpYWwgZGEgYG1haW5gOioqIGBiZTkxMTZkNmM5YWRjNDBmMzVkNDIxNzYxYTMzMThhYWMxNzlhZTMwYDsKLSAqKmRhdGEgZG8gYmFzZWxpbmU6KiogMjQvMDcvMjAyNjsKLSAqKlB1bGwgUmVxdWVzdDoqKiBkcmFmdCAjMjI1OwotICoqZGVwbG95OioqIG7Do28gcmVhbGl6YWRvOwotICoqaXNzdWVzIGNyaWFkYXM6KiogbmVuaHVtYS4KCiMjIEV2aWTDqm5jaWFzIGRvIGJhc2VsaW5lCgp8IEdhdGUgfCBSZXN1bHRhZG8gaW5pY2lhbCB8IEV2aWTDqm5jaWEgb3BlcmFjaW9uYWwgfAp8IC0tLSB8IC0tLSB8IC0tLSB8CnwgRGphbmdvIENJIHwgc3VjZXNzbyB8IFBvc3RncmVTUUwgMTUsIG1pZ3JhdGlvbnMsIFJ1ZmYsIG15cHkgZSBweXRlc3QgfAp8IEZyb250ZW5kIENJIHwgc3VjZXNzbyBjb20gZMOtdmlkYSB8IGxpbnQsIHR5cGVjaGVjaywgNzkgdGVzdGVzIG5vIHJ1bm5lciBkbyBDSSwgY29iZXJ0dXJhIGluc3RydW1lbnRhZGEgZSBidWlsZCB8CnwgRGVwZW5kZW5jeSBTZWN1cml0eSB8IHN1Y2Vzc28gfCBgcGlwLWF1ZGl0YCBlIGBucG0gYXVkaXRgIHwKfCBEb2NrZXIgSW1hZ2VzIHwgc3VjZXNzbyB8IGJ1aWxkIGRhcyBpbWFnZW5zIGV4aXN0ZW50ZXMgfAp8IENvZGVRTCB8IHN1Y2Vzc28gfCBhbsOhbGlzZSBlc3TDoXRpY2EgZG8gR2l0SHViIHwKfCBDb2JlcnR1cmEgYmFja2VuZCB8IDY3LDYxJSBkZSBsaW5oYXMgfCBgY292ZXJhZ2UueG1sYCBkbyBiYXNlbGluZSB8CnwgRVNMaW50IGZyb250ZW5kIHwgOTEgd2FybmluZ3MgfCByZWxhdMOzcmlvIGRvIGJhc2VsaW5lIHwKClVtIHdvcmtmbG93IHZlcmRlIHNpZ25pZmljYSBxdWUgbyBnYXRlIGNvbmZpZ3VyYWRvIHBhc3NvdS4gTsOjbyBzaWduaWZpY2EgcXVlIHRvZG9zIG9zIG3Ds2R1bG9zIGVzdMOjbyBjb21wbGV0b3Mgb3UgcHJvbnRvcyBwYXJhIGRhZG9zIHJlYWlzLgoKIyMgUGxhbm8gcG9yIG3Ds2R1bG8KCnwgTcOzZHVsbyB8IEJhY2tlbmQvQVBJIHwgRnJvbnRlbmQgfCBUZW5hbnQgZSBwZXJtaXNzw7VlcyB8IEFzc8OtbmNyb25vL2ludGVncmHDp8O1ZXMgfCBUZXN0ZXMgZSBzZWd1cmFuw6dhIHwgRXN0YWRvIGluaWNpYWwgfCBPYmpldGl2byBkZXN0YSBlc3RhYmlsaXphw6fDo28gfAp8IC0tLSB8IC0tLSB8IC0tLSB8IC0tLSB8IC0tLSB8IC0tLSB8IC0tLSB8IC0tLSB8CnwgQ29yZSB8IGhlYWx0aCwgZXhjZcOnw7VlcywgY3JpcHRvZ3JhZmlhIGUgcXVhbGl0eSBnYXRlcyB8IGluZnJhZXN0cnV0dXJhIGNvbXBhcnRpbGhhZGEgfCBiYXNlIGRvIGVuZm9yY2VtZW50IHwgUmVkaXMsIHN0b3JhZ2UgZSBDZWxlcnkgfCBhcnF1aXRldHVyYSBlIGhlYWx0aCB8IOKchSAvIPCfn6EgfCBjb3JyZWxhdGlvbiBJRCwgaGVhZGVycywgY29udHJhdG8gZSBnYXRlcyBkZSBwcm9udGlkw6NvIHwKfCBVc3XDoXJpb3MgfCBKV1QsIHJlc2V0LCBsb2Nrb3V0IGUgcGVyZmlsIHwgQkZGLCBjb29raWVzIGUgc2Vzc8OjbyB8IHRlbmFudCBhcMOzcyBhdXRlbnRpY2HDp8OjbyB8IFNNVFAgfCB1bml0w6FyaW9zIGUgRTJFIHBhcmNpYWwgfCDinIUgLyDimqDvuI8gfCBhbXBsaWFyIElET1IsIGhlYWRlcnMsIENTUCBlIHBhcMOpaXMgYWRtaW5pc3RyYXRpdm9zIHwKfCBPcmdhbml6YcOnw7VlcyB8IG9yZ2FuaXphdGlvbnMsIG1lbWJlcnNoaXBzIGUgY29udml0ZXMgfCBjb250ZXh0bywgZXF1aXBlIGUgb25ib2FyZGluZyB8IGRvbcOtbmlvIGNlbnRyYWwgfCBjb252aXRlcyBwb3IgY29tdW5pY2HDp8OjbyB8IHRlc3RlcyBtdWx0aS10ZW5hbnQgfCDwn5+hIHwgZXhlY3V0YXIgYXVkaXRvcmlhIGRlIGludGVncmlkYWRlIG5vIENJIGUgYW1wbGlhciBjZW7DoXJpb3MgY3J1emFkb3MgfAp8IFBhY2llbnRlcyB8IENSVUQsIHJlc3BvbnPDoXZlaXMsIGltcG9ydC9leHBvcnQgfCB3b3Jrc3BhY2UgZSBsaXN0YWdlbSB8IG93bmVyc2hpcCBwYXJjaWFsbWVudGUgbWlncmFkbyB8IGltcG9ydC9leHBvcnQgfCBiYWNrZW5kIHJlbGV2YW50ZSB8IPCfn6EgfCBjb21wcm92YXIgaXNvbGFtZW50bywgZGVkdXBsaWNhw6fDo28gZSByb2xsYmFjayBkZSBpbXBvcnRhw6fDo28gfAp8IFByb250dcOhcmlvIHwgYW5hbW5lc2UsIGV2b2x1w6fDtWVzLCBtZXRhcywgYW5leG9zIGUgZXhwb3J0cyB8IHdvcmtzcGFjZSBjbMOtbmljbyB8IHRlbmFudCBlIGF1dG9yaWEgfCBmaWxhcyBgZXhwb3J0c2AgZSBgdXBsb2Fkc2AgfCBzdcOtdGUgYW1wbGEgfCDwn5+hIC8g4pqg77iPIHwgdmFsaWRhciByZXRlbsOnw6NvLCBjb25jb3Jyw6puY2lhLCBzY2FubmVyIGV4dGVybm8gZSBsaW5rcyBwcml2YWRvcyB8CnwgQWdlbmRhIHwgY29uc3VsdGFzLCByZWNvcnLDqm5jaWFzLCBibG9xdWVpb3MgZSBwYWNvdGVzIHwgY2FsZW5kw6FyaW8gZSBmb3JtdWzDoXJpb3MgfCBvcmdhbml6YcOnw6NvIGF0aXZhIHwgZmlsYSBgZGVmYXVsdGAgZSBjb211bmljYcOnw7VlcyB8IHRlc3RlcyBkZSBjYWxlbmTDoXJpbyB8IPCfn6EgfCBQb3N0Z3JlU1FMIGNvbmNvcnJlbnRlLCB0aW1lem9uZSBlIHJlY29ycsOqbmNpYSBtZW5zYWwgfAp8IFRlbGVtZWRpY2luYSB8IHNhbGFzLCBjb25zZW50aW1lbnRvLCBFMkVFIGUgd2ViaG9va3MgfCBsb2JieSBlIGNoYW1hZGEgTGl2ZUtpdCB8IHRlbmFudCBleHBsw61jaXRvIHwgTGl2ZUtpdCBlIGNvbXVuaWNhw6fDtWVzIHwgYmFja2VuZCwgZXN0cnV0dXJhbCBlIEUyRSB8IPCfn6AgLyDimqDvuI8gfCBzbW9rZSB0ZXN0IGNvbmRpY2lvbmFsIGRlIHN0YWdpbmcgZSBvcGVyYcOnw6NvIGRlZ3JhZGFkYSB8CnwgRmluYW5jZWlybyBjbMOtbmljbyB8IHJlY2VpdGFzLCBkZXNwZXNhcyBlIHBhZ2FtZW50b3MgfCBkYXNoYm9hcmQgZmluYW5jZWlybyB8IG1pZ3Jhw6fDo28gcGFyY2lhbCB8IHNlbSBwcm92aWRlciBvYnJpZ2F0w7NyaW8gfCBiYWNrZW5kIHJlbGV2YW50ZSB8IPCfn6EgfCB0cmFuc2nDp8O1ZXMgY2VudHJhbGl6YWRhcywgaWRlbXBvdMOqbmNpYSBlIGNvbmNpbGlhw6fDo28gfAp8IERvY3VtZW50b3MgfCB0ZW1wbGF0ZXMsIGdlcmHDp8OjbywgaGFzaCBlIHNlcXXDqm5jaWFzIHwgYmlibGlvdGVjYSBlIGdlcmHDp8OjbyB8IHRlbmFudCBvYnJpZ2F0w7NyaW8gfCBQREYgZSBzdG9yYWdlIHwgYmFja2VuZCByZWxldmFudGUgfCDwn5+gIC8g4pqg77iPIHwgdmVyc2lvbmFtZW50bywgcmV0ZW7Dp8Ojbywgc3RvcmFnZSBlIGNvbnRyYXRvIE9wZW5BUEkgfAp8IEZvcm11bMOhcmlvcyB8IHRlbXBsYXRlcywgc3VibWlzc8O1ZXMgZSByZXNwb3N0YXMgfCBjb25zdHJ1dG9yIHwgbWlncmHDp8OjbyBwYXJjaWFsIHwgY29tdW5pY2HDp8O1ZXMgfCBjb2JlcnR1cmEgcGFyY2lhbCB8IPCfn6EgfCBzbmFwc2hvdCBpbXV0w6F2ZWwsIHRva2VucyBww7pibGljb3MgZSBFMkUgfAp8IENvbXVuaWNhw6fDtWVzIHwgdGVtcGxhdGVzLCB0ZW50YXRpdmFzIGUgcHJlZmVyw6puY2lhcyB8IGRhc2hib2FyZCBlIG5vdGlmaWNhw6fDtWVzIHwgdGVuYW50IGUgb3B0LW91dCB8IFNNVFAsIFdoYXRzQXBwIGUgU01TIHwgYmFja2VuZCBhbXBsbyB8IPCfn6AgfCBxdWlldCBob3VycywgbGltaXRlcywgcHJvdmlkZXIgb2ZpY2lhbCBlIG9ic2VydmFiaWxpZGFkZSB8CnwgUmVsYXTDs3Jpb3MgfCBzZWxlY3RvcnMgZSBhZ3JlZ2HDp8O1ZXMgfCBkYXNoYm9hcmQgfCBtaWdyYcOnw6NvIGVtIGFuZGFtZW50byB8IGV4cG9ydHMgfCBjb2JlcnR1cmEgcGFyY2lhbCB8IPCfn6EgfCBtw6l0cmljYXMgZXhhdGFzLCB0ZW5hbnQgZSBjb25zaXN0w6puY2lhIFBERi90ZWxhIHwKfCBCaWxsaW5nIFNhYVMgfCBwbGFub3MsIGNoZWNrb3V0LCB3ZWJob29rcyBlIGVudGl0bGVtZW50cyB8IHByaWNpbmcgZSBhc3NpbmF0dXJhIHwgb3JnYW5pemHDp8Ojby9vd25lciB8IEFzYWFzIGUgcmVjb25jaWxpYcOnw6NvIHwgd29ya2Zsb3cgZGVkaWNhZG8gfCDwn5+gIHwgZXN0YWRvcyBjb21wbGV0b3MsIHJlcGxheSBlIHNhbmRib3ggY29uZGljaW9uYWwgfAp8IEF1ZGl0b3JpYSB8IGV2ZW50b3Mgc2FuaXRpemFkb3MgfCBBZG1pbiB8IG9yZ2FuaXphw6fDo28gc2VtIGNvbnRlw7pkbyBjbMOtbmljbyB8IHJlcXVlc3RzLCB0YXNrcyBlIGludGVncmHDp8O1ZXMgfCBzdcOtdGUgZGVkaWNhZGEgfCDwn5+hIHwgY29ycmVsYXRpb24gSUQsIHJldGVuw6fDo28gZSBjb2JlcnR1cmEgZm9yYSBkYSBPUk0gfAp8IEFkbWluaXN0cmHDp8OjbyB8IFVuZm9sZCBlIFNRTCBFeHBsb3JlciByZXN0cml0byB8IHNlcnZlci1yZW5kZXJlZCB8IGVzY29wbyBvcGVyYWNpb25hbCB8IHZpc3VhbGl6YcOnw6NvIGRlIGpvYnMgfCBjb2JlcnR1cmEgcGFyY2lhbCB8IOKchSAvIOKaoO+4jyB8IGxlYXN0IHByaXZpbGVnZSwgbWFzY2FyYW1lbnRvIGUgYXVkaXRvcmlhIGRlIGHDp8O1ZXMgfAp8IFBvcnRhbCBkbyBwYWNpZW50ZSB8IGRvbcOtbmlvIGluY29tcGxldG8gfCBkb23DrW5pbyBpbmNvbXBsZXRvIHwgbsOjbyBjb25zb2xpZGFkbyB8IGRvY3VtZW50b3MvY29tdW5pY2HDp8O1ZXMgfCBhdXNlbnRlIHwg8J+UtCB8IGltcGxlbWVudGFyIHNvbWVudGUgZW0gYmxvY28gcHLDs3ByaW8gY29tIGF1dGVudGljYcOnw6NvIGUgRTJFIHwKfCBJbnRlbGlnw6puY2lhIGFydGlmaWNpYWwgfCBzZW0gcHJvdmlkZXIgfCBwbGFjZWhvbGRlcnMvaW5kaXNwb25pYmlsaWRhZGUgfCBnb3Zlcm5hbsOnYSBhdXNlbnRlIHwgbsOjbyBhcGxpY8OhdmVsIHwgYXVzZW50ZSB8IPCflLQgLyDwn5OMIHwgcmVtb3ZlciBwcm9tZXNzYSBuw6NvIGVudHJlZ3VlIG91IGNyaWFyIE1WUCBhc3Npc3Rpdm8gcmV2aXPDoXZlbCB8CgojIyBCbG9jb3MgZGUgZXhlY3XDp8OjbwoKMS4gKipGdW5kYcOnw6NvIHZlcmlmaWPDoXZlbDoqKiBkb2N1bWVudGHDp8OjbyBhdHVhbCwgY29ycmVsYXRpb24gSUQsIGhlYWRlcnMgZGVmZW5zaXZvcywgYXVkaXRvcmlhIGRlIHRlbmFudCBlIGNvbnRyYXRvIE9wZW5BUEkuCjIuICoqUXVhbGlkYWRlIHNlbSBtYXNjYXJhbWVudG86KiogcmVnaXN0cmFyIGJhc2VsaW5lLCBpbXBlZGlyIHJlZ3Jlc3PDo28gZSByZWR1emlyIHdhcm5pbmdzL2lnbm9yZXMgcHJvZ3Jlc3NpdmFtZW50ZS4KMy4gKipJc29sYW1lbnRvIHRyYW5zdmVyc2FsOioqIHN5bnRoZXRpYyB0ZXN0cyBjb20gZHVhcyBvcmdhbml6YcOnw7VlcyBlbSBjYWRhIGRvbcOtbmlvIGUgd29ya2Vycy4KNC4gKipGbHV4b3MgY3LDrXRpY29zOioqIEUyRSBkZSBwYWNpZW50ZSwgcHJvbnR1w6FyaW8sIGFnZW5kYSwgZmluYW5jZWlybywgZG9jdW1lbnRvcywgZm9ybXVsw6FyaW9zIGUgQmlsbGluZy4KNS4gKipPcGVyYcOnw6NvOioqIHN0b3JhZ2UgcHJpdmFkbywgcmV0ZW7Dp8OjbywgYmFja3VwL3Jlc3RvcmUsIGhlYWx0aCBkZWdyYWRhZG8gZSBvYnNlcnZhYmlsaWRhZGUuCjYuICoqUHJvZHV0byByZXN0YW50ZToqKiBwb3J0YWwgZG8gcGFjaWVudGUgZSBkZWNpc8OjbyBleHBsw61jaXRhIHNvYnJlIElBLgoKIyMgQ3JpdMOpcmlvIGRlIGNvbmNsdXPDo28KClVtYSBsaW5oYSBkYSBtYXRyaXogc29tZW50ZSBwb2RlIHNlciBwcm9tb3ZpZGEgcGFyYSDinIUgcXVhbmRvIGhvdXZlciBmbHV4byBmdW5jaW9uYWwsIHBlcm1pc3PDo28gYmFja2VuZCwgdGVuYW50LCBlc3RhZG9zIGRlIFVJLCB0ZXN0ZXMgcmVsZXZhbnRlcywgZG9jdW1lbnRhw6fDo28gZSBDSSBhc3NvY2lhZG9zIGFvIG1lc21vIFNIQS4gSW50ZWdyYcOnw7VlcyBleHRlcm5hcyBkZXZlbSBkaXN0aW5ndWlyIGPDs2RpZ28sIHNhbmRib3gvc3RhZ2luZyBlIHByb2R1w6fDo28uCgpbVm9sdGFyXShSRUFETUUubWQpCg=="
+        run: |
+          python - <<'PY'
+          import base64
+          import os
+          from pathlib import Path
+
+          sha = 'be9116d6c9adc40f35d421761a3318aac179ae30'
+          old_sha = '75827a2dbfe7d4f86f0865f05d9a5a8f660e0f78'
+
+          Path('docs/01-visao-geral/limitacoes.md').write_bytes(base64.b64decode(os.environ['LIMITATIONS_B64']))
+          Path('docs/17-referencia/plano-estabilizacao-completa.md').write_bytes(base64.b64decode(os.environ['PLAN_B64']))
+
+          for name in ('README.md', 'docs/17-referencia/status-do-projeto.md'):
+              path = Path(name)
+              text = path.read_text(encoding='utf-8').replace(old_sha, sha)
+              text = text.replace('23/07/2026', '24/07/2026').replace('23 de julho de 2026', '24 de julho de 2026')
+              path.write_text(text, encoding='utf-8')
+
+          path = Path('docs/README.md')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace(
+              f'contra a branch `main`, no commit `{old_sha}`, em 23 de julho de 2026.',
+              f'contra a branch `main`, com baseline atualizado a partir da `main` no commit `{sha}`, em 24 de julho de 2026.',
+          )
+          text = text.replace('- [Inventário tecnológico](17-referencia/inventario-tecnologico.md)\n', '- [Inventário tecnológico](17-referencia/inventario-tecnologico.md)\n- [Plano de estabilização completa](17-referencia/plano-estabilizacao-completa.md)\n')
+          text = text.replace('- **Data:** 23/07/2026;', '- **Data do baseline atual:** 24/07/2026;')
+          text = text.replace(f'- **Commit-base:** `{old_sha}`;', f'- **Commit-base:** `{sha}`;')
+          text = text.replace('- **Relatório desta revisão:** [Relatório da refatoração documental](17-referencia/relatorio-refatoracao-documental-2026-07-23.md).', '- **Plano da estabilização atual:** [Plano de estabilização completa](17-referencia/plano-estabilizacao-completa.md).')
+          path.write_text(text, encoding='utf-8')
+
+          path = Path('docs/10-testes/README.md')
+          text = path.read_text(encoding='utf-8').replace('Commit-base documentado: `176cba63ed3edf1cee232363e5a89c4b7fda28ac`.', f'Baseline mais recente documentado: `{sha}`, medido em 24/07/2026. Consulte o relatório da estabilização para os resultados associados ao SHA final.')
+          path.write_text(text, encoding='utf-8')
+
+          path = Path('docs/17-referencia/README.md')
+          text = path.read_text(encoding='utf-8').replace('- [Auditoria do backlog](auditoria-backlog.md)\n', '- [Auditoria do backlog](auditoria-backlog.md)\n- [Plano de estabilização completa](plano-estabilizacao-completa.md)\n')
+          path.write_text(text, encoding='utf-8')
+
+          path = Path('docs/17-referencia/auditoria-backlog.md')
+          text = path.read_text(encoding='utf-8')
+          notice = '> **Documento histórico.** Esta classificação retrata a auditoria de 20/07/2026 e não representa o estado atual da `main`. Após essa data foram integrados `apps.organizations`, autenticação tenant-aware, mídia LiveKit, quarentena de uploads e outras mudanças. Para o estado vigente, consulte [Status do projeto](status-do-projeto.md), [Matriz de módulos](matriz-de-modulos.md) e [Plano de estabilização completa](plano-estabilizacao-completa.md).\n\n'
+          if notice not in text:
+              text = text.replace('# Auditoria do backlog\n\n', '# Auditoria do backlog\n\n' + notice)
+          text = text.replace('Nenhuma issue foi encerrada apenas com base na existência de arquivos.', 'As linhas abaixo devem ser interpretadas como fotografia histórica. Nenhuma issue foi encerrada apenas com base na existência de arquivos.')
+          path.write_text(text, encoding='utf-8')
+
+          path = Path('docs/04-configuracao/variaveis-de-ambiente.md')
+          text = path.read_text(encoding='utf-8')
+          if 'SECURITY_PERMISSIONS_POLICY' not in text:
+              section = '''\n### Headers defensivos e correlação\n\n| Variável | Componente | Obrigatória | Finalidade |\n| --- | --- | --- | --- |\n| `SECURITY_PERMISSIONS_POLICY` | backend | Não | Define recursos de navegador permitidos. O padrão bloqueia câmera, microfone, geolocalização, pagamentos e USB fora de páginas que usem política própria. |\n| `SECURITY_CROSS_ORIGIN_RESOURCE_POLICY` | backend | Não | Define `Cross-Origin-Resource-Policy`; o padrão é `same-site`. |\n| `SECURITY_CONTENT_SECURITY_POLICY` | backend | Produção | CSP explícita. Produção possui padrão restritivo e deve ser ajustada somente aos domínios realmente utilizados. |\n\nTodas as respostas incluem `X-Request-ID`. O backend aceita um identificador externo somente quando usa caracteres seguros e possui no máximo 64 caracteres; caso contrário, gera um UUID hexadecimal. O header é exposto por CORS para diagnóstico do suporte.\n\n'''
+              text = text.replace('\n[Voltar](README.md)', '\n' + section + '[Voltar](README.md)')
+          path.write_text(text, encoding='utf-8')
+          PY
+          git add README.md docs
+          git commit -m "docs: registra baseline e plano de estabilização"
+
+      - name: Remove temporary tooling and push
+        run: |
+          rm -f \
+            .tmp/stabilization-security.patch \
+            .tmp/stabilization-ci.patch \
+            .tmp/stabilization-frontend.patch \
+            .github/workflows/temporary-source-snapshot.yml \
+            .github/workflows/temporary-apply-stabilization.yml
+          rmdir .tmp 2>/dev/null || true
+          git add -A .tmp .github/workflows/temporary-source-snapshot.yml .github/workflows/temporary-apply-stabilization.yml
+          git commit -m "ci: remove ferramentas temporárias de aplicação"
+          git push origin HEAD:agent/estabilizacao-completa-site
