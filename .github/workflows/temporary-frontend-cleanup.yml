@@ -1,6 +1,11 @@
 name: Temporary frontend cleanup
 
 on:
+  push:
+    branches:
+      - "agent/estabilizacao-completa-site"
+    paths:
+      - ".github/workflows/temporary-frontend-cleanup.yml"
   pull_request:
     branches: [main]
     paths:
