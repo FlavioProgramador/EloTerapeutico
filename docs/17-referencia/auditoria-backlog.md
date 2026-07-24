@@ -1,5 +1,7 @@
 # Auditoria do backlog
 
+> **Documento histórico.** Esta classificação retrata a auditoria de 20/07/2026 e não representa o estado atual da `main`. Após essa data foram integrados `apps.organizations`, autenticação tenant-aware, mídia LiveKit, quarentena de uploads e outras mudanças. Para o estado vigente, consulte [Status do projeto](status-do-projeto.md), [Matriz de módulos](matriz-de-modulos.md) e [Plano de estabilização completa](plano-estabilizacao-completa.md).
+
 ## Referência
 
 - data da auditoria: 20/07/2026;
@@ -10,7 +12,7 @@
 - issues criadas por esta auditoria: 0;
 - issues encerradas antes da validação do PR: 0.
 
-Nenhuma issue foi encerrada apenas com base na existência de arquivos. Itens atendidos por esta branch permanecem abertos até que os workflows obrigatórios sejam executados e o PR seja revisado ou integrado. Durante o trabalho, a refatoração do app de auditoria foi integrada à `main`; a classificação abaixo já considera esse evento.
+As linhas abaixo devem ser interpretadas como fotografia histórica. Nenhuma issue foi encerrada apenas com base na existência de arquivos. Itens atendidos por esta branch permanecem abertos até que os workflows obrigatórios sejam executados e o PR seja revisado ou integrado. Durante o trabalho, a refatoração do app de auditoria foi integrada à `main`; a classificação abaixo já considera esse evento.
 
 ## Classificação
 
