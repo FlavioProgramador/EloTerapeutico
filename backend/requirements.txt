@@ -58,7 +58,7 @@ pytest>=9.0.3,<10.0
 pytest-django>=4.8,<5.0
 pytest-cov>=5.0,<7.0
 factory-boy>=3.3,<3.4
-faker>=24.0,<24.1
+faker>=40.35.0,<40.36
 
 # Qualidade e tipagem
 ruff>=0.15,<0.16
