@@ -1,0 +1,161 @@
+diff --git a/frontend/auth-bff.test.mjs b/frontend/auth-bff.test.mjs
+index 8073e31..37fc2b3 100644
+--- a/frontend/auth-bff.test.mjs
++++ b/frontend/auth-bff.test.mjs
+@@ -57,8 +57,8 @@ test("BFF não encaminha headers hop-by-hop", async () => {
+   assert.equal(source.includes('"transfer-encoding",'), false);
+ });
+ 
+-test("middleware não usa papel controlado pelo navegador", async () => {
+-  const source = await readFile("./src/middleware.ts", "utf8");
++test("proxy não usa papel controlado pelo navegador", async () => {
++  const source = await readFile("./src/proxy.ts", "utf8");
+   assert.equal(source.includes("auth_role"), false);
+   assert.equal(source.includes("role ==="), false);
+   assert.equal(source.includes("AUTH_ACCESS_COOKIE"), true);
+diff --git a/frontend/package.json b/frontend/package.json
+index 6999eb7..4842260 100644
+--- a/frontend/package.json
++++ b/frontend/package.json
+@@ -2,6 +2,7 @@
+   "name": "frontend",
+   "version": "0.1.0",
+   "private": true,
++  "type": "module",
+   "scripts": {
+     "dev": "next dev",
+     "build": "next build",
+diff --git a/frontend/src/middleware.ts b/frontend/src/middleware.ts
+deleted file mode 100644
+index 2a29c56..0000000
+--- a/frontend/src/middleware.ts
++++ /dev/null
+@@ -1,61 +0,0 @@
+-import { NextResponse } from "next/server";
+-import type { NextRequest } from "next/server";
+-
+-import {
+-  AUTH_ACCESS_COOKIE,
+-  AUTH_REFRESH_COOKIE,
+-} from "@/lib/auth-constants";
+-
+-const publicRoutes = [
+-  "/login",
+-  "/register",
+-  "/cadastro",
+-  "/forgot-password",
+-  "/planos",
+-  "/termos-de-uso",
+-  "/politica-de-privacidade",
+-];
+-
+-export function middleware(request: NextRequest) {
+-  const { pathname, search } = request.nextUrl;
+-  const hasSession = Boolean(
+-    request.cookies.get(AUTH_ACCESS_COOKIE)?.value ||
+-      request.cookies.get(AUTH_REFRESH_COOKIE)?.value,
+-  );
+-
+-  if (
+-    pathname.startsWith("/_next") ||
+-    pathname.startsWith("/static") ||
+-    pathname.startsWith("/favicon.ico") ||
+-    pathname.includes(".")
+-  ) {
+-    return NextResponse.next();
+-  }
+-
+-  const isPublicRoute = publicRoutes.some(
+-    (route) => pathname.startsWith(route) || pathname === route,
+-  );
+-  const isDashboardRoute =
+-    pathname.startsWith("/dashboard") || pathname === "/dashboard";
+-  const isCheckoutRoute =
+-    pathname.startsWith("/checkout") || pathname.startsWith("/billing");
+-  const isOnboardingRoute = pathname.startsWith("/onboarding");
+-  const isProtectedRoute =
+-    isDashboardRoute || isCheckoutRoute || isOnboardingRoute;
+-
+-  if (!hasSession && isProtectedRoute) {
+-    const loginUrl = new URL("/login", request.url);
+-    loginUrl.searchParams.set("next", `${pathname}${search}`);
+-    return NextResponse.redirect(loginUrl);
+-  }
+-
+-  // Este middleware melhora apenas a navegação. Validade da sessão, role,
+-  // tenant, assinatura e object-level permissions são confirmados pelo backend.
+-  if (isPublicRoute) return NextResponse.next();
+-
+-  return NextResponse.next();
+-}
+-
+-export const config = {
+-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+-};
+diff --git a/frontend/src/proxy.ts b/frontend/src/proxy.ts
+new file mode 100644
+index 0000000..4343a02
+--- /dev/null
++++ b/frontend/src/proxy.ts
+@@ -0,0 +1,61 @@
++import { NextResponse } from "next/server";
++import type { NextRequest } from "next/server";
++
++import {
++  AUTH_ACCESS_COOKIE,
++  AUTH_REFRESH_COOKIE,
++} from "@/lib/auth-constants";
++
++const publicRoutes = [
++  "/login",
++  "/register",
++  "/cadastro",
++  "/forgot-password",
++  "/planos",
++  "/termos-de-uso",
++  "/politica-de-privacidade",
++];
++
++export function proxy(request: NextRequest) {
++  const { pathname, search } = request.nextUrl;
++  const hasSession = Boolean(
++    request.cookies.get(AUTH_ACCESS_COOKIE)?.value ||
++      request.cookies.get(AUTH_REFRESH_COOKIE)?.value,
++  );
++
++  if (
++    pathname.startsWith("/_next") ||
++    pathname.startsWith("/static") ||
++    pathname.startsWith("/favicon.ico") ||
++    pathname.includes(".")
++  ) {
++    return NextResponse.next();
++  }
++
++  const isPublicRoute = publicRoutes.some(
++    (route) => pathname.startsWith(route) || pathname === route,
++  );
++  const isDashboardRoute =
++    pathname.startsWith("/dashboard") || pathname === "/dashboard";
++  const isCheckoutRoute =
++    pathname.startsWith("/checkout") || pathname.startsWith("/billing");
++  const isOnboardingRoute = pathname.startsWith("/onboarding");
++  const isProtectedRoute =
++    isDashboardRoute || isCheckoutRoute || isOnboardingRoute;
++
++  if (!hasSession && isProtectedRoute) {
++    const loginUrl = new URL("/login", request.url);
++    loginUrl.searchParams.set("next", `${pathname}${search}`);
++    return NextResponse.redirect(loginUrl);
++  }
++
++  // Este middleware melhora apenas a navegação. Validade da sessão, role,
++  // tenant, assinatura e object-level permissions são confirmados pelo backend.
++  if (isPublicRoute) return NextResponse.next();
++
++  return NextResponse.next();
++}
++
++export const config = {
++  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
++};
