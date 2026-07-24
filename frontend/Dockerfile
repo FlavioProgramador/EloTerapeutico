@@ -2,6 +2,9 @@ FROM node:24-alpine
 
 WORKDIR /app
 
+RUN npm install -g npm@11.4.2 \
+    && npm cache clean --force
+
 COPY package.json package-lock.json* ./
 RUN npm ci --silent
 
