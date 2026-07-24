@@ -156,3 +156,33 @@ class DocumentModuleApiTests(APITestCase):
             ).count(),
             1,
         )
+
+    def test_preview_allows_legitimate_patient(self):
+        # O terapeuta legítimo deve conseguir gerar prévia de seu próprio paciente
+        response = self.client.post(
+            f"/api/v1/documents/templates/{self.template.public_id}/preview/",
+            {"patient_id": self.patient.pk},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("content_html", response.data)
+        self.assertIn("Paciente Exemplo", response.data["content_html"])
+
+    def test_preview_does_not_allow_cross_tenant_patient_data(self):
+        # Tentativa de usar dados de paciente de outro tenant para prévia deve falhar
+        response = self.client.post(
+            f"/api/v1/documents/templates/{self.template.public_id}/preview/",
+            {"patient_id": self.other_patient.pk},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("patient_id", response.data["error"]["details"])
+
+    def test_preview_unauthenticated_request_is_rejected(self):
+        self.client.logout()
+        response = self.client.post(
+            f"/api/v1/documents/templates/{self.template.public_id}/preview/",
+            {"patient_id": self.patient.pk},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
