@@ -50,7 +50,8 @@ def _forwarded_ip(request) -> str | None:
 
 def _request_id(request) -> str | None:
     supplied = str(
-        request.META.get("HTTP_X_REQUEST_ID")
+        getattr(request, "request_id", "")
+        or request.META.get("HTTP_X_REQUEST_ID")
         or getattr(request, "headers", {}).get("X-Request-ID", "")
     )
     if supplied and _REQUEST_ID_PATTERN.fullmatch(supplied):

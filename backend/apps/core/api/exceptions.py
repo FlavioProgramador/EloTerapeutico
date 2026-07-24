@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import logging
-import re
-import secrets
+from secrets import token_hex
 from collections.abc import Mapping, Sequence
 
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -14,19 +13,19 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
-logger = logging.getLogger(__name__)
+from apps.core.middleware import resolve_request_id
 
-_REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,64}$")
+logger = logging.getLogger(__name__)
 
 
 def _get_request_id(context) -> str:
     request = context.get("request") if isinstance(context, dict) else None
-    supplied = ""
-    if request is not None:
-        supplied = str(request.headers.get("X-Request-ID", ""))
-    if supplied and _REQUEST_ID_PATTERN.fullmatch(supplied):
-        return supplied
-    return secrets.token_hex(16)
+    if request is None:
+        return token_hex(16)
+    existing = str(getattr(request, "request_id", "")).strip()
+    if existing:
+        return existing
+    return resolve_request_id(request)
 
 
 def _secure_error_response(response: Response, request_id: str) -> Response:

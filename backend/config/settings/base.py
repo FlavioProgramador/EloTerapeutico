@@ -244,6 +244,8 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "apps.core.middleware.RequestContextMiddleware",
+    "apps.core.middleware.SecurityHeadersMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -257,6 +259,21 @@ CORS_ALLOW_HEADERS = [
     *default_headers,
     "idempotency-key",
 ]
+
+CORS_EXPOSE_HEADERS = ["X-Request-ID"]
+
+SECURITY_PERMISSIONS_POLICY = env(
+    "SECURITY_PERMISSIONS_POLICY",
+    default="camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+)
+SECURITY_CROSS_ORIGIN_RESOURCE_POLICY = env(
+    "SECURITY_CROSS_ORIGIN_RESOURCE_POLICY",
+    default="same-site",
+)
+SECURITY_CONTENT_SECURITY_POLICY = env(
+    "SECURITY_CONTENT_SECURITY_POLICY",
+    default="",
+)
 
 ROOT_URLCONF = "config.urls"
 TEMPLATES = [
