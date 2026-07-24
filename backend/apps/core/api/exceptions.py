@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import logging
-from secrets import token_hex
 from collections.abc import Mapping, Sequence
+from secrets import token_hex
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import OperationalError, ProgrammingError

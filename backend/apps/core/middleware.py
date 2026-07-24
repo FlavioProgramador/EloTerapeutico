@@ -35,7 +35,7 @@ class RequestContextMiddleware:
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
         request_id = resolve_request_id(request)
-        setattr(request, "request_id", request_id)
+        request.request_id = request_id
         token = _REQUEST_ID_CONTEXT.set(request_id)
         try:
             response = self.get_response(request)
