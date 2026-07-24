@@ -159,8 +159,8 @@ def normalize_frontend_path(raw_path: str) -> str | None:
     path = raw_path.strip()
     if not path or path.startswith(("http://", "https://")):
         return None
-    path = path.split("?", 1)[0].split("#", 1)[0]
     path = re.sub(r"\$\{[^}]+\}", "{dynamic}", path)
+    path = path.split("?", 1)[0].split("#", 1)[0]
     path = path.removeprefix("/api/backend/")
     path = path.removeprefix("api/backend/")
     if path.startswith("/api/v1/"):

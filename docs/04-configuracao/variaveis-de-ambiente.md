@@ -277,4 +277,15 @@ Ao alterar uma variável:
 - prefira Key Vault ou mecanismo equivalente em produção;
 - planeje rotação de chaves sem perder dados criptografados.
 
+
+## Headers defensivos e correlação
+
+| Variável | Componente | Obrigatória | Finalidade |
+| --- | --- | --- | --- |
+| `SECURITY_PERMISSIONS_POLICY` | backend | Não | Define recursos de navegador permitidos. O padrão bloqueia câmera, microfone, geolocalização, pagamentos e USB. |
+| `SECURITY_CROSS_ORIGIN_RESOURCE_POLICY` | backend | Não | Define `Cross-Origin-Resource-Policy`; o padrão é `same-site`. |
+| `SECURITY_CONTENT_SECURITY_POLICY` | backend | Produção | Define a CSP. Produção possui padrão restritivo e deve permitir somente os domínios realmente utilizados. |
+
+Todas as respostas incluem `X-Request-ID`. Um identificador externo somente é preservado quando contém caracteres seguros e possui no máximo 64 caracteres; caso contrário, o backend gera um identificador novo. O header é exposto por CORS para diagnóstico controlado.
+
 [Voltar](README.md)
