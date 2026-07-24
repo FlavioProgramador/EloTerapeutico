@@ -117,13 +117,16 @@ class ClinicalPatientMixin:
     def serialize_evolution(evolution, request):
         data = dict(EvolutionWorkspaceSerializer(evolution, context={"request": request}).data)
         clinical_data = getattr(evolution, "clinical_data", None)
+        version_count = getattr(evolution, "version_count", None)
+        if version_count is None:
+            version_count = evolution.versions.count()
         data.update(
             {
                 "status": clinical_data.status if clinical_data else "draft",
                 "status_display": (clinical_data.get_status_display() if clinical_data else "Rascunho"),
                 "finalized_at": clinical_data.finalized_at if clinical_data else None,
                 "archived_at": clinical_data.archived_at if clinical_data else None,
-                "version_count": getattr(evolution, "version_count", evolution.versions.count()),
+                "version_count": version_count,
             }
         )
         return data
@@ -211,7 +214,12 @@ class PatientRecordSummaryView(ClinicalPatientMixin, APIView):
 class ClinicalAnamnesisView(ClinicalPatientMixin, APIView):
     def get(self, request, patient_id):
         patient = self.get_patient(patient_id)
-        anamnesis = Anamnesis.objects.filter(patient=patient).select_related("profile").first()
+        anamnesis = (
+            Anamnesis.objects.filter(patient=patient)
+            .select_related("profile", "profile__updated_by")
+            .annotate(version_count=Count("versions"))
+            .first()
+        )
         if not anamnesis:
             return Response(
                 {
