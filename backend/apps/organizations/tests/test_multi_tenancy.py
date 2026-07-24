@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import json
+from io import StringIO
+
 import pytest
+from django.core.management import call_command
 from django.db import IntegrityError, transaction
 from rest_framework.test import APIRequestFactory
 
@@ -162,3 +166,20 @@ def test_patient_selector_never_returns_another_tenant():
     )
 
     assert list(queryset.values_list("pk", flat=True)) == [patient_a.pk]
+
+def test_tenant_audit_accepts_intentional_global_templates():
+    output = StringIO()
+
+    call_command(
+        "audit_tenant_integrity",
+        "--fail-on-error",
+        "--format",
+        "json",
+        stdout=output,
+    )
+
+    report = json.loads(output.getvalue())
+    missing_errors = [
+        item for item in report["errors"] if item["code"] == "MISSING_ORGANIZATION"
+    ]
+    assert missing_errors == []

@@ -16,6 +16,12 @@ from apps.organizations.models import Organization, OrganizationMembership
 
 Report = dict[str, Any]
 
+GLOBAL_SCOPE_FLAGS = {
+    "documents.documenttemplate": "is_library_template",
+    "forms.formtemplate": "is_system_template",
+    "communications.communicationtemplate": "is_system_template",
+}
+
 
 class Command(BaseCommand):
     help = "Verifica ausência de tenant, relações cruzadas e invariantes de memberships."
@@ -90,7 +96,13 @@ class Command(BaseCommand):
             if "organization" not in field_names:
                 continue
             label = model._meta.label_lower
-            missing = model._default_manager.filter(organization__isnull=True).count()
+            missing_queryset = model._default_manager.filter(organization__isnull=True)
+            global_scope_flag = GLOBAL_SCOPE_FLAGS.get(label)
+            if global_scope_flag and global_scope_flag in field_names:
+                missing_queryset = missing_queryset.filter(
+                    **{global_scope_flag: False}
+                )
+            missing = missing_queryset.count()
             report["models"][label] = {"without_organization": missing, "cross_tenant": 0}
             self._add(report, "errors", "MISSING_ORGANIZATION", missing, label)
 

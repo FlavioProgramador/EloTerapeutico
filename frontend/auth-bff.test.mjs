@@ -57,8 +57,8 @@ test("BFF não encaminha headers hop-by-hop", async () => {
   assert.equal(source.includes('"transfer-encoding",'), false);
 });
 
-test("middleware não usa papel controlado pelo navegador", async () => {
-  const source = await readFile("./src/middleware.ts", "utf8");
+test("proxy não usa papel controlado pelo navegador", async () => {
+  const source = await readFile("./src/proxy.ts", "utf8");
   assert.equal(source.includes("auth_role"), false);
   assert.equal(source.includes("role ==="), false);
   assert.equal(source.includes("AUTH_ACCESS_COOKIE"), true);

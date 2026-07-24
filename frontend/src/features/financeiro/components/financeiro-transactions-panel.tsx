@@ -1,4 +1,4 @@
-import { CheckCircle2, Plus, ReceiptText, XCircle } from "lucide-react";
+import { Plus, ReceiptText } from "lucide-react";
 
 import { Badge, getTransactionStatusVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,7 +53,7 @@ export function FinanceiroTransactionsPanel({
     : "Despesas e contas pendentes";
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden" aria-busy={actionPending || undefined}>
       <div className="flex flex-col gap-4 border-b border-border p-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-lg font-bold">{title}</h2>

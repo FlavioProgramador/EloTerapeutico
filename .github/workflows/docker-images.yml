@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build ${{ matrix.name }} image
+    name: Build and scan ${{ matrix.name }} image
     runs-on: ubuntu-latest
 
     strategy:
@@ -62,12 +62,85 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and optionally publish image
+      - name: Build image for security scan
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
-          push: ${{ github.event_name != 'pull_request' }}
+          push: false
+          load: true
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+          provenance: false
+
+      - name: Generate vulnerability report
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          format: json
+          output: trivy-${{ matrix.name }}.json
+          exit-code: "0"
+          ignore-unfixed: false
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+
+      - name: Enforce vulnerability gate
+        env:
+          REPORT_FILE: trivy-${{ matrix.name }}.json
+          IMAGE_NAME: ${{ matrix.name }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+          from collections import Counter
+          from pathlib import Path
+
+          report_path = Path(os.environ["REPORT_FILE"])
+          payload = json.loads(report_path.read_text(encoding="utf-8"))
+          vulnerabilities = []
+          for result in payload.get("Results") or []:
+              vulnerabilities.extend(result.get("Vulnerabilities") or [])
+
+          counts = Counter(str(item.get("Severity", "UNKNOWN")) for item in vulnerabilities)
+          for item in vulnerabilities:
+              vulnerability_id = item.get("VulnerabilityID", "unknown")
+              package = item.get("PkgName", "unknown")
+              installed = item.get("InstalledVersion", "unknown")
+              fixed = item.get("FixedVersion") or "sem correção publicada"
+              severity = item.get("Severity", "UNKNOWN")
+              print(
+                  f"{severity}: {vulnerability_id} em {package} "
+                  f"({installed}; correção: {fixed})"
+              )
+
+          print(
+              f"Imagem {os.environ['IMAGE_NAME']}: "
+              f"{counts.get('HIGH', 0)} HIGH, {counts.get('CRITICAL', 0)} CRITICAL."
+          )
+          if counts.get("HIGH", 0) or counts.get("CRITICAL", 0):
+              sys.exit(1)
+          PY
+
+      - name: Upload vulnerability report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-${{ matrix.name }}-report
+          path: trivy-${{ matrix.name }}.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publish validated image
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
           platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

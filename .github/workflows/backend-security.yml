@@ -104,6 +104,13 @@ jobs:
       - name: Aplicar migrations no PostgreSQL
         run: python manage.py migrate --noinput
 
+      - name: Auditar integridade multi-tenant
+        run: |
+          python manage.py audit_tenant_integrity \
+            --fail-on-error \
+            --format json \
+            --report-file /tmp/tenant-integrity.json
+
       - name: Ruff obrigatório
         shell: bash
         run: |
@@ -145,5 +152,6 @@ jobs:
             /tmp/pytest-output.txt
             /tmp/bandit-output.txt
             /tmp/pip-audit-output.txt
+            /tmp/tenant-integrity.json
           retention-days: 3
           if-no-files-found: warn

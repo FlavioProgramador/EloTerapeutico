@@ -104,6 +104,13 @@ jobs:
       - name: Apply migrations on PostgreSQL
         run: python manage.py migrate --noinput
 
+      - name: Audit tenant integrity
+        run: |
+          python manage.py audit_tenant_integrity \
+            --fail-on-error \
+            --format json \
+            --report-file tenant-integrity.json
+
       - name: Run Ruff gate
         shell: bash
         run: |
@@ -134,5 +141,6 @@ jobs:
             backend/migration-output.txt
             backend/ruff-output.txt
             backend/mypy-output.txt
+            backend/tenant-integrity.json
           if-no-files-found: ignore
           retention-days: 7

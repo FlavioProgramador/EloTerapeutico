@@ -9,6 +9,7 @@ on:
       - "README.md"
       - "docs/**"
       - "scripts/validate_docs.py"
+      - "scripts/validate_docs_wrapper.py"
       - "docker-compose.yml"
       - "backend/Dockerfile"
       - "frontend/Dockerfile"
@@ -25,6 +26,7 @@ on:
       - "README.md"
       - "docs/**"
       - "scripts/validate_docs.py"
+      - "scripts/validate_docs_wrapper.py"
       - "docker-compose.yml"
       - "backend/Dockerfile"
       - "frontend/Dockerfile"
@@ -63,7 +65,7 @@ jobs:
       - name: Validate documentation
         run: |
           set -o pipefail
-          python3 scripts/validate_docs.py 2>&1 | tee docs-validation.log
+          python3 scripts/validate_docs_wrapper.py 2>&1 | tee docs-validation.log
 
       - name: Validate Docker Compose
         if: always()
