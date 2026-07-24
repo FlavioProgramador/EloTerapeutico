@@ -1,45 +1,102 @@
 # Diagnóstico de runtime do módulo de Comunicações
 
-## Todos os endpoints retornam 500 ou 503
+## Endpoints retornam 500 ou 503
 
-Quando `communications/`, `templates/`, `automations/`, `channels/`, `dashboard/` e `notifications/unread-count/` falham ao mesmo tempo, a causa mais comum é o banco local ainda não possuir as migrations do app `communications`.
+Quando dashboard, comunicações, templates, automações, canais e notificações falham ao mesmo tempo, verifique primeiro:
 
-Isso pode acontecer quando o código é atualizado enquanto o `runserver` ou os containers já estão em execução. O autoreload carrega o novo código, mas não executa migrations automaticamente.
+- migrations;
+- PostgreSQL;
+- Redis;
+- backend;
+- worker `communications`;
+- Celery Beat;
+- organização ativa e permissions.
 
-### Ambiente Docker Compose
+## Ambiente Docker Compose
 
 ```bash
 docker compose exec backend python manage.py showmigrations communications
 docker compose exec backend python manage.py migrate --noinput
-docker compose restart backend communications-worker communications-scheduler
+docker compose restart backend celery-worker-communications celery-beat
 ```
 
-Para recriar os serviços após mudanças no Compose:
+Para recriar os serviços após mudança de Dockerfile, requirements ou Compose:
 
 ```bash
-docker compose up -d --build backend communications-worker communications-scheduler
+docker compose up -d --build backend celery-worker-communications celery-beat
 ```
 
-### Backend executado fora do Docker
+Verifique logs:
+
+```bash
+docker compose logs --tail=200 backend
+docker compose logs --tail=200 celery-worker-communications
+docker compose logs --tail=200 celery-beat
+docker compose logs --tail=200 redis
+docker compose logs --tail=200 db
+```
+
+## Backend executado fora do Docker
 
 ```bash
 cd backend
 python manage.py showmigrations communications
 python manage.py migrate --noinput
+python manage.py check
+```
+
+Em terminais separados:
+
+```bash
+celery -A config worker --loglevel=INFO --queues=communications --concurrency=2
+celery -A config beat --loglevel=INFO
 python manage.py runserver
 ```
 
-Todas as migrations `0001` até `0007` devem aparecer marcadas com `[X]`.
-
 ## Resposta `COMMUNICATIONS_DATABASE_NOT_READY`
 
-O backend converte falhas de banco dentro das views de Comunicações em HTTP `503 Service Unavailable` com o código:
+O backend pode converter falhas de banco em `503 Service Unavailable` com código controlado. Isso evita stack trace público, mas não identifica sozinho a causa.
+
+Investigue:
+
+- migration pendente;
+- PostgreSQL indisponível;
+- conexão ou senha divergente;
+- lock ou timeout;
+- organização/contexto inválido;
+- deploy parcial.
+
+## Comunicação permanece pendente
+
+Verifique:
+
+1. `COMMUNICATIONS_ENABLED`;
+2. status persistido;
+3. worker `celery-worker-communications`;
+4. Beat e tarefa `communications-dispatch-due`;
+5. Redis;
+6. tentativas e próximo retry;
+7. consentimento, opt-out e janela de envio;
+8. entitlement;
+9. provider e credenciais.
+
+O health check do worker não comprova SMTP, WhatsApp ou SMS saudáveis.
+
+## Automação não dispara
+
+Verifique o Beat e a tarefa:
 
 ```text
-COMMUNICATIONS_DATABASE_NOT_READY
+apps.communications.tasks.schedule_operational_automations
 ```
 
-Essa resposta evita múltiplos erros genéricos `500` e indica que as migrations precisam ser aplicadas ou que o banco está temporariamente indisponível.
+Frequência padrão: 300 segundos, configurável por `COMMUNICATIONS_AUTOMATION_INTERVAL_SECONDS`.
+
+Mantenha apenas uma instância de Beat sem coordenação adicional.
+
+## WhatsApp manual
+
+Abertura do link `wa.me` não significa envio, entrega ou leitura. O status depende da confirmação humana prevista no fluxo.
 
 ## Verificação rápida
 
@@ -50,7 +107,18 @@ python manage.py makemigrations --check --dry-run
 pytest apps/communications/tests -q
 ```
 
-Depois da migração, teste:
+Frontend:
+
+```bash
+cd frontend
+node --experimental-strip-types --test communications.test.mjs
+npm run lint
+npm run typecheck
+```
+
+## Endpoints de smoke test
+
+Com sessão e tenant válidos:
 
 ```text
 GET /api/v1/communications/notifications/unread-count/
@@ -58,8 +126,12 @@ GET /api/v1/communications/channels/
 GET /api/v1/communications/templates/
 ```
 
-## Mensagens que não são a causa principal
+Não use dados reais em smoke tests de desenvolvimento ou CI.
 
-- avisos de fontes `.woff2` pré-carregadas e não utilizadas são warnings de otimização do Next.js;
-- `Não é possível adicionar o sistema de arquivos: <illegal path>` costuma vir do navegador, DevTools ou extensão e não explica os erros HTTP do backend;
-- o bloqueio real deve ser investigado pelo status HTTP e pelo `X-Request-ID` retornado pela API.
+## Logs
+
+Procure pelo `X-Request-ID`, public ID da comunicação, task ID e organização. Não registre corpo, token público, credencial, telefone ou e-mail completo.
+
+Avisos de fontes do Next.js ou mensagens de extensão do navegador não explicam, por si só, falhas HTTP do backend. Priorize status, request ID e logs sanitizados dos serviços envolvidos.
+
+[Voltar ao módulo](README.md)
