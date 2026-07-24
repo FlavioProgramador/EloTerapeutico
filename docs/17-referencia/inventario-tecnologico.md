@@ -81,7 +81,7 @@ Elas suportam compilação de dependências, PostgreSQL e renderização do Weas
 | Tecnologia | Versão | Finalidade |
 | --- | --- | --- |
 | Node.js | 24 na imagem | Runtime de build e servidor Next.js |
-| Next.js | 16.2.9 | App Router, SSR, Route Handlers e BFF |
+| Next.js | 16.2.11 | App Router, SSR, Route Handlers e BFF |
 | React | 19.2.7 | Interface baseada em componentes |
 | React DOM | 19.2.4 | Renderização web |
 | TypeScript | 6 | Tipagem estática |
@@ -208,7 +208,7 @@ Redis não substitui o PostgreSQL como fonte oficial dos estados de negócio.
 | Ferramenta | Versão/faixa | Uso |
 | --- | --- | --- |
 | ESLint | `^9` | Lint |
-| eslint-config-next | `16.2.9` | Regras Next.js |
+| eslint-config-next | `16.2.11` | Regras Next.js |
 | TypeScript compiler | 6 | `tsc --noEmit` |
 | Node Test Runner | Node 24 | Testes `.mjs` e cobertura experimental |
 | Playwright | pacote isolado em `frontend/e2e` | Autenticação e gateway E2E |
@@ -245,21 +245,15 @@ Workflows encontrados incluem:
 | `docs-validation.yml` | Links, Markdown, secrets e consistência documental |
 | `docker-images.yml` | Build e validação de imagens |
 | `codeql.yml` | Análise estática de segurança |
-| `dependency-review.yml` | Revisão de dependências em Pull Requests |
-| `backend-security.yml` | Verificações de segurança do backend |
+| `dependency-review.yml` | Revisão de novas dependências em PR |
+| `backend-security.yml` | Bandit, pip-audit e controles backend |
+| `dependency-security.yml` | Auditoria Python e npm |
 
-A existência desses workflows não comprova deploy automático. Deploy deve ser documentado somente quando houver job de implantação, infraestrutura e credenciais configuradas.
+## Observações de versão
 
-## Regras de atualização
+1. Faixas vêm dos manifests; versões resolvidas podem ser consultadas nos lockfiles.
+2. Dependências de produção não devem ser inferidas somente de `requirements.txt`.
+3. A documentação não deve declarar deploy automático porque os workflows atuais validam e constroem, mas não provam implantação.
+4. Antes de atualizar uma versão, valide compatibilidade, lockfile, testes e advisories de segurança.
 
-Atualize este arquivo quando ocorrer:
-
-- mudança de versão de runtime;
-- adição ou remoção de dependência relevante;
-- alteração das imagens Docker;
-- inclusão de novo serviço externo;
-- criação de nova fila ou worker;
-- mudança dos scripts de teste;
-- criação ou remoção de workflow.
-
-[Voltar à referência](README.md)
+[Voltar](README.md)
