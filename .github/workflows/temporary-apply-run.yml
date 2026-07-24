@@ -1,0 +1,87 @@
+name: Temporary apply run
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/temporary-apply-run.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    name: Apply validated patches
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout working branch
+        uses: actions/checkout@v7
+        with:
+          ref: agent/estabilizacao-completa-site
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Normalize CI patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('.tmp/stabilization-ci.patch')
+          lines = path.read_text(encoding='utf-8').splitlines()
+          output = []
+          strip_prefix = False
+          for line in lines:
+              if line.startswith('+diff --git a/.github/workflows/backend-security.yml'):
+                  strip_prefix = True
+              if strip_prefix and line.startswith('+'):
+                  line = line[1:]
+              output.append(line)
+          path.write_text('\n'.join(output) + '\n', encoding='utf-8')
+          PY
+
+      - name: Apply security and observability
+        run: |
+          git apply \
+            --exclude=backend/apps/core/middleware.py \
+            --exclude=backend/apps/core/tests/test_request_security_middleware.py \
+            --check .tmp/stabilization-security.patch
+          git apply \
+            --exclude=backend/apps/core/middleware.py \
+            --exclude=backend/apps/core/tests/test_request_security_middleware.py \
+            .tmp/stabilization-security.patch
+          git add .env.example backend/.env.example backend/apps/audit/services/request_context.py backend/apps/core/api/exceptions.py backend/config/settings/base.py backend/config/settings/production.py
+          git commit -m "security: integra correlação e headers defensivos"
+
+      - name: Apply API contract and tenant gates
+        run: |
+          git apply --check .tmp/stabilization-ci.patch
+          git apply .tmp/stabilization-ci.patch
+          git add .github/workflows/api-contract.yml .github/workflows/backend-security.yml .github/workflows/django-ci.yml scripts/validate_api_contract.py
+          git commit -m "ci: valida contrato OpenAPI e integridade tenant"
+
+      - name: Apply Next.js proxy migration
+        run: |
+          git apply --check .tmp/stabilization-frontend.patch
+          git apply .tmp/stabilization-frontend.patch
+          git add -A frontend/auth-bff.test.mjs frontend/package.json frontend/src/middleware.ts frontend/src/proxy.ts
+          git commit -m "refactor(frontend): migra middleware para proxy do Next"
+
+      - name: Remove temporary files
+        run: |
+          rm -f \
+            .tmp/stabilization-security.patch \
+            .tmp/stabilization-ci.patch \
+            .tmp/stabilization-frontend.patch \
+            .github/workflows/temporary-source-snapshot.yml \
+            .github/workflows/temporary-apply-stabilization.yml \
+            .github/workflows/temporary-apply-run.yml
+          rmdir .tmp 2>/dev/null || true
+          git add -A
+          git commit -m "ci: remove ferramentas temporárias"
+          git push origin HEAD:agent/estabilizacao-completa-site
