@@ -39,7 +39,7 @@ cryptography>=49.0.0,<50.0
 gunicorn>=22.0,<23.0
 
 # Documentação automática da API (Swagger/OpenAPI)
-drf-spectacular>=0.29.0,<0.30
+drf-spectacular>=0.30.0,<0.31
 
 # Hashing de senha seguro (Argon2)
 argon2-cffi>=23.1,<23.2
