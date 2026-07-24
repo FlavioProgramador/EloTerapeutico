@@ -1,17 +1,33 @@
-FROM python:3.12-slim-bookworm
+FROM python:3.12-alpine
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-RUN apt-get update \
-    && apt-get upgrade --yes \
-    && apt-get install --yes --no-install-recommends \
-        build-essential \
+RUN apk add --no-cache --virtual .build-deps \
+        build-base \
+        python3-dev \
         libpq-dev \
-        libpango-1.0-0 \
-        libpangoft2-1.0-0 \
-    && rm -rf /var/lib/apt/lists/*
+        cairo-dev \
+        gdk-pixbuf-dev \
+        pango-dev \
+        harfbuzz-dev \
+        fribidi-dev \
+        fontconfig-dev \
+        libffi-dev \
+        openssl-dev \
+        cargo \
+        rust \
+    && apk add --no-cache \
+        libpq \
+        cairo \
+        gdk-pixbuf \
+        pango \
+        harfbuzz \
+        fribidi \
+        fontconfig \
+        libffi \
+        openssl
 
 WORKDIR /app
 
@@ -20,7 +36,8 @@ ARG REQUIREMENTS_FILE=requirements-prod.txt
 COPY requirements*.txt ./
 
 RUN python -m pip install --upgrade pip \
-    && python -m pip install -r ${REQUIREMENTS_FILE}
+    && python -m pip install -r ${REQUIREMENTS_FILE} \
+    && apk del .build-deps
 
 COPY . .
 
