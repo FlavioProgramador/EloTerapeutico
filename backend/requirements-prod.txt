@@ -17,7 +17,7 @@ sqlparse>=0.5.5,<0.6
 
 # Processamento assíncrono e broker
 celery>=5.4,<5.6
-redis>=5.0,<6.0
+redis>=8.0.1,<9.0
 
 # Admin interno / backoffice
 django-unfold>=0.96,<0.97
