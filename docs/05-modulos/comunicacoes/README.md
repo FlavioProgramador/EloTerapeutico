@@ -1,217 +1,314 @@
 # Módulo de Comunicações
 
-O módulo de Comunicações centraliza notificações internas, e-mails, WhatsApp manual, templates, automações, preferências de contato, fila persistente, tentativas e ações públicas seguras do Elo Terapêutico.
+## Identificação
+
+| Campo | Descrição |
+| --- | --- |
+| Backend | `backend/apps/communications/` |
+| Frontend | features, páginas de notificações e configurações de integrações |
+| API interna | `/api/v1/communications/` |
+| API pública | `/api/v1/public/communications/` |
+| Fila | `communications` |
+| Worker | `celery-worker-communications` |
+| Situação | 🟠 implementação ampla; canais externos dependem de configuração |
+
+O módulo centraliza notificações internas, e-mails, WhatsApp manual, templates, automações, preferências, fila persistente, tentativas e ações públicas temporárias.
 
 ## Escopo implementado
 
-- notificações internas com contador, dropdown e página de histórico;
-- e-mail por meio do backend de e-mail do Django;
-- WhatsApp manual por link `wa.me`, com registro da abertura e confirmação humana;
-- abstrações desativadas para WhatsApp Business e SMS até existir um provedor configurado;
-- templates do sistema e templates personalizados por terapeuta;
-- automações operacionais criadas inicialmente desativadas;
-- fila persistente no banco, sem `threading.Thread`;
-- retentativas com backoff e recuperação de registros presos em processamento;
-- preferências, consentimento, opt-out e responsável legal por paciente;
+- notificações internas com contador, dropdown e histórico;
+- e-mail por meio do backend do Django;
+- WhatsApp manual por link `wa.me`, com confirmação humana;
+- interfaces desativadas para WhatsApp Business e SMS até configuração completa;
+- templates de sistema e personalizados;
+- automações operacionais;
+- fila persistente no PostgreSQL e execução por Celery;
+- retentativas com backoff e recuperação de registros presos;
+- preferências, consentimento, opt-out e responsável legal;
 - integração com Agenda, Formulários, Documentos, Financeiro e Billing;
-- tokens públicos armazenados somente como hash para confirmação, formulários e documentos;
-- painel, histórico, detalhes, canais, templates e automações no frontend;
-- gestão segura no Django Admin/Unfold.
+- tokens públicos persistidos somente por hash;
+- dashboard, histórico, detalhes, canais, templates e automações;
+- gestão no Django Admin/Unfold.
 
 ## Arquitetura
 
 ```mermaid
 flowchart LR
-    D[Evento de domínio] --> C[Communication persistida]
+    E[Evento de domínio] --> C[Communication persistida]
     C --> Q{scheduled ou queued}
-    Q --> W[communications-worker]
+    B[Celery Beat] -->|dispatch e automações| R[(Redis)]
+    Q --> R
+    R --> W[celery-worker-communications]
     W --> A[CommunicationAttempt]
-    A --> P[Provider]
-    P --> S[Status e histórico]
-    P --> N[Notificação interna em falha]
-    SC[communications-scheduler] --> D
+    A --> P{Provider}
+    P --> I[In-app]
+    P --> M[SMTP]
+    P --> WA[WhatsApp manual/oficial]
+    P --> S[SMS]
+    P --> H[Status e histórico]
 ```
 
-O terapeuta autenticado é o escopo de isolamento atual. Todas as consultas internas filtram `owner` ou `therapist`; o frontend nunca escolhe o tenant.
+O PostgreSQL mantém os estados oficiais. Redis transporta IDs técnicos e resultados temporários; conteúdo sensível completo não deve ser enviado ao broker.
 
-## Models
+## Entidades
 
-- `Communication`: comunicação lógica, snapshots, origem, canal, status, agendamento e idempotência;
-- `CommunicationRecipient`: destino criptografado e representação mascarada;
-- `CommunicationAttempt`: tentativa, backoff, latência e erro sanitizado;
-- `CommunicationTemplate`: template global de sistema ou personalizado;
-- `CommunicationAutomation` e `CommunicationAutomationRun`: configuração e auditoria das execuções;
-- `CommunicationPreference`: preferências, opt-out, consentimento, responsável e janela de envio;
-- `InAppNotification`: notificações exibidas na topbar;
-- `InboundMessage`: estrutura preparada para mensagens recebidas;
-- `CommunicationChannelConfig`: situação operacional dos canais;
-- `PublicCommunicationActionToken`: token temporário de uso único, persistido apenas por SHA-256;
-- `CommunicationPlanEntitlement`: features e limites adicionais por plano.
+| Entidade | Responsabilidade |
+| --- | --- |
+| `Communication` | Comunicação lógica, origem, canal, status, agendamento e idempotência |
+| `CommunicationRecipient` | Destino criptografado e representação mascarada |
+| `CommunicationAttempt` | Tentativa, backoff, latência e erro sanitizado |
+| `CommunicationTemplate` | Template global de sistema ou personalizado |
+| `CommunicationAutomation` | Configuração de automação |
+| `CommunicationAutomationRun` | Auditoria de execução de automação |
+| `CommunicationPreference` | Consentimento, opt-out, responsável e janela de envio |
+| `InAppNotification` | Notificação exibida na aplicação |
+| `InboundMessage` | Estrutura preparada para mensagens recebidas |
+| `CommunicationChannelConfig` | Estado operacional dos canais |
+| `PublicCommunicationActionToken` | Token temporário de uso único persistido por hash |
+| `CommunicationPlanEntitlement` | Features e limites adicionais por plano |
+
+## Isolamento por organização
+
+Comunicações devem ser resolvidas no contexto da organização ativa e do usuário autorizado. Queries, services, signals e tasks precisam preservar:
+
+- organização;
+- autor ou responsável;
+- paciente pertencente ao mesmo tenant;
+- preferência do destinatário;
+- entitlement do plano;
+- idempotency key no escopo correto.
+
+Filtros antigos apenas por `owner` ou `therapist` devem ser tratados como compatibilidade de migração e auditados. Uma task não pode confiar somente no ID recebido: deve recarregar o registro e validar o contexto persistido.
 
 ## Canais
 
 ### Notificação interna
 
-Funciona sem provedor externo. Ao ser processada, cria `InAppNotification` e marca a comunicação como entregue.
+**Status:** ✅ implementado.
+
+Não depende de provedor externo. Ao processar, cria `InAppNotification` e atualiza o status da comunicação.
 
 ### E-mail
 
-Usa `EmailMultiAlternatives` e o backend configurado no Django. Cada destinatário é enviado separadamente. Não são anexados prontuários, anamneses, evoluções ou documentos clínicos.
+**Status:** 🟠 implementação presente; entrega real depende de SMTP.
 
-Em desenvolvimento:
+Usa o backend de e-mail configurado no Django. Cada destinatário deve ser tratado separadamente. Prontuários, anamneses, evoluções e documentos clínicos não devem ser anexados ou incluídos no corpo administrativo.
+
+Desenvolvimento:
 
 ```env
 EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 ```
 
-Em produção, configure SMTP e altere o backend de e-mail conforme a infraestrutura adotada.
+Produção exige SMTP/TLS, remetente válido, credenciais protegidas e monitoramento de entrega.
 
 ### WhatsApp manual
 
-O worker gera uma URL `wa.me` com mensagem preenchida. O registro volta para `draft`, aguardando ação humana. O terapeuta deve:
+**Status:** ✅ implementado com confirmação humana.
 
-1. abrir o link pelo detalhe da comunicação;
-2. enviar a mensagem no WhatsApp;
-3. clicar em **Confirmar envio manual**.
+O sistema gera uma URL `wa.me` com mensagem preenchida. O terapeuta abre o link, envia no aplicativo e confirma manualmente no Elo Terapêutico.
 
-A abertura não significa entrega e nunca marca a mensagem como entregue automaticamente.
+A abertura do link:
 
-### WhatsApp Business e SMS
+- não comprova envio;
+- não comprova entrega;
+- não comprova leitura;
+- não deve marcar automaticamente a comunicação como entregue.
 
-Os canais permanecem `not_configured` e inativos enquanto as variáveis necessárias não forem preenchidas e uma implementação oficial de provider não for habilitada. Nenhuma credencial é inventada e nenhum segredo é retornado pela API.
+### WhatsApp Business
 
-## Fila e workers
+**Status:** 🟡 interface preparada; provider oficial não comprovado como operacional.
 
-Worker principal:
+A ativação exige provider, token, número, templates aprovados, webhook, assinatura, consentimento, opt-out e observabilidade.
 
-```bash
-python manage.py process_communications --sleep 5
-```
+### SMS
 
-Execução de um único lote:
+**Status:** 🟡 interface preparada; provider não definido.
 
-```bash
-python manage.py process_communications --once --batch-size 50
-```
+Exige escolha de provedor, API key, remetente, consentimento, política de conteúdo, custo e monitoramento.
 
-O processamento usa `select_for_update(skip_locked=True)` quando suportado pelo banco. Registros presos em `processing` por mais de `COMMUNICATIONS_PROCESSING_TIMEOUT_MINUTES` voltam para a fila.
+## Fila e worker
 
-Scheduler operacional:
+O Compose atual executa:
 
 ```bash
-python manage.py schedule_communication_automations
-python manage.py retry_failed_communications
-python manage.py cleanup_expired_communication_tokens
+celery -A config worker --loglevel=INFO --queues=communications \
+  --concurrency=${CELERY_COMMUNICATIONS_CONCURRENCY:-2} \
+  --hostname=communications@%h
 ```
 
-No Docker Compose existem os serviços `communications-worker` e `communications-scheduler`.
+Serviço:
 
-## Política de retentativas
+```text
+celery-worker-communications
+```
 
-Falhas temporárias usam o seguinte backoff:
+Health check:
 
-1. 1 minuto;
-2. 5 minutos;
-3. 30 minutos;
-4. 2 horas;
-5. falha permanente.
+```bash
+celery -A config inspect ping --destination=communications@$HOSTNAME --timeout=5
+```
 
-Não há retentativa para destinatário inválido, canal sem configuração, opt-out, template inválido, limite de plano ou erro permanente.
+O worker depende de PostgreSQL e Redis saudáveis. Seu health check confirma resposta do processo, mas não garante que provedores externos estejam operacionais.
+
+## Tarefas periódicas
+
+Celery Beat publica na fila `communications`:
+
+| Schedule | Task | Frequência padrão | Finalidade |
+| --- | --- | --- | --- |
+| `communications-dispatch-due` | `apps.communications.tasks.dispatch_due_communications` | 20 segundos | Despachar comunicações vencidas |
+| `communications-schedule-automations` | `apps.communications.tasks.schedule_operational_automations` | 300 segundos | Criar execuções das automações |
+| `communications-cleanup-tokens` | `apps.communications.tasks.cleanup_expired_public_tokens` | diariamente às 03:15 | Expirar ou limpar tokens públicos |
+| `communications-cleanup-notifications` | `apps.communications.tasks.cleanup_expired_notifications` | diariamente às 03:30 | Limpar notificações expiradas |
+
+As frequências são configuráveis por variáveis de ambiente.
+
+## Concorrência, reserva e recuperação
+
+O processamento deve:
+
+1. selecionar registros elegíveis;
+2. usar transação e lock quando necessário;
+3. empregar `select_for_update(skip_locked=True)` quando suportado;
+4. reservar o registro por tempo limitado;
+5. processar a chamada externa fora de transação longa;
+6. registrar tentativa e resultado sanitizado;
+7. recuperar registros presos após `COMMUNICATIONS_PROCESSING_TIMEOUT_MINUTES`;
+8. respeitar `COMMUNICATIONS_MAX_ATTEMPTS`.
+
+## Retentativas
+
+Falhas temporárias podem usar backoff progressivo. Não devem ser repetidas indefinidamente.
+
+Não há retentativa automática para:
+
+- destinatário inválido;
+- canal não configurado;
+- opt-out;
+- consentimento ausente;
+- template inválido;
+- limite de plano;
+- erro classificado como permanente.
+
+A documentação do backoff deve permanecer alinhada ao código; valores fixos não devem ser apresentados como contrato quando forem configuráveis.
 
 ## Eventos integrados
 
 ### Agenda
 
-- `appointment.created`;
-- `appointment.reminder_due`;
-- `appointment.rescheduled`;
-- `appointment.canceled`;
-- `appointment.confirmed`.
+- criação e alteração de consulta;
+- lembretes vencidos;
+- reagendamento;
+- cancelamento;
+- confirmação;
+- convite de telemedicina.
 
-Reagendamento cancela lembretes anteriores, revoga tokens e cria novos registros idempotentes. Cancelamento interrompe lembretes futuros.
+Reagendamento deve cancelar lembretes anteriores, revogar tokens obsoletos e criar novos registros idempotentes.
 
 ### Formulários
 
-- `form.assigned` gera link individual;
-- `form.due_soon` é produzido pelo scheduler;
-- formulário respondido invalida o token, cancela lembretes e cria notificação interna.
+- atribuição de formulário;
+- lembrete de prazo;
+- confirmação de resposta.
 
-As respostas não são enviadas por e-mail e não entram no conteúdo da comunicação.
+Respostas clínicas não devem ser copiadas para o conteúdo de e-mail, SMS ou WhatsApp.
 
 ### Documentos
 
-- `document.available` gera aviso com link temporário;
-- `document.signature_requested` pode ser agendado pelo scheduler;
-- assinatura cancela avisos pendentes.
+- documento disponível;
+- solicitação de assinatura;
+- lembrete de ação.
 
-O PDF é baixado por endpoint protegido pelo token de uso único, com `Cache-Control: private, no-store`.
+Downloads públicos usam token temporário, revogável e de uso controlado. O arquivo não deve ser anexado automaticamente a canais administrativos.
 
-### Financeiro
+### Financeiro clínico
 
-- `financial.payment_created`;
-- `financial.payment_due_soon`;
-- `financial.payment_overdue`;
-- `financial.payment_confirmed`;
-- `financial.package_ending`.
+- cobrança criada;
+- vencimento próximo;
+- atraso;
+- confirmação de pagamento;
+- pacote próximo do fim.
 
-Somente valores e datas administrativos mínimos são renderizados. Pagamento confirmado ou cobrança cancelada cancela avisos futuros.
+Renderize apenas dados administrativos mínimos.
 
-## Templates e variáveis
+### Billing SaaS
 
-O motor aceita somente placeholders simples, sem `eval`, acesso a atributos ou lógica arbitrária. O catálogo permitido fica em `apps/communications/constants.py` e `validators.py`.
+- trial;
+- assinatura;
+- pagamento;
+- falha ou regularização;
+- restrições de entitlement.
 
-Variáveis clínicas, como diagnóstico, evolução, anamnese, medicação e conteúdo de prontuário, são rejeitadas.
+Billing SaaS não deve incluir dados clínicos de pacientes.
 
-Templates de sistema são criados por migration idempotente. Um terapeuta não pode editá-los; ao personalizar, deve duplicar o template.
+## Templates
 
-## API
+O motor aceita placeholders simples e permitidos. Não deve usar `eval`, acesso arbitrário a atributos ou execução de lógica do usuário.
 
-Prefixo interno:
+Variáveis clínicas sensíveis, como diagnóstico, evolução, anamnese, medicação e conteúdo do prontuário, devem ser rejeitadas em comunicações administrativas.
+
+Templates de sistema são imutáveis para o usuário. Personalizações devem ser criadas como cópias próprias, preservando o template original.
+
+## Preferências, consentimento e opt-out
+
+Antes de enfileirar um canal externo, valide:
+
+- consentimento aplicável;
+- preferência do destinatário;
+- responsável legal quando necessário;
+- opt-out;
+- quiet hours ou janela de envio;
+- canal disponível;
+- entitlement e limite do plano.
+
+Revogação de consentimento deve interromper novos envios compatíveis com a finalidade revogada, sem apagar auditoria necessária.
+
+## API interna
+
+Prefixo:
 
 ```text
 /api/v1/communications/
 ```
 
-Principais rotas:
+Principais grupos:
+
+- dashboard;
+- comunicações e ações de enviar, agendar, cancelar e repetir;
+- abertura e confirmação de WhatsApp manual;
+- templates e preview;
+- automações;
+- preferências;
+- notificações;
+- canais;
+- webhooks de provider.
+
+Confirme os paths exatos em `backend/apps/communications/urls.py` e nos módulos de API versionada antes de publicar contratos externos.
+
+## API pública
+
+Prefixo:
 
 ```text
-GET    communications/dashboard/
-GET    communications/
-POST   communications/
-GET    communications/{public_id}/
-PATCH  communications/{public_id}/
-DELETE communications/{public_id}/
-POST   communications/{public_id}/send/
-POST   communications/{public_id}/schedule/
-POST   communications/{public_id}/cancel/
-POST   communications/{public_id}/retry/
-POST   communications/{public_id}/open-manual/
-POST   communications/{public_id}/mark-manually-sent/
-GET    communications/templates/
-POST   communications/templates/preview/
-GET    communications/automations/
-GET    communications/preferences/
-GET    communications/notifications/
-GET    communications/channels/
-POST   communications/webhooks/{provider}/
+/api/v1/public/communications/
 ```
 
-Ações públicas:
+Ações públicas podem incluir confirmação, solicitação de cancelamento, reagendamento, envio de formulário e download temporário de documento.
 
-```text
-GET  /api/v1/public/communications/actions/{token}/
-POST /api/v1/public/communications/actions/{token}/confirm/
-POST /api/v1/public/communications/actions/{token}/cancel-request/
-POST /api/v1/public/communications/actions/{token}/reschedule-request/
-POST /api/v1/public/communications/actions/{token}/form-submit/
-GET  /api/v1/public/communications/actions/{token}/document-download/
-```
+Regras:
 
-As respostas públicas são genéricas e não revelam se um paciente existe.
+- token aleatório e temporário;
+- persistência somente por hash;
+- expiração e revogação;
+- resposta genérica para evitar enumeração;
+- rate limit;
+- `Cache-Control: private, no-store` em conteúdo sensível;
+- nenhuma exposição de IDs sequenciais, CPF, telefone ou e-mail na URL.
 
-## Billing
+## Billing e limites
 
-`CommunicationPlanEntitlement` estende o plano sem modificar o histórico do Billing. Ele controla:
+`CommunicationPlanEntitlement` pode controlar:
 
 - acesso ao módulo;
 - e-mail;
@@ -220,67 +317,75 @@ As respostas públicas são genéricas e não revelam se um paciente existe.
 - WhatsApp Business;
 - SMS;
 - métricas;
-- limite mensal total e de e-mail;
-- quantidade de automações e templates.
+- limites mensais;
+- quantidade de templates e automações.
 
-A perda da feature impede novos envios externos, mas não apaga comunicações, templates ou automações. Preview e `dry-run` não entram no consumo.
+Perder entitlement impede novas operações não autorizadas, mas não deve apagar histórico, auditoria ou registros necessários.
 
 ## Segurança e LGPD
 
-- conteúdo e destinos usam a infraestrutura de campos criptografados;
-- telefone e e-mail são mascarados nas respostas de listagem;
-- tokens públicos são aleatórios, temporários, revogáveis e armazenados somente por hash;
-- IDs sequenciais, CPF, telefone e e-mail não entram nas URLs públicas;
-- HTML é escapado antes de ser apresentado;
-- metadata aceita somente chaves técnicas explicitamente permitidas;
-- erros e logs não persistem payload bruto, segredos ou destinos completos;
-- todas as ações internas são isoladas pelo terapeuta;
-- ações sensíveis usam a auditoria existente sem gravar o corpo completo;
-- o sistema não é apresentado como canal de emergência.
+- conteúdo e destinos sensíveis usam criptografia em repouso quando previsto;
+- e-mail e telefone são mascarados nas respostas adequadas;
+- tokens públicos são persistidos por hash;
+- HTML é escapado ou sanitizado;
+- metadata aceita somente chaves técnicas permitidas;
+- erros não armazenam payload bruto do provider;
+- logs não registram conteúdo, token, credencial ou destino completo;
+- ações internas são autorizadas no backend e isoladas por organização;
+- auditoria não deve copiar o corpo integral da mensagem;
+- o módulo não é canal de emergência.
 
-## Variáveis de ambiente
+## Variáveis principais
 
-```env
-COMMUNICATIONS_ENABLED=True
-COMMUNICATIONS_BATCH_SIZE=50
-COMMUNICATIONS_MAX_ATTEMPTS=5
-COMMUNICATIONS_PROCESSING_TIMEOUT_MINUTES=15
-COMMUNICATIONS_DEFAULT_TIMEZONE=America/Sao_Paulo
-COMMUNICATIONS_REPLY_TO=
-
-EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
-DEFAULT_FROM_EMAIL=noreply@example.test
-EMAIL_HOST=
-EMAIL_PORT=587
-EMAIL_HOST_USER=
-EMAIL_HOST_PASSWORD=
-EMAIL_USE_TLS=True
-EMAIL_TIMEOUT=15
-
-WHATSAPP_PROVIDER=
-WHATSAPP_API_BASE_URL=
-WHATSAPP_ACCESS_TOKEN=
-WHATSAPP_PHONE_NUMBER_ID=
-WHATSAPP_WEBHOOK_VERIFY_TOKEN=
-WHATSAPP_APP_SECRET=
-
-SMS_PROVIDER=
-SMS_API_KEY=
-SMS_SENDER=
+```text
+COMMUNICATIONS_ENABLED
+COMMUNICATIONS_BATCH_SIZE
+COMMUNICATIONS_MAX_ATTEMPTS
+COMMUNICATIONS_PROCESSING_TIMEOUT_MINUTES
+COMMUNICATIONS_DEFAULT_TIMEZONE
+COMMUNICATIONS_REPLY_TO
+COMMUNICATIONS_DISPATCH_INTERVAL_SECONDS
+COMMUNICATIONS_AUTOMATION_INTERVAL_SECONDS
+COMMUNICATIONS_PAYMENT_DUE_DAYS
+COMMUNICATIONS_FORM_REMINDER_HOURS
+COMMUNICATIONS_DOCUMENT_REMINDER_HOURS
+COMMUNICATIONS_TOKEN_RETENTION_DAYS
+CELERY_COMMUNICATIONS_CONCURRENCY
 ```
 
-Não versione valores reais.
+E-mail, WhatsApp e SMS possuem grupos próprios na [referência de variáveis](../../04-configuracao/variaveis-de-ambiente.md).
 
-## Operação e diagnóstico
+## Operação
+
+Com Docker:
 
 ```bash
-python manage.py process_communications --once
-python manage.py schedule_communication_automations
-python manage.py retry_failed_communications
-python manage.py cleanup_expired_communication_tokens
+docker compose logs -f celery-worker-communications
+docker compose logs -f celery-beat
+docker compose restart celery-worker-communications
+docker compose ps
 ```
 
-No admin, consulte Comunicações, Tentativas e Execuções de automação. Erros exibidos são sanitizados; stack traces e payloads de provedor não são armazenados nesses models.
+Sem Docker:
+
+```bash
+cd backend
+celery -A config worker --loglevel=INFO --queues=communications --concurrency=2
+celery -A config beat --loglevel=INFO
+```
+
+Comandos de management legados podem continuar disponíveis para diagnóstico ou compatibilidade, mas não representam os serviços atuais do Compose.
+
+Monitore:
+
+- backlog e idade da fila;
+- comunicações presas em processamento;
+- taxa de falha por canal;
+- retries;
+- tempo de resposta dos providers;
+- tokens expirados;
+- automações duplicadas;
+- consumo de limite por organização.
 
 ## Testes
 
@@ -297,12 +402,18 @@ npm run typecheck
 npm run build
 ```
 
-Providers reais nunca são chamados pela suíte. O backend de e-mail dos testes é `locmem`.
+Providers reais não devem ser chamados pela suíte. Testes usam doubles, backend de e-mail controlado e dados fictícios.
 
-## Limitações dependentes de configuração externa
+## Limitações
 
 - e-mail real depende de SMTP válido;
-- WhatsApp Business depende da escolha do provedor, credenciais oficiais e validação oficial do webhook;
-- SMS depende da escolha do provedor;
-- confirmação de entrega e leitura externa depende do provider configurado;
-- o módulo não responde automaticamente por IA e mensagens recebidas não viram prontuário sem revisão humana.
+- WhatsApp Business depende de provider oficial, credenciais, templates e webhook;
+- SMS depende da escolha de provider;
+- confirmação de entrega e leitura depende do provider;
+- observabilidade externa não é comprovada pelo repositório;
+- quiet hours, DLQ e limites devem permanecer alinhados ao código real;
+- mensagens recebidas não viram prontuário automaticamente;
+- o módulo não responde por IA;
+- isolamento por organização precisa ser testado de ponta a ponta.
+
+[Voltar ao índice de módulos](../README.md)
