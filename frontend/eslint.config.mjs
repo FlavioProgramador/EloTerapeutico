@@ -19,6 +19,7 @@ const eslintConfig = defineConfig([
     "build/**",
     "public/livekit-client.e2ee.worker.js",
     "next-env.d.ts",
+    "public/**",
   ]),
 ]);
 

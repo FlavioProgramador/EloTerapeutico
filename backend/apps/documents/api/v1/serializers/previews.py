@@ -21,7 +21,13 @@ class TemplatePreviewRequestSerializer(serializers.Serializer):
         patient_id = self.validated_data.get("patient_id")
         if not patient_id:
             return sample_document_context()
-        patient = get_accessible_patient(owner=request.user, patient_id=patient_id)
+        from apps.organizations.services.tenant_context import ensure_request_organization
+        organization, _ = ensure_request_organization(request=request, required=False)
+        patient = get_accessible_patient(
+            owner=request.user,
+            patient_id=patient_id,
+            organization=organization,
+        )
         if not patient:
             raise serializers.ValidationError({"patient_id": "Paciente não autorizado."})
         return build_document_context(
