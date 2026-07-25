@@ -24,10 +24,16 @@ class PatientImportActions:
                 {"detail": "Envie um arquivo CSV."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        from apps.organizations.services.tenant_context import ensure_request_organization
+        organization, _ = ensure_request_organization(
+            request=request,
+            required=True,
+        )
         try:
             result = import_patients_from_csv(
                 uploaded_file=uploaded,
                 therapist=request.user,
+                organization=organization,
                 confirm=str(request.data.get("confirm", "false")).lower() == "true",
             )
         except PatientImportError as exc:

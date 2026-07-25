@@ -68,11 +68,14 @@ def _read_rows(uploaded_file) -> list[dict]:
     return rows
 
 
-def preview_patient_import(*, uploaded_file, therapist):
+def preview_patient_import(*, uploaded_file, therapist, organization):
     rows = _read_rows(uploaded_file)
     normalized_cpfs = {re.sub(r"\D", "", _cell(row, "cpf")) for row in rows if _cell(row, "cpf")}
     existing_cpfs = set(
-        Patient.all_objects.filter(cpf__in=normalized_cpfs).values_list(
+        Patient.all_objects.filter(
+            organization=organization,
+            cpf__in=normalized_cpfs,
+        ).values_list(
             "cpf",
             flat=True,
         )
@@ -106,7 +109,7 @@ def preview_patient_import(*, uploaded_file, therapist):
         }
         serializer = PatientFormSerializer(
             data=payload,
-            context={"actor": therapist},
+            context={"actor": therapist, "organization": organization},
         )
         if serializer.is_valid():
             valid_payloads.append(serializer.validated_data)
@@ -123,15 +126,16 @@ def preview_patient_import(*, uploaded_file, therapist):
 
 
 @transaction.atomic
-def import_patients_from_csv(*, uploaded_file, therapist, confirm: bool):
+def import_patients_from_csv(*, uploaded_file, therapist, organization, confirm: bool):
     result, payloads = preview_patient_import(
         uploaded_file=uploaded_file,
         therapist=therapist,
+        organization=organization,
     )
     if not confirm or not result.ready:
         return result
 
     for payload in payloads:
-        Patient.objects.create(**payload)
+        Patient.objects.create(organization=organization, **payload)
     result.imported = len(payloads)
     return result
