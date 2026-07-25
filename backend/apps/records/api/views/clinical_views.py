@@ -440,7 +440,11 @@ class EvolutionDuplicateView(ClinicalPatientMixin, APIView):
 class TreatmentGoalListCreateView(ClinicalPatientMixin, APIView):
     def get(self, request, patient_id):
         patient = self.get_patient(patient_id)
-        queryset = TreatmentGoal.objects.filter(patient=patient).prefetch_related("evolutions")
+        queryset = (
+            TreatmentGoal.objects.filter(patient=patient)
+            .select_related("created_by")
+            .prefetch_related("evolutions")
+        )
         requested_status = request.query_params.get("status")
         if requested_status:
             queryset = queryset.filter(status=requested_status)
@@ -471,7 +475,10 @@ class TreatmentGoalListCreateView(ClinicalPatientMixin, APIView):
 
 class TreatmentGoalDetailView(ClinicalPatientMixin, APIView):
     def get_goal(self, pk):
-        goal = get_object_or_404(TreatmentGoal.objects.prefetch_related("evolutions"), pk=pk)
+        goal = get_object_or_404(
+            TreatmentGoal.objects.select_related("created_by").prefetch_related("evolutions"),
+            pk=pk,
+        )
         self.get_patient(goal.patient_id)
         return goal
 
