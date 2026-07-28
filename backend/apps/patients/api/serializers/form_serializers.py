@@ -105,11 +105,25 @@ class PatientFormSerializer(PatientCreateUpdateSerializer):
             return None
         validate_cpf_value(value)
         clean_cpf = re.sub(r"\D", "", value)
-        queryset = Patient.all_objects.filter(cpf=clean_cpf)
+
+        request = self.context.get("request")
+        organization = None
+        if request:
+            organization = getattr(request, "organization", None)
+        if not organization:
+            organization = self.context.get("organization")
+
+        if not organization:
+            raise serializers.ValidationError("Organização ativa não encontrada.")
+
+        queryset = Patient.all_objects.filter(
+            organization=organization,
+            cpf=clean_cpf,
+        )
         if self.instance:
             queryset = queryset.exclude(id=self.instance.id)
         if queryset.exists():
-            raise serializers.ValidationError("Um paciente com este CPF já está cadastrado.")
+            raise serializers.ValidationError("Um paciente com este CPF já está cadastrado nesta organização.")
         return clean_cpf
 
     def validate_financial_responsible_cpf(self, value):
