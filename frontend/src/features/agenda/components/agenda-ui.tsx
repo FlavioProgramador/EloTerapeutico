@@ -67,7 +67,7 @@ export function FilterSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-9 rounded-md border border-border bg-background px-3 text-xs font-medium"
+        className="h-9 rounded-md border border-border bg-background px-3 text-xs font-medium cursor-pointer transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         {children}
       </select>

@@ -61,7 +61,8 @@ export function MonthView({
               key={date.toISOString()}
               onClick={() => onSelectDate(date)}
               className={cn(
-                "min-h-32 border-b border-r border-border p-2 text-left transition hover:bg-secondary/20",
+                "min-h-32 border-b border-r border-border p-2 text-left transition hover:bg-secondary/20 cursor-pointer",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 !currentMonth && "bg-secondary/10 text-muted-foreground/60",
               )}
             >
@@ -85,10 +86,15 @@ export function MonthView({
                       onSelectAppointment(item);
                     }}
                     onKeyDown={(event) => {
-                      if (event.key === "Enter") onSelectAppointment(item);
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        onSelectAppointment(item);
+                      }
                     }}
                     className={cn(
-                      "block truncate rounded border px-1.5 py-1 text-[10px] font-semibold",
+                      "block truncate rounded border px-1.5 py-1 text-[10px] font-semibold cursor-pointer outline-none transition-all",
+                      "focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 focus-visible:ring-offset-background",
                       eventTone(item.status),
                     )}
                   >
@@ -188,7 +194,8 @@ export function WeekView({
                   onNewAppointment(date, `${String(hour).padStart(2, "0")}:00`)
                 }
                 className={cn(
-                  "group relative border-l border-border p-1 text-left hover:bg-primary/5",
+                  "group relative border-l border-border p-1 text-left hover:bg-primary/5 cursor-pointer transition",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   blocked && "bg-secondary/40",
                 )}
               >
@@ -206,8 +213,16 @@ export function WeekView({
                       event.stopPropagation();
                       onSelectAppointment(item);
                     }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        onSelectAppointment(item);
+                      }
+                    }}
                     className={cn(
-                      "mb-1 block rounded border p-1.5 text-[10px] font-semibold",
+                      "mb-1 block rounded border p-1.5 text-[10px] font-semibold cursor-pointer outline-none transition-all",
+                      "focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 focus-visible:ring-offset-background",
                       eventTone(item.status),
                     )}
                   >
@@ -285,14 +300,17 @@ export function DayView({
                 `${String(hour).padStart(2, "0")}:00`,
               )
             }
-            className="grid min-h-16 w-full grid-cols-[110px_1fr] border-b border-border text-left hover:bg-primary/5"
+            className={cn(
+              "grid min-h-16 w-full grid-cols-[110px_1fr] border-b border-border text-left hover:bg-primary/5 cursor-pointer transition",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            )}
           >
             <span className="p-4 text-xs text-muted-foreground">
               {String(hour).padStart(2, "0")}:00
             </span>
             <span
               className={cn(
-                "border-l border-border p-2",
+                "border-l border-border p-2 w-full",
                 blocked && "bg-secondary/40",
               )}
             >
@@ -310,8 +328,16 @@ export function DayView({
                     event.stopPropagation();
                     onSelectAppointment(item);
                   }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      onSelectAppointment(item);
+                    }
+                  }}
                   className={cn(
-                    "mb-1 flex items-center justify-between rounded-lg border p-3",
+                    "mb-1 flex items-center justify-between rounded-lg border p-3 cursor-pointer outline-none transition-all",
+                    "focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 focus-visible:ring-offset-background",
                     eventTone(item.status),
                   )}
                 >

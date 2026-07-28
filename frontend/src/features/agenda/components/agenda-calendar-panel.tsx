@@ -205,7 +205,8 @@ export function AgendaCalendarPanel({
               type="button"
               onClick={() => onViewChange(item)}
               className={cn(
-                "rounded-md px-4 py-2 text-xs font-semibold transition",
+                "rounded-md px-4 py-2 text-xs font-semibold transition cursor-pointer",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-secondary",
                 view === item
                   ? "bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
