@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,9 @@ export function FinanceiroMarkPaidModal({
     FinancialPaymentMethod | ""
   >("");
 
+  const baseId = useId();
+  const paymentMethodSelectId = `${baseId}-payment-method`;
+
   useEffect(() => {
     if (transaction) {
       setPaidAt(new Date().toISOString().slice(0, 10)); // Default: today
@@ -41,23 +44,24 @@ export function FinanceiroMarkPaidModal({
   return (
     <Modal isOpen={!!transaction} onClose={onClose} title="Confirmar Pagamento">
       <div className="space-y-4 pt-2">
-        <div className="space-y-1.5">
-          <label className="text-sm font-semibold">Data do pagamento</label>
-          <Input
-            type="date"
-            value={paidAt}
-            onChange={(e) => setPaidAt(e.target.value)}
-          />
-        </div>
+        <Input
+          label="Data do pagamento"
+          type="date"
+          value={paidAt}
+          onChange={(e) => setPaidAt(e.target.value)}
+        />
 
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold">Meio de pagamento</label>
+          <label htmlFor={paymentMethodSelectId} className="text-sm font-semibold">
+            Meio de pagamento
+          </label>
           <select
+            id={paymentMethodSelectId}
             value={paymentMethod}
             onChange={(e) =>
               setPaymentMethod(e.target.value as FinancialPaymentMethod)
             }
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 w-full rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <option value="uninformed">Selecionar (opcional)</option>
             <option value="pix">PIX</option>
