@@ -29,9 +29,11 @@ export function PatientImportModal({ open, onClose }: Props) {
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"validate" | "import" | null>(null);
+  const loading = pendingAction !== null;
 
   const close = () => {
+    if (loading) return;
     setFile(null);
     setPreview(null);
     if (inputRef.current) inputRef.current.value = "";
@@ -55,11 +57,12 @@ export function PatientImportModal({ open, onClose }: Props) {
 
   const send = async (confirm: boolean) => {
     if (!file) return;
+    const action = confirm ? "import" : "validate";
     const data = new FormData();
     data.append("file", file);
     data.append("confirm", String(confirm));
     try {
-      setLoading(true);
+      setPendingAction(action);
       const response = await api.post<ImportPreview>(
         "patients/import-csv/",
         data,
@@ -72,6 +75,7 @@ export function PatientImportModal({ open, onClose }: Props) {
           queryKey: ["patients", "dashboard-metrics"],
         });
         toast.success(`${response.data.imported} pacientes importados.`);
+        setPendingAction(null);
         close();
       }
     } catch (error) {
@@ -80,7 +84,7 @@ export function PatientImportModal({ open, onClose }: Props) {
           ?.detail || "Não foi possível validar o arquivo.";
       toast.error(message);
     } finally {
-      setLoading(false);
+      setPendingAction(null);
     }
   };
 
@@ -105,7 +109,9 @@ export function PatientImportModal({ open, onClose }: Props) {
             ref={inputRef}
             type="file"
             accept=".csv,text/csv"
+            aria-label="Upload de arquivo CSV"
             className="sr-only"
+            disabled={loading}
             onChange={(event) => {
               setFile(event.target.files?.[0] ?? null);
               setPreview(null);
@@ -117,6 +123,7 @@ export function PatientImportModal({ open, onClose }: Props) {
               variant="outline"
               size="sm"
               onClick={() => inputRef.current?.click()}
+              disabled={loading}
             >
               Selecionar CSV
             </Button>
@@ -126,6 +133,7 @@ export function PatientImportModal({ open, onClose }: Props) {
               size="sm"
               onClick={downloadTemplate}
               leftIcon={<Download className="h-4 w-4" />}
+              disabled={loading}
             >
               Baixar modelo
             </Button>
@@ -181,22 +189,22 @@ export function PatientImportModal({ open, onClose }: Props) {
         )}
 
         <div className="flex justify-end gap-2 border-t border-border pt-4">
-          <Button type="button" variant="ghost" onClick={close}>
+          <Button type="button" variant="ghost" onClick={close} disabled={loading}>
             Cancelar
           </Button>
           <Button
             type="button"
             variant="outline"
-            isLoading={loading && !preview}
-            disabled={!file}
+            isLoading={pendingAction === "validate"}
+            disabled={!file || loading}
             onClick={() => send(false)}
           >
             Validar arquivo
           </Button>
           <Button
             type="button"
-            isLoading={loading && Boolean(preview)}
-            disabled={!preview?.ready}
+            isLoading={pendingAction === "import"}
+            disabled={!preview?.ready || loading}
             onClick={() => send(true)}
           >
             Confirmar importação
