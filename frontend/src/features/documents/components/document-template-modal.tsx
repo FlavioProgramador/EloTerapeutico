@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useId } from "react";
 import { Braces, FileText, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -62,6 +62,16 @@ export function DocumentTemplateModal({
     status: "active",
   });
   const [error, setError] = useState("");
+
+  const baseId = useId();
+  const nameId = `${baseId}-name`;
+  const categoryId = `${baseId}-category`;
+  const documentTypeId = `${baseId}-document-type`;
+  const specialtyId = `${baseId}-specialty`;
+  const descriptionId = `${baseId}-description`;
+  const contentId = `${baseId}-content`;
+  const headerContentId = `${baseId}-header-content`;
+  const footerContentId = `${baseId}-footer-content`;
 
   useEffect(() => {
     if (!open) return;
@@ -132,10 +142,14 @@ export function DocumentTemplateModal({
     >
       <div className="space-y-5">
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="space-y-1.5 text-xs font-semibold text-foreground">
-            Nome do template <span className="text-danger">*</span>
+          <div className="space-y-1.5">
+            <label htmlFor={nameId} className="block text-xs font-semibold text-foreground">
+              Nome do template <span className="text-danger">*</span>
+            </label>
             <input
-              className={inputClass}
+              id={nameId}
+              disabled={submitting}
+              className={`${inputClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2`}
               value={form.name}
               maxLength={160}
               onChange={(event) =>
@@ -143,11 +157,15 @@ export function DocumentTemplateModal({
               }
               placeholder="Ex.: Declaração de acompanhamento"
             />
-          </label>
-          <label className="space-y-1.5 text-xs font-semibold text-foreground">
-            Categoria <span className="text-danger">*</span>
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor={categoryId} className="block text-xs font-semibold text-foreground">
+              Categoria <span className="text-danger">*</span>
+            </label>
             <input
-              className={inputClass}
+              id={categoryId}
+              disabled={submitting}
+              className={`${inputClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2`}
               value={form.category}
               maxLength={100}
               onChange={(event) =>
@@ -155,11 +173,15 @@ export function DocumentTemplateModal({
               }
               placeholder="Ex.: Declaração"
             />
-          </label>
-          <label className="space-y-1.5 text-xs font-semibold text-foreground">
-            Tipo do documento
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor={documentTypeId} className="block text-xs font-semibold text-foreground">
+              Tipo do documento
+            </label>
             <select
-              className={inputClass}
+              id={documentTypeId}
+              disabled={submitting}
+              className={`${inputClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2`}
               value={form.document_type}
               onChange={(event) =>
                 setForm({
@@ -175,11 +197,15 @@ export function DocumentTemplateModal({
                 </option>
               ))}
             </select>
-          </label>
-          <label className="space-y-1.5 text-xs font-semibold text-foreground">
-            Especialidade
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor={specialtyId} className="block text-xs font-semibold text-foreground">
+              Especialidade
+            </label>
             <input
-              className={inputClass}
+              id={specialtyId}
+              disabled={submitting}
+              className={`${inputClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2`}
               value={form.specialty}
               maxLength={120}
               onChange={(event) =>
@@ -187,13 +213,17 @@ export function DocumentTemplateModal({
               }
               placeholder="Ex.: Psicologia"
             />
-          </label>
+          </div>
         </div>
 
-        <label className="block space-y-1.5 text-xs font-semibold text-foreground">
-          Descrição
+        <div className="space-y-1.5">
+          <label htmlFor={descriptionId} className="block text-xs font-semibold text-foreground">
+            Descrição
+          </label>
           <input
-            className={inputClass}
+            id={descriptionId}
+            disabled={submitting}
+            className={`${inputClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2`}
             value={form.description}
             maxLength={500}
             onChange={(event) =>
@@ -201,14 +231,18 @@ export function DocumentTemplateModal({
             }
             placeholder="Explique quando este modelo deve ser utilizado."
           />
-        </label>
+        </div>
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_17rem]">
-          <label className="block space-y-1.5 text-xs font-semibold text-foreground">
-            Conteúdo do template <span className="text-danger">*</span>
+          <div className="space-y-1.5">
+            <label htmlFor={contentId} className="block text-xs font-semibold text-foreground">
+              Conteúdo do template <span className="text-danger">*</span>
+            </label>
             <textarea
+              id={contentId}
               ref={contentRef}
-              className={`${textareaClass} min-h-72 font-mono text-xs`}
+              disabled={submitting}
+              className={`${textareaClass} min-h-72 font-mono text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2`}
               value={form.content}
               maxLength={50000}
               onChange={(event) =>
@@ -219,7 +253,7 @@ export function DocumentTemplateModal({
             <span className="block text-right text-[10px] font-normal text-muted-foreground">
               {form.content.length.toLocaleString("pt-BR")} / 50.000 caracteres
             </span>
-          </label>
+          </div>
 
           <aside className="max-h-80 overflow-y-auto rounded-xl border border-border bg-secondary/30 p-3">
             <div className="mb-3 flex items-center gap-2 text-xs font-bold text-foreground">
@@ -236,9 +270,10 @@ export function DocumentTemplateModal({
                       <button
                         key={placeholder.key}
                         type="button"
+                        disabled={submitting}
                         onClick={() => insertPlaceholder(placeholder.token)}
                         title={placeholder.description}
-                        className="flex w-full items-center gap-2 rounded-md border border-transparent px-2 py-1.5 text-left text-[10px] text-muted-foreground transition hover:border-primary/20 hover:bg-primary/10 hover:text-foreground"
+                        className="flex w-full items-center gap-2 rounded-md border border-transparent px-2 py-1.5 text-left text-[10px] text-muted-foreground transition hover:border-primary/20 hover:bg-primary/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-40"
                       >
                         <Plus className="h-3 w-3 shrink-0 text-primary" />
                         <span className="truncate">{placeholder.label}</span>
@@ -252,53 +287,72 @@ export function DocumentTemplateModal({
         </div>
 
         <details className="rounded-xl border border-border bg-secondary/20 p-4">
-          <summary className="cursor-pointer text-xs font-bold text-foreground">
+          <summary className="cursor-pointer text-xs font-bold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 rounded px-1">
             Cabeçalho, rodapé e identificação
           </summary>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <label className="space-y-1.5 text-xs font-semibold text-foreground">
-              Cabeçalho opcional
+            <div className="space-y-1.5">
+              <label htmlFor={headerContentId} className="block text-xs font-semibold text-foreground">
+                Cabeçalho opcional
+              </label>
               <textarea
-                className={`${textareaClass} min-h-24`}
+                id={headerContentId}
+                disabled={submitting}
+                className={`${textareaClass} min-h-24 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2`}
                 value={form.header_content}
                 onChange={(event) =>
                   setForm({ ...form, header_content: event.target.value })
                 }
               />
-            </label>
-            <label className="space-y-1.5 text-xs font-semibold text-foreground">
-              Rodapé opcional
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor={footerContentId} className="block text-xs font-semibold text-foreground">
+                Rodapé opcional
+              </label>
               <textarea
-                className={`${textareaClass} min-h-24`}
+                id={footerContentId}
+                disabled={submitting}
+                className={`${textareaClass} min-h-24 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2`}
                 value={form.footer_content}
                 onChange={(event) =>
                   setForm({ ...form, footer_content: event.target.value })
                 }
               />
-            </label>
+            </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-4 text-xs text-foreground">
             {[
               [
                 "include_professional_identification",
                 "Exibir identificação profissional",
+                `${baseId}-include-professional`,
               ],
               [
                 "include_clinic_identification",
                 "Exibir identificação da clínica",
+                `${baseId}-include-clinic`,
               ],
-              ["requires_signature", "Preparar bloco de assinatura"],
-            ].map(([key, label]) => (
-              <label key={key} className="flex items-center gap-2">
+              [
+                "requires_signature",
+                "Preparar bloco de assinatura",
+                `${baseId}-requires-signature`,
+              ],
+            ].map(([key, label, id]) => (
+              <div key={key} className="flex items-center gap-2">
                 <input
+                  id={id}
                   type="checkbox"
+                  disabled={submitting}
                   checked={Boolean(form[key as keyof DocumentTemplatePayload])}
                   onChange={(event) =>
                     setForm({ ...form, [key]: event.target.checked })
                   }
+                  className="rounded border-border text-primary focus:ring-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                 />
-                {label}
-              </label>
+                <label htmlFor={id} className="cursor-pointer">
+                  {label}
+                </label>
+              </div>
             ))}
           </div>
         </details>
@@ -313,7 +367,13 @@ export function DocumentTemplateModal({
         )}
 
         <div className="flex justify-end gap-2 border-t border-border pt-4">
-          <Button type="button" variant="outline" size="sm" onClick={onClose}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            disabled={submitting}
+          >
             Cancelar
           </Button>
           <Button
@@ -356,6 +416,14 @@ export function EvolutionTemplateModal({
   });
   const [error, setError] = useState("");
 
+  const baseId = useId();
+  const nameId = `${baseId}-name`;
+  const categoryId = `${baseId}-category`;
+  const specialtyId = `${baseId}-specialty`;
+  const descriptionId = `${baseId}-description`;
+  const contentId = `${baseId}-content`;
+  const isActiveId = `${baseId}-is-active`;
+
   useEffect(() => {
     if (!open) return;
     setError("");
@@ -391,10 +459,14 @@ export function EvolutionTemplateModal({
     >
       <div className="space-y-4">
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="space-y-1.5 text-xs font-semibold text-foreground">
-            Nome <span className="text-danger">*</span>
+          <div className="space-y-1.5">
+            <label htmlFor={nameId} className="block text-xs font-semibold text-foreground">
+              Nome <span className="text-danger">*</span>
+            </label>
             <input
-              className={inputClass}
+              id={nameId}
+              disabled={submitting}
+              className={`${inputClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2`}
               value={form.name}
               maxLength={120}
               onChange={(event) =>
@@ -402,11 +474,15 @@ export function EvolutionTemplateModal({
               }
               placeholder="Ex.: Sessão de terapia individual"
             />
-          </label>
-          <label className="space-y-1.5 text-xs font-semibold text-foreground">
-            Categoria
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor={categoryId} className="block text-xs font-semibold text-foreground">
+              Categoria
+            </label>
             <input
-              className={inputClass}
+              id={categoryId}
+              disabled={submitting}
+              className={`${inputClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2`}
               value={form.category}
               maxLength={100}
               onChange={(event) =>
@@ -414,34 +490,46 @@ export function EvolutionTemplateModal({
               }
               placeholder="Ex.: Terapia, avaliação"
             />
-          </label>
-          <label className="space-y-1.5 text-xs font-semibold text-foreground">
-            Especialidade
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor={specialtyId} className="block text-xs font-semibold text-foreground">
+              Especialidade
+            </label>
             <input
-              className={inputClass}
+              id={specialtyId}
+              disabled={submitting}
+              className={`${inputClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2`}
               value={form.specialty}
               maxLength={120}
               onChange={(event) =>
                 setForm({ ...form, specialty: event.target.value })
               }
             />
-          </label>
-          <label className="space-y-1.5 text-xs font-semibold text-foreground">
-            Descrição
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor={descriptionId} className="block text-xs font-semibold text-foreground">
+              Descrição
+            </label>
             <input
-              className={inputClass}
+              id={descriptionId}
+              disabled={submitting}
+              className={`${inputClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2`}
               value={form.description}
               maxLength={300}
               onChange={(event) =>
                 setForm({ ...form, description: event.target.value })
               }
             />
-          </label>
+          </div>
         </div>
-        <label className="block space-y-1.5 text-xs font-semibold text-foreground">
-          Conteúdo <span className="text-danger">*</span>
+        <div className="space-y-1.5">
+          <label htmlFor={contentId} className="block text-xs font-semibold text-foreground">
+            Conteúdo <span className="text-danger">*</span>
+          </label>
           <textarea
-            className={`${textareaClass} min-h-64 font-mono text-xs`}
+            id={contentId}
+            disabled={submitting}
+            className={`${textareaClass} min-h-64 font-mono text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2`}
             value={form.content}
             maxLength={50000}
             onChange={(event) =>
@@ -449,17 +537,22 @@ export function EvolutionTemplateModal({
             }
             placeholder="Digite o texto-base da evolução em Markdown."
           />
-        </label>
-        <label className="flex items-center gap-2 text-xs text-foreground">
+        </div>
+        <div className="flex items-center gap-2 text-xs text-foreground">
           <input
+            id={isActiveId}
+            disabled={submitting}
             type="checkbox"
             checked={form.is_active}
             onChange={(event) =>
               setForm({ ...form, is_active: event.target.checked })
             }
+            className="rounded border-border text-primary focus:ring-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           />
-          Template ativo
-        </label>
+          <label htmlFor={isActiveId} className="cursor-pointer">
+            Template ativo
+          </label>
+        </div>
         {error && (
           <p
             role="alert"
@@ -469,7 +562,12 @@ export function EvolutionTemplateModal({
           </p>
         )}
         <div className="flex justify-end gap-2 border-t border-border pt-4">
-          <Button variant="outline" size="sm" onClick={onClose}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            disabled={submitting}
+          >
             Cancelar
           </Button>
           <Button size="sm" isLoading={submitting} onClick={submit}>
