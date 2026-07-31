@@ -311,3 +311,141 @@ def test_unbilled_appointments_listing(auth_client, therapist_user, patient_of_t
     assert response.status_code == 200
     assert len(response.data) == 1
     assert response.data[0]["id"] == appt1.id
+
+
+@pytest.mark.django_db
+def test_unbilled_appointments_isolation_and_roles(
+    api_client,
+    therapist_user,
+    admin_user,
+    patient_of_therapist,
+    other_therapist,
+    patient_of_other_therapist,
+):
+    from django.utils import timezone
+
+    from apps.organizations.models import Organization, OrganizationMembership
+    from apps.scheduling.models import Appointment
+
+    now = timezone.now()
+
+    # Get the default organization generated for therapist_user
+    org_default = OrganizationMembership.objects.filter(
+        user=therapist_user,
+        status=OrganizationMembership.Status.ACTIVE,
+    ).first().organization
+
+    # Add other_therapist as a therapist in the same default organization safely
+    OrganizationMembership.objects.update_or_create(
+        organization=org_default,
+        user=other_therapist,
+        defaults={
+            "role": OrganizationMembership.Role.THERAPIST,
+            "status": OrganizationMembership.Status.ACTIVE,
+            "is_default": True,
+        }
+    )
+
+    # Add admin_user as an admin in the same default organization safely
+    OrganizationMembership.objects.update_or_create(
+        organization=org_default,
+        user=admin_user,
+        defaults={
+            "role": OrganizationMembership.Role.ADMIN,
+            "status": OrganizationMembership.Status.ACTIVE,
+            "is_default": True,
+        }
+    )
+
+    # 1. Unauthenticated request is rejected
+    response = api_client.get(reverse("transaction-unbilled-appointments"))
+    assert response.status_code in (400, 401, 403)
+
+    # Create unbilled appointment for therapist_user in org_default
+    appt_therapist = Appointment.objects.create(
+        organization=org_default,
+        therapist=therapist_user,
+        patient=patient_of_therapist,
+        start_time=now,
+        end_time=now + timedelta(hours=1),
+        status=Appointment.Status.CONFIRMED,
+        session_value=100.00,
+    )
+
+    # Create unbilled appointment for other_therapist in org_default
+    appt_other = Appointment.objects.create(
+        organization=org_default,
+        therapist=other_therapist,
+        patient=patient_of_other_therapist,
+        start_time=now,
+        end_time=now + timedelta(hours=1),
+        status=Appointment.Status.CONFIRMED,
+        session_value=150.00,
+    )
+
+    # Create another organization and membership for another user entirely
+    another_user = User.objects.create_user(
+        email="outro_usuario_tenant@teste.com",
+        full_name="Dr. Outro Tenant",
+        password=get_random_string(length=16),
+        role=User.Role.THERAPIST,
+    )
+    org_other = Organization.objects.create(
+        name="Outra Organização",
+        slug="outra-organizacao",
+        organization_type=Organization.Type.CLINIC,
+        created_by=another_user,
+    )
+    OrganizationMembership.objects.create(
+        organization=org_other,
+        user=another_user,
+        role=OrganizationMembership.Role.THERAPIST,
+        status=OrganizationMembership.Status.ACTIVE,
+        is_default=True,
+    )
+    patient_other_org = Patient.objects.create(
+        organization=org_other,
+        full_name="Paciente Outro Org",
+        therapist=another_user,
+    )
+    appt_other_org = Appointment.objects.create(
+        organization=org_other,
+        therapist=another_user,
+        patient=patient_other_org,
+        start_time=now,
+        end_time=now + timedelta(hours=1),
+        status=Appointment.Status.CONFIRMED,
+        session_value=200.00,
+    )
+
+    # 2. Test as therapist_user (with org_default)
+    client_therapist = APIClient()
+    client_therapist.force_authenticate(user=therapist_user)
+    # The autouse force_authenticate fixture automatically sets X-Organization-ID header to org_default.pk
+    response = client_therapist.get(reverse("transaction-unbilled-appointments"))
+    assert response.status_code == 200
+    ids = [item["id"] for item in response.data]
+    assert appt_therapist.id in ids
+    assert appt_other.id not in ids
+    assert appt_other_org.id not in ids
+
+    # 3. Test as admin_user (with org_default)
+    client_admin = APIClient()
+    client_admin.force_authenticate(user=admin_user)
+    response = client_admin.get(reverse("transaction-unbilled-appointments"))
+    assert response.status_code == 200
+    ids = [item["id"] for item in response.data]
+    assert appt_therapist.id in ids
+    assert appt_other.id in ids  # Admin sees other therapist's unbilled appointments in the same org
+    assert appt_other_org.id not in ids  # Admin never sees another org's appointments
+
+    # 4. Test as another_user (with org_other)
+    client_another = APIClient()
+    client_another.force_authenticate(user=another_user)
+    client_another.credentials(HTTP_X_ORGANIZATION_ID=str(org_other.pk))
+    response = client_another.get(reverse("transaction-unbilled-appointments"))
+    assert response.status_code == 200
+    ids = [item["id"] for item in response.data]
+    assert appt_other_org.id in ids
+    assert appt_therapist.id not in ids
+    assert appt_other.id not in ids

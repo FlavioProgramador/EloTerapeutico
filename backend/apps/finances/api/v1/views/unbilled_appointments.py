@@ -4,12 +4,21 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.finances.integrations.scheduling import unbilled_appointments_for
+from apps.organizations.services.tenant_context import ensure_request_organization
 
 
 class UnbilledAppointmentActionsMixin:
     @action(detail=False, methods=["get"], url_path="unbilled-appointments")
     def unbilled_appointments(self, request):
-        appointments = unbilled_appointments_for(actor=request.user)
+        organization, membership = ensure_request_organization(
+            request=request,
+            required=True,
+        )
+        appointments = unbilled_appointments_for(
+            actor=request.user,
+            organization=organization,
+            membership=membership,
+        )
         return Response(
             [
                 {

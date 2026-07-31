@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps.organizations.models import OrganizationMembership
 from apps.scheduling.models import Appointment, PatientPackage
 
 
@@ -23,7 +24,7 @@ def eligible_appointments_for_charge(
     return queryset.select_for_update() if for_update else queryset
 
 
-def unbilled_appointments_for(*, actor, organization=None):
+def unbilled_appointments_for(*, actor, organization=None, membership=None):
     if not actor or actor.is_anonymous:
         return Appointment.objects.none()
     queryset = (
@@ -33,7 +34,18 @@ def unbilled_appointments_for(*, actor, organization=None):
         .order_by("-start_time")
     )
     if organization is not None:
-        return queryset.filter(organization=organization)
+        queryset = queryset.filter(organization=organization)
+        if membership is None:
+            membership = OrganizationMembership.objects.filter(
+                user=actor,
+                organization=organization,
+                status=OrganizationMembership.Status.ACTIVE,
+            ).first()
+        if membership is None:
+            return Appointment.objects.none()
+        if membership.role == OrganizationMembership.Role.THERAPIST:
+            return queryset.filter(therapist=actor)
+        return queryset
     return queryset.filter(therapist=actor) if actor.is_therapist else queryset.none()
 
 
