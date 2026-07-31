@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,13 @@ export function FinanceiroTransactionModal({
   patients,
   onClose,
 }: Props) {
+  const baseId = useId();
+  const typeSelectId = `${baseId}-type`;
+  const categorySelectId = `${baseId}-category`;
+  const patientSelectId = `${baseId}-patient`;
+  const paymentMethodSelectId = `${baseId}-payment-method`;
+  const paidCheckboxId = `${baseId}-paid`;
+
   const mutation = useCreateTransaction();
   const today = new Date().toISOString().slice(0, 10);
   const form = useForm<TransactionFormData>({
@@ -109,21 +116,27 @@ export function FinanceiroTransactionModal({
           />
         </div>
 
-        <label className="block space-y-1.5 text-sm font-semibold">
-          Tipo
+        <div className="space-y-1.5">
+          <label htmlFor={typeSelectId} className="block text-sm font-semibold">
+            Tipo
+          </label>
           <select
-            className="h-11 w-full rounded-lg border border-input bg-card px-3"
+            id={typeSelectId}
+            className="flex h-11 w-full rounded-lg border border-input bg-card px-3.5 py-2 text-base shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             {...form.register("type")}
           >
             <option value="income">Receita (A receber)</option>
             <option value="expense">Despesa (A pagar)</option>
           </select>
-        </label>
+        </div>
 
-        <label className="block space-y-1.5 text-sm font-semibold">
-          Categoria
+        <div className="space-y-1.5">
+          <label htmlFor={categorySelectId} className="block text-sm font-semibold">
+            Categoria
+          </label>
           <select
-            className="h-11 w-full rounded-lg border border-input bg-card px-3"
+            id={categorySelectId}
+            className="flex h-11 w-full rounded-lg border border-input bg-card px-3.5 py-2 text-base shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             {...form.register("category")}
           >
             {formType === "income" && (
@@ -135,13 +148,16 @@ export function FinanceiroTransactionModal({
             <option value="material">Material</option>
             <option value="other">Outros</option>
           </select>
-        </label>
+        </div>
 
         {formType === "income" && (
-          <label className="block space-y-1.5 text-sm font-semibold">
-            Paciente (opcional)
+          <div className="space-y-1.5">
+            <label htmlFor={patientSelectId} className="block text-sm font-semibold">
+              Paciente (opcional)
+            </label>
             <select
-              className="h-11 w-full rounded-lg border border-input bg-card px-3"
+              id={patientSelectId}
+              className="flex h-11 w-full rounded-lg border border-input bg-card px-3.5 py-2 text-base shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
               {...form.register("patient")}
             >
               <option value="">Nenhum</option>
@@ -151,13 +167,16 @@ export function FinanceiroTransactionModal({
                 </option>
               ))}
             </select>
-          </label>
+          </div>
         )}
 
-        <label className="block space-y-1.5 text-sm font-semibold">
-          Meio de pagamento
+        <div className="space-y-1.5">
+          <label htmlFor={paymentMethodSelectId} className="block text-sm font-semibold">
+            Meio de pagamento
+          </label>
           <select
-            className="h-11 w-full rounded-lg border border-input bg-card px-3"
+            id={paymentMethodSelectId}
+            className="flex h-11 w-full rounded-lg border border-input bg-card px-3.5 py-2 text-base shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             {...form.register("payment_method")}
           >
             <option value="uninformed">Não informado</option>
@@ -169,7 +188,7 @@ export function FinanceiroTransactionModal({
             <option value="bank_transfer">Transferência bancária</option>
             <option value="other">Outro</option>
           </select>
-        </label>
+        </div>
 
         <div>
           <Input
@@ -184,15 +203,17 @@ export function FinanceiroTransactionModal({
           </small>
         </div>
 
-        <label className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
-          <span>
+        <div className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
+          <label htmlFor={paidCheckboxId} className="flex flex-col cursor-pointer select-none">
             <strong>Marcar como pago</strong>
-            <small className="block text-muted-foreground">
+            <small className="text-muted-foreground font-normal">
               Registra o lançamento como já quitado.
             </small>
-          </span>
+          </label>
           <input
+            id={paidCheckboxId}
             type="checkbox"
+            className="h-4 w-4 rounded border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             checked={status === "paid"}
             onChange={(event) => {
               form.setValue(
@@ -202,7 +223,7 @@ export function FinanceiroTransactionModal({
               if (event.target.checked) form.setValue("payment_date", today);
             }}
           />
-        </label>
+        </div>
 
         {status === "paid" && (
           <div>
