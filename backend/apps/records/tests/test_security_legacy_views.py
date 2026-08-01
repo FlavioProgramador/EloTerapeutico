@@ -198,3 +198,62 @@ def test_anamnesis_put_cannot_reassign_patient(owner, patient):
 
     anamnesis.refresh_from_db()
     assert anamnesis.patient == patient
+
+
+@pytest.mark.django_db
+def test_add_addendum_unauthenticated_rejected(owner, patient):
+    """
+    Ensure unauthenticated requests to add addendum are rejected.
+    """
+    ev = Evolution.objects.create(
+        patient=patient,
+        content="Original session note",
+        session_date=timezone.localdate(),
+        created_by=owner,
+        is_locked=True,
+    )
+
+    client = APIClient()
+    url = f"/api/v1/records/evolutions/{ev.id}/addendum/"
+    response = client.post(url, {"reason": "Correction", "content": "Corrected text"}, format="json")
+
+    assert response.status_code == 401
+
+
+@pytest.mark.django_db
+def test_add_addendum_only_allowed_for_creator(owner, other_therapist, patient):
+    """
+    Ensure that only the therapist who created the evolution can add an addendum to it.
+    Another therapist should be rejected.
+    """
+    ev = Evolution.objects.create(
+        patient=patient,
+        content="Original session note",
+        session_date=timezone.localdate(),
+        created_by=owner,
+        is_locked=True,
+    )
+
+    # 1. Try to add addendum as another therapist (who doesn't even own/create the evolution)
+    client = APIClient()
+    client.force_authenticate(other_therapist)
+
+    url = f"/api/v1/records/evolutions/{ev.id}/addendum/"
+    response = client.post(url, {"reason": "Correction", "content": "Corrected text"}, format="json")
+
+    assert response.status_code in (403, 404)  # May be 404 if other_therapist has no patient access, or 403 if they do
+
+    # 2. Add professional link to other_therapist, so they can access the patient/evolution,
+    # but since they are not the creator, adding addendum must be rejected with 403.
+    PatientProfessional.objects.create(
+        patient=patient, professional=other_therapist, assigned_by=owner, is_active=True
+    )
+    response = client.post(url, {"reason": "Correction", "content": "Corrected text"}, format="json")
+    assert response.status_code == 403
+    assert response.data["error"]["message"] == "Somente o terapeuta que criou esta evolução pode adicionar um aditivo."
+
+    # 3. Legitimate owner (creator) is allowed to add an addendum
+    client.force_authenticate(owner)
+    response = client.post(url, {"reason": "Correction", "content": "Corrected text"}, format="json")
+    assert response.status_code == 201
+    assert response.data["content"] == "Corrected text"
