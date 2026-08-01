@@ -11,7 +11,7 @@ import { useCreateScheduleBlock } from "../hooks/use-agenda";
 import { toDateInput } from "../lib/calendar.mjs";
 
 const fieldClass =
-  "h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15";
+  "h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50";
 
 export function ScheduleBlockModal({
   open,
@@ -108,6 +108,7 @@ export function ScheduleBlockModal({
             <select
               id={therapistId}
               value={form.therapist}
+              disabled={createMutation.isPending}
               onChange={(event) =>
                 setForm((current) => ({
                   ...current,
@@ -131,6 +132,7 @@ export function ScheduleBlockModal({
             id={dateId}
             type="date"
             value={form.date}
+            disabled={createMutation.isPending}
             onChange={(event) =>
               setForm((current) => ({ ...current, date: event.target.value }))
             }
@@ -144,6 +146,7 @@ export function ScheduleBlockModal({
               id={startId}
               type="time"
               value={form.start}
+              disabled={createMutation.isPending}
               onChange={(event) =>
                 setForm((current) => ({
                   ...current,
@@ -158,6 +161,7 @@ export function ScheduleBlockModal({
               id={endId}
               type="time"
               value={form.end}
+              disabled={createMutation.isPending}
               onChange={(event) =>
                 setForm((current) => ({ ...current, end: event.target.value }))
               }
@@ -170,6 +174,7 @@ export function ScheduleBlockModal({
           <select
             id={reasonId}
             value={form.reason}
+            disabled={createMutation.isPending}
             onChange={(event) =>
               setForm((current) => ({ ...current, reason: event.target.value }))
             }
@@ -188,6 +193,7 @@ export function ScheduleBlockModal({
           <select
             id={recurrenceId}
             value={form.recurrence}
+            disabled={createMutation.isPending}
             onChange={(event) =>
               setForm((current) => ({
                 ...current,
@@ -206,6 +212,7 @@ export function ScheduleBlockModal({
           <input
             id={notesId}
             value={form.notes}
+            disabled={createMutation.isPending}
             onChange={(event) =>
               setForm((current) => ({ ...current, notes: event.target.value }))
             }
@@ -222,13 +229,14 @@ export function ScheduleBlockModal({
             id={confirmConflictsId}
             type="checkbox"
             checked={form.confirmConflicts}
+            disabled={createMutation.isPending}
             onChange={(event) =>
               setForm((current) => ({
                 ...current,
                 confirmConflicts: event.target.checked,
               }))
             }
-            className="mt-0.5"
+            className="mt-0.5 h-4 w-4 rounded border-border text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
           />
           <span>
             Confirmo a criação mesmo que existam consultas no intervalo. Nenhuma
@@ -243,7 +251,7 @@ export function ScheduleBlockModal({
         )}
 
         <div className="flex justify-end gap-2 border-t border-border pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={createMutation.isPending}>
             Cancelar
           </Button>
           <Button type="submit" isLoading={createMutation.isPending}>
