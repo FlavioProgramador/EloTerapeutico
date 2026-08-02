@@ -50,3 +50,45 @@ class ReportLayerTests(APITestCase):
         response = self.client.get("/api/v1/reports/export/", {"type": "unknown"})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data, {"detail": "Tipo de relatorio invalido."})
+
+    def test_patient_report_age_distribution_optimized(self):
+        from datetime import date
+        # Clear existing patients associated with this therapist
+        Patient.objects.filter(therapist=self.owner).delete()
+
+        today = date.today()
+
+        # Age 3 (Bucket "0-5")
+        Patient.objects.create(
+            full_name="Criança 3 anos",
+            therapist=self.owner,
+            birth_date=date(today.year - 3, today.month, today.day),
+            organization=self.patient.organization,
+        )
+        # Age 30 (Bucket "26-35")
+        Patient.objects.create(
+            full_name="Adulto 30 anos",
+            therapist=self.owner,
+            birth_date=date(today.year - 30, today.month, today.day),
+            organization=self.patient.organization,
+        )
+        # Sem data
+        Patient.objects.create(
+            full_name="Sem data de nascimento",
+            therapist=self.owner,
+            birth_date=None,
+            organization=self.patient.organization,
+        )
+
+        response = self.client.get("/api/v1/reports/patients/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        age_distribution = response.data["charts"]["age_distribution"]
+
+        # Build map of label to value
+        distribution_map = {item["label"]: item["value"] for item in age_distribution}
+
+        self.assertEqual(distribution_map["0-5"], 1)
+        self.assertEqual(distribution_map["26-35"], 1)
+        self.assertEqual(distribution_map["Sem data"], 1)
+        self.assertEqual(distribution_map["6-10"], 0)
