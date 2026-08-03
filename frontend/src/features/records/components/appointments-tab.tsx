@@ -206,7 +206,8 @@ export function AppointmentsTab({
                             onViewEvolution(appointment.evolution_id!)
                           }
                           title="Visualizar evolução vinculada"
-                          className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
+                          aria-label={`Visualizar evolução vinculada da consulta de ${dateObj.toLocaleDateString("pt-BR")}`}
+                          className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -216,7 +217,8 @@ export function AppointmentsTab({
                           size="icon"
                           onClick={() => onNewEvolution(appointment.id)}
                           title="Evoluir consulta realizada"
-                          className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
+                          aria-label={`Evoluir consulta realizada de ${dateObj.toLocaleDateString("pt-BR")}`}
+                          className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                         >
                           <FileEdit className="h-4 w-4" />
                         </Button>
