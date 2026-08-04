@@ -50,3 +50,45 @@ class ReportLayerTests(APITestCase):
         response = self.client.get("/api/v1/reports/export/", {"type": "unknown"})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data, {"detail": "Tipo de relatorio invalido."})
+
+    def test_patients_report_performance_and_correctness(self):
+        # Create patients with known ages
+        Patient.objects.create(
+            full_name="Paciente Jovem",
+            therapist=self.owner,
+            birth_date=date(2020, 1, 1),
+        )
+        Patient.objects.create(
+            full_name="Paciente Adulto",
+            therapist=self.owner,
+            birth_date=date(1990, 1, 1),
+        )
+        Patient.objects.create(
+            full_name="Paciente Sem Data",
+            therapist=self.owner,
+            birth_date=None,
+        )
+
+        from apps.reports.services import patients_report
+        response_data = patients_report(
+            user=self.owner,
+            params={"start_date": "2026-01-01", "end_date": "2026-01-31"},
+            organization=self.patient.organization,
+        )
+
+        age_distribution = response_data["charts"]["age_distribution"]
+
+        # We have:
+        # - "Paciente Jovem" (birth_date 2020-01-01) -> 6 years old (category "6-10")
+        # - "Paciente Adulto" (birth_date 1990-01-01) -> 36 years old (category "36-45")
+        # - "Paciente Sem Data" (birth_date None) -> "Sem data"
+        # - self.patient (birth_date None) -> "Sem data"
+        # So total "Sem data" = 2.
+
+        category_6_10 = [b["value"] for b in age_distribution if b["label"] == "6-10"][0]
+        category_36_45 = [b["value"] for b in age_distribution if b["label"] == "36-45"][0]
+        sem_data_value = [b["value"] for b in age_distribution if b["label"] == "Sem data"][0]
+
+        self.assertEqual(category_6_10, 1)
+        self.assertEqual(category_36_45, 1)
+        self.assertEqual(sem_data_value, 2)
