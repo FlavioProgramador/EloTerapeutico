@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import type { AgendaPagination, AppointmentStatus } from "../types";
 
 export const fieldClass =
-  "h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-60";
+  "h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
 
 export function Toolbar({ children }: { children: React.ReactNode }) {
   return (
@@ -67,7 +67,7 @@ export function FilterSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-9 rounded-md border border-border bg-background px-3 text-xs font-medium"
+        className="h-9 rounded-md border border-border bg-background px-3 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
       >
         {children}
       </select>
@@ -77,21 +77,25 @@ export function FilterSelect({
 
 export function Field({
   label,
+  htmlFor,
   children,
   hint,
 }: {
   label: string;
+  htmlFor?: string;
   children: React.ReactNode;
   hint?: string;
 }) {
   return (
-    <label className="block space-y-1.5">
-      <span className="text-xs font-semibold text-foreground">{label}</span>
+    <div className="block space-y-1.5">
+      <label htmlFor={htmlFor} className="text-xs font-semibold text-foreground cursor-pointer select-none">
+        {label}
+      </label>
       {children}
       {hint && (
         <span className="block text-[11px] text-muted-foreground">{hint}</span>
       )}
-    </label>
+    </div>
   );
 }
 
@@ -108,14 +112,24 @@ export function Toggle({
   onChange,
   label,
   description,
+  disabled,
+  id,
 }: {
   checked: boolean;
   onChange: (value: boolean) => void;
   label: string;
   description?: string;
+  disabled?: boolean;
+  id?: string;
 }) {
   return (
-    <label className="flex cursor-pointer items-start justify-between gap-4 rounded-lg border border-border bg-secondary/10 p-3">
+    <label
+      htmlFor={id}
+      className={cn(
+        "flex cursor-pointer items-start justify-between gap-4 rounded-lg border border-border bg-secondary/10 p-3 transition",
+        disabled && "cursor-not-allowed opacity-60"
+      )}
+    >
       <span>
         <strong className="block text-sm font-medium">{label}</strong>
         {description && (
@@ -125,10 +139,12 @@ export function Toggle({
         )}
       </span>
       <input
+        id={id}
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="mt-1"
+        className="mt-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+        disabled={disabled}
       />
     </label>
   );

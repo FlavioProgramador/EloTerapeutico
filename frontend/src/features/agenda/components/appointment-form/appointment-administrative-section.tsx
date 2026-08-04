@@ -12,16 +12,25 @@ interface AppointmentAdministrativeSectionProps {
   duration: number;
 }
 
+import { useId } from "react";
+
 export function AppointmentAdministrativeSection({
   form,
   setForm,
   duration,
-}: AppointmentAdministrativeSectionProps) {
+  disabled,
+}: AppointmentAdministrativeSectionProps & { disabled?: boolean }) {
+  const baseId = useId();
+  const notesTextareaId = `${baseId}-notes-textarea`;
+
   return (
     <>
       <section className="space-y-3 border-t border-border pt-4">
-        <SectionLabel>Observações administrativas</SectionLabel>
+        <label htmlFor={notesTextareaId} className="block">
+          <SectionLabel>Observações administrativas</SectionLabel>
+        </label>
         <textarea
+          id={notesTextareaId}
           value={form.notes}
           onChange={(event) =>
             setForm((current) => ({
@@ -31,7 +40,8 @@ export function AppointmentAdministrativeSection({
           }
           rows={6}
           placeholder="Informações operacionais sobre a consulta..."
-          className="w-full rounded-md border border-border bg-background p-3 text-sm outline-none focus:border-primary"
+          className="w-full rounded-md border border-border bg-background p-3 text-sm outline-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={disabled}
         />
       </section>
 
