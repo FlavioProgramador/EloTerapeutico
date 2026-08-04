@@ -63,4 +63,4 @@ django-storages[azure]>=1.14,<1.15
 
 # Correções de vulnerabilidade de segurança (Trivy CVEs)
 msgpack==1.2.1
-setuptools==78.1.1
+setuptools==83.0.0
