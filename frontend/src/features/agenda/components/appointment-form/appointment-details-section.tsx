@@ -11,17 +11,28 @@ interface AppointmentDetailsSectionProps {
   rooms: AgendaRoom[];
 }
 
+import { useId } from "react";
+
 export function AppointmentDetailsSection({
   form,
   setForm,
   rooms,
-}: AppointmentDetailsSectionProps) {
+  disabled,
+}: AppointmentDetailsSectionProps & { disabled?: boolean }) {
+  const baseId = useId();
+  const durationSelectId = `${baseId}-duration`;
+  const typeSelectId = `${baseId}-type`;
+  const modalitySelectId = `${baseId}-modality`;
+  const roomSelectId = `${baseId}-room`;
+  const valueInputId = `${baseId}-session-value`;
+
   return (
     <section className="space-y-3 border-t border-border pt-4">
       <SectionLabel>Detalhes</SectionLabel>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Duração">
+        <Field label="Duração" htmlFor={durationSelectId}>
           <select
+            id={durationSelectId}
             value={form.duration}
             onChange={(event) =>
               setForm((current) => ({
@@ -30,6 +41,7 @@ export function AppointmentDetailsSection({
               }))
             }
             className={fieldClass}
+            disabled={disabled}
           >
             {[30, 45, 50, 60, 90, 120].map((value) => (
               <option key={value} value={value}>
@@ -38,8 +50,9 @@ export function AppointmentDetailsSection({
             ))}
           </select>
         </Field>
-        <Field label="Tipo">
+        <Field label="Tipo" htmlFor={typeSelectId}>
           <select
+            id={typeSelectId}
             value={form.appointmentType}
             onChange={(event) =>
               setForm((current) => ({
@@ -48,6 +61,7 @@ export function AppointmentDetailsSection({
               }))
             }
             className={fieldClass}
+            disabled={disabled}
           >
             <option value="assessment">Avaliação</option>
             <option value="psychotherapy">Psicoterapia</option>
@@ -59,8 +73,9 @@ export function AppointmentDetailsSection({
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Modalidade">
+        <Field label="Modalidade" htmlFor={modalitySelectId}>
           <select
+            id={modalitySelectId}
             value={form.modality}
             onChange={(event) =>
               setForm((current) => ({
@@ -70,14 +85,16 @@ export function AppointmentDetailsSection({
               }))
             }
             className={fieldClass}
+            disabled={disabled}
           >
             <option value="in_person">Presencial</option>
             <option value="online">Online</option>
             <option value="hybrid">Híbrida</option>
           </select>
         </Field>
-        <Field label="Sala">
+        <Field label="Sala" htmlFor={roomSelectId}>
           <select
+            id={roomSelectId}
             value={form.room}
             onChange={(event) =>
               setForm((current) => ({
@@ -86,7 +103,7 @@ export function AppointmentDetailsSection({
               }))
             }
             className={fieldClass}
-            disabled={form.modality === "online"}
+            disabled={disabled || form.modality === "online"}
           >
             <option value="">Sem sala</option>
             {rooms.map((room) => (
@@ -97,8 +114,9 @@ export function AppointmentDetailsSection({
           </select>
         </Field>
       </div>
-      <Field label="Valor (R$)">
+      <Field label="Valor (R$)" htmlFor={valueInputId}>
         <input
+          id={valueInputId}
           inputMode="decimal"
           value={form.sessionValue}
           onChange={(event) =>
@@ -108,6 +126,7 @@ export function AppointmentDetailsSection({
             }))
           }
           className={fieldClass}
+          disabled={disabled}
         />
       </Field>
     </section>
