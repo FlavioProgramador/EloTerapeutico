@@ -198,3 +198,49 @@ def test_anamnesis_put_cannot_reassign_patient(owner, patient):
 
     anamnesis.refresh_from_db()
     assert anamnesis.patient == patient
+
+
+@pytest.mark.django_db
+def test_evolution_add_addendum_restricted_to_author(owner, shared_therapist, other_therapist, patient, link):
+    """
+    Regression: Ensure only the creator of the evolution can add an addendum.
+    """
+    ev = Evolution.objects.create(
+        patient=patient,
+        content="Original clinical note",
+        session_date=timezone.localdate(),
+        created_by=owner,
+        is_locked=True,  # Locked so we can add an addendum
+    )
+
+    url = f"/api/v1/records/evolutions/{ev.id}/addendum/"
+
+    # 1. Unrelated therapist tries to add an addendum -> 404 Not Found (no patient access)
+    client_unrelated = APIClient()
+    client_unrelated.force_authenticate(other_therapist)
+    response_unrelated = client_unrelated.post(url, {
+        "reason": "Correction",
+        "content": "Addendum text by unrelated therapist",
+    }, format="json")
+    assert response_unrelated.status_code == 404
+
+    # 2. Shared therapist (who has patient access but is not the author) -> 403 Forbidden
+    client_shared = APIClient()
+    client_shared.force_authenticate(shared_therapist)
+    response_shared = client_shared.post(url, {
+        "reason": "Correction",
+        "content": "Addendum text by shared therapist",
+    }, format="json")
+    assert response_shared.status_code == 403
+
+    # 3. Original owner tries to add an addendum -> 201 Created
+    client_owner = APIClient()
+    client_owner.force_authenticate(owner)
+
+    response_owner = client_owner.post(url, {
+        "reason": "Correction",
+        "content": "Addendum text by original author",
+    }, format="json")
+
+    assert response_owner.status_code == 201
+    assert response_owner.data["content"] == "Addendum text by original author"

@@ -204,6 +204,13 @@ class EvolutionViewSet(AuditLogMixin, viewsets.ModelViewSet):
         """
         evolution = self.get_object()
 
+        # Apenas o terapeuta que criou a evolução pode adicionar aditivos.
+        if evolution.created_by != request.user:
+            self.permission_denied(
+                request,
+                message="Somente o autor da evolução pode adicionar aditivos.",
+            )
+
         # Bloqueia a evolução no momento se já expirou o limite de 48 horas
         if not evolution.is_locked and not evolution.can_be_edited():
             evolution.lock()
