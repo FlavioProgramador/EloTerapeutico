@@ -72,5 +72,5 @@ pre-commit>=3.7,<4.0
 django-debug-toolbar>=4.3,<4.4
 
 # Correção de vulnerabilidades de subdependências no Trivy
-msgpack>=1.2.1
-setuptools>=78.1.1
+msgpack==1.2.1
+setuptools==83.0.0
