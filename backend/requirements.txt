@@ -70,3 +70,7 @@ pre-commit>=3.7,<4.0
 
 # Debug
 django-debug-toolbar>=4.3,<4.4
+
+# Correção de vulnerabilidades de dependências transientes (Trivy/pip-audit)
+msgpack>=1.2.1,<2.0.0
+setuptools>=78.1.1
