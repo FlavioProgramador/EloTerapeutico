@@ -50,3 +50,31 @@ class ReportLayerTests(APITestCase):
         response = self.client.get("/api/v1/reports/export/", {"type": "unknown"})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data, {"detail": "Tipo de relatorio invalido."})
+
+    def test_patients_report_age_distribution(self):
+        from django.utils import timezone
+        today = timezone.localdate()
+        # Set birth date of self.patient to correspond to exactly 8 years old
+        self.patient.birth_date = date(today.year - 8, today.month, today.day)
+        self.patient.save()
+
+        # Create another patient for self.owner without birth date (Sem data)
+        Patient.objects.create(
+            full_name="Paciente sem data",
+            therapist=self.owner,
+            birth_date=None,
+            organization=self.patient.organization,
+        )
+
+        response = self.client.get("/api/v1/reports/patients/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        age_distribution = response.data["charts"]["age_distribution"]
+
+        # Verify age 8 bucket (6-10) is 1
+        bucket_6_10 = next(item for item in age_distribution if item["label"] == "6-10")
+        self.assertEqual(bucket_6_10["value"], 1)
+
+        # Verify "Sem data" bucket is 1
+        bucket_no_date = next(item for item in age_distribution if item["label"] == "Sem data")
+        self.assertEqual(bucket_no_date["value"], 1)
