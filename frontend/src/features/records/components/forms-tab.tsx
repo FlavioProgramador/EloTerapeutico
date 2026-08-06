@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useId } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FileSpreadsheet, Eye, Plus, Calendar, User, Search, AlertCircle, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,7 @@ const AVAILABLE_FORMS = [
 
 export function FormsTab({ patientId }: { patientId: number }) {
   const queryClient = useQueryClient();
+  const searchInputId = useId();
   const [searchTerm, setSearchTerm] = useState("");
   const [fillModalOpen, setFillModalOpen] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -159,11 +160,13 @@ export function FormsTab({ patientId }: { patientId: number }) {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
+            id={searchInputId}
             type="text"
             placeholder="Buscar formulários..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-background pl-10 pr-4 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Buscar formulários preenchidos"
+            className="h-9 w-full rounded-md border border-input bg-background pl-10 pr-4 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           />
         </div>
 
@@ -176,6 +179,8 @@ export function FormsTab({ patientId }: { patientId: number }) {
               variant="outline"
               onClick={() => handleOpenFill(form.id)}
               leftIcon={<Plus className="h-3 w-3" />}
+              aria-label={`Preencher ${form.name}`}
+              title={`Preencher ${form.name}`}
               className="border-emerald-600/20 text-emerald-700 hover:bg-emerald-500/10 text-[10px]"
             >
               {form.id.toUpperCase()}
@@ -244,6 +249,8 @@ export function FormsTab({ patientId }: { patientId: number }) {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleOpenView(resp)}
+                          aria-label={`Visualizar respostas de ${resp.form_name}`}
+                          title={`Visualizar respostas de ${resp.form_name}`}
                           className="h-8 w-8 text-emerald-600 hover:bg-emerald-500/10"
                         >
                           <Eye className="h-4 w-4" />
@@ -268,8 +275,12 @@ export function FormsTab({ patientId }: { patientId: number }) {
                 <p className="text-[10px] text-muted-foreground">{selectedForm.category}</p>
               </div>
               <button
+                type="button"
                 onClick={() => setFillModalOpen(false)}
-                className="rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                disabled={submitMutation.isPending}
+                aria-label="Fechar modal"
+                title="Fechar modal"
+                className="rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -278,20 +289,23 @@ export function FormsTab({ patientId }: { patientId: number }) {
             <div className="max-h-[60vh] overflow-y-auto p-6 space-y-6">
               {selectedForm.questions.map((q) => (
                 <div key={q.id} className="space-y-3">
-                  <label className="text-xs font-semibold text-foreground">{q.label}</label>
-                  <div className="grid grid-cols-4 gap-2">
+                  <span className="text-xs font-semibold text-foreground block">{q.label}</span>
+                  <div role="radiogroup" aria-label={q.label} className="grid grid-cols-4 gap-2">
                     {selectedForm.options.map((opt) => {
                       const active = answers[q.id] === opt.value;
                       return (
                         <button
                           key={opt.value}
                           type="button"
+                          role="radio"
+                          aria-checked={active}
+                          disabled={submitMutation.isPending}
                           onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: opt.value }))}
                           className={`rounded-lg border px-3 py-2 text-[10px] font-medium transition-all ${
                             active
                               ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
                               : "border-border hover:bg-accent text-muted-foreground"
-                          }`}
+                          } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50`}
                         >
                           {opt.label}
                         </button>
@@ -303,7 +317,12 @@ export function FormsTab({ patientId }: { patientId: number }) {
             </div>
 
             <div className="flex justify-end gap-2 border-t border-border px-6 py-4 bg-muted/40">
-              <Button size="sm" variant="ghost" onClick={() => setFillModalOpen(false)}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setFillModalOpen(false)}
+                disabled={submitMutation.isPending}
+              >
                 Cancelar
               </Button>
               <Button
@@ -329,8 +348,11 @@ export function FormsTab({ patientId }: { patientId: number }) {
                 <p className="text-[10px] text-muted-foreground">Preenchido em {new Date(selectedResponse.completed_at).toLocaleDateString("pt-BR")}</p>
               </div>
               <button
+                type="button"
                 onClick={() => setViewModalOpen(false)}
-                className="rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                aria-label="Fechar modal"
+                title="Fechar modal"
+                className="rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <X className="h-4 w-4" />
               </button>
