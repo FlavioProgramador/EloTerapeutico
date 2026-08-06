@@ -33,7 +33,7 @@ djangorestframework-simplejwt>=5.5.1,<6.0
 psycopg2-binary>=2.9,<3.0
 
 # Criptografia de campos sensíveis
-cryptography>=49.0.0,<50.0
+cryptography>=50.0.0,<51.0
 
 # Servidor de produção
 gunicorn>=22.0,<23.0
@@ -70,3 +70,7 @@ pre-commit>=3.7,<4.0
 
 # Debug
 django-debug-toolbar>=4.3,<4.4
+
+# Correções de vulnerabilidades (Trivy / Segurança)
+msgpack>=1.2.1
+setuptools>=78.1.1
