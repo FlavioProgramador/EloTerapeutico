@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,11 @@ export function FinanceiroSubscriptionModal({
   patients,
   onClose,
 }: Props) {
+  const baseId = useId();
+  const patientSelectId = `${baseId}-patient`;
+  const frequencySelectId = `${baseId}-frequency`;
+  const weekdaySelectId = `${baseId}-weekday`;
+
   const mutation = useCreateMonthlySubscription();
   const form = useForm<SubscriptionFormData>({
     resolver: zodResolver(subscriptionSchema),
@@ -90,10 +95,14 @@ export function FinanceiroSubscriptionModal({
       className="max-w-xl"
     >
       <form className="space-y-5" onSubmit={submit}>
-        <label className="block space-y-1.5 text-sm font-semibold">
-          Paciente *
+        <div className="space-y-1.5">
+          <label htmlFor={patientSelectId} className="block text-sm font-semibold">
+            Paciente *
+          </label>
           <select
-            className="h-11 w-full rounded-lg border border-input bg-card px-3"
+            id={patientSelectId}
+            disabled={mutation.isPending}
+            className="flex h-11 w-full rounded-lg border border-input bg-card px-3.5 py-2 text-base shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             {...form.register("patient", { valueAsNumber: true })}
           >
             <option value="">Selecione um paciente</option>
@@ -104,32 +113,40 @@ export function FinanceiroSubscriptionModal({
             ))}
           </select>
           {form.formState.errors.patient && (
-            <span className="text-xs text-danger">
+            <span className="block text-xs text-danger" role="alert">
               {form.formState.errors.patient.message}
             </span>
           )}
-        </label>
+        </div>
 
         <div className="border-t border-border pt-4">
           <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Configuração do agendamento
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="space-y-1.5 text-sm font-semibold">
-              Frequência
+            <div className="space-y-1.5">
+              <label htmlFor={frequencySelectId} className="block text-sm font-semibold">
+                Frequência
+              </label>
               <select
-                className="h-11 w-full rounded-lg border border-input bg-card px-3"
+                id={frequencySelectId}
+                disabled={mutation.isPending}
+                className="flex h-11 w-full rounded-lg border border-input bg-card px-3.5 py-2 text-base shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                 {...form.register("frequency")}
               >
                 <option value="weekly">Semanal</option>
                 <option value="biweekly">Quinzenal</option>
                 <option value="monthly">Mensal</option>
               </select>
-            </label>
-            <label className="space-y-1.5 text-sm font-semibold">
-              Dia da semana
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor={weekdaySelectId} className="block text-sm font-semibold">
+                Dia da semana
+              </label>
               <select
-                className="h-11 w-full rounded-lg border border-input bg-card px-3"
+                id={weekdaySelectId}
+                disabled={mutation.isPending}
+                className="flex h-11 w-full rounded-lg border border-input bg-card px-3.5 py-2 text-base shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                 {...form.register("weekday", { valueAsNumber: true })}
               >
                 {weekdays.map((day, index) => (
@@ -138,21 +155,24 @@ export function FinanceiroSubscriptionModal({
                   </option>
                 ))}
               </select>
-            </label>
+            </div>
             <Input
               label="Horário"
               type="time"
+              disabled={mutation.isPending}
               {...form.register("appointment_time")}
             />
             <Input
               label="Duração (minutos)"
               type="number"
               min={15}
+              disabled={mutation.isPending}
               {...form.register("duration_minutes", { valueAsNumber: true })}
             />
             <Input
               label="Primeiro agendamento"
               type="date"
+              disabled={mutation.isPending}
               error={form.formState.errors.first_appointment_date?.message}
               {...form.register("first_appointment_date")}
             />
@@ -168,6 +188,7 @@ export function FinanceiroSubscriptionModal({
               label="Valor da mensalidade"
               placeholder="0,00"
               inputMode="decimal"
+              disabled={mutation.isPending}
               error={form.formState.errors.monthly_amount?.message}
               {...form.register("monthly_amount")}
             />
@@ -176,11 +197,13 @@ export function FinanceiroSubscriptionModal({
               type="number"
               min={1}
               max={28}
+              disabled={mutation.isPending}
               {...form.register("due_day", { valueAsNumber: true })}
             />
             <Input
               label="Vencimento da 1ª cobrança"
               type="date"
+              disabled={mutation.isPending}
               {...form.register("first_due_date")}
             />
             <Input
@@ -188,6 +211,7 @@ export function FinanceiroSubscriptionModal({
               type="number"
               min={0}
               max={30}
+              disabled={mutation.isPending}
               {...form.register("reminder_days_before", {
                 valueAsNumber: true,
               })}
@@ -197,6 +221,7 @@ export function FinanceiroSubscriptionModal({
             <Input
               label="Link de pagamento (opcional)"
               placeholder="https://..."
+              disabled={mutation.isPending}
               error={form.formState.errors.payment_link?.message}
               {...form.register("payment_link")}
             />
@@ -206,10 +231,16 @@ export function FinanceiroSubscriptionModal({
         <Textarea
           label="Observações"
           placeholder="Informações adicionais"
+          disabled={mutation.isPending}
           {...form.register("notes")}
         />
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={mutation.isPending}
+          >
             Cancelar
           </Button>
           <Button type="submit" isLoading={mutation.isPending}>
