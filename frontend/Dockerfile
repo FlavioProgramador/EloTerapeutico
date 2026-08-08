@@ -3,7 +3,8 @@ FROM node:24-alpine AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-RUN npm install --no-audit --no-fund
+RUN node -e 'const fs = require("fs"); const pkg = JSON.parse(fs.readFileSync("package.json")); pkg.overrides = pkg.overrides || {}; pkg.overrides.nanoid = "3.3.17"; fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2));' \
+    && npm install --no-audit --no-fund
 
 COPY . .
 
