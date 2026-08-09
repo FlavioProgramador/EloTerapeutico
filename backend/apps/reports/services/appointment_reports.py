@@ -97,8 +97,13 @@ def appointments_report(user, params, organization=None) -> dict[str, Any]:
         )
 
     insurance_map: dict[str, int] = {}
-    for appointment in queryset.select_related("patient"):
-        label = insurance_label(appointment.patient)
+    for payer_type, insurance_name in queryset.values_list("patient__payer_type", "patient__insurance_name"):
+        if not payer_type:
+            label = "Sem convenio"
+        elif payer_type == Patient.PayerType.INSURANCE:
+            label = insurance_name or "Sem convenio"
+        else:
+            label = "Particular"
         insurance_map[label] = insurance_map.get(label, 0) + 1
     by_insurance = [
         {"label": key, "value": value}
@@ -119,8 +124,8 @@ def appointments_report(user, params, organization=None) -> dict[str, Any]:
         {"label": f"{start_h:02d}h-{end_h:02d}h", "value": 0}
         for start_h, end_h in buckets
     ]
-    for appointment in queryset:
-        hour = timezone.localtime(appointment.start_time).hour
+    for start_time in queryset.values_list("start_time", flat=True):
+        hour = timezone.localtime(start_time).hour
         for index, (start_h, end_h) in enumerate(buckets):
             if start_h <= hour < end_h:
                 busy_hours[index]["value"] += 1

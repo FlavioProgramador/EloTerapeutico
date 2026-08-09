@@ -134,24 +134,25 @@ def financial_report(user, params, organization=None) -> dict[str, Any]:
 
     delinquency = []
     overdue_by_patient: dict[int, dict[str, Any]] = {}
-    for item in overdue.select_related("patient"):
-        key = item.patient_id or 0
+    for patient_id, social_name, full_name, outstanding, due_date in overdue.values_list(
+        "patient_id", "patient__social_name", "patient__full_name", "outstanding", "due_date"
+    ):
+        key = patient_id or 0
         if key not in overdue_by_patient:
+            patient_display = social_name or full_name if patient_id else "Sem paciente"
             overdue_by_patient[key] = {
-                "patient": (
-                    item.patient.display_name if item.patient else "Sem paciente"
-                ),
+                "patient": patient_display,
                 "value": ZERO,
                 "titles": 0,
-                "oldest_due_date": item.due_date,
+                "oldest_due_date": due_date,
             }
-        overdue_by_patient[key]["value"] += item.outstanding
+        overdue_by_patient[key]["value"] += outstanding
         overdue_by_patient[key]["titles"] += 1
-        if item.due_date and (
+        if due_date and (
             not overdue_by_patient[key]["oldest_due_date"]
-            or item.due_date < overdue_by_patient[key]["oldest_due_date"]
+            or due_date < overdue_by_patient[key]["oldest_due_date"]
         ):
-            overdue_by_patient[key]["oldest_due_date"] = item.due_date
+            overdue_by_patient[key]["oldest_due_date"] = due_date
     for item in overdue_by_patient.values():
         oldest = item["oldest_due_date"]
         delinquency.append(
@@ -168,12 +169,17 @@ def financial_report(user, params, organization=None) -> dict[str, Any]:
     )
 
     revenue_by_insurance: dict[str, Decimal] = {}
-    for item in income_base.exclude(
+    for amount, payer_type, insurance_name in income_base.exclude(
         payment_status__in=excluded_statuses
-    ).select_related("patient"):
-        label = insurance_label(item.patient)
+    ).values_list("amount", "patient__payer_type", "patient__insurance_name"):
+        if not payer_type:
+            label = "Sem convenio"
+        elif payer_type == Patient.PayerType.INSURANCE:
+            label = insurance_name or "Sem convenio"
+        else:
+            label = "Particular"
         revenue_by_insurance[label] = (
-            revenue_by_insurance.get(label, ZERO) + item.amount
+            revenue_by_insurance.get(label, ZERO) + amount
         )
 
     active_subscriptions = active_subscriptions_for_user(

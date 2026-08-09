@@ -6,8 +6,6 @@ from __future__ import annotations
 import importlib.util
 import pathlib
 import re
-import shlex
-import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "scripts" / "validate_docs.py"
