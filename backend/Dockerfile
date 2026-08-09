@@ -37,6 +37,7 @@ COPY requirements*.txt ./
 
 RUN python -m pip install --upgrade pip setuptools msgpack \
     && python -m pip install -r ${REQUIREMENTS_FILE} \
+    && python -m pip install --upgrade msgpack setuptools \
     && apk del .build-deps
 
 COPY . .
