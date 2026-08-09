@@ -1,14 +1,15 @@
-import pytest
 from datetime import date, timedelta
 from decimal import Decimal
+
+import pytest
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from apps.finances.models import FinancialTransaction
 from apps.organizations.models import Organization, OrganizationMembership
 from apps.patients.models import Patient
-from apps.reports.services import patients_report, appointments_report, financial_report
+from apps.reports.services import appointments_report, financial_report, patients_report
 from apps.scheduling.models import Appointment
-from apps.finances.models import FinancialTransaction
 from apps.users.models import User
 
 
