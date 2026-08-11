@@ -42,7 +42,9 @@ class AppointmentViewSet(AuditLogMixin, ScopedAgendaMixin, viewsets.ModelViewSet
 
     def get_queryset(self):
         include_details = self.action not in ["list", "today", "export"]
-        return self.scope_queryset(appointment_queryset(include_details=include_details))
+        return self.scope_queryset(
+            appointment_queryset(include_details=include_details)
+        )
 
     def get_serializer_class(self):
         if self.action == "create":

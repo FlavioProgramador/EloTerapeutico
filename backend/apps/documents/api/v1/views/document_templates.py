@@ -123,7 +123,9 @@ class DocumentTemplateViewSet(viewsets.ModelViewSet):
             obj=template,
             obj_repr=f"Template de documento #{template.pk} arquivado",
         )
-        return Response(DocumentTemplateSerializer(template, context={"request": request}).data)
+        return Response(
+            DocumentTemplateSerializer(template, context={"request": request}).data
+        )
 
     @action(detail=True, methods=["post"])
     def activate(self, request, public_id=None):
@@ -138,7 +140,9 @@ class DocumentTemplateViewSet(viewsets.ModelViewSet):
             obj=template,
             obj_repr=f"Template de documento #{template.pk} ativado",
         )
-        return Response(DocumentTemplateSerializer(template, context={"request": request}).data)
+        return Response(
+            DocumentTemplateSerializer(template, context={"request": request}).data
+        )
 
     @action(detail=True, methods=["post"])
     def deactivate(self, request, public_id=None):
@@ -153,7 +157,9 @@ class DocumentTemplateViewSet(viewsets.ModelViewSet):
             obj=template,
             obj_repr=f"Template de documento #{template.pk} inativado",
         )
-        return Response(DocumentTemplateSerializer(template, context={"request": request}).data)
+        return Response(
+            DocumentTemplateSerializer(template, context={"request": request}).data
+        )
 
     @action(detail=True, methods=["post"])
     def preview(self, request, public_id=None):

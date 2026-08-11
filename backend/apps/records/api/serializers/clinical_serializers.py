@@ -410,7 +410,10 @@ class TreatmentGoalSerializer(serializers.ModelSerializer):
 
             # Validação de confidencialidade ao vincular
             if item.is_confidential:
-                if item.created_by_id != user.id and not user.has_perm("records.view_confidential_evolution"):
+                if (
+                    item.created_by_id != user.id
+                    and not user.has_perm("records.view_confidential_evolution")
+                ):
                     raise serializers.ValidationError(
                         f"Você não pode vincular a evolução #{item.id} pois ela é confidencial e pertence a outro autor."
                     )
@@ -538,7 +541,10 @@ class ClinicalDocumentSerializer(serializers.ModelSerializer):
         # Validação de confidencialidade ao vincular
         user = self.context["request"].user
         if evolution.is_confidential:
-            if evolution.created_by_id != user.id and not user.has_perm("records.view_confidential_evolution"):
+            if (
+                evolution.created_by_id != user.id
+                and not user.has_perm("records.view_confidential_evolution")
+            ):
                 raise serializers.ValidationError(
                     "Você não pode vincular documentos a uma evolução confidencial de outro autor."
                 )

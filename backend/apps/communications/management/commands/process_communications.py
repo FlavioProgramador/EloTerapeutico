@@ -16,11 +16,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         while True:
             result = process_due_communications(batch_size=options["batch_size"])
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f"Reivindicadas={result['claimed']} processadas={result['processed']} falhas={result['failed']}"
-                )
-            )
+            self.stdout.write(self.style.SUCCESS(f"Reivindicadas={result['claimed']} processadas={result['processed']} falhas={result['failed']}"))
             if options["once"]:
                 break
             time.sleep(max(options["sleep"], 1))

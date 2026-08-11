@@ -41,5 +41,8 @@ def ensure_document_access(*, actor, document: GeneratedDocument) -> None:
     membership = _membership(actor=actor, organization=document.organization)
     if not has_capability(membership, "documents.view"):
         raise DocumentDomainError("Documento não autorizado.")
-    if membership.role == OrganizationMembership.Role.THERAPIST and document.professional_id != actor.id:
+    if (
+        membership.role == OrganizationMembership.Role.THERAPIST
+        and document.professional_id != actor.id
+    ):
         raise DocumentDomainError("Documento pertence a outro profissional.")

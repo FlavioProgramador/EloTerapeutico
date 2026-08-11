@@ -59,7 +59,8 @@ class TelemedicineRoomSerializer(serializers.ModelSerializer):
             (
                 item
                 for item in obj.invitations.all()
-                if item.role == TelemedicineInvitation.Role.PATIENT and item.revoked_at is None
+                if item.role == TelemedicineInvitation.Role.PATIENT
+                and item.revoked_at is None
             ),
             None,
         )

@@ -88,8 +88,13 @@ class TreatmentGoal(ClinicalTenantModel):
     def clean(self):
         super().clean()
         for evolution in self.evolutions.all() if self.pk else []:
-            if evolution.organization_id != self.organization_id or evolution.patient_id != self.patient_id:
-                raise ValidationError({"evolutions": "A evolução pertence a outro paciente ou organização."})
+            if (
+                evolution.organization_id != self.organization_id
+                or evolution.patient_id != self.patient_id
+            ):
+                raise ValidationError(
+                    {"evolutions": "A evolução pertence a outro paciente ou organização."}
+                )
 
     def archive(self):
         self.status = self.Status.ARCHIVED

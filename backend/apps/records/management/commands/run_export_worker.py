@@ -68,7 +68,11 @@ class Command(BaseCommand):
                 else:
                     time.sleep(2)
             except Exception as exc:
-                self.stdout.write(self.style.ERROR(f"Erro no loop do worker ({exc.__class__.__name__})."))
+                self.stdout.write(
+                    self.style.ERROR(
+                        f"Erro no loop do worker ({exc.__class__.__name__})."
+                    )
+                )
                 time.sleep(5)
 
         self.stdout.write(self.style.SUCCESS(f"Worker {self.worker_id} encerrado de forma graciosa."))
@@ -144,7 +148,9 @@ class Command(BaseCommand):
 
             created_by = job.created_by
             if not has_explicit_records_permission(created_by, "view_confidential_evolution"):
-                evolutions = evolutions.filter(models.Q(is_confidential=False) | models.Q(created_by=created_by))
+                evolutions = evolutions.filter(
+                    models.Q(is_confidential=False) | models.Q(created_by=created_by)
+                )
 
             sections = []
             for evolution in evolutions:
@@ -198,11 +204,17 @@ class Command(BaseCommand):
             job.error_message = ""
             job.save()
             self.stdout.write(
-                self.style.SUCCESS(f"Job #{job.id} concluído com sucesso. Tamanho: {job.size_bytes} bytes.")
+                self.style.SUCCESS(
+                    f"Job #{job.id} concluído com sucesso. Tamanho: {job.size_bytes} bytes."
+                )
             )
 
         except Exception as exc:
-            self.stdout.write(self.style.ERROR(f"Erro ao processar job #{job.id} ({exc.__class__.__name__})."))
+            self.stdout.write(
+                self.style.ERROR(
+                    f"Erro ao processar job #{job.id} ({exc.__class__.__name__})."
+                )
+            )
             job.retries += 1
             if job.retries < 3:
                 job.status = ClinicalExport.Status.PENDING

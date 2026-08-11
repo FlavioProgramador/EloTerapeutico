@@ -24,14 +24,23 @@ class EmailProvider(CommunicationProvider):
 
     def _sender(self, owner) -> str:
         metadata = self._metadata()
-        sender_email = str(metadata.get("sender_email") or getattr(settings, "DEFAULT_FROM_EMAIL", "")).strip()
+        sender_email = str(
+            metadata.get("sender_email") or getattr(settings, "DEFAULT_FROM_EMAIL", "")
+        ).strip()
         if not sender_email:
             raise ProviderNotConfigured("Remetente de e-mail não configurado.")
-        sender_name = str(metadata.get("sender_name") or getattr(owner, "clinic_name", "") or "Elo Terapêutico").strip()
+        sender_name = str(
+            metadata.get("sender_name")
+            or getattr(owner, "clinic_name", "")
+            or "Elo Terapêutico"
+        ).strip()
         return formataddr((sender_name, sender_email))
 
     def _reply_to(self) -> list[str] | None:
-        reply_to = str(self._metadata().get("reply_to") or getattr(settings, "COMMUNICATIONS_REPLY_TO", "")).strip()
+        reply_to = str(
+            self._metadata().get("reply_to")
+            or getattr(settings, "COMMUNICATIONS_REPLY_TO", "")
+        ).strip()
         return [reply_to] if reply_to else None
 
     def _connection(self):
@@ -43,7 +52,9 @@ class EmailProvider(CommunicationProvider):
         try:
             connection.open()
         except Exception as exc:
-            raise RetryableProviderError("Não foi possível abrir a conexão de e-mail.") from exc
+            raise RetryableProviderError(
+                "Não foi possível abrir a conexão de e-mail."
+            ) from exc
         finally:
             connection.close()
 
@@ -126,7 +137,9 @@ class SMTPEmailProvider(EmailProvider):
         if any(value in (None, "") for value in required.values()):
             raise ProviderNotConfigured("Configuração SMTP incompleta.")
         if metadata.get("use_tls") and metadata.get("use_ssl"):
-            raise ProviderNotConfigured("TLS e SSL não podem ser ativados simultaneamente.")
+            raise ProviderNotConfigured(
+                "TLS e SSL não podem ser ativados simultaneamente."
+            )
         connection = self._connection()
         try:
             opened = connection.open()
@@ -135,6 +148,8 @@ class SMTPEmailProvider(EmailProvider):
         except ProviderError:
             raise
         except Exception as exc:
-            raise RetryableProviderError("Não foi possível autenticar no servidor SMTP.") from exc
+            raise RetryableProviderError(
+                "Não foi possível autenticar no servidor SMTP."
+            ) from exc
         finally:
             connection.close()

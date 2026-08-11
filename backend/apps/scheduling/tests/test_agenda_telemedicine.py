@@ -160,13 +160,10 @@ def test_invitation_persists_only_hash_and_regeneration_revokes_previous():
     assert second_token not in second.token_hash
     assert "#token=" in first_url
     assert "#token=" in second_url
-    assert (
-        TelemedicineInvitation.objects.filter(
-            room=room,
-            revoked_at__isnull=True,
-        ).count()
-        == 1
-    )
+    assert TelemedicineInvitation.objects.filter(
+        room=room,
+        revoked_at__isnull=True,
+    ).count() == 1
 
 
 def test_patient_requires_versioned_consent_before_ephemeral_credentials():
@@ -195,7 +192,9 @@ def test_patient_requires_versioned_consent_before_ephemeral_credentials():
     assert credentials["recording_enabled"] is False
     assert credentials["e2ee_enabled"] is True
     assert credentials["e2ee_key"]
-    assert not TelemedicineInvitation.objects.filter(token_hash=credentials["token"]).exists()
+    assert not TelemedicineInvitation.objects.filter(
+        token_hash=credentials["token"]
+    ).exists()
 
 
 def test_e2ee_key_is_encrypted_at_rest():
@@ -327,12 +326,9 @@ def test_fake_webhook_is_idempotent_and_tracks_presence():
     assert second_processed is False
     assert first_event.pk == second_event.pk
     assert TelemedicineWebhookEvent.objects.count() == 1
-    assert (
-        TelemedicineParticipantSession.objects.filter(
-            room=room,
-            role=TelemedicineParticipantSession.Role.PATIENT,
-            left_at__isnull=True,
-        ).count()
-        == 1
-    )
+    assert TelemedicineParticipantSession.objects.filter(
+        room=room,
+        role=TelemedicineParticipantSession.Role.PATIENT,
+        left_at__isnull=True,
+    ).count() == 1
     assert TelemedicineConsent.objects.filter(room=room).count() == 1

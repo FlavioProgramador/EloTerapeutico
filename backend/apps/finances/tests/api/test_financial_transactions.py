@@ -143,12 +143,7 @@ def test_create_transaction_therapist_override(auth_client, other_therapist):
 def test_create_transaction_other_patient_validation(auth_client, patient_of_other_therapist):
     response = auth_client.post(
         reverse("transaction-list"),
-        {
-            "transaction_type": "income",
-            "category": "session",
-            "amount": "120.00",
-            "patient": patient_of_other_therapist.id,
-        },
+        {"transaction_type": "income", "category": "session", "amount": "120.00", "patient": patient_of_other_therapist.id},
         format="json",
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -159,12 +154,7 @@ def test_create_transaction_other_patient_validation(auth_client, patient_of_oth
 def test_create_transaction_other_appointment_validation(auth_client, appointment_of_other_therapist):
     response = auth_client.post(
         reverse("transaction-list"),
-        {
-            "transaction_type": "income",
-            "category": "session",
-            "amount": "120.00",
-            "appointment": appointment_of_other_therapist.id,
-        },
+        {"transaction_type": "income", "category": "session", "amount": "120.00", "appointment": appointment_of_other_therapist.id},
         format="json",
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -180,9 +170,7 @@ def test_transaction_pay_flow(auth_client, therapist_user):
         payment_status=FinancialTransaction.PaymentStatus.PENDING,
         due_date=date.today(),
     )
-    response = auth_client.patch(
-        reverse("transaction-mark-as-paid", args=[tx.id]), {"payment_method": "credit_card"}, format="json"
-    )
+    response = auth_client.patch(reverse("transaction-mark-as-paid", args=[tx.id]), {"payment_method": "credit_card"}, format="json")
     assert response.status_code == status.HTTP_200_OK
     assert response.data["payment_status"] == "paid"
     assert response.data["payment_method"] == "credit_card"
@@ -257,12 +245,8 @@ def test_transaction_refund_invalid_state(auth_client, therapist_user):
 
 @pytest.mark.django_db
 def test_transaction_list_isolation(auth_client, auth_other_client, therapist_user, other_therapist):
-    FinancialTransaction.objects.create(
-        therapist=therapist_user, transaction_type="income", amount=100.00, payment_status="paid"
-    )
-    FinancialTransaction.objects.create(
-        therapist=other_therapist, transaction_type="expense", amount=200.00, payment_status="paid"
-    )
+    FinancialTransaction.objects.create(therapist=therapist_user, transaction_type="income", amount=100.00, payment_status="paid")
+    FinancialTransaction.objects.create(therapist=other_therapist, transaction_type="expense", amount=200.00, payment_status="paid")
     res1 = auth_client.get(reverse("transaction-list"))
     results1 = res1.data.get("results", res1.data)
     assert len(results1) == 1 and results1[0]["amount"] == "100.00"
@@ -273,9 +257,7 @@ def test_transaction_list_isolation(auth_client, auth_other_client, therapist_us
 
 @pytest.mark.django_db
 def test_transaction_detail_isolation(auth_client, other_therapist):
-    tx = FinancialTransaction.objects.create(
-        therapist=other_therapist, transaction_type="income", amount=100.00, payment_status="paid"
-    )
+    tx = FinancialTransaction.objects.create(therapist=other_therapist, transaction_type="income", amount=100.00, payment_status="paid")
     assert auth_client.get(reverse("transaction-detail", args=[tx.id])).status_code == 404
 
 
@@ -298,9 +280,7 @@ def test_export_csv_success(auth_client, therapist_user):
 
 
 @pytest.mark.django_db
-def test_unbilled_appointments_listing(
-    auth_client, therapist_user, patient_of_therapist, other_therapist, patient_of_other_therapist
-):
+def test_unbilled_appointments_listing(auth_client, therapist_user, patient_of_therapist, other_therapist, patient_of_other_therapist):
     now = timezone.now()
     appt1 = Appointment.objects.create(
         therapist=therapist_user,
@@ -318,9 +298,7 @@ def test_unbilled_appointments_listing(
         status=Appointment.Status.CONFIRMED,
         session_value=120.00,
     )
-    FinancialTransaction.objects.create(
-        therapist=therapist_user, appointment=appt2, amount=120.00, payment_status="paid"
-    )
+    FinancialTransaction.objects.create(therapist=therapist_user, appointment=appt2, amount=120.00, payment_status="paid")
     Appointment.objects.create(
         therapist=other_therapist,
         patient=patient_of_other_therapist,
@@ -352,14 +330,10 @@ def test_unbilled_appointments_isolation_and_roles(
     now = timezone.now()
 
     # Get the default organization generated for therapist_user
-    org_default = (
-        OrganizationMembership.objects.filter(
-            user=therapist_user,
-            status=OrganizationMembership.Status.ACTIVE,
-        )
-        .first()
-        .organization
-    )
+    org_default = OrganizationMembership.objects.filter(
+        user=therapist_user,
+        status=OrganizationMembership.Status.ACTIVE,
+    ).first().organization
 
     # Add other_therapist as a therapist in the same default organization safely
     OrganizationMembership.objects.update_or_create(
@@ -369,7 +343,7 @@ def test_unbilled_appointments_isolation_and_roles(
             "role": OrganizationMembership.Role.THERAPIST,
             "status": OrganizationMembership.Status.ACTIVE,
             "is_default": True,
-        },
+        }
     )
 
     # Add admin_user as an admin in the same default organization safely
@@ -380,7 +354,7 @@ def test_unbilled_appointments_isolation_and_roles(
             "role": OrganizationMembership.Role.ADMIN,
             "status": OrganizationMembership.Status.ACTIVE,
             "is_default": True,
-        },
+        }
     )
 
     # 1. Unauthenticated request is rejected

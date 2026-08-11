@@ -145,7 +145,10 @@ def _normalize_api_details(value):
     """Converte ErrorDetail e estruturas DRF em dados JSON simples e seguros."""
 
     if isinstance(value, Mapping):
-        return {str(key): _normalize_api_details(item) for key, item in value.items()}
+        return {
+            str(key): _normalize_api_details(item)
+            for key, item in value.items()
+        }
     if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
         return [_normalize_api_details(item) for item in value]
     if value is None or isinstance(value, (bool, int, float)):
@@ -181,7 +184,10 @@ def _validation_error_details(exc: ValidationError) -> dict | None:
 
     message_dict = getattr(exc, "message_dict", None)
     if message_dict:
-        return {str(field): [str(message) for message in messages] for field, messages in message_dict.items()}
+        return {
+            str(field): [str(message) for message in messages]
+            for field, messages in message_dict.items()
+        }
     return None
 
 

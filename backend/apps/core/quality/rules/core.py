@@ -20,7 +20,9 @@ DOMAIN_APPS = (
     "records",
     "reports",
 )
-DOMAIN_IMPORT_PATTERN = re.compile(rf"(?m)^\s*(?:from|import)\s+apps\.({'|'.join(DOMAIN_APPS)})(?:\.|\s|$)")
+DOMAIN_IMPORT_PATTERN = re.compile(
+    rf"(?m)^\s*(?:from|import)\s+apps\.({'|'.join(DOMAIN_APPS)})(?:\.|\s|$)"
+)
 
 
 def _relative(path: Path) -> str:
@@ -91,7 +93,8 @@ def _validate_core_dependency_direction(errors: list[str]) -> None:
         source = path.read_text(encoding="utf-8")
         if DOMAIN_IMPORT_PATTERN.search(source):
             errors.append(
-                "Core importa app de domínio diretamente fora da camada administrativa: " f"{_relative(path)}"
+                "Core importa app de domínio diretamente fora da camada administrativa: "
+                f"{_relative(path)}"
             )
 
 

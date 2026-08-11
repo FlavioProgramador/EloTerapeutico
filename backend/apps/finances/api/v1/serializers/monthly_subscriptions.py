@@ -56,11 +56,15 @@ class MonthlySubscriptionSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
         request = self.context.get("request")
         organization = getattr(request, "organization", None)
-        self.fields["patient"].queryset = selectable_patients_for_finance(organization=organization)
+        self.fields["patient"].queryset = selectable_patients_for_finance(
+            organization=organization
+        )
 
     def validate_payment_link(self, value):
         if value and urlparse(value).scheme != "https":
-            raise serializers.ValidationError("O link de pagamento deve utilizar HTTPS.")
+            raise serializers.ValidationError(
+                "O link de pagamento deve utilizar HTTPS."
+            )
         return value
 
     def validate(self, attrs):
@@ -73,7 +77,9 @@ class MonthlySubscriptionSerializer(serializers.ModelSerializer):
             getattr(self.instance, "end_date", None),
         )
         if first_date and end_date and end_date < first_date:
-            raise serializers.ValidationError({"end_date": "A data final deve ser posterior ao primeiro atendimento."})
+            raise serializers.ValidationError(
+                {"end_date": "A data final deve ser posterior ao primeiro atendimento."}
+            )
         return attrs
 
 

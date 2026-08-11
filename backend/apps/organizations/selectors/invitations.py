@@ -18,6 +18,6 @@ def get_invitation(*, organization, invitation_id) -> OrganizationInvitation:
 
 
 def get_invitation_by_hash(*, token_hash: str) -> OrganizationInvitation:
-    return OrganizationInvitation.objects.select_related("organization", "invited_by", "accepted_by").get(
-        token_hash=token_hash
-    )
+    return OrganizationInvitation.objects.select_related(
+        "organization", "invited_by", "accepted_by"
+    ).get(token_hash=token_hash)

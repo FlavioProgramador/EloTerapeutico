@@ -14,7 +14,9 @@ from apps.reports.services import (
     patients_report,
 )
 
-INVALID_PERIOD_RESPONSE = {"detail": "Periodo invalido. Confira a data inicial e a data final informadas."}
+INVALID_PERIOD_RESPONSE = {
+    "detail": "Periodo invalido. Confira a data inicial e a data final informadas."
+}
 
 
 class BaseReportView(APIView):

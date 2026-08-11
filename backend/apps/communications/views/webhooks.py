@@ -22,10 +22,7 @@ class CommunicationWebhookView(APIView):
     def post(self, request, provider):
         _rate_limit(f"webhook:{provider}", limit=240, window_seconds=60)
         if provider != "whatsapp" or not getattr(settings, "WHATSAPP_PROVIDER", ""):
-            return Response(
-                {"status": "disabled", "message": "Provedor não configurado."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            return Response({"status": "disabled", "message": "Provedor não configurado."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         configured_token = getattr(settings, "WHATSAPP_WEBHOOK_VERIFY_TOKEN", "")
         supplied_token = request.headers.get("X-Webhook-Token", "")
         if not configured_token or not secrets.compare_digest(configured_token, supplied_token):
@@ -39,9 +36,7 @@ class CommunicationWebhookView(APIView):
         event_fingerprint = hashlib.sha256(f"{provider}:{event_id}".encode()).hexdigest()
         if not cache.add(f"communications:webhook:{event_fingerprint}", True, timeout=7 * 24 * 60 * 60):
             return Response({"status": "duplicate"})
-        communication = Communication.objects.filter(
-            channel=Communication.Channel.WHATSAPP, provider_message_id=provider_message_id
-        ).first()
+        communication = Communication.objects.filter(channel=Communication.Channel.WHATSAPP, provider_message_id=provider_message_id).first()
         if communication is None:
             return Response({"status": "ignored"})
         now = timezone.now()

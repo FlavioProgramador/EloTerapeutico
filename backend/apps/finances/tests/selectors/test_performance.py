@@ -21,28 +21,10 @@ def perf_context(db):
     client = APIClient()
     client.force_authenticate(user)
     common = {"therapist": user, "due_date": date(2026, 7, 10)}
-    FinancialTransaction.objects.create(
-        **common,
-        transaction_type="income",
-        amount=Decimal("1000.00"),
-        paid_amount=Decimal("1000.00"),
-        payment_status="paid",
-        paid_at="2026-07-05T12:00:00Z",
-    )
-    FinancialTransaction.objects.create(
-        **common, transaction_type="income", amount=Decimal("500.00"), payment_status="pending"
-    )
-    FinancialTransaction.objects.create(
-        **common, transaction_type="expense", amount=Decimal("200.00"), payment_status="pending"
-    )
-    FinancialTransaction.objects.create(
-        **common,
-        transaction_type="expense",
-        amount=Decimal("300.00"),
-        paid_amount=Decimal("300.00"),
-        payment_status="paid",
-        paid_at="2026-07-06T12:00:00Z",
-    )
+    FinancialTransaction.objects.create(**common, transaction_type="income", amount=Decimal("1000.00"), paid_amount=Decimal("1000.00"), payment_status="paid", paid_at="2026-07-05T12:00:00Z")
+    FinancialTransaction.objects.create(**common, transaction_type="income", amount=Decimal("500.00"), payment_status="pending")
+    FinancialTransaction.objects.create(**common, transaction_type="expense", amount=Decimal("200.00"), payment_status="pending")
+    FinancialTransaction.objects.create(**common, transaction_type="expense", amount=Decimal("300.00"), paid_amount=Decimal("300.00"), payment_status="paid", paid_at="2026-07-06T12:00:00Z")
     return client, user
 
 

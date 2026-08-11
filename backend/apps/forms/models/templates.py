@@ -70,9 +70,13 @@ class FormTemplate(models.Model):
     def clean(self):
         super().clean()
         if self.is_system_template and self.organization_id:
-            raise ValidationError("Templates do sistema não podem pertencer a uma organização.")
+            raise ValidationError(
+                "Templates do sistema não podem pertencer a uma organização."
+            )
         if not self.is_system_template and not self.organization_id:
-            raise ValidationError("Templates personalizados exigem uma organização.")
+            raise ValidationError(
+                "Templates personalizados exigem uma organização."
+            )
 
     def __str__(self) -> str:
         return self.name

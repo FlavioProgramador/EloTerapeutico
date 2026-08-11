@@ -31,8 +31,13 @@ def enqueue_document_communications(sender, instance, created, **kwargs):
     def dispatch_event():
         source_id = str(instance.pk)
         version = instance.updated_at.isoformat() if instance.updated_at else "1"
-        became_available = instance.status == GeneratedDocument.Status.COMPLETED and (
-            created or not previous or previous["status"] != GeneratedDocument.Status.COMPLETED
+        became_available = (
+            instance.status == GeneratedDocument.Status.COMPLETED
+            and (
+                created
+                or not previous
+                or previous["status"] != GeneratedDocument.Status.COMPLETED
+            )
         )
         if became_available and has_active_automation(
             instance.owner,
@@ -56,7 +61,11 @@ def enqueue_document_communications(sender, instance, created, **kwargs):
                 },
                 event_version=version,
             )
-        if previous and previous["signed_at"] is None and instance.signed_at is not None:
+        if (
+            previous
+            and previous["signed_at"] is None
+            and instance.signed_at is not None
+        ):
             cancel_pending_for_source(
                 owner=instance.owner,
                 source_event_prefix="document.",

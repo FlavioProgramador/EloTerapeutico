@@ -32,7 +32,9 @@ def sync_telemedicine_for_appointment(
 ) -> TelemedicineRoom | None:
     """Mantém uma única sala coerente com modalidade, horário e status."""
 
-    appointment = Appointment.objects.select_related("organization").get(pk=appointment.pk)
+    appointment = Appointment.objects.select_related("organization").get(
+        pk=appointment.pk
+    )
     online = appointment.modality in {
         Appointment.Modality.ONLINE,
         Appointment.Modality.HYBRID,
@@ -42,7 +44,11 @@ def sync_telemedicine_for_appointment(
         Appointment.Status.CONFIRMED,
         Appointment.Status.RESCHEDULED,
     }
-    room = TelemedicineRoom.objects.select_for_update().filter(appointment=appointment).first()
+    room = (
+        TelemedicineRoom.objects.select_for_update()
+        .filter(appointment=appointment)
+        .first()
+    )
 
     if online and active:
         expires_at = appointment.end_time + timedelta(hours=2)
@@ -75,7 +81,11 @@ def sync_telemedicine_for_appointment(
             room.last_participant_left_at = None
             room.closed_by = None
             room.failure_code = ""
-            transaction.on_commit(lambda room_name=old_provider_room: _close_provider_room_safely(room_name))
+            transaction.on_commit(
+                lambda room_name=old_provider_room: _close_provider_room_safely(
+                    room_name
+                )
+            )
         room.save()
         return room
 
@@ -96,5 +106,7 @@ def sync_telemedicine_for_appointment(
         )
     else:
         room.revoke(actor=actor, status=TelemedicineRoom.Status.CANCELLED)
-    transaction.on_commit(lambda room_name=provider_room_name: _close_provider_room_safely(room_name))
+    transaction.on_commit(
+        lambda room_name=provider_room_name: _close_provider_room_safely(room_name)
+    )
     return room

@@ -40,9 +40,13 @@ def _ensure_finance_access(*, actor, organization, current=None):
 def _resolve_therapist(*, actor, patient, current=None):
     therapist = actor if actor.is_therapist else patient.therapist
     if current is not None and current.therapist_id != therapist.pk:
-        raise FinancialOwnershipError("A mensalidade não pertence ao profissional autenticado.")
+        raise FinancialOwnershipError(
+            "A mensalidade não pertence ao profissional autenticado."
+        )
     if patient.therapist_id != therapist.pk:
-        raise FinancialOwnershipError({"patient": "Este paciente não pertence ao profissional informado."})
+        raise FinancialOwnershipError(
+            {"patient": "Este paciente não pertence ao profissional informado."}
+        )
     return therapist
 
 
@@ -75,7 +79,9 @@ def create_monthly_subscription(*, actor, validated_data: dict, organization=Non
     organization = organization or patient.organization
     _ensure_finance_access(actor=actor, organization=organization)
     if patient.organization_id != organization.pk:
-        raise FinancialOwnershipError({"patient": "Este paciente pertence a outra organização."})
+        raise FinancialOwnershipError(
+            {"patient": "Este paciente pertence a outra organização."}
+        )
     therapist = _resolve_therapist(actor=actor, patient=patient)
     data.pop("organization", None)
     data["organization"] = organization
@@ -97,14 +103,10 @@ def update_monthly_subscription(
     validated_data: dict,
     organization=None,
 ):
-    current = (
-        MonthlySubscription.objects.select_for_update()
-        .select_related(
-            "organization",
-            "patient",
-        )
-        .get(pk=monthly_subscription.pk)
-    )
+    current = MonthlySubscription.objects.select_for_update().select_related(
+        "organization",
+        "patient",
+    ).get(pk=monthly_subscription.pk)
     organization = organization or current.organization
     _ensure_finance_access(
         actor=actor,
@@ -116,7 +118,9 @@ def update_monthly_subscription(
     data = dict(validated_data)
     patient = data.get("patient", current.patient)
     if patient.organization_id != organization.pk:
-        raise FinancialOwnershipError({"patient": "Este paciente pertence a outra organização."})
+        raise FinancialOwnershipError(
+            {"patient": "Este paciente pertence a outra organização."}
+        )
     _resolve_therapist(actor=actor, patient=patient, current=current)
     data.pop("organization", None)
     data.pop("therapist", None)
@@ -135,14 +139,10 @@ def change_monthly_subscription_status(
     target_status: str,
     organization=None,
 ):
-    current = (
-        MonthlySubscription.objects.select_for_update()
-        .select_related(
-            "organization",
-            "patient",
-        )
-        .get(pk=monthly_subscription.pk)
-    )
+    current = MonthlySubscription.objects.select_for_update().select_related(
+        "organization",
+        "patient",
+    ).get(pk=monthly_subscription.pk)
     organization = organization or current.organization
     _ensure_finance_access(
         actor=actor,
@@ -162,7 +162,9 @@ def change_monthly_subscription_status(
 
 @transaction.atomic
 def advance_next_billing_date(*, monthly_subscription):
-    current = MonthlySubscription.objects.select_for_update().get(pk=monthly_subscription.pk)
+    current = MonthlySubscription.objects.select_for_update().get(
+        pk=monthly_subscription.pk
+    )
     current.next_billing_date = current.next_billing_date_after()
     current.save(update_fields=["next_billing_date", "updated_at"])
     return current

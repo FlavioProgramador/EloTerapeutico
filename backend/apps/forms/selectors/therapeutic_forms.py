@@ -70,10 +70,14 @@ def _apply_filters(queryset, params):
     ordering = params.get("ordering", "-updated_at")
     if search:
         queryset = queryset.filter(
-            Q(name__icontains=search) | Q(description__icontains=search) | Q(category__icontains=search)
+            Q(name__icontains=search)
+            | Q(description__icontains=search)
+            | Q(category__icontains=search)
         )
     if status_filter:
         queryset = queryset.filter(status=status_filter)
     if category:
         queryset = queryset.filter(category=category)
-    return queryset.order_by(ordering if ordering in ALLOWED_ORDERING else "-updated_at")
+    return queryset.order_by(
+        ordering if ordering in ALLOWED_ORDERING else "-updated_at"
+    )

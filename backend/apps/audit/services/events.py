@@ -105,9 +105,7 @@ def _default_policy() -> AuditWritePolicy:
     )
 
 
-def _handle_write_failure(
-    *, action: str, source: str, request_id: str | None, policy: AuditWritePolicy, exc: Exception
-):
+def _handle_write_failure(*, action: str, source: str, request_id: str | None, policy: AuditWritePolicy, exc: Exception):
     logger.error(
         "audit_log_write_failed",
         extra={

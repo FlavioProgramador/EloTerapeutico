@@ -78,20 +78,17 @@ def transactions_accessible_to(user, *, organization=None, membership=None):
         role=OrganizationMembership.Role.THERAPIST,
     ).values_list("organization_id", flat=True)
     return queryset.filter(
-        Q(organization_id__in=full_scope_orgs) | Q(organization_id__in=therapist_orgs, therapist=user)
+        Q(organization_id__in=full_scope_orgs)
+        | Q(organization_id__in=therapist_orgs, therapist=user)
     )
 
 
 def transaction_for_user(*, user, transaction_id, organization=None, membership=None):
-    return (
-        transactions_accessible_to(
-            user,
-            organization=organization,
-            membership=membership,
-        )
-        .filter(pk=transaction_id)
-        .first()
-    )
+    return transactions_accessible_to(
+        user,
+        organization=organization,
+        membership=membership,
+    ).filter(pk=transaction_id).first()
 
 
 def transactions_for_owner(*, owner, organization=None):
@@ -104,7 +101,9 @@ def transactions_for_owner(*, owner, organization=None):
 
 def transactions_for_owner_period(*, owner, start: date, end: date, organization=None):
     return transactions_for_owner(owner=owner, organization=organization).filter(
-        Q(due_date__range=(start, end)) | Q(paid_at__date__range=(start, end)) | Q(created_at__date__range=(start, end))
+        Q(due_date__range=(start, end))
+        | Q(paid_at__date__range=(start, end))
+        | Q(created_at__date__range=(start, end))
     )
 
 

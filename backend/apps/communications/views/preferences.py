@@ -34,7 +34,9 @@ class CommunicationPreferenceListView(CommunicationPreferenceMixin, APIView):
         queryset = CommunicationPreference.objects.filter(
             organization=self.get_organization(request),
         ).select_related("organization", "patient", "owner")
-        return Response(CommunicationPreferenceSerializer(queryset, many=True).data)
+        return Response(
+            CommunicationPreferenceSerializer(queryset, many=True).data
+        )
 
 
 class PatientCommunicationPreferenceView(CommunicationPreferenceMixin, APIView):
@@ -53,7 +55,11 @@ class PatientCommunicationPreferenceView(CommunicationPreferenceMixin, APIView):
         )
 
     def get(self, request, patient_id):
-        return Response(CommunicationPreferenceSerializer(self.get_preference(request, patient_id)).data)
+        return Response(
+            CommunicationPreferenceSerializer(
+                self.get_preference(request, patient_id)
+            ).data
+        )
 
     def patch(self, request, patient_id):
         preference = self.get_preference(request, patient_id)

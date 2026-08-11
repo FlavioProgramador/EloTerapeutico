@@ -66,17 +66,7 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
         ),
         (
             "Configurações de agenda",
-            {
-                "fields": (
-                    "default_session_duration",
-                    "default_session_value",
-                    "default_modality",
-                    "timezone",
-                    "language",
-                    "date_format",
-                    "time_format",
-                )
-            },
+            {"fields": ("default_session_duration", "default_session_value", "default_modality", "timezone", "language", "date_format", "time_format")},
         ),
         (
             "Ciclo de vida da conta",

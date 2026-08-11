@@ -16,8 +16,7 @@ def _relative(path: Path) -> str:
 
 def _validate_required_paths(errors: list[str]) -> None:
     required = [
-        FINANCES / "README.md",
-        FINANCES / "apps.py",
+        FINANCES / "README.md", FINANCES / "apps.py",
         FINANCES / "admin" / "financial_transactions.py",
         FINANCES / "admin" / "monthly_subscriptions.py",
         FINANCES / "api" / "v1" / "urls.py",
@@ -53,7 +52,9 @@ def _validate_root(errors: list[str]) -> None:
     root_files = {path.name for path in FINANCES.iterdir() if path.is_file()}
     allowed = {"README.md", "__init__.py", "apps.py"}
     if root_files != allowed:
-        errors.append(f"Raiz de finances deve conter apenas {sorted(allowed)}; encontrado {sorted(root_files)}")
+        errors.append(
+            f"Raiz de finances deve conter apenas {sorted(allowed)}; encontrado {sorted(root_files)}"
+        )
 
 
 def _validate_removed_legacy(errors: list[str]) -> None:

@@ -47,7 +47,9 @@ def enqueue_appointment_communications(sender, instance, created, **kwargs):
             "appointment.rescheduled",
         )
         canceled = bool(
-            previous and previous["status"] != instance.status and instance.status == Appointment.Status.CANCELLED
+            previous
+            and previous["status"] != instance.status
+            and instance.status == Appointment.Status.CANCELLED
         )
         canceled_event = canceled and has_active_automation(
             instance.therapist,

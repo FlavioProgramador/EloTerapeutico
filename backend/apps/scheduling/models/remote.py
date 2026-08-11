@@ -111,7 +111,9 @@ class TelemedicineRoom(models.Model):
     @property
     def is_accessible(self) -> bool:
         return bool(
-            not self.revoked_at and self.expires_at > timezone.now() and self.status not in self.TERMINAL_STATUSES
+            not self.revoked_at
+            and self.expires_at > timezone.now()
+            and self.status not in self.TERMINAL_STATUSES
         )
 
     def transition_to(self, new_status: str, *, save: bool = True) -> None:
@@ -121,7 +123,9 @@ class TelemedicineRoom(models.Model):
         target_status = self.Status(new_status)
         allowed = self.ALLOWED_TRANSITIONS.get(current_status, set())
         if target_status not in allowed:
-            raise ValidationError({"status": f"Transição inválida de {self.status} para {new_status}."})
+            raise ValidationError(
+                {"status": f"Transição inválida de {self.status} para {new_status}."}
+            )
         self.status = target_status
         if target_status == self.Status.IN_PROGRESS and not self.started_at:
             self.started_at = timezone.now()
@@ -193,7 +197,11 @@ class TelemedicineInvitation(models.Model):
 
     @property
     def is_valid(self) -> bool:
-        return bool(not self.revoked_at and self.expires_at > timezone.now() and self.room.is_accessible)
+        return bool(
+            not self.revoked_at
+            and self.expires_at > timezone.now()
+            and self.room.is_accessible
+        )
 
     def clean(self):
         super().clean()

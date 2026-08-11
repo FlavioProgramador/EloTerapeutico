@@ -64,7 +64,9 @@ def _resolve_organization(
 def _ensure_same_organization(organization, **relations):
     for field_name, relation in relations.items():
         if relation is not None and relation.organization_id != organization.pk:
-            raise ValidationError({field_name: "O recurso pertence a outra organização."})
+            raise ValidationError(
+                {field_name: "O recurso pertence a outra organização."}
+            )
 
 
 @transaction.atomic
@@ -157,7 +159,8 @@ def create_communication(
         if (
             config is None
             or not config.is_active
-            or config.connection_status != CommunicationChannelConfig.ConnectionStatus.CONFIGURED
+            or config.connection_status
+            != CommunicationChannelConfig.ConnectionStatus.CONFIGURED
         ):
             raise CommunicationBlocked("Este canal ainda não está configurado e ativo.")
 
@@ -191,7 +194,11 @@ def create_communication(
     status = (
         Communication.Status.DRAFT
         if draft
-        else (Communication.Status.SCHEDULED if scheduled_at else Communication.Status.QUEUED)
+        else (
+            Communication.Status.SCHEDULED
+            if scheduled_at
+            else Communication.Status.QUEUED
+        )
     )
     try:
         with transaction.atomic():
@@ -215,7 +222,11 @@ def create_communication(
                 template_snapshot=template_snapshot,
                 variables_snapshot=safe_variables,
                 scheduled_at=scheduled_at,
-                queued_at=(timezone.now() if status == Communication.Status.QUEUED else None),
+                queued_at=(
+                    timezone.now()
+                    if status == Communication.Status.QUEUED
+                    else None
+                ),
                 idempotency_key=normalized_idempotency_key,
                 source_event=source_event[:80],
                 source_object_type=source_object_type[:80],
@@ -329,7 +340,9 @@ def mark_manually_sent(communication):
         **communication.metadata,
         "manual_confirmed_at": now.isoformat(),
     }
-    communication.save(update_fields=["status", "sent_at", "metadata", "updated_at"])
+    communication.save(
+        update_fields=["status", "sent_at", "metadata", "updated_at"]
+    )
     communication.recipients.update(status=CommunicationRecipient.Status.SENT)
     return communication
 

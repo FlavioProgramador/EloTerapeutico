@@ -34,7 +34,9 @@ def financial_summary(
     membership=None,
 ) -> dict:
     today = timezone.localdate()
-    period_filter = Q(due_date__range=(start_date, end_date)) | Q(paid_at__date__range=(start_date, end_date))
+    period_filter = Q(due_date__range=(start_date, end_date)) | Q(
+        paid_at__date__range=(start_date, end_date)
+    )
     queryset = (
         transactions_accessible_to(
             user,
@@ -88,11 +90,13 @@ def financial_summary(
         overdue_paid=_sum("paid_amount", overdue_filter),
         overdue_receivable_count=Count(
             "id",
-            filter=overdue_filter & Q(transaction_type=FinancialTransaction.TransactionType.INCOME),
+            filter=overdue_filter
+            & Q(transaction_type=FinancialTransaction.TransactionType.INCOME),
         ),
         overdue_payable_count=Count(
             "id",
-            filter=overdue_filter & Q(transaction_type=FinancialTransaction.TransactionType.EXPENSE),
+            filter=overdue_filter
+            & Q(transaction_type=FinancialTransaction.TransactionType.EXPENSE),
         ),
         transaction_count=Count("id"),
     )

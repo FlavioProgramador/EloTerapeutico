@@ -30,6 +30,7 @@ class EvolutionInline(TabularInline):
     edit_link.short_description = "Ação"
 
 
+
 class AppointmentInline(TabularInline):
     model = Appointment
     extra = 0

@@ -84,18 +84,16 @@ class EvolutionAdmin(ModelAdmin):
         return format_html('<span style="color:#ca8a04;font-weight:bold;">Pendente bloqueio</span>')
 
     def get_queryset(self, request):
-        queryset = (
-            super()
-            .get_queryset(request)
-            .select_related(
-                "patient",
-                "created_by",
-                "appointment",
-            )
+        queryset = super().get_queryset(request).select_related(
+            "patient",
+            "created_by",
+            "appointment",
         )
         if has_explicit_records_permission(request.user, "view_confidential_evolution"):
             return queryset
-        return queryset.filter(Q(is_confidential=False) | Q(created_by=request.user))
+        return queryset.filter(
+            Q(is_confidential=False) | Q(created_by=request.user)
+        )
 
     def has_delete_permission(self, request, obj=None):
         return False

@@ -33,7 +33,10 @@ class TenantSubscriptionJWTAuthentication(SubscriptionJWTAuthentication):
 
         user, token = authenticated
         tenant_optional = request.path.startswith(self.OPTIONAL_TENANT_PREFIXES)
-        required = bool(getattr(settings, "TENANT_ENFORCEMENT_ENABLED", False) and not tenant_optional)
+        required = bool(
+            getattr(settings, "TENANT_ENFORCEMENT_ENABLED", False)
+            and not tenant_optional
+        )
         resolve_request_organization(request=request, user=user, required=required)
         return user, token
 

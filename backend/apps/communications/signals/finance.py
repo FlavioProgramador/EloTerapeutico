@@ -28,7 +28,11 @@ def capture_financial_previous_state(sender, instance, **kwargs):
 @receiver(post_save, sender=FinancialTransaction)
 def enqueue_financial_communications(sender, instance, created, **kwargs):
     previous = getattr(instance, "_communications_previous_state", None)
-    if instance.patient_id is None or instance.transaction_type != FinancialTransaction.TransactionType.INCOME:
+    if (
+        instance.patient_id is None
+        or instance.transaction_type
+        != FinancialTransaction.TransactionType.INCOME
+    ):
         return
 
     def dispatch_event():
@@ -37,7 +41,11 @@ def enqueue_financial_communications(sender, instance, created, **kwargs):
         amount = Decimal(str(instance.amount))
         variables = {
             "payment_amount": f"R$ {amount:.2f}",
-            "payment_due_date": (instance.due_date.strftime("%d/%m/%Y") if instance.due_date else ""),
+            "payment_due_date": (
+                instance.due_date.strftime("%d/%m/%Y")
+                if instance.due_date
+                else ""
+            ),
             "payment_status": instance.get_payment_status_display(),
         }
         if created:

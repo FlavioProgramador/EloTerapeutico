@@ -130,7 +130,8 @@ class GeneratedDocument(models.Model):
 
         template = self.template if self.template_id else None
         if template is not None and (
-            not template.is_library_template and template.organization_id != self.organization_id
+            not template.is_library_template
+            and template.organization_id != self.organization_id
         ):
             raise ValidationError({"template": "O template pertence a outra organização."})
 

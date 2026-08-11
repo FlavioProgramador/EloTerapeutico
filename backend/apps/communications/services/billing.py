@@ -55,26 +55,18 @@ def enforce_communication_limit(owner, *, channel: str | None = None) -> None:
         raise CommunicationLimitExceeded()
     now = timezone.now()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    current = (
-        Communication.objects.filter(owner=owner, created_at__gte=month_start)
-        .exclude(status=Communication.Status.DRAFT)
-        .count()
-    )
+    current = Communication.objects.filter(owner=owner, created_at__gte=month_start).exclude(status=Communication.Status.DRAFT).count()
     if current >= limit:
         raise CommunicationLimitExceeded()
     if channel == Communication.Channel.EMAIL:
         entitlement = get_plan_communication_entitlement(owner)
         email_limit = entitlement.max_email_communications_per_month if entitlement else 0
         if email_limit is not None:
-            current_email = (
-                Communication.objects.filter(
-                    owner=owner,
-                    channel=Communication.Channel.EMAIL,
-                    created_at__gte=month_start,
-                )
-                .exclude(status=Communication.Status.DRAFT)
-                .count()
-            )
+            current_email = Communication.objects.filter(
+                owner=owner,
+                channel=Communication.Channel.EMAIL,
+                created_at__gte=month_start,
+            ).exclude(status=Communication.Status.DRAFT).count()
             if current_email >= email_limit:
                 raise CommunicationLimitExceeded("Você atingiu o limite de comunicações por e-mail do seu plano atual.")
 

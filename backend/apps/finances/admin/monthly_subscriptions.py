@@ -11,15 +11,8 @@ from apps.finances.services import change_monthly_subscription_status
 @admin.register(MonthlySubscription)
 class MonthlySubscriptionAdmin(ModelAdmin):
     list_display = (
-        "id",
-        "patient",
-        "therapist",
-        "status",
-        "frequency",
-        "monthly_amount",
-        "due_day",
-        "next_billing_date",
-        "updated_at",
+        "id", "patient", "therapist", "status", "frequency",
+        "monthly_amount", "due_day", "next_billing_date", "updated_at",
     )
     list_filter = (
         ("status", ChoicesDropdownFilter),

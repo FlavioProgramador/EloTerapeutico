@@ -69,7 +69,11 @@ def _locked_session_for_refresh(
     if not session_id:
         return None
 
-    session = AuthSession.objects.select_for_update().filter(public_id=session_id, user=user).first()
+    session = (
+        AuthSession.objects.select_for_update()
+        .filter(public_id=session_id, user=user)
+        .first()
+    )
     if session is None:
         raise TokenError("Sessão inválida ou revogada.")
     if not session.is_active:

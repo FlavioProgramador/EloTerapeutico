@@ -71,13 +71,17 @@ class DocumentTemplateSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         organization = getattr(request, "organization", None)
         if organization is None:
-            raise serializers.ValidationError({"organization": "Selecione uma organização."})
+            raise serializers.ValidationError(
+                {"organization": "Selecione uma organização."}
+            )
         return organization
 
     def validate_name(self, value: str) -> str:
         value = " ".join(value.split()).strip()
         if len(value) < 3:
-            raise serializers.ValidationError("Informe um nome com pelo menos 3 caracteres.")
+            raise serializers.ValidationError(
+                "Informe um nome com pelo menos 3 caracteres."
+            )
         return value
 
     def _validate_template_field(self, value: str, *, required: bool) -> str:
@@ -106,7 +110,9 @@ class DocumentTemplateSerializer(serializers.ModelSerializer):
             name=name,
             exclude_id=self.instance.pk if self.instance else None,
         ):
-            raise serializers.ValidationError({"name": "Já existe um template ativo com este nome."})
+            raise serializers.ValidationError(
+                {"name": "Já existe um template ativo com este nome."}
+            )
         return attrs
 
     def create(self, validated_data):

@@ -34,7 +34,10 @@ def _ensure_form_access(*, actor, form, organization=None):
     )
     if form.organization_id != membership.organization_id:
         raise PermissionDenied("O formulário pertence a outra organização.")
-    if membership.role == OrganizationMembership.Role.THERAPIST and form.owner_id != actor.pk:
+    if (
+        membership.role == OrganizationMembership.Role.THERAPIST
+        and form.owner_id != actor.pk
+    ):
         raise PermissionDenied("O formulário pertence a outro profissional.")
     return membership
 
@@ -85,15 +88,11 @@ def update_form(
     validated_data: dict,
     organization=None,
 ) -> TherapeuticForm:
-    form = (
-        TherapeuticForm.objects.select_for_update()
-        .select_related(
-            "organization",
-            "owner",
-            "source_template",
-        )
-        .get(pk=form.pk)
-    )
+    form = TherapeuticForm.objects.select_for_update().select_related(
+        "organization",
+        "owner",
+        "source_template",
+    ).get(pk=form.pk)
     _ensure_form_access(actor=actor, form=form, organization=organization)
     fields = validated_data.pop("fields", None)
     for attr, value in validated_data.items():

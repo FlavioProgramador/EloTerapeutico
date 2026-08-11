@@ -34,7 +34,9 @@ class MonthlySubscriptionActionsMixin:
                 organization=organization,
                 status=request.query_params.get("status"),
             )
-            return Response(MonthlySubscriptionSerializer(queryset, many=True).data)
+            return Response(
+                MonthlySubscriptionSerializer(queryset, many=True).data
+            )
         serializer = MonthlySubscriptionSerializer(
             data=request.data,
             context={"request": request},

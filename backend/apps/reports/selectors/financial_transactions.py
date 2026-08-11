@@ -13,7 +13,9 @@ from apps.scheduling.models import PatientPackage
 
 def _period_filter(start, end):
     return (
-        Q(due_date__range=(start, end)) | Q(paid_at__date__range=(start, end)) | Q(created_at__date__range=(start, end))
+        Q(due_date__range=(start, end))
+        | Q(paid_at__date__range=(start, end))
+        | Q(created_at__date__range=(start, end))
     )
 
 

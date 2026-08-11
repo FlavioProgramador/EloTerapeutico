@@ -24,7 +24,10 @@ class SchedulingAccessPermission(IsAuthenticated):
             organization_id = obj.appointment.organization_id
         if organization_id is None and hasattr(obj, "package"):
             organization_id = obj.package.organization_id
-        if membership.status != OrganizationMembership.Status.ACTIVE or organization_id != membership.organization_id:
+        if (
+            membership.status != OrganizationMembership.Status.ACTIVE
+            or organization_id != membership.organization_id
+        ):
             return False
         if membership.role != OrganizationMembership.Role.THERAPIST:
             return True

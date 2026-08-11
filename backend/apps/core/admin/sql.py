@@ -123,7 +123,11 @@ def _token_matches(token: Any, token_type: Any) -> bool:
 
 def _allowed_tables() -> frozenset[str]:
     configured = getattr(settings, "ADMIN_SQL_EXPLORER_ALLOWED_TABLES", [])
-    return frozenset(str(table).strip().strip('"').lower() for table in configured if str(table).strip())
+    return frozenset(
+        str(table).strip().strip('"').lower()
+        for table in configured
+        if str(table).strip()
+    )
 
 
 def _permission_parts() -> tuple[str, str]:
@@ -147,7 +151,9 @@ def _has_explicit_permission(user: Any) -> bool:
         "permissions__content_type__app_label": app_label,
         "permissions__codename": codename,
     }
-    return user.user_permissions.filter(**direct_lookup).exists() or user.groups.filter(**group_lookup).exists()
+    return user.user_permissions.filter(**direct_lookup).exists() or user.groups.filter(
+        **group_lookup
+    ).exists()
 
 
 def can_use_sql_explorer(user: Any) -> bool:
@@ -215,7 +221,9 @@ def _extract_referenced_tables(statement: Statement) -> frozenset[str]:
         if isinstance(token, Parenthesis) and "SELECT" in token.value.upper():
             raise UnsafeSQLQuery("Subconsultas não são permitidas no SQL Explorer.")
 
-        normalized = token.normalized.upper() if hasattr(token, "normalized") else token.value.upper()
+        normalized = (
+            token.normalized.upper() if hasattr(token, "normalized") else token.value.upper()
+        )
         if _token_matches(token, Keyword) and normalized in _FROM_OR_JOIN_KEYWORDS:
             expecting_table = True
             continue
@@ -232,7 +240,9 @@ def _extract_referenced_tables(statement: Statement) -> frozenset[str]:
         elif isinstance(token, Identifier):
             referenced.add(_normalize_identifier(token))
         else:
-            raise UnsafeSQLQuery("Somente tabelas explícitas são permitidas após FROM ou JOIN.")
+            raise UnsafeSQLQuery(
+                "Somente tabelas explícitas são permitidas após FROM ou JOIN."
+            )
 
         expecting_table = False
 
@@ -281,7 +291,9 @@ def validate_read_only_query(query: str) -> ValidatedSQLQuery:
     allowed_tables = _allowed_tables()
     unauthorized_tables = referenced_tables - allowed_tables
     if unauthorized_tables:
-        raise UnsafeSQLQuery("A consulta referencia uma tabela não autorizada para inspeção.")
+        raise UnsafeSQLQuery(
+            "A consulta referencia uma tabela não autorizada para inspeção."
+        )
 
     return ValidatedSQLQuery(
         statement=statement,
@@ -302,7 +314,9 @@ def _configure_postgresql_read_only(cursor, timeout_ms: int) -> None:
 def execute_read_only_query(
     query: str,
 ) -> tuple[list[str], list[tuple[Any, ...]], bool]:
-    database_alias = str(getattr(settings, "ADMIN_SQL_EXPLORER_DATABASE_ALIAS", "default"))
+    database_alias = str(
+        getattr(settings, "ADMIN_SQL_EXPLORER_DATABASE_ALIAS", "default")
+    )
     max_rows = _setting_int(
         "ADMIN_SQL_EXPLORER_MAX_ROWS",
         DEFAULT_MAX_ROWS,
@@ -324,7 +338,9 @@ def execute_read_only_query(
 
             cursor.execute(query)
             if cursor.description is None:
-                raise UnsafeSQLQuery("A consulta não retornou um conjunto de leitura.")
+                raise UnsafeSQLQuery(
+                    "A consulta não retornou um conjunto de leitura."
+                )
 
             columns = [column[0] for column in cursor.description]
             fetched = list(cursor.fetchmany(max_rows + 1))
@@ -348,7 +364,9 @@ def _audit_query(
     log_access(
         request,
         AuditLog.Action.VIEW,
-        obj_repr=(f"SQL Explorer | status={status} | hash={digest} | motivo={safe_reason}"),
+        obj_repr=(
+            f"SQL Explorer | status={status} | hash={digest} | motivo={safe_reason}"
+        ),
     )
 
 
@@ -386,7 +404,9 @@ def sql_explorer_view(request: HttpRequest) -> HttpResponse:
         return render(request, "admin/sql_explorer.html", context)
 
     if len(reason) < MIN_REASON_LENGTH:
-        context["error"] = f"Informe uma justificativa com pelo menos {MIN_REASON_LENGTH} caracteres."
+        context["error"] = (
+            f"Informe uma justificativa com pelo menos {MIN_REASON_LENGTH} caracteres."
+        )
         return render(request, "admin/sql_explorer.html", context, status=400)
 
     try:
@@ -406,7 +426,9 @@ def sql_explorer_view(request: HttpRequest) -> HttpResponse:
             },
         )
         _audit_query(request, query=query, reason=reason, status="erro_banco")
-        context["error"] = "A consulta não pôde ser concluída dentro dos limites de segurança."
+        context["error"] = (
+            "A consulta não pôde ser concluída dentro dos limites de segurança."
+        )
         return render(request, "admin/sql_explorer.html", context, status=503)
     except Exception as exc:
         digest = _query_hash(query)
@@ -446,7 +468,9 @@ def sql_explorer_view(request: HttpRequest) -> HttpResponse:
 def sql_schema_view(request: HttpRequest) -> JsonResponse:
     """Retorna somente o schema das tabelas explicitamente autorizadas."""
 
-    database_alias = str(getattr(settings, "ADMIN_SQL_EXPLORER_DATABASE_ALIAS", "default"))
+    database_alias = str(
+        getattr(settings, "ADMIN_SQL_EXPLORER_DATABASE_ALIAS", "default")
+    )
     allowed_tables = _allowed_tables()
     schema: dict[str, list[str]] = {}
 

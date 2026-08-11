@@ -11,4 +11,6 @@ def test_django_validation_error_preserves_safe_field_details():
 
     assert response.status_code == 400
     assert response.data["error"]["code"] == "VALIDATION_ERROR"
-    assert response.data["error"]["details"] == {"patient": ["Paciente fora do escopo."]}
+    assert response.data["error"]["details"] == {
+        "patient": ["Paciente fora do escopo."]
+    }

@@ -31,7 +31,11 @@ def get_telemedicine_invitation_by_token(*, raw_token: str) -> TelemedicineInvit
 
 
 def get_active_telemedicine_consent(*, room: TelemedicineRoom):
-    return TelemedicineConsent.objects.filter(room=room, revoked_at__isnull=True).order_by("-accepted_at").first()
+    return (
+        TelemedicineConsent.objects.filter(room=room, revoked_at__isnull=True)
+        .order_by("-accepted_at")
+        .first()
+    )
 
 
 def get_telemedicine_room_by_provider_name(*, room_name: str):

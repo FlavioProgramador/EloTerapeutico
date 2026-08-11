@@ -53,19 +53,24 @@ def safe_resource_repr(resource=None, explicit: str = "") -> str:
         model_label = resource.__class__.__name__
     object_id = getattr(resource, "pk", None)
     suffix = f"#{object_id}" if object_id is not None else "#sem-id"
-    return clean_text(f"{model_label}{suffix}", max_length=MAX_OBJECT_REPR_LENGTH)
+    return clean_text(
+        f"{model_label}{suffix}", max_length=MAX_OBJECT_REPR_LENGTH
+    )
 
 
 def _is_sensitive_key(key: object) -> bool:
     normalized = str(key).strip().lower().replace("-", "_")
     return normalized in _SENSITIVE_KEYS or any(
-        token in normalized for token in ("password", "token", "secret", "authorization", "cookie")
+        token in normalized
+        for token in ("password", "token", "secret", "authorization", "cookie")
     )
 
 
 def _sanitize_value(value: Any, *, depth: int) -> object:
     if depth > MAX_METADATA_DEPTH:
-        raise InvalidAuditMetadataError("Metadados de auditoria excedem a profundidade permitida.")
+        raise InvalidAuditMetadataError(
+            "Metadados de auditoria excedem a profundidade permitida."
+        )
     if value is None or isinstance(value, (bool, int, float)):
         return value
     if isinstance(value, Decimal):
@@ -75,8 +80,13 @@ def _sanitize_value(value: Any, *, depth: int) -> object:
     if isinstance(value, Mapping):
         return sanitize_metadata(value, depth=depth + 1)
     if isinstance(value, Sequence) and not isinstance(value, (bytes, bytearray, str)):
-        return [_sanitize_value(item, depth=depth + 1) for item in list(value)[:MAX_METADATA_ITEMS]]
-    raise InvalidAuditMetadataError(f"Tipo de metadado não permitido: {value.__class__.__name__}.")
+        return [
+            _sanitize_value(item, depth=depth + 1)
+            for item in list(value)[:MAX_METADATA_ITEMS]
+        ]
+    raise InvalidAuditMetadataError(
+        f"Tipo de metadado não permitido: {value.__class__.__name__}."
+    )
 
 
 def sanitize_metadata(
@@ -87,7 +97,9 @@ def sanitize_metadata(
     if metadata is None:
         return {}
     if not isinstance(metadata, Mapping):
-        raise InvalidAuditMetadataError("Metadados de auditoria devem ser um mapeamento.")
+        raise InvalidAuditMetadataError(
+            "Metadados de auditoria devem ser um mapeamento."
+        )
     sanitized: dict[str, object] = {}
     for key, value in list(metadata.items())[:MAX_METADATA_ITEMS]:
         key_text = clean_text(key, max_length=80)

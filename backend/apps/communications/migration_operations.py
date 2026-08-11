@@ -55,7 +55,11 @@ class CreateModelIfNotExists(migrations.CreateModel):
             )
 
         actual_columns = {column.name for column in description}
-        expected_columns = {field.column for field in model._meta.local_fields if field.column is not None}
+        expected_columns = {
+            field.column
+            for field in model._meta.local_fields
+            if field.column is not None
+        }
         missing_columns = sorted(expected_columns - actual_columns)
         if missing_columns:
             missing = ", ".join(missing_columns)

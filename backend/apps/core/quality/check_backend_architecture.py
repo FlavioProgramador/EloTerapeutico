@@ -31,7 +31,10 @@ def main() -> None:
     validate_finances_architecture(errors)
     validate_scheduling_architecture(errors)
     if errors:
-        raise SystemExit("Falhas de arquitetura do backend:\n- " + "\n- ".join(sorted(set(errors))))
+        raise SystemExit(
+            "Falhas de arquitetura do backend:\n- "
+            + "\n- ".join(sorted(set(errors)))
+        )
     validate_existing_architecture()
 
 

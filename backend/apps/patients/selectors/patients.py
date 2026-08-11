@@ -18,4 +18,8 @@ def patients_accessible_to(
     queryset = manager.select_related("organization", "therapist")
     if not user or user.is_anonymous or organization is None or membership is None:
         return queryset.none()
-    return queryset.filter(organization=organization).filter(patient_access_q(user, membership=membership)).distinct()
+    return (
+        queryset.filter(organization=organization)
+        .filter(patient_access_q(user, membership=membership))
+        .distinct()
+    )

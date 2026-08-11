@@ -34,7 +34,10 @@ def _forwarded_ip(request) -> str | None:
     if azure_client_ip:
         return azure_client_ip
 
-    forwarded = [part.strip() for part in request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")]
+    forwarded = [
+        part.strip()
+        for part in request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")
+    ]
     valid_forwarded = [ip for ip in (_valid_ip(part) for part in forwarded) if ip]
     if not valid_forwarded:
         return None

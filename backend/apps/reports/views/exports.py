@@ -26,7 +26,9 @@ REPORT_BUILDERS = {
     "financial": financial_report,
     "online-scheduling": online_scheduling_report,
 }
-PDF_UNAVAILABLE_RESPONSE = {"detail": "Exportacao em PDF temporariamente indisponivel. Use CSV neste momento."}
+PDF_UNAVAILABLE_RESPONSE = {
+    "detail": "Exportacao em PDF temporariamente indisponivel. Use CSV neste momento."
+}
 
 
 class ReportExportView(APIView):
@@ -168,7 +170,9 @@ class ReportExportView(APIView):
             "\ufeff" + output.getvalue(),
             content_type="text/csv; charset=utf-8",
         )
-        response["Content-Disposition"] = f'attachment; filename="relatorio-{report_type}.csv"'
+        response["Content-Disposition"] = (
+            f'attachment; filename="relatorio-{report_type}.csv"'
+        )
         response["Cache-Control"] = "private, no-store, max-age=0"
         response["X-Content-Type-Options"] = "nosniff"
         return response

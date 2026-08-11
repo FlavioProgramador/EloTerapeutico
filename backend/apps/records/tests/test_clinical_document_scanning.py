@@ -100,7 +100,9 @@ def test_pending_document_cannot_be_downloaded(api_client, patient, therapist):
     document = _quarantined_document(patient, therapist)
     api_client.force_authenticate(therapist)
 
-    response = api_client.get(reverse("clinical-document-download", kwargs={"pk": document.pk}))
+    response = api_client.get(
+        reverse("clinical-document-download", kwargs={"pk": document.pk})
+    )
 
     assert response.status_code == 423
     assert response.data["error"]["code"] == "CLINICAL_DOCUMENT_NOT_RELEASED"

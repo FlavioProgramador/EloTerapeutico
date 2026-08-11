@@ -15,7 +15,10 @@ class AuditReadOnlyAdminMixin:
         user = request.user
         return bool(
             getattr(user, "is_authenticated", False)
-            and (getattr(user, "is_superuser", False) or user.has_perm("audit.view_auditlog"))
+            and (
+                getattr(user, "is_superuser", False)
+                or user.has_perm("audit.view_auditlog")
+            )
         )
 
     def has_view_permission(self, request, obj=None):

@@ -17,7 +17,9 @@ class MarkAsPaidSerializer(serializers.Serializer):
 
     def validate_paid_at(self, value):
         if value and value > timezone.now():
-            raise serializers.ValidationError("A data de pagamento não pode estar no futuro.")
+            raise serializers.ValidationError(
+                "A data de pagamento não pode estar no futuro."
+            )
         return value
 
     def validate(self, attrs):

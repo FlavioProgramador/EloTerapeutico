@@ -25,7 +25,9 @@ def get_telemedicine_operational_metrics(
     room_ids = rooms.order_by().values("pk")
     status_rows = rooms.order_by().values("status").annotate(total=Count("pk"))
 
-    participant_sessions = TelemedicineParticipantSession.objects.filter(room_id__in=room_ids)
+    participant_sessions = TelemedicineParticipantSession.objects.filter(
+        room_id__in=room_ids
+    )
     invitations = TelemedicineInvitation.objects.filter(room_id__in=room_ids)
     webhook_events = TelemedicineWebhookEvent.objects.filter(room_id__in=room_ids)
 
@@ -34,12 +36,17 @@ def get_telemedicine_operational_metrics(
         "window_hours": METRICS_WINDOW_HOURS,
         "rooms": {
             "total": rooms.count(),
-            "by_status": {row["status"]: row["total"] for row in status_rows},
+            "by_status": {
+                row["status"]: row["total"]
+                for row in status_rows
+            },
             "failed": rooms.filter(status=TelemedicineRoom.Status.FAILED).count(),
         },
         "participants": {
             "active": participant_sessions.filter(left_at__isnull=True).count(),
-            "joined_in_window": participant_sessions.filter(joined_at__gte=since).count(),
+            "joined_in_window": participant_sessions.filter(
+                joined_at__gte=since
+            ).count(),
             "aborted_in_window": participant_sessions.filter(
                 joined_at__gte=since,
                 connection_aborted=True,
@@ -54,11 +61,11 @@ def get_telemedicine_operational_metrics(
             ).count(),
         },
         "webhooks": {
-            "received_in_window": webhook_events.filter(received_at__gte=since).count(),
+            "received_in_window": webhook_events.filter(
+                received_at__gte=since
+            ).count(),
             "processing_errors_in_window": webhook_events.filter(
                 received_at__gte=since,
-            )
-            .exclude(processing_error="")
-            .count(),
+            ).exclude(processing_error="").count(),
         },
     }

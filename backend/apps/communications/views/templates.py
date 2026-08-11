@@ -42,14 +42,18 @@ class CommunicationTemplateViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(channel=self.request.query_params["channel"])
         if self.request.query_params.get("search"):
             query = self.request.query_params["search"].strip()
-            queryset = queryset.filter(Q(name__icontains=query) | Q(description__icontains=query))
+            queryset = queryset.filter(
+                Q(name__icontains=query) | Q(description__icontains=query)
+            )
         return queryset
 
     def _ensure_editable(self, template):
         _, membership = self._context()
         if template.is_system_template:
             raise ValidationError("Template do sistema não pode ser alterado.")
-        if membership.role == OrganizationMembership.Role.THERAPIST and (template.owner_id != self.request.user.pk):
+        if membership.role == OrganizationMembership.Role.THERAPIST and (
+            template.owner_id != self.request.user.pk
+        ):
             raise ValidationError("Template pertence a outro profissional.")
 
     def perform_create(self, serializer):
@@ -120,7 +124,9 @@ class CommunicationTemplateViewSet(viewsets.ModelViewSet):
         ).first()
         if template is None:
             raise ValidationError("Template não encontrado.")
-        if membership.role == OrganizationMembership.Role.THERAPIST and (template.owner_id != request.user.pk):
+        if membership.role == OrganizationMembership.Role.THERAPIST and (
+            template.owner_id != request.user.pk
+        ):
             raise ValidationError("Template pertence a outro profissional.")
         template.is_archived = False
         template.save(update_fields=["is_archived", "updated_at"])
@@ -139,7 +145,9 @@ class CommunicationTemplateViewSet(viewsets.ModelViewSet):
         variables = request.data.get("variables") or {}
         allowed = validate_template_text(subject_template, body_template)
         demo = {key: f"[Exemplo: {key}]" for key in allowed}
-        demo.update({key: str(value) for key, value in variables.items() if key in allowed})
+        demo.update(
+            {key: str(value) for key, value in variables.items() if key in allowed}
+        )
         try:
             subject = render_template_text(subject_template, demo)
             body = render_template_text(body_template, demo)

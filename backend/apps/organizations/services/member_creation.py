@@ -12,7 +12,9 @@ from .audit import audit_organization_action
 
 
 @transaction.atomic
-def add_existing_member(*, actor, organization, email: str, role: str, request=None) -> OrganizationMembership:
+def add_existing_member(
+    *, actor, organization, email: str, role: str, request=None
+) -> OrganizationMembership:
     user_model = get_user_model()
     user = user_model.objects.get(email__iexact=email.strip())
     membership, _ = OrganizationMembership.objects.update_or_create(

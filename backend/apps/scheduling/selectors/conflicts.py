@@ -43,7 +43,9 @@ def get_appointment_conflicts(
     """Retorna conflitos somente dentro da organização resolvida."""
 
     resolved_organization = (
-        organization or getattr(patient, "organization", None) or getattr(room, "organization", None)
+        organization
+        or getattr(patient, "organization", None)
+        or getattr(room, "organization", None)
     )
     base = Appointment.objects.filter(
         status__in=(Appointment.Status.SCHEDULED, Appointment.Status.CONFIRMED),
@@ -68,7 +70,9 @@ def get_appointment_conflicts(
     if patient is not None:
         patient_query = Q(patient=patient) | Q(participants=patient)
     if participant_ids:
-        patient_query |= Q(patient_id__in=participant_ids) | Q(participants__id__in=participant_ids)
+        patient_query |= Q(patient_id__in=participant_ids) | Q(
+            participants__id__in=participant_ids
+        )
 
     return AppointmentConflictResult(
         therapist=base.filter(therapist=therapist).exists(),

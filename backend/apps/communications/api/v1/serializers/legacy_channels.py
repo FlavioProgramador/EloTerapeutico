@@ -37,5 +37,7 @@ class CommunicationChannelConfigSerializer(serializers.ModelSerializer):
             "access_token",
         }
         if any(str(key).lower() in forbidden for key in value):
-            raise serializers.ValidationError("Segredos não podem ser enviados por esta API.")
+            raise serializers.ValidationError(
+                "Segredos não podem ser enviados por esta API."
+            )
         return value

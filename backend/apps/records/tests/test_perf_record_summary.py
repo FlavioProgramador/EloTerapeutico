@@ -50,7 +50,10 @@ def create_summary_data(therapist, patient, count):
     # Setup some documents with uploaded_by and evolution
     for i in range(count):
         evo = Evolution.objects.create(
-            patient=patient, session_date=timezone.localdate(), created_by=therapist, content=f"Sessão {i}"
+            patient=patient,
+            session_date=timezone.localdate(),
+            created_by=therapist,
+            content=f"Sessão {i}"
         )
         EvolutionClinicalData.objects.create(evolution=evo, updated_by=therapist)
 

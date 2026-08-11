@@ -24,7 +24,9 @@ class PatientDashboardViewSet(
             required=True,
         )
         requested_statuses = set(self.request.query_params.getlist("status"))
-        include_deleted = self.action == "restore" or bool(requested_statuses.intersection({"archived", "inactive"}))
+        include_deleted = self.action == "restore" or bool(
+            requested_statuses.intersection({"archived", "inactive"})
+        )
         queryset = patients_accessible_to(
             self.request.user,
             organization=organization,

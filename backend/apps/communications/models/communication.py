@@ -163,20 +163,18 @@ class Communication(models.Model):
             ),
             models.CheckConstraint(
                 condition=Q(scheduled_at__isnull=True)
-                | Q(
-                    status__in=[
-                        "scheduled",
-                        "queued",
-                        "processing",
-                        "sent",
-                        "delivered",
-                        "read",
-                        "responded",
-                        "failed",
-                        "canceled",
-                        "expired",
-                    ]
-                ),
+                | Q(status__in=[
+                    "scheduled",
+                    "queued",
+                    "processing",
+                    "sent",
+                    "delivered",
+                    "read",
+                    "responded",
+                    "failed",
+                    "canceled",
+                    "expired",
+                ]),
                 name="comm_schedule_status_valid",
             ),
         ]
@@ -203,10 +201,13 @@ class Communication(models.Model):
             if relation_id:
                 relation = getattr(self, field_name)
                 if relation.organization_id != self.organization_id:
-                    raise ValidationError({field_name: "O recurso pertence a outra organização."})
+                    raise ValidationError(
+                        {field_name: "O recurso pertence a outra organização."}
+                    )
         template = self.template if self.template_id else None
         if template is not None and (
-            not template.is_system_template and template.organization_id != self.organization_id
+            not template.is_system_template
+            and template.organization_id != self.organization_id
         ):
             raise ValidationError({"template": "O template pertence a outra organização."})
 

@@ -71,27 +71,39 @@ class NotificationPreferenceSerializer(serializers.ModelSerializer):
         )
         if enabled and (start is None or end is None):
             raise serializers.ValidationError(
-                {"quiet_hours_start": ("Informe o início e o fim do horário de silêncio.")}
+                {
+                    "quiet_hours_start": (
+                        "Informe o início e o fim do horário de silêncio."
+                    )
+                }
             )
         return attrs
 
     def validate_whatsapp_enabled(self, value):
         if value:
             raise serializers.ValidationError(
-                "O canal WhatsApp ainda não está configurado para " "notificações do sistema."
+                "O canal WhatsApp ainda não está configurado para "
+                "notificações do sistema."
             )
         return value
 
     def validate_category_preferences(self, value):
         allowed_categories = set(InAppNotification.Category.values)
         if not isinstance(value, dict):
-            raise serializers.ValidationError("As preferências por categoria devem ser um objeto.")
+            raise serializers.ValidationError(
+                "As preferências por categoria devem ser um objeto."
+            )
         clean = {}
         for category, channels in value.items():
             if category not in allowed_categories or not isinstance(channels, dict):
-                raise serializers.ValidationError("Categoria de notificação inválida.")
+                raise serializers.ValidationError(
+                    "Categoria de notificação inválida."
+                )
             if channels.get("whatsapp") or channels.get("push"):
-                raise serializers.ValidationError("WhatsApp e push ainda não estão disponíveis para " "notificações.")
+                raise serializers.ValidationError(
+                    "WhatsApp e push ainda não estão disponíveis para "
+                    "notificações."
+                )
             clean[category] = {
                 "in_app": bool(channels.get("in_app", True)),
                 "email": bool(channels.get("email", False)),

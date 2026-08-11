@@ -19,7 +19,9 @@ def leave_patient_telemedicine(*, raw_token: str, identity: str) -> None:
         return
     expected_prefix = f"telemed:{invitation.room.public_id.hex}:patient:"
     if not identity.startswith(expected_prefix):
-        raise TelemedicineAccessDeniedError("O participante não pertence a este atendimento.")
+        raise TelemedicineAccessDeniedError(
+            "O participante não pertence a este atendimento."
+        )
     provider = get_telemedicine_provider()
     try:
         provider.remove_participant(
@@ -27,4 +29,6 @@ def leave_patient_telemedicine(*, raw_token: str, identity: str) -> None:
             identity=identity,
         )
     except TelemedicineProviderError as exc:
-        raise TelemedicineProviderUnavailableError("Não foi possível encerrar a conexão neste momento.") from exc
+        raise TelemedicineProviderUnavailableError(
+            "Não foi possível encerrar a conexão neste momento."
+        ) from exc

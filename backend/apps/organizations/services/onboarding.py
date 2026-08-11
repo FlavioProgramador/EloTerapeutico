@@ -37,7 +37,11 @@ def _validate_telemedicine_activation(*, actor, organization: Organization) -> N
     config = get_telemedicine_config()
     if not config.enabled or not config.provider_configured:
         raise ValidationError(
-            {"allow_telemedicine": ("O atendimento online ainda não está disponível para esta organização.")}
+            {
+                "allow_telemedicine": (
+                    "O atendimento online ainda não está disponível para esta organização."
+                )
+            }
         )
     billing_user = _organization_billing_user(
         organization=organization,
@@ -56,12 +60,20 @@ def _validate_telemedicine_activation(*, actor, organization: Organization) -> N
         .order_by("-created_at")
         .first()
     )
-    if not (subscription and subscription.has_access and subscription.plan.has_telemedicine):
-        raise ValidationError({"allow_telemedicine": "O plano atual não inclui atendimento online."})
+    if not (
+        subscription
+        and subscription.has_access
+        and subscription.plan.has_telemedicine
+    ):
+        raise ValidationError(
+            {"allow_telemedicine": "O plano atual não inclui atendimento online."}
+        )
 
 
 @transaction.atomic
-def update_onboarding(*, actor, organization: Organization, membership, data: dict, request=None) -> dict[str, object]:
+def update_onboarding(
+    *, actor, organization: Organization, membership, data: dict, request=None
+) -> dict[str, object]:
     organization_data = data.get("organization") or {}
     settings_data = data.get("settings") or {}
     profile_data = data.get("professional_profile") or {}
@@ -156,7 +168,9 @@ def update_onboarding(*, actor, organization: Organization, membership, data: di
 
 
 @transaction.atomic
-def complete_onboarding(*, actor, organization: Organization, membership, request=None) -> Organization:
+def complete_onboarding(
+    *, actor, organization: Organization, membership, request=None
+) -> Organization:
     settings_obj = getattr(organization, "settings", None)
     profile = getattr(membership, "professional_profile", None)
     missing: list[str] = []

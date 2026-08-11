@@ -123,26 +123,36 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
         request = self.context["request"]
         organization = getattr(request, "organization", None)
         if organization is None or form.organization_id != organization.pk:
-            raise serializers.ValidationError({"form": "O formulário pertence a outra organização."})
+            raise serializers.ValidationError(
+                {"form": "O formulário pertence a outra organização."}
+            )
         patient = attrs.get("patient", getattr(self.instance, "patient", None))
         if patient and patient.organization_id != organization.pk:
-            raise serializers.ValidationError({"patient": "Paciente pertence a outra organização."})
+            raise serializers.ValidationError(
+                {"patient": "Paciente pertence a outra organização."}
+            )
         appointment = attrs.get(
             "appointment",
             getattr(self.instance, "appointment", None),
         )
         if appointment:
             if appointment.organization_id != organization.pk:
-                raise serializers.ValidationError({"appointment": "Agendamento pertence a outra organização."})
+                raise serializers.ValidationError(
+                    {"appointment": "Agendamento pertence a outra organização."}
+                )
             if patient and appointment.patient_id != patient.pk:
-                raise serializers.ValidationError({"appointment": "Agendamento pertence a outro paciente."})
+                raise serializers.ValidationError(
+                    {"appointment": "Agendamento pertence a outro paciente."}
+                )
         professional = attrs.get("professional") or request.user
         if not OrganizationMembership.objects.filter(
             organization=organization,
             user=professional,
             status=OrganizationMembership.Status.ACTIVE,
         ).exists():
-            raise serializers.ValidationError({"professional": "Profissional não autorizado nesta organização."})
+            raise serializers.ValidationError(
+                {"professional": "Profissional não autorizado nesta organização."}
+            )
         attrs["professional"] = professional
         return attrs
 

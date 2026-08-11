@@ -233,6 +233,8 @@ class MeView(generics.RetrieveUpdateAPIView):
         return UserProfileSerializer
 
 
+
+
 @extend_schema(tags=["users"], responses=PracticeSettingsSerializer)
 class PracticeSettingsView(generics.RetrieveUpdateAPIView):
     permission_classes = [IsAuthenticated]
@@ -262,7 +264,6 @@ class PracticeSettingsView(generics.RetrieveUpdateAPIView):
             obj=obj,
             obj_repr=f"users.PracticeSettings#{obj.pk} action=settings_updated",
         )
-
 
 @extend_schema(tags=["users"])
 class WorkingHoursListCreateView(generics.ListCreateAPIView):

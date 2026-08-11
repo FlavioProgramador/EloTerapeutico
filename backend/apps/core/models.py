@@ -13,6 +13,8 @@ class SQLExplorerPermission(models.Model):
     class Meta:
         managed = False
         default_permissions = ()
-        permissions = (("use_sql_explorer", "Pode utilizar o SQL Explorer administrativo"),)
+        permissions = (
+            ("use_sql_explorer", "Pode utilizar o SQL Explorer administrativo"),
+        )
         verbose_name = "Acesso ao SQL Explorer"
         verbose_name_plural = "Acessos ao SQL Explorer"

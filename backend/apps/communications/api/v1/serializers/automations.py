@@ -67,7 +67,9 @@ class CommunicationAutomationSerializer(serializers.ModelSerializer):
         return run.started_at if run else None
 
     def get_failures(self, obj):
-        return obj.runs.filter(status=CommunicationAutomationRun.Status.FAILED).count()
+        return obj.runs.filter(
+            status=CommunicationAutomationRun.Status.FAILED
+        ).count()
 
     def validate_template(self, template):
         request = self.context["request"]
@@ -83,7 +85,9 @@ class CommunicationAutomationSerializer(serializers.ModelSerializer):
         template = attrs.get("template", getattr(self.instance, "template", None))
         channel = attrs.get("channel", getattr(self.instance, "channel", None))
         if template and channel and template.channel != channel:
-            raise serializers.ValidationError({"template": "O template deve usar o mesmo canal da automação."})
+            raise serializers.ValidationError(
+                {"template": "O template deve usar o mesmo canal da automação."}
+            )
         allowed_operators = {
             "equals",
             "not_equals",
@@ -94,8 +98,13 @@ class CommunicationAutomationSerializer(serializers.ModelSerializer):
             "is_not_empty",
         }
         for condition in attrs.get("conditions", []):
-            if not isinstance(condition, dict) or condition.get("operator") not in allowed_operators:
-                raise serializers.ValidationError({"conditions": "A lista contém uma condição inválida."})
+            if (
+                not isinstance(condition, dict)
+                or condition.get("operator") not in allowed_operators
+            ):
+                raise serializers.ValidationError(
+                    {"conditions": "A lista contém uma condição inválida."}
+                )
         return attrs
 
     def create(self, validated_data):

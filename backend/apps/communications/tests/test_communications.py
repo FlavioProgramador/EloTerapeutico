@@ -106,7 +106,9 @@ def patient(therapist):
 def authenticated_client(therapist):
     client = APIClient()
     client.force_authenticate(therapist)
-    client.credentials(HTTP_X_ORGANIZATION_ID=str(therapist.test_organization.pk))
+    client.credentials(
+        HTTP_X_ORGANIZATION_ID=str(therapist.test_organization.pk)
+    )
     return client
 
 
@@ -296,7 +298,9 @@ def test_api_isolates_communications_by_owner(
     )
     response = authenticated_client.get("/api/v1/communications/")
     assert response.status_code == 200
-    assert [item["public_id"] for item in response.data["results"]] == [str(own.public_id)]
+    assert [item["public_id"] for item in response.data["results"]] == [
+        str(own.public_id)
+    ]
 
 
 @pytest.mark.django_db
@@ -342,7 +346,10 @@ def test_public_form_token_stores_only_hash_and_is_single_use(therapist, patient
     token.refresh_from_db()
     assert submission.status == FormSubmission.Status.SUBMITTED
     assert token.used_at is not None
-    assert client.get(f"/api/v1/public/communications/actions/{raw_token}/").status_code == 404
+    assert (
+        client.get(f"/api/v1/public/communications/actions/{raw_token}/").status_code
+        == 404
+    )
 
 
 @pytest.mark.django_db

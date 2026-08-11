@@ -45,7 +45,10 @@ def validate_backend_root_directories(errors: list[str]) -> None:
     for child in BACKEND.iterdir():
         if not child.is_dir():
             continue
-        if child.name in ALLOWED_BACKEND_ROOT_DIRECTORIES or child.name in IGNORED_LOCAL_DIRECTORIES:
+        if (
+            child.name in ALLOWED_BACKEND_ROOT_DIRECTORIES
+            or child.name in IGNORED_LOCAL_DIRECTORIES
+        ):
             continue
         errors.append(
             "Diretório versionado inesperado na raiz do backend: "
@@ -57,9 +60,13 @@ def validate_removed_layer_paths(errors: list[str]) -> None:
     apps_root = BACKEND / "apps"
     for path in apps_root.rglob("*"):
         if path.is_dir() and path.name == "model_parts":
-            errors.append(f"Diretório legado model_parts ainda existe: {path.relative_to(ROOT)}")
+            errors.append(
+                f"Diretório legado model_parts ainda existe: {path.relative_to(ROOT)}"
+            )
         if path.is_file() and path.name == "core_services.py":
-            errors.append(f"Service monolítico legado ainda existe: {path.relative_to(ROOT)}")
+            errors.append(
+                f"Service monolítico legado ainda existe: {path.relative_to(ROOT)}"
+            )
 
 
 def validate_thin_facades(
@@ -71,7 +78,10 @@ def validate_thin_facades(
 ) -> None:
     for path in paths:
         if not path.exists():
-            errors.append(f"Fachada de compatibilidade de {app_name} ausente: " f"{path.relative_to(ROOT)}")
+            errors.append(
+                f"Fachada de compatibilidade de {app_name} ausente: "
+                f"{path.relative_to(ROOT)}"
+            )
             continue
         line_count = len(path.read_text(encoding="utf-8").splitlines())
         if line_count > max_lines:
@@ -99,7 +109,10 @@ def validate_communications_architecture(errors: list[str]) -> None:
     ]
     for path in required_paths:
         if not path.exists():
-            errors.append("Estrutura obrigatória de communications ausente: " f"{path.relative_to(ROOT)}")
+            errors.append(
+                "Estrutura obrigatória de communications ausente: "
+                f"{path.relative_to(ROOT)}"
+            )
 
     forbidden_monoliths = [
         app_root / "admin.py",
@@ -110,7 +123,10 @@ def validate_communications_architecture(errors: list[str]) -> None:
     ]
     for path in forbidden_monoliths:
         if path.exists():
-            errors.append("Módulo monolítico de communications retornou à raiz: " f"{path.relative_to(ROOT)}")
+            errors.append(
+                "Módulo monolítico de communications retornou à raiz: "
+                f"{path.relative_to(ROOT)}"
+            )
 
     validate_thin_facades(
         errors,
@@ -138,7 +154,10 @@ def validate_communications_architecture(errors: list[str]) -> None:
         }
         for task_name in required_task_exports:
             if task_name not in tasks_source:
-                errors.append("Task de communications não é exportada para autodiscovery: " f"{task_name}")
+                errors.append(
+                    "Task de communications não é exportada para autodiscovery: "
+                    f"{task_name}"
+                )
 
 
 def validate_billing_architecture(errors: list[str]) -> None:
@@ -159,8 +178,16 @@ def validate_billing_architecture(errors: list[str]) -> None:
         app_root / "security" / "__init__.py",
         app_root / "tasks" / "__init__.py",
         app_root / "views" / "__init__.py",
-        app_root / "integrations" / "webhooks" / "asaas" / "__init__.py",
-        app_root / "infrastructure" / "payments" / "asaas" / "client.py",
+        app_root
+        / "integrations"
+        / "webhooks"
+        / "asaas"
+        / "__init__.py",
+        app_root
+        / "infrastructure"
+        / "payments"
+        / "asaas"
+        / "client.py",
         app_root / "selectors" / "catalog.py",
         app_root / "selectors" / "orders.py",
         app_root / "selectors" / "payments.py",
@@ -170,7 +197,10 @@ def validate_billing_architecture(errors: list[str]) -> None:
     ]
     for path in required_paths:
         if not path.exists():
-            errors.append("Estrutura obrigatória de billing ausente: " f"{path.relative_to(ROOT)}")
+            errors.append(
+                "Estrutura obrigatória de billing ausente: "
+                f"{path.relative_to(ROOT)}"
+            )
 
     forbidden_root_files = [
         "access_views.py",
@@ -194,7 +224,8 @@ def validate_billing_architecture(errors: list[str]) -> None:
         path = app_root / filename
         if path.exists():
             errors.append(
-                "Arquivo de implementação ou compatibilidade retornou à raiz de " f"billing: {path.relative_to(ROOT)}"
+                "Arquivo de implementação ou compatibilidade retornou à raiz de "
+                f"billing: {path.relative_to(ROOT)}"
             )
 
     allowed_root_files = {"__init__.py", "apps.py", "README.md"}
@@ -202,7 +233,8 @@ def validate_billing_architecture(errors: list[str]) -> None:
         if not path.is_file() or path.name in allowed_root_files:
             continue
         errors.append(
-            "Arquivo inesperado na raiz de billing: " f"{path.relative_to(ROOT)}. Organize-o em uma camada/pasta."
+            "Arquivo inesperado na raiz de billing: "
+            f"{path.relative_to(ROOT)}. Organize-o em uma camada/pasta."
         )
 
     validate_thin_facades(
@@ -224,19 +256,29 @@ def validate_billing_architecture(errors: list[str]) -> None:
             "reconcile_asaas_payments",
         }:
             if task_name not in tasks_source:
-                errors.append("Task de billing não é exportada para autodiscovery: " f"{task_name}")
+                errors.append(
+                    "Task de billing não é exportada para autodiscovery: "
+                    f"{task_name}"
+                )
 
     canonical_views = app_root / "api" / "v1" / "views"
     if canonical_views.exists():
         for path in canonical_views.glob("*.py"):
             content = path.read_text(encoding="utf-8")
             if re.search(
-                r"(?m)^\s*(?:from|import) " r"apps\.billing\.infrastructure(?:\.|\s|$)",
+                r"(?m)^\s*(?:from|import) "
+                r"apps\.billing\.infrastructure(?:\.|\s|$)",
                 content,
             ):
-                errors.append("view de billing importa infrastructure diretamente: " f"{path.relative_to(ROOT)}")
+                errors.append(
+                    "view de billing importa infrastructure diretamente: "
+                    f"{path.relative_to(ROOT)}"
+                )
             if re.search(r"\b[A-Z][A-Za-z0-9_]*\.objects\b", content):
-                errors.append("view de billing acessa ORM diretamente: " f"{path.relative_to(ROOT)}")
+                errors.append(
+                    "view de billing acessa ORM diretamente: "
+                    f"{path.relative_to(ROOT)}"
+                )
 
 
 def main() -> None:
@@ -253,15 +295,30 @@ def main() -> None:
     ]
     for directory in forbidden_directories:
         if directory.exists():
-            errors.append(f"Diretório legado ainda existe: {directory.relative_to(ROOT)}")
+            errors.append(
+                f"Diretório legado ainda existe: {directory.relative_to(ROOT)}"
+            )
 
     required = [
         BACKEND / "apps" / "core" / "apps.py",
         BACKEND / "config" / "settings" / "base.py",
-        BACKEND / "apps" / "communications" / "infrastructure" / "messaging" / "email.py",
+        BACKEND
+        / "apps"
+        / "communications"
+        / "infrastructure"
+        / "messaging"
+        / "email.py",
         BACKEND / "apps" / "documents" / "models" / "__init__.py",
-        BACKEND / "apps" / "documents" / "services" / "generated_documents.py",
-        BACKEND / "apps" / "documents" / "selectors" / "document_templates.py",
+        BACKEND
+        / "apps"
+        / "documents"
+        / "services"
+        / "generated_documents.py",
+        BACKEND
+        / "apps"
+        / "documents"
+        / "selectors"
+        / "document_templates.py",
         BACKEND / "apps" / "reports" / "services" / "financial_reports.py",
         BACKEND / "apps" / "reports" / "selectors" / "appointments.py",
         BACKEND / "apps" / "scheduling" / "services" / "appointments.py",
@@ -274,12 +331,20 @@ def main() -> None:
     banned_patterns = {
         r"(?m)^\s*from core(?:\.|\s+import)": "import legado from core",
         r"(?m)^\s*import core(?:\.|\s|$)": "import legado import core",
-        r"(?m)^\s*from apps\.agenda(?:\.|\s+import)": ("import legado from apps.agenda"),
-        r"(?m)^\s*import apps\.agenda(?:\.|\s|$)": ("import legado import apps.agenda"),
+        r"(?m)^\s*from apps\.agenda(?:\.|\s+import)": (
+            "import legado from apps.agenda"
+        ),
+        r"(?m)^\s*import apps\.agenda(?:\.|\s|$)": (
+            "import legado import apps.agenda"
+        ),
         r"elo_terapeutico\.": "referência ao pacote de configuração antigo",
-        r"apps\.billing\.services\.gateways\.asaas": ("client Asaas no domínio billing"),
+        r"apps\.billing\.services\.gateways\.asaas": (
+            "client Asaas no domínio billing"
+        ),
         r"\.model_parts(?:\.|\s+import)": "import para pacote model_parts removido",
-        r"\.services\.core_services(?:\s+import|\.)": ("import para service monolítico removido"),
+        r"\.services\.core_services(?:\s+import|\.)": (
+            "import para service monolítico removido"
+        ),
     }
     for path in iter_source_files():
         try:
@@ -301,7 +366,9 @@ def main() -> None:
         errors.append(f"Esperado exatamente um CoreConfig; encontrados: {core_apps}")
 
     if errors:
-        raise SystemExit("Falhas de arquitetura:\n- " + "\n- ".join(sorted(set(errors))))
+        raise SystemExit(
+            "Falhas de arquitetura:\n- " + "\n- ".join(sorted(set(errors)))
+        )
     print("Arquitetura do backend validada com sucesso.")
 
 

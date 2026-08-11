@@ -188,14 +188,10 @@ def test_anamnesis_put_cannot_reassign_patient(owner, patient):
     url = f"/api/v1/records/patients/{patient.id}/anamnesis/"
 
     # Try PUT request reassigning patient_id to other_patient
-    response = client.put(
-        url,
-        {
-            "patient_id": other_patient.id,
-            "chief_complaint": "Modified Complaint",
-        },
-        format="json",
-    )
+    response = client.put(url, {
+        "patient_id": other_patient.id,
+        "chief_complaint": "Modified Complaint",
+    }, format="json")
 
     assert response.status_code == 400
     assert "patient_id" in response.data["error"]["details"]

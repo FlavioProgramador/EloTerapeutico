@@ -13,14 +13,10 @@ def eligible_appointments_for_charge(
     organization=None,
     for_update: bool = False,
 ):
-    queryset = (
-        Appointment.objects.filter(
-            id__in=appointment_ids,
-            status__in=[Appointment.Status.CONFIRMED, Appointment.Status.COMPLETED],
-        )
-        .select_related("organization", "patient", "therapist")
-        .order_by("id")
-    )
+    queryset = Appointment.objects.filter(
+        id__in=appointment_ids,
+        status__in=[Appointment.Status.CONFIRMED, Appointment.Status.COMPLETED],
+    ).select_related("organization", "patient", "therapist").order_by("id")
     if organization is not None:
         queryset = queryset.filter(organization=organization)
     elif actor.is_therapist:

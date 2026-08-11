@@ -116,7 +116,10 @@ class CommunicationViewSet(
 
     def destroy(self, request, *args, **kwargs):
         communication = self.get_object()
-        if not communication.is_terminal and communication.status != Communication.Status.FAILED:
+        if (
+            not communication.is_terminal
+            and communication.status != Communication.Status.FAILED
+        ):
             cancel_communication(communication, actor=request.user)
         communication.archived_at = timezone.now()
         communication.save(update_fields=["archived_at", "updated_at"])
@@ -132,9 +135,16 @@ class CommunicationViewSet(
     def send(self, request, public_id=None):
         communication = self.get_object()
         if communication.status != Communication.Status.DRAFT:
-            raise ValidationError("Somente rascunhos podem ser enviados por esta ação.")
-        if communication.channel == Communication.Channel.WHATSAPP_MANUAL and communication.metadata.get("manual_url"):
-            raise ValidationError("Abra o WhatsApp e confirme o envio manual em vez de reenfileirar esta mensagem.")
+            raise ValidationError(
+                "Somente rascunhos podem ser enviados por esta ação."
+            )
+        if (
+            communication.channel == Communication.Channel.WHATSAPP_MANUAL
+            and communication.metadata.get("manual_url")
+        ):
+            raise ValidationError(
+                "Abra o WhatsApp e confirme o envio manual em vez de reenfileirar esta mensagem."
+            )
         communication.status = Communication.Status.QUEUED
         communication.queued_at = timezone.now()
         communication.save(update_fields=["status", "queued_at", "updated_at"])
@@ -164,7 +174,9 @@ class CommunicationViewSet(
             raise ValidationError({"scheduled_at": "A data deve estar no futuro."})
         communication.status = Communication.Status.SCHEDULED
         communication.scheduled_at = scheduled_at
-        communication.save(update_fields=["status", "scheduled_at", "updated_at"])
+        communication.save(
+            update_fields=["status", "scheduled_at", "updated_at"]
+        )
         return Response(CommunicationDetailSerializer(communication).data)
 
     @action(detail=True, methods=["post"])

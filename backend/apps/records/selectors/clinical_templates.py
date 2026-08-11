@@ -6,7 +6,9 @@ from apps.records.models.templates import ClinicalEvolutionTemplate
 
 
 def clinical_templates_for_user(*, user, params=None) -> QuerySet[ClinicalEvolutionTemplate]:
-    queryset = ClinicalEvolutionTemplate.objects.filter(Q(owner=user) | Q(owner__isnull=True)).select_related("owner")
+    queryset = ClinicalEvolutionTemplate.objects.filter(
+        Q(owner=user) | Q(owner__isnull=True)
+    ).select_related("owner")
     params = params or {}
     if params.get("include_inactive") != "true":
         queryset = queryset.filter(is_active=True, archived_at__isnull=True)

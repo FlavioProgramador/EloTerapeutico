@@ -24,7 +24,10 @@ class SchedulingRenameTests(SimpleTestCase):
             import_module("apps.agenda")
 
     def test_database_tables_keep_historical_prefix(self):
-        model_tables = {model._meta.db_table for model in apps.get_app_config("agenda").get_models()}
+        model_tables = {
+            model._meta.db_table
+            for model in apps.get_app_config("agenda").get_models()
+        }
 
         self.assertTrue(model_tables)
         self.assertTrue(all(table.startswith("agenda_") for table in model_tables))

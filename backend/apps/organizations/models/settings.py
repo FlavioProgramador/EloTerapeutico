@@ -36,9 +36,13 @@ class OrganizationSettings(models.Model):
     def clean(self):
         super().clean()
         if self.default_appointment_duration < 5:
-            raise ValidationError({"default_appointment_duration": "A duração mínima é de 5 minutos."})
+            raise ValidationError(
+                {"default_appointment_duration": "A duração mínima é de 5 minutos."}
+            )
         if self.maximum_booking_days < 1:
-            raise ValidationError({"maximum_booking_days": "A janela de agendamento deve ter ao menos um dia."})
+            raise ValidationError(
+                {"maximum_booking_days": "A janela de agendamento deve ter ao menos um dia."}
+            )
         if self.default_currency:
             self.default_currency = self.default_currency.upper()
 

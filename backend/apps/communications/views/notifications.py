@@ -65,7 +65,9 @@ class InAppNotificationViewSet(
             queryset = queryset.filter(priority=priority)
         search = self.request.query_params.get("search", "").strip()
         if search:
-            queryset = queryset.filter(Q(title__icontains=search) | Q(message__icontains=search))
+            queryset = queryset.filter(
+                Q(title__icontains=search) | Q(message__icontains=search)
+            )
         start_date = self.request.query_params.get("start_date")
         end_date = self.request.query_params.get("end_date")
         if start_date:
@@ -116,13 +118,9 @@ class InAppNotificationViewSet(
             limit=20,
             window_seconds=60,
         )
-        updated = (
-            self.get_queryset()
-            .filter(is_read=False)
-            .update(
-                is_read=True,
-                read_at=timezone.now(),
-            )
+        updated = self.get_queryset().filter(is_read=False).update(
+            is_read=True,
+            read_at=timezone.now(),
         )
         return Response({"updated": updated})
 
@@ -133,7 +131,9 @@ class InAppNotificationViewSet(
             limit=10,
             window_seconds=60,
         )
-        updated = self.get_queryset().filter(is_read=True).update(archived_at=timezone.now())
+        updated = self.get_queryset().filter(is_read=True).update(
+            archived_at=timezone.now()
+        )
         return Response({"updated": updated})
 
     @action(detail=False, methods=["get"], url_path="unread-count")
@@ -143,7 +143,12 @@ class InAppNotificationViewSet(
 
     @action(detail=False, methods=["get"], url_path="categories")
     def categories(self, request):
-        return Response([{"value": value, "label": label} for value, label in InAppNotification.Category.choices])
+        return Response(
+            [
+                {"value": value, "label": label}
+                for value, label in InAppNotification.Category.choices
+            ]
+        )
 
 
 class NotificationPreferenceView(APIView):

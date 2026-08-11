@@ -38,5 +38,7 @@ class CommunicationAutomationRunAdmin(ReadOnlyHistoryAdmin):
     )
     list_filter = ("status", "source_event", "started_at")
     search_fields = ("automation__name", "source_object_id", "idempotency_key")
-    readonly_fields = tuple(field.name for field in CommunicationAutomationRun._meta.fields)
+    readonly_fields = tuple(
+        field.name for field in CommunicationAutomationRun._meta.fields
+    )
     list_select_related = ("automation", "communication")
