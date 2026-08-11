@@ -33,7 +33,7 @@ export function OrganizationSettingsLayout({
           <Link
             key={href}
             href={href}
-            className={`whitespace-nowrap rounded-lg px-4 py-2 text-xs font-medium transition ${
+            className={`whitespace-nowrap rounded-lg px-4 py-2 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 ${
               pathname === href
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:bg-secondary hover:text-foreground"
