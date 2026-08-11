@@ -21,27 +21,21 @@ class GeneratedDocumentCreateSerializer(serializers.Serializer):
         request = self.context["request"]
         organization = getattr(request, "organization", None)
         if organization is None:
-            raise serializers.ValidationError(
-                {"organization": "Selecione uma organização."}
-            )
+            raise serializers.ValidationError({"organization": "Selecione uma organização."})
         template = get_owned_template(
             owner=request.user,
             organization=organization,
             public_id=attrs["template_public_id"],
         )
         if not template:
-            raise serializers.ValidationError(
-                {"template_public_id": "Template não autorizado."}
-            )
+            raise serializers.ValidationError({"template_public_id": "Template não autorizado."})
         patient = get_accessible_patient(
             owner=request.user,
             organization=organization,
             patient_id=attrs["patient_id"],
         )
         if not patient:
-            raise serializers.ValidationError(
-                {"patient_id": "Paciente não autorizado."}
-            )
+            raise serializers.ValidationError({"patient_id": "Paciente não autorizado."})
         attrs["template"] = template
         attrs["patient"] = patient
         return attrs
@@ -147,9 +141,7 @@ class GeneratedDocumentDraftUpdateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         if self.instance.status != GeneratedDocument.Status.DRAFT:
-            raise serializers.ValidationError(
-                "Somente documentos em rascunho podem ser editados."
-            )
+            raise serializers.ValidationError("Somente documentos em rascunho podem ser editados.")
         return attrs
 
     def validate_draft_content(self, value: str) -> str:

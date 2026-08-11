@@ -43,13 +43,9 @@ class ProfessionalProfile(models.Model):
     def clean(self):
         super().clean()
         if self.default_appointment_duration < 5:
-            raise ValidationError(
-                {"default_appointment_duration": "A duração mínima é de 5 minutos."}
-            )
+            raise ValidationError({"default_appointment_duration": "A duração mínima é de 5 minutos."})
         if self.default_session_value < 0:
-            raise ValidationError(
-                {"default_session_value": "O valor da sessão não pode ser negativo."}
-            )
+            raise ValidationError({"default_session_value": "O valor da sessão não pode ser negativo."})
         if self.specialties is None:
             self.specialties = []
         if not isinstance(self.specialties, list):

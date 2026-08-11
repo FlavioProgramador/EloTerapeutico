@@ -30,9 +30,7 @@ class SecurePatientRecordSummaryView(PatientRecordSummaryView):
 
         evolutions = Evolution.objects.filter(patient=patient).select_related("clinical_data")
         if not can_view_all_confidential:
-            evolutions = evolutions.filter(
-                Q(is_confidential=False) | Q(created_by=request.user)
-            )
+            evolutions = evolutions.filter(Q(is_confidential=False) | Q(created_by=request.user))
 
         latest_evolution = evolutions.order_by("-session_date", "-created_at").first()
         first_evolution = evolutions.order_by("session_date", "created_at").first()
@@ -66,9 +64,7 @@ class SecurePatientRecordSummaryView(PatientRecordSummaryView):
         ).select_related("evolution", "evolution__created_by", "uploaded_by")
         if not can_view_all_confidential:
             documents = documents.filter(
-                Q(evolution__isnull=True)
-                | Q(evolution__is_confidential=False)
-                | Q(evolution__created_by=request.user)
+                Q(evolution__isnull=True) | Q(evolution__is_confidential=False) | Q(evolution__created_by=request.user)
             )
 
         payload = {
@@ -84,14 +80,8 @@ class SecurePatientRecordSummaryView(PatientRecordSummaryView):
                 "updated_at": patient.updated_at,
             },
             "sessions_total": evolutions.exclude(clinical_data__status="archived").count(),
-            "treatment_start": (
-                first_evolution.session_date
-                if first_evolution
-                else patient.created_at.date()
-            ),
-            "last_update": (
-                latest_evolution.updated_at if latest_evolution else patient.updated_at
-            ),
+            "treatment_start": (first_evolution.session_date if first_evolution else patient.created_at.date()),
+            "last_update": (latest_evolution.updated_at if latest_evolution else patient.updated_at),
             "latest_evolution_id": latest_evolution.id if latest_evolution else None,
             "last_session": (previous_appointment.start_time if previous_appointment else None),
             "next_session": (

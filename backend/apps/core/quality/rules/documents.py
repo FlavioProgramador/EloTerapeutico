@@ -100,8 +100,7 @@ def _validate_facades(errors: list[str]) -> None:
         line_count = len(path.read_text(encoding="utf-8").splitlines())
         if line_count > 40:
             errors.append(
-                "Fachada de compatibilidade contém implementação excessiva: "
-                f"{_relative(path)} ({line_count} linhas)"
+                "Fachada de compatibilidade contém implementação excessiva: " f"{_relative(path)} ({line_count} linhas)"
             )
 
 
@@ -126,17 +125,30 @@ def _validate_serializers(errors: list[str]) -> None:
         source = path.read_text(encoding="utf-8")
         for token in forbidden_tokens:
             if token in source:
-                errors.append(
-                    f"Serializer de documents depende de infraestrutura ({token}): {_relative(path)}"
-                )
+                errors.append(f"Serializer de documents depende de infraestrutura ({token}): {_relative(path)}")
 
 
 def _validate_dependency_direction(errors: list[str]) -> None:
     layer_rules = {
-        "models": ("apps.documents.api", "apps.documents.views", "apps.documents.serializers", "apps.documents.services"),
-        "selectors": ("apps.documents.api", "apps.documents.views", "apps.documents.serializers", "apps.documents.services"),
+        "models": (
+            "apps.documents.api",
+            "apps.documents.views",
+            "apps.documents.serializers",
+            "apps.documents.services",
+        ),
+        "selectors": (
+            "apps.documents.api",
+            "apps.documents.views",
+            "apps.documents.serializers",
+            "apps.documents.services",
+        ),
         "services": ("apps.documents.api", "apps.documents.views", "apps.documents.serializers"),
-        "infrastructure": ("apps.documents.api", "apps.documents.views", "apps.documents.serializers", "apps.documents.services"),
+        "infrastructure": (
+            "apps.documents.api",
+            "apps.documents.views",
+            "apps.documents.serializers",
+            "apps.documents.services",
+        ),
     }
     for layer, forbidden_imports in layer_rules.items():
         root = DOCUMENTS / layer

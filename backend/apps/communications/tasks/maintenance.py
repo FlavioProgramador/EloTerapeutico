@@ -25,9 +25,7 @@ def cleanup_expired_public_tokens() -> int:
         1,
     )
     cutoff = timezone.now() - timedelta(days=retention_days)
-    deleted, _ = PublicCommunicationActionToken.objects.filter(
-        expires_at__lt=cutoff
-    ).delete()
+    deleted, _ = PublicCommunicationActionToken.objects.filter(expires_at__lt=cutoff).delete()
     return deleted
 
 

@@ -47,15 +47,11 @@ def test_goal_leaks_confidential_evolution_id():
         created_by=therapist_a,
         content="Sensitive Data",
         session_date=date.today(),
-        is_confidential=True
+        is_confidential=True,
     )
 
     # Goal created by A, linked to confidential evolution
-    goal = TreatmentGoal.objects.create(
-        patient=patient,
-        title="Sensitive Goal",
-        created_by=therapist_a
-    )
+    goal = TreatmentGoal.objects.create(patient=patient, title="Sensitive Goal", created_by=therapist_a)
     goal.evolutions.add(conf_evolution)
 
     client = APIClient()
@@ -69,17 +65,23 @@ def test_goal_leaks_confidential_evolution_id():
 
     # Check if confidential evolution ID is in the response
     goal_data = response.data[0]
-    assert conf_evolution.id not in goal_data["evolutions"], f"Confidential evolution ID {conf_evolution.id} leaked to therapist B"
+    assert (
+        conf_evolution.id not in goal_data["evolutions"]
+    ), f"Confidential evolution ID {conf_evolution.id} leaked to therapist B"
 
     # Also check workspace endpoint
     workspace_url = f"/api/v1/records/patients/{patient.id}/workspace/"
     ws_response = client.get(workspace_url)
     assert ws_response.status_code == status.HTTP_200_OK
     ws_goal_data = ws_response.data["goals"][0]
-    assert conf_evolution.id not in ws_goal_data["evolutions"], f"Confidential evolution ID {conf_evolution.id} leaked to therapist B in workspace"
+    assert (
+        conf_evolution.id not in ws_goal_data["evolutions"]
+    ), f"Confidential evolution ID {conf_evolution.id} leaked to therapist B in workspace"
 
     # Also check detail endpoint
     detail_url = f"/api/v1/records/goals/{goal.id}/"
     detail_response = client.get(detail_url)
     assert detail_response.status_code == status.HTTP_200_OK
-    assert conf_evolution.id not in detail_response.data["evolutions"], f"Confidential evolution ID {conf_evolution.id} leaked to therapist B in goal detail"
+    assert (
+        conf_evolution.id not in detail_response.data["evolutions"]
+    ), f"Confidential evolution ID {conf_evolution.id} leaked to therapist B in goal detail"

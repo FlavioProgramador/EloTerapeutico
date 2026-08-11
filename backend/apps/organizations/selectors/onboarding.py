@@ -6,9 +6,9 @@ from apps.organizations.models import OrganizationMembership
 
 
 def get_onboarding_context(*, organization, user) -> dict[str, object]:
-    membership = OrganizationMembership.objects.select_related(
-        "organization", "user"
-    ).get(organization=organization, user=user)
+    membership = OrganizationMembership.objects.select_related("organization", "user").get(
+        organization=organization, user=user
+    )
     profile = getattr(membership, "professional_profile", None)
     settings = getattr(organization, "settings", None)
     return {

@@ -130,12 +130,8 @@ class TransactionCreateUpdateSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
         request = self.context.get("request")
         organization = getattr(request, "organization", None)
-        self.fields["patient"].queryset = selectable_patients_for_finance(
-            organization=organization
-        )
-        self.fields["appointment"].queryset = selectable_appointments_for_finance(
-            organization=organization
-        )
+        self.fields["patient"].queryset = selectable_patients_for_finance(organization=organization)
+        self.fields["appointment"].queryset = selectable_appointments_for_finance(organization=organization)
 
     def validate_amount(self, value: Decimal) -> Decimal:
         if value <= 0:
@@ -158,7 +154,5 @@ class TransactionCreateUpdateSerializer(serializers.ModelSerializer):
             "recurrence_frequency",
             getattr(self.instance, "recurrence_frequency", None),
         ):
-            raise serializers.ValidationError(
-                {"recurrence_frequency": "Informe a frequência da recorrência."}
-            )
+            raise serializers.ValidationError({"recurrence_frequency": "Informe a frequência da recorrência."})
         return attrs

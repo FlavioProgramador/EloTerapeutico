@@ -22,6 +22,7 @@ class TemplatePreviewRequestSerializer(serializers.Serializer):
         if not patient_id:
             return sample_document_context()
         from apps.organizations.services.tenant_context import ensure_request_organization
+
         organization, _ = ensure_request_organization(request=request, required=False)
         patient = get_accessible_patient(
             owner=request.user,

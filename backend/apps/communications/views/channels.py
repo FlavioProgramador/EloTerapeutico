@@ -49,9 +49,7 @@ class CommunicationChannelViewSet(
             self.request.user,
             organization=organization,
         )
-        return CommunicationChannelConfig.objects.filter(
-            organization=organization
-        ).order_by("channel")
+        return CommunicationChannelConfig.objects.filter(organization=organization).order_by("channel")
 
     @action(detail=False, methods=["get"])
     def catalog(self, request):
@@ -70,13 +68,8 @@ class CommunicationChannelViewSet(
     @action(detail=True, methods=["post"])
     def activate(self, request, channel=None):
         config = self.get_object()
-        if (
-            config.connection_status
-            != CommunicationChannelConfig.ConnectionStatus.CONFIGURED
-        ):
-            raise ValidationError(
-                "Teste a configuração com sucesso antes de ativar o canal."
-            )
+        if config.connection_status != CommunicationChannelConfig.ConnectionStatus.CONFIGURED:
+            raise ValidationError("Teste a configuração com sucesso antes de ativar o canal.")
         config.is_active = True
         config.save(update_fields=["is_active", "updated_at"])
         return Response(self.get_serializer(config).data)
@@ -115,9 +108,7 @@ class CommunicationChannelViewSet(
             config.connection_status = CommunicationChannelConfig.ConnectionStatus.ERROR
             config.last_tested_at = timezone.now()
             config.last_error_code = exc.__class__.__name__[:80]
-            config.last_error_message = (
-                str(exc)[:255] or "Falha ao enviar a mensagem de teste."
-            )
+            config.last_error_message = str(exc)[:255] or "Falha ao enviar a mensagem de teste."
             config.save(
                 update_fields=[
                     "connection_status",
@@ -162,8 +153,6 @@ class CommunicationChannelViewSet(
             window_seconds=300,
         )
         if request.data.get("confirm") is not True:
-            raise ValidationError(
-                {"confirm": "Confirme a remoção da configuração."}
-            )
+            raise ValidationError({"confirm": "Confirme a remoção da configuração."})
         config = remove_channel_configuration(self.get_object())
         return Response(self.get_serializer(config).data)

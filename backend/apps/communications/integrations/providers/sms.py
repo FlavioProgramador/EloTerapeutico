@@ -46,32 +46,22 @@ class TwilioSMSProvider(CommunicationProvider):
                 timeout=15,
             )
         except httpx.RequestError as exc:
-            raise RetryableProviderError(
-                "A API da Twilio está temporariamente indisponível."
-            ) from exc
+            raise RetryableProviderError("A API da Twilio está temporariamente indisponível.") from exc
         if response.status_code in {401, 403}:
             raise ProviderNotConfigured("Credenciais da Twilio inválidas.")
         if response.status_code >= 500:
-            raise RetryableProviderError(
-                "A API da Twilio está temporariamente indisponível."
-            )
+            raise RetryableProviderError("A API da Twilio está temporariamente indisponível.")
         if response.status_code >= 400:
-            raise PermanentProviderError(
-                "A Twilio rejeitou a configuração informada."
-            )
+            raise PermanentProviderError("A Twilio rejeitou a configuração informada.")
         self._sender()
 
     def _send_sms(self, destination: str, body: str) -> ProviderResult:
-        digits = "".join(
-            char for char in destination if char.isdigit() or char == "+"
-        )
+        digits = "".join(char for char in destination if char.isdigit() or char == "+")
         if len("".join(char for char in digits if char.isdigit())) < 10:
             raise InvalidRecipient("Telefone inválido para SMS.")
         account_sid, auth_token = self._auth()
         data = {"To": digits, "From": self._sender(), "Body": body[:1600]}
-        callback_url = str(
-            self._metadata().get("status_callback_url") or ""
-        ).strip()
+        callback_url = str(self._metadata().get("status_callback_url") or "").strip()
         if callback_url:
             data["StatusCallback"] = callback_url
         try:
@@ -82,17 +72,13 @@ class TwilioSMSProvider(CommunicationProvider):
                 timeout=20,
             )
         except httpx.RequestError as exc:
-            raise RetryableProviderError(
-                "A API da Twilio está temporariamente indisponível."
-            ) from exc
+            raise RetryableProviderError("A API da Twilio está temporariamente indisponível.") from exc
         if response.status_code in {401, 403}:
             raise ProviderNotConfigured("Credenciais da Twilio inválidas.")
         if response.status_code == 429 or response.status_code >= 500:
             raise RetryableProviderError("A Twilio solicitou uma nova tentativa.")
         if response.status_code >= 400:
-            raise PermanentProviderError(
-                "A Twilio rejeitou a mensagem ou o destinatário."
-            )
+            raise PermanentProviderError("A Twilio rejeitou a mensagem ou o destinatário.")
         payload = response.json()
         return ProviderResult(
             success=True,

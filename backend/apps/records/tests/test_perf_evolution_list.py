@@ -20,6 +20,7 @@ def therapist(db):
         role=User.Role.THERAPIST,
     )
 
+
 @pytest.fixture
 def patient(therapist):
     return Patient.objects.create(
@@ -28,19 +29,18 @@ def patient(therapist):
         status=Patient.Status.ACTIVE,
     )
 
+
 @pytest.fixture
 def client(therapist):
     api_client = APIClient()
     api_client.force_authenticate(therapist)
     return api_client
 
+
 def create_evolutions(therapist, patient, count):
     for i in range(count):
         evo = Evolution.objects.create(
-            patient=patient,
-            session_date=timezone.localdate(),
-            created_by=therapist,
-            content=f"Sessão {i}"
+            patient=patient, session_date=timezone.localdate(), created_by=therapist, content=f"Sessão {i}"
         )
         EvolutionClinicalData.objects.create(evolution=evo, updated_by=therapist)
         EvolutionVersion.objects.create(evolution=evo, version=1, snapshot="{}", created_by=therapist)
@@ -51,8 +51,9 @@ def create_evolutions(therapist, patient, count):
             original_name=f"doc{i}.pdf",
             size_bytes=100,
             checksum=f"hash{i}",
-            uploaded_by=therapist
+            uploaded_by=therapist,
         )
+
 
 @pytest.mark.django_db
 def test_evolution_list_queries_optimized(client, therapist, patient):
@@ -85,9 +86,9 @@ def test_evolution_list_queries_optimized(client, therapist, patient):
     assert count_large == count_small
 
     # Check that data is correct
-    data = response.data['results']
+    data = response.data["results"]
     assert len(data) == 5
     for item in data:
-        assert item['version_count'] == 1
-        assert item['addenda_count'] == 1
-        assert item['attached_documents_count'] == 1
+        assert item["version_count"] == 1
+        assert item["addenda_count"] == 1
+        assert item["attached_documents_count"] == 1

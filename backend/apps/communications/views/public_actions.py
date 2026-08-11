@@ -24,24 +24,44 @@ class PublicCommunicationActionView(APIView):
         _rate_limit(f"public-get:{token_fingerprint}", limit=20, window_seconds=300)
         if action == "document-download":
             action_token = PublicCommunicationActionToken.resolve(token)
-            if action_token is None or action_token.purpose != PublicCommunicationActionToken.Purpose.DOCUMENT_ACCESS or action_token.document_id is None:
-                return Response({"status": "invalid", "message": "Este link é inválido ou expirou."}, status=status.HTTP_404_NOT_FOUND)
+            if (
+                action_token is None
+                or action_token.purpose != PublicCommunicationActionToken.Purpose.DOCUMENT_ACCESS
+                or action_token.document_id is None
+            ):
+                return Response(
+                    {"status": "invalid", "message": "Este link é inválido ou expirou."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
             document = action_token.document
             if document.status != document.Status.COMPLETED or not document.pdf_file:
-                return Response({"status": "invalid", "message": "Este documento não está disponível."}, status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {"status": "invalid", "message": "Este documento não está disponível."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
             try:
                 file_handle = document.pdf_file.open("rb")
             except (FileNotFoundError, OSError):
-                return Response({"status": "invalid", "message": "Este documento não está disponível."}, status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {"status": "invalid", "message": "Este documento não está disponível."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
             action_token.used_at = timezone.now()
             action_token.save(update_fields=["used_at"])
-            response = FileResponse(file_handle, as_attachment=True, filename=f"documento-{document.public_id}.pdf", content_type="application/pdf")
+            response = FileResponse(
+                file_handle,
+                as_attachment=True,
+                filename=f"documento-{document.public_id}.pdf",
+                content_type="application/pdf",
+            )
             response["Cache-Control"] = "private, no-store"
             response["X-Content-Type-Options"] = "nosniff"
             return response
         payload = public_action_context(token)
         if payload is None:
-            return Response({"status": "invalid", "message": "Este link é inválido ou expirou."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"status": "invalid", "message": "Este link é inválido ou expirou."}, status=status.HTTP_404_NOT_FOUND
+            )
         if payload.get("purpose") == PublicCommunicationActionToken.Purpose.DOCUMENT_ACCESS:
             payload["download_url"] = f"/api/v1/public/communications/actions/{token}/document-download/"
         return Response(payload)
@@ -57,5 +77,8 @@ class PublicCommunicationActionView(APIView):
             else:
                 payload = handle_public_action(token, action)
         except DjangoValidationError:
-            return Response({"status": "invalid", "message": "Não foi possível concluir esta ação."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"status": "invalid", "message": "Não foi possível concluir esta ação."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response(payload)

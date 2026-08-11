@@ -34,9 +34,7 @@ def _resolve_membership(*, actor, organization=None):
             first_two = list(memberships[:2])
             membership = first_two[0] if len(first_two) == 1 else None
     if membership is None or not has_capability(membership, "documents.manage"):
-        raise DocumentDomainError(
-            "Você não pode gerenciar documentos nesta organização."
-        )
+        raise DocumentDomainError("Você não pode gerenciar documentos nesta organização.")
     return membership
 
 
@@ -59,10 +57,7 @@ def _ensure_owned_template(
     )
     if template.is_library_template or template.organization_id != membership.organization_id:
         raise DocumentDomainError("Template não autorizado.")
-    if (
-        membership.role == OrganizationMembership.Role.THERAPIST
-        and template.owner_id != actor.id
-    ):
+    if membership.role == OrganizationMembership.Role.THERAPIST and template.owner_id != actor.id:
         raise DocumentDomainError("Template pertence a outro profissional.")
 
 

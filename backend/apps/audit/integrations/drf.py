@@ -55,15 +55,11 @@ class AuditLogMixin:
 
     def perform_create(self, serializer):
         cast(Any, super()).perform_create(serializer)
-        self._record_instance(
-            self.audit_action_map["create"], serializer.instance, on_commit=True
-        )
+        self._record_instance(self.audit_action_map["create"], serializer.instance, on_commit=True)
 
     def perform_update(self, serializer):
         cast(Any, super()).perform_update(serializer)
-        action = self.audit_action_map.get(
-            getattr(cast(Any, self), "action", "update"), AuditLog.Action.UPDATE
-        )
+        action = self.audit_action_map.get(getattr(cast(Any, self), "action", "update"), AuditLog.Action.UPDATE)
         self._record_instance(action, serializer.instance, on_commit=True)
 
     def perform_destroy(self, instance):

@@ -16,11 +16,5 @@ class PaymentActionsMixin:
         current = self.get_object()
         serializer = MarkAsPaidSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        current = register_payment(
-            financial_transaction=current, **serializer.validated_data
-        )
-        return Response(
-            TransactionDetailSerializer(
-                current, context={"request": request}
-            ).data
-        )
+        current = register_payment(financial_transaction=current, **serializer.validated_data)
+        return Response(TransactionDetailSerializer(current, context={"request": request}).data)

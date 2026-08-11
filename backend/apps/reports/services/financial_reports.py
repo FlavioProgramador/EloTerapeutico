@@ -45,11 +45,7 @@ def serialize_transaction(transaction: FinancialTransaction) -> dict[str, Any]:
         "status": transaction.payment_status,
         "status_display": transaction.get_payment_status_display(),
         "due_date": transaction.due_date.isoformat() if transaction.due_date else None,
-        "paid_at": (
-            timezone.localtime(transaction.paid_at).isoformat()
-            if transaction.paid_at
-            else None
-        ),
+        "paid_at": (timezone.localtime(transaction.paid_at).isoformat() if transaction.paid_at else None),
     }
 
 
@@ -101,33 +97,18 @@ def financial_report(user, params, organization=None) -> dict[str, Any]:
     ).annotate(outstanding=outstanding_expr)
     overdue_value = overdue.aggregate(total=Sum("outstanding"))["total"] or ZERO
 
-    income_base = queryset.filter(
-        transaction_type=FinancialTransaction.TransactionType.INCOME
-    )
-    expense_base = queryset.filter(
-        transaction_type=FinancialTransaction.TransactionType.EXPENSE
-    )
+    income_base = queryset.filter(transaction_type=FinancialTransaction.TransactionType.INCOME)
+    expense_base = queryset.filter(transaction_type=FinancialTransaction.TransactionType.EXPENSE)
     excluded_statuses = [
         FinancialTransaction.PaymentStatus.CANCELLED,
         FinancialTransaction.PaymentStatus.REFUNDED,
     ]
-    gross = (
-        income_base.exclude(payment_status__in=excluded_statuses).aggregate(
-            total=Sum("amount")
-        )["total"]
-        or ZERO
-    )
+    gross = income_base.exclude(payment_status__in=excluded_statuses).aggregate(total=Sum("amount"))["total"] or ZERO
     cancellations = (
-        income_base.filter(payment_status__in=excluded_statuses).aggregate(
-            total=Sum("amount")
-        )["total"]
-        or ZERO
+        income_base.filter(payment_status__in=excluded_statuses).aggregate(total=Sum("amount"))["total"] or ZERO
     )
     expenses = (
-        expense_base.exclude(payment_status__in=excluded_statuses).aggregate(
-            total=Sum("amount")
-        )["total"]
-        or ZERO
+        expense_base.exclude(payment_status__in=excluded_statuses).aggregate(total=Sum("amount"))["total"] or ZERO
     )
     net_revenue = gross - cancellations
     operational_result = net_revenue - expenses
@@ -138,9 +119,7 @@ def financial_report(user, params, organization=None) -> dict[str, Any]:
         key = item.patient_id or 0
         if key not in overdue_by_patient:
             overdue_by_patient[key] = {
-                "patient": (
-                    item.patient.display_name if item.patient else "Sem paciente"
-                ),
+                "patient": (item.patient.display_name if item.patient else "Sem paciente"),
                 "value": ZERO,
                 "titles": 0,
                 "oldest_due_date": item.due_date,
@@ -148,8 +127,7 @@ def financial_report(user, params, organization=None) -> dict[str, Any]:
         overdue_by_patient[key]["value"] += item.outstanding
         overdue_by_patient[key]["titles"] += 1
         if item.due_date and (
-            not overdue_by_patient[key]["oldest_due_date"]
-            or item.due_date < overdue_by_patient[key]["oldest_due_date"]
+            not overdue_by_patient[key]["oldest_due_date"] or item.due_date < overdue_by_patient[key]["oldest_due_date"]
         ):
             overdue_by_patient[key]["oldest_due_date"] = item.due_date
     for item in overdue_by_patient.values():
@@ -168,29 +146,20 @@ def financial_report(user, params, organization=None) -> dict[str, Any]:
     )
 
     revenue_by_insurance: dict[str, Decimal] = {}
-    for item in income_base.exclude(
-        payment_status__in=excluded_statuses
-    ).select_related("patient"):
+    for item in income_base.exclude(payment_status__in=excluded_statuses).select_related("patient"):
         label = insurance_label(item.patient)
-        revenue_by_insurance[label] = (
-            revenue_by_insurance.get(label, ZERO) + item.amount
-        )
+        revenue_by_insurance[label] = revenue_by_insurance.get(label, ZERO) + item.amount
 
     active_subscriptions = active_subscriptions_for_user(
         user=user,
         organization=organization,
     )
-    monthly_amount = (
-        active_subscriptions.aggregate(total=Sum("monthly_amount"))["total"]
-        or ZERO
-    )
+    monthly_amount = active_subscriptions.aggregate(total=Sum("monthly_amount"))["total"] or ZERO
     packages = active_packages_for_user(user=user, organization=organization)
     package_remaining = ZERO
     for package in packages:
         package_remaining += package.unit_value * Decimal(package.remaining_sessions)
-    package_monthly_slice = (
-        package_remaining / Decimal("3") if package_remaining else ZERO
-    )
+    package_monthly_slice = package_remaining / Decimal("3") if package_remaining else ZERO
     projection_series = []
     for offset in range(3):
         month = date(
@@ -218,8 +187,7 @@ def financial_report(user, params, organization=None) -> dict[str, Any]:
         },
         "delinquency_by_patient": delinquency,
         "revenue_by_insurance": [
-            {"label": key, "value": decimal_to_number(value)}
-            for key, value in sorted(revenue_by_insurance.items())
+            {"label": key, "value": decimal_to_number(value)} for key, value in sorted(revenue_by_insurance.items())
         ],
         "dre": {
             "gross_revenue": decimal_to_number(gross),
@@ -238,8 +206,6 @@ def financial_report(user, params, organization=None) -> dict[str, Any]:
             "count": paginated["count"],
             "page": paginated["page"],
             "page_size": paginated["page_size"],
-            "results": [
-                serialize_transaction(item) for item in paginated["items"]
-            ],
+            "results": [serialize_transaction(item) for item in paginated["items"]],
         },
     }

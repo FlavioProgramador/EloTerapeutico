@@ -39,9 +39,7 @@ class _Connection:
 
 class _SchemaEditor:
     def __init__(self, *, tables=(), columns=()):
-        self.connection = _Connection(
-            _Introspection(tables=tables, columns=columns)
-        )
+        self.connection = _Connection(_Introspection(tables=tables, columns=columns))
 
 
 def _model(*columns):
@@ -57,9 +55,7 @@ def _model(*columns):
 
 
 def _state(model):
-    return SimpleNamespace(
-        apps=SimpleNamespace(get_model=lambda app_label, name: model)
-    )
+    return SimpleNamespace(apps=SimpleNamespace(get_model=lambda app_label, name: model))
 
 
 def test_create_model_if_not_exists_creates_missing_table():

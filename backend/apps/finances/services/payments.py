@@ -14,23 +14,13 @@ from apps.finances.models import FinancialTransaction
 
 
 @transaction.atomic
-def register_payment(
-    *, financial_transaction, payment_method, paid_at=None, amount=None
-):
-    current = FinancialTransaction.objects.select_for_update().get(
-        pk=financial_transaction.pk
-    )
+def register_payment(*, financial_transaction, payment_method, paid_at=None, amount=None):
+    current = FinancialTransaction.objects.select_for_update().get(pk=financial_transaction.pk)
     if not current.can_pay():
-        raise InvalidPaymentTransitionError(
-            "Esta transação não está pendente de pagamento."
-        )
-    payment_amount = (
-        Decimal(str(amount)) if amount is not None else current.outstanding_amount
-    )
+        raise InvalidPaymentTransitionError("Esta transação não está pendente de pagamento.")
+    payment_amount = Decimal(str(amount)) if amount is not None else current.outstanding_amount
     if payment_amount <= 0 or payment_amount > current.outstanding_amount:
-        raise InvalidPaymentAmountError(
-            "O valor informado para pagamento é inválido."
-        )
+        raise InvalidPaymentAmountError("O valor informado para pagamento é inválido.")
     current.paid_amount += payment_amount
     current.payment_method = payment_method
     current.paid_at = paid_at or timezone.now()

@@ -25,6 +25,7 @@ class PatientImportActions:
                 status=status.HTTP_400_BAD_REQUEST,
             )
         from apps.organizations.services.tenant_context import ensure_request_organization
+
         organization, _ = ensure_request_organization(
             request=request,
             required=True,

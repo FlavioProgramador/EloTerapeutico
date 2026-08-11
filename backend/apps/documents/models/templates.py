@@ -157,21 +157,13 @@ class DocumentTemplate(models.Model):
         super().clean()
         if self.is_library_template:
             if self.organization_id or self.owner_id:
-                raise ValidationError(
-                    "Templates globais não podem pertencer a usuário ou organização."
-                )
+                raise ValidationError("Templates globais não podem pertencer a usuário ou organização.")
             return
         if not self.organization_id or not self.owner_id:
-            raise ValidationError(
-                "Templates personalizados exigem organização e responsável."
-            )
+            raise ValidationError("Templates personalizados exigem organização e responsável.")
 
     def __str__(self) -> str:
-        scope = (
-            "Biblioteca"
-            if self.is_library_template
-            else f"Organização {self.organization_id}"
-        )
+        scope = "Biblioteca" if self.is_library_template else f"Organização {self.organization_id}"
         return f"{self.name} ({scope})"
 
     def archive(self) -> None:

@@ -307,7 +307,7 @@ function RegisterForm() {
   };
 
   return (
-    <main 
+    <main
       className="flex h-screen overflow-hidden bg-[#f9f9f9] font-sans text-[#1a1a1a]"
       style={{
         "--color-background": "hsl(0 0% 98%)",

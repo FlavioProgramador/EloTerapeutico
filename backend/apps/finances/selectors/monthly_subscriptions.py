@@ -43,8 +43,7 @@ def monthly_subscriptions_accessible_to(user, *, organization=None, status=None)
         from django.db.models import Q
 
         queryset = queryset.filter(
-            Q(organization_id__in=full_scope_orgs)
-            | Q(organization_id__in=therapist_orgs, therapist=user)
+            Q(organization_id__in=full_scope_orgs) | Q(organization_id__in=therapist_orgs, therapist=user)
         )
     if status:
         queryset = queryset.filter(status=status)

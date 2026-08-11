@@ -38,10 +38,7 @@ def patient_access_q(user, *, membership=None) -> Q:
         return Q(pk__in=[])
 
     if membership is not None:
-        if (
-            membership.user_id != user.pk
-            or membership.status != OrganizationMembership.Status.ACTIVE
-        ):
+        if membership.user_id != user.pk or membership.status != OrganizationMembership.Status.ACTIVE:
             return Q(pk__in=[])
         if membership.role in FULL_TENANT_PATIENT_ROLES:
             return Q(organization_id=membership.organization_id)
@@ -137,7 +134,4 @@ def can_manage_patient(user, patient, *, membership=None) -> bool:
         OrganizationMembership.Role.ADMIN,
     }:
         return True
-    return (
-        membership.role == OrganizationMembership.Role.THERAPIST
-        and patient.therapist_id == user.id
-    )
+    return membership.role == OrganizationMembership.Role.THERAPIST and patient.therapist_id == user.id

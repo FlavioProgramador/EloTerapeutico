@@ -57,11 +57,7 @@ def enqueue_form_submission_communications(sender, instance, created, **kwargs):
                 event_version=version,
             )
             return
-        if (
-            previous
-            and previous["status"] != instance.status
-            and instance.status == FormSubmission.Status.SUBMITTED
-        ):
+        if previous and previous["status"] != instance.status and instance.status == FormSubmission.Status.SUBMITTED:
             cancel_pending_for_source(
                 owner=instance.owner,
                 source_event_prefix="form.",

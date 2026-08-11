@@ -24,17 +24,13 @@ FINANCE_ROLES = {
 def _resolve_therapist(*, actor, patient=None, current=None):
     if actor.is_therapist:
         if current is not None and current.therapist_id != actor.pk:
-            raise FinancialOwnershipError(
-                "Esta transação pertence a outro profissional."
-            )
+            raise FinancialOwnershipError("Esta transação pertence a outro profissional.")
         return actor
     if patient is not None:
         return patient.therapist
     if current is not None:
         return current.therapist
-    raise FinancialOwnershipError(
-        "Não foi possível determinar o profissional responsável pela transação."
-    )
+    raise FinancialOwnershipError("Não foi possível determinar o profissional responsável pela transação.")
 
 
 def _resolve_organization(*, actor, organization=None, patient=None, appointment=None, current=None):
@@ -128,9 +124,7 @@ def create_financial_transaction(*, actor, validated_data: dict, organization=No
         FinancialTransaction.PaymentStatus.PENDING,
         FinancialTransaction.PaymentStatus.PAID,
     }:
-        raise InvalidPaymentTransitionError(
-            {"payment_status": "O status inicial deve ser pendente ou pago."}
-        )
+        raise InvalidPaymentTransitionError({"payment_status": "O status inicial deve ser pendente ou pago."})
     if target_status == FinancialTransaction.PaymentStatus.PAID:
         from apps.finances.services.payments import register_payment
 
@@ -154,11 +148,15 @@ def update_financial_transaction(
     validated_data: dict,
     organization=None,
 ):
-    current = FinancialTransaction.objects.select_for_update().select_related(
-        "organization",
-        "patient",
-        "appointment",
-    ).get(pk=financial_transaction.pk)
+    current = (
+        FinancialTransaction.objects.select_for_update()
+        .select_related(
+            "organization",
+            "patient",
+            "appointment",
+        )
+        .get(pk=financial_transaction.pk)
+    )
     organization = _resolve_organization(
         actor=actor,
         organization=organization,
@@ -214,9 +212,9 @@ def update_financial_transaction(
 
 @transaction.atomic
 def delete_financial_transaction(*, actor, financial_transaction, organization=None) -> None:
-    current = FinancialTransaction.objects.select_for_update().select_related(
-        "organization"
-    ).get(pk=financial_transaction.pk)
+    current = (
+        FinancialTransaction.objects.select_for_update().select_related("organization").get(pk=financial_transaction.pk)
+    )
     resolved = _resolve_organization(
         actor=actor,
         organization=organization,

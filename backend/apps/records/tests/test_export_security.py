@@ -71,9 +71,7 @@ def test_criador_baixa_exportacao_com_headers_privados(export_context):
         created_by=export_context["therapist"],
     )
 
-    response = export_context["owner_client"].get(
-        f"/api/v1/records/exports/{export_obj.id}/download/"
-    )
+    response = export_context["owner_client"].get(f"/api/v1/records/exports/{export_obj.id}/download/")
 
     assert response.status_code == 200
     assert response["Cache-Control"] == "private, no-store, max-age=0"
@@ -90,9 +88,7 @@ def test_admin_sem_permissao_explicita_nao_baixa_exportacao_de_outro_profissiona
         created_by=export_context["therapist"],
     )
 
-    response = export_context["admin_client"].get(
-        f"/api/v1/records/exports/{export_obj.id}/download/"
-    )
+    response = export_context["admin_client"].get(f"/api/v1/records/exports/{export_obj.id}/download/")
 
     assert response.status_code == 403
 
@@ -111,9 +107,7 @@ def test_admin_com_permissao_explicita_baixa_exportacao_de_outro_profissional(ex
     export_context["admin"].refresh_from_db()
     export_context["admin_client"].force_authenticate(export_context["admin"])
 
-    response = export_context["admin_client"].get(
-        f"/api/v1/records/exports/{export_obj.id}/download/"
-    )
+    response = export_context["admin_client"].get(f"/api/v1/records/exports/{export_obj.id}/download/")
 
     assert response.status_code == 200
 
@@ -131,9 +125,7 @@ def test_admin_sem_permissao_lista_apenas_exportacoes_proprias(export_context):
         suffix="admin",
     )
 
-    response = export_context["admin_client"].get(
-        f"/api/v1/records/patients/{export_context['patient'].id}/exports/"
-    )
+    response = export_context["admin_client"].get(f"/api/v1/records/patients/{export_context['patient'].id}/exports/")
 
     assert response.status_code == 200
     returned_ids = {item["id"] for item in response.data}

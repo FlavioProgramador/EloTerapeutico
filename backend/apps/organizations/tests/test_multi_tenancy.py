@@ -167,6 +167,7 @@ def test_patient_selector_never_returns_another_tenant():
 
     assert list(queryset.values_list("pk", flat=True)) == [patient_a.pk]
 
+
 def test_tenant_audit_accepts_intentional_global_templates():
     output = StringIO()
 
@@ -179,7 +180,5 @@ def test_tenant_audit_accepts_intentional_global_templates():
     )
 
     report = json.loads(output.getvalue())
-    missing_errors = [
-        item for item in report["errors"] if item["code"] == "MISSING_ORGANIZATION"
-    ]
+    missing_errors = [item for item in report["errors"] if item["code"] == "MISSING_ORGANIZATION"]
     assert missing_errors == []

@@ -43,9 +43,7 @@ def generate_appointment_charges(
 ):
     normalized_ids = [int(value) for value in appointment_ids]
     if not normalized_ids or len(normalized_ids) != len(set(normalized_ids)):
-        raise IneligibleAppointmentChargeError(
-            "Selecione sessões válidas e sem duplicidade."
-        )
+        raise IneligibleAppointmentChargeError("Selecione sessões válidas e sem duplicidade.")
     appointments = list(
         eligible_appointments_for_charge(
             actor=actor,
@@ -55,9 +53,7 @@ def generate_appointment_charges(
         )
     )
     if len(appointments) != len(normalized_ids):
-        raise IneligibleAppointmentChargeError(
-            "Uma ou mais sessões não pertencem à organização ou não são elegíveis."
-        )
+        raise IneligibleAppointmentChargeError("Uma ou mais sessões não pertencem à organização ou não são elegíveis.")
     created: list[int] = []
     skipped: list[int] = []
     for appointment in appointments:
@@ -65,9 +61,7 @@ def generate_appointment_charges(
             skipped.append(appointment.pk)
             continue
         if not appointment.session_value or appointment.session_value <= 0:
-            raise IneligibleAppointmentChargeError(
-                f"A sessão {appointment.pk} não possui valor configurado."
-            )
+            raise IneligibleAppointmentChargeError(f"A sessão {appointment.pk} não possui valor configurado.")
         try:
             with transaction.atomic():
                 charge = FinancialTransaction.objects.create(

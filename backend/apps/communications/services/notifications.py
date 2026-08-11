@@ -81,11 +81,7 @@ def _inside_quiet_hours(
     preference: NotificationPreference,
     current: time | None = None,
 ) -> bool:
-    if (
-        not preference.quiet_hours_enabled
-        or not preference.quiet_hours_start
-        or not preference.quiet_hours_end
-    ):
+    if not preference.quiet_hours_enabled or not preference.quiet_hours_start or not preference.quiet_hours_end:
         return False
     current = current or timezone.localtime().time()
     start, end = preference.quiet_hours_start, preference.quiet_hours_end

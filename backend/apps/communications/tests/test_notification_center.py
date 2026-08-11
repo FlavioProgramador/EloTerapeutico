@@ -39,9 +39,7 @@ def user(email: str) -> User:
 def authenticated_client(current_user: User) -> APIClient:
     client = APIClient()
     client.force_authenticate(current_user)
-    client.credentials(
-        HTTP_X_ORGANIZATION_ID=str(current_user.test_organization.pk)
-    )
+    client.credentials(HTTP_X_ORGANIZATION_ID=str(current_user.test_organization.pk))
     return client
 
 
@@ -66,17 +64,11 @@ def test_notification_api_isolates_recipient_and_uses_public_id():
     client = authenticated_client(owner)
 
     listing = client.get("/api/v1/communications/notifications/")
-    detail = client.get(
-        f"/api/v1/communications/notifications/{own_notification.public_id}/"
-    )
-    forbidden_detail = client.get(
-        f"/api/v1/communications/notifications/{other_notification.public_id}/"
-    )
+    detail = client.get(f"/api/v1/communications/notifications/{own_notification.public_id}/")
+    forbidden_detail = client.get(f"/api/v1/communications/notifications/{other_notification.public_id}/")
 
     assert listing.status_code == 200
-    assert [item["public_id"] for item in listing.data["results"]] == [
-        str(own_notification.public_id)
-    ]
+    assert [item["public_id"] for item in listing.data["results"]] == [str(own_notification.public_id)]
     assert detail.status_code == 200
     assert forbidden_detail.status_code == 404
     assert "id" not in detail.data
@@ -88,18 +80,10 @@ def test_read_unread_archive_and_bulk_actions():
     second = create_item(owner, title="Segundo")
     client = authenticated_client(owner)
 
-    assert client.post(
-        f"/api/v1/communications/notifications/{first.public_id}/read/"
-    ).status_code == 200
-    assert client.post(
-        f"/api/v1/communications/notifications/{first.public_id}/unread/"
-    ).status_code == 200
-    assert client.post(
-        "/api/v1/communications/notifications/read-all/"
-    ).data["updated"] == 2
-    assert client.post(
-        "/api/v1/communications/notifications/archive-read/"
-    ).data["updated"] == 2
+    assert client.post(f"/api/v1/communications/notifications/{first.public_id}/read/").status_code == 200
+    assert client.post(f"/api/v1/communications/notifications/{first.public_id}/unread/").status_code == 200
+    assert client.post("/api/v1/communications/notifications/read-all/").data["updated"] == 2
+    assert client.post("/api/v1/communications/notifications/archive-read/").data["updated"] == 2
 
     first.refresh_from_db()
     second.refresh_from_db()

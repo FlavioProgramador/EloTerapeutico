@@ -92,8 +92,7 @@ class CommunicationAutomation(models.Model):
     def clean(self):
         super().clean()
         if self.template_id and (
-            not self.template.is_system_template
-            and self.template.organization_id != self.organization_id
+            not self.template.is_system_template and self.template.organization_id != self.organization_id
         ):
             raise ValidationError({"template": "O template pertence a outra organização."})
 

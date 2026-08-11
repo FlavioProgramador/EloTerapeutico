@@ -135,15 +135,9 @@ DEFAULT_AUTOMATION_BLUEPRINTS = [
 
 def _automation_delay(automation: CommunicationAutomation) -> timedelta:
     return {
-        CommunicationAutomation.DelayUnit.MINUTES: timedelta(
-            minutes=automation.delay_value
-        ),
-        CommunicationAutomation.DelayUnit.HOURS: timedelta(
-            hours=automation.delay_value
-        ),
-        CommunicationAutomation.DelayUnit.DAYS: timedelta(
-            days=automation.delay_value
-        ),
+        CommunicationAutomation.DelayUnit.MINUTES: timedelta(minutes=automation.delay_value),
+        CommunicationAutomation.DelayUnit.HOURS: timedelta(hours=automation.delay_value),
+        CommunicationAutomation.DelayUnit.DAYS: timedelta(days=automation.delay_value),
     }[CommunicationAutomation.DelayUnit(automation.delay_unit)]
 
 
@@ -172,9 +166,7 @@ def _condition_matches(
     if operator == "is_empty":
         return current is None or current == "" or current == [] or current == {}
     if operator == "is_not_empty":
-        return not (
-            current is None or current == "" or current == [] or current == {}
-        )
+        return not (current is None or current == "" or current == [] or current == {})
     if operator == "greater_than":
         return _ordered_compare(current, expected, greater=True)
     if operator == "less_than":
@@ -206,15 +198,9 @@ def _respect_delivery_window(
     candidate = value or timezone.now()
     tz = _delivery_timezone(preference)
     local = timezone.localtime(candidate, tz)
-    start_time = automation.allowed_start_time or (
-        preference.allowed_start_time if preference else None
-    )
-    end_time = automation.allowed_end_time or (
-        preference.allowed_end_time if preference else None
-    )
-    weekdays = {
-        int(day) for day in automation.allowed_weekdays if str(day).isdigit()
-    }
+    start_time = automation.allowed_start_time or (preference.allowed_start_time if preference else None)
+    end_time = automation.allowed_end_time or (preference.allowed_end_time if preference else None)
+    weekdays = {int(day) for day in automation.allowed_weekdays if str(day).isdigit()}
     for _ in range(8):
         if weekdays and local.weekday() not in weekdays:
             local = datetime.combine(
@@ -329,10 +315,7 @@ def emit_domain_event(
         event_type,
         organization=organization,
     ):
-        idem = (
-            f"automation:{organization.pk}:{automation.pk}:{event_type}:"
-            f"{source_object_id}:{event_version}"
-        )
+        idem = f"automation:{organization.pk}:{automation.pk}:{event_type}:" f"{source_object_id}:{event_version}"
         run, run_created = CommunicationAutomationRun.objects.get_or_create(
             automation=automation,
             idempotency_key=idem,
@@ -345,10 +328,7 @@ def emit_domain_event(
         if not run_created:
             continue
         try:
-            if any(
-                not _condition_matches(condition, context)
-                for condition in automation.conditions
-            ):
+            if any(not _condition_matches(condition, context) for condition in automation.conditions):
                 run.status = CommunicationAutomationRun.Status.SKIPPED
                 run.skip_reason = "conditions_not_met"
                 continue
@@ -363,19 +343,13 @@ def emit_domain_event(
             )
             if (
                 automation.max_executions is not None
-                and automation.runs.filter(
-                    status=CommunicationAutomationRun.Status.CREATED
-                ).count()
+                and automation.runs.filter(status=CommunicationAutomationRun.Status.CREATED).count()
                 >= automation.max_executions
             ):
                 run.status = CommunicationAutomationRun.Status.SKIPPED
                 run.skip_reason = "maximum_executions_reached"
                 continue
-            if (
-                automation.respect_preferences
-                and preference
-                and preference.general_opt_out
-            ):
+            if automation.respect_preferences and preference and preference.general_opt_out:
                 run.status = CommunicationAutomationRun.Status.SKIPPED
                 run.skip_reason = "recipient_opted_out"
                 continue
@@ -495,8 +469,7 @@ def ensure_default_automations(owner, *, organization=None) -> None:
             defaults={
                 "owner": owner,
                 "description": (
-                    "Automação sugerida pelo Elo Terapêutico. "
-                    "Ative somente após revisar o canal e o template."
+                    "Automação sugerida pelo Elo Terapêutico. " "Ative somente após revisar o canal e o template."
                 ),
                 "event_type": event_type,
                 "channel": Communication.Channel.EMAIL,

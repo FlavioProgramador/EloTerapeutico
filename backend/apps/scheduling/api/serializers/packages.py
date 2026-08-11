@@ -38,7 +38,9 @@ class PatientPackageSerializer(serializers.ModelSerializer):
         required=False,
         default=list,
     )
-    duration_minutes = serializers.IntegerField(write_only=True, required=False, default=50, min_value=15, max_value=240)
+    duration_minutes = serializers.IntegerField(
+        write_only=True, required=False, default=50, min_value=15, max_value=240
+    )
     modality = serializers.ChoiceField(
         choices=Appointment.Modality.choices,
         write_only=True,
@@ -62,12 +64,36 @@ class PatientPackageSerializer(serializers.ModelSerializer):
     class Meta:
         model = PatientPackage
         fields = [
-            "id", "patient", "patient_name", "therapist", "therapist_name", "name",
-            "description", "sessions_contracted", "sessions_used", "remaining_sessions",
-            "total_value", "unit_value", "valid_from", "valid_until", "status", "is_expired",
-            "generate_charge", "send_charge", "sessions", "auto_schedule", "first_appointment_at",
-            "frequency", "weekdays", "duration_minutes", "modality", "appointment_type", "room",
-            "send_whatsapp_reminder", "created_at", "updated_at",
+            "id",
+            "patient",
+            "patient_name",
+            "therapist",
+            "therapist_name",
+            "name",
+            "description",
+            "sessions_contracted",
+            "sessions_used",
+            "remaining_sessions",
+            "total_value",
+            "unit_value",
+            "valid_from",
+            "valid_until",
+            "status",
+            "is_expired",
+            "generate_charge",
+            "send_charge",
+            "sessions",
+            "auto_schedule",
+            "first_appointment_at",
+            "frequency",
+            "weekdays",
+            "duration_minutes",
+            "modality",
+            "appointment_type",
+            "room",
+            "send_whatsapp_reminder",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = ["sessions_used", "created_at", "updated_at"]
 

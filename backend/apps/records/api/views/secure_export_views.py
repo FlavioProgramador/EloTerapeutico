@@ -31,8 +31,7 @@ def _can_manage_foreign_export(user, export_obj: ClinicalExport) -> bool:
     if export_obj.created_by_id == user.id:
         return True
     return bool(
-        getattr(user, "is_admin_role", False)
-        and has_explicit_records_permission(user, "export_confidential_evolution")
+        getattr(user, "is_admin_role", False) and has_explicit_records_permission(user, "export_confidential_evolution")
     )
 
 
@@ -61,9 +60,7 @@ class SecurePatientRecordPdfView(PatientRecordPdfView):
     def get(self, request, patient_id):
         patient = self.get_patient(patient_id)
         has_foreign_confidential = (
-            Evolution.objects.filter(patient=patient, is_confidential=True)
-            .exclude(created_by=request.user)
-            .exists()
+            Evolution.objects.filter(patient=patient, is_confidential=True).exclude(created_by=request.user).exists()
         )
         if has_foreign_confidential and not has_explicit_records_permission(
             request.user,
@@ -86,11 +83,7 @@ class SecureClinicalExportListCreateView(ClinicalExportListCreateView):
                 message="Secretárias não possuem acesso a exportações clínicas.",
             )
         patient = self.get_patient(patient_id)
-        queryset = (
-            ClinicalExport.objects.filter(patient=patient)
-            .select_related("created_by")
-            .order_by("-created_at")
-        )
+        queryset = ClinicalExport.objects.filter(patient=patient).select_related("created_by").order_by("-created_at")
         can_review_all = bool(
             request.user.is_admin_role
             and has_explicit_records_permission(request.user, "export_confidential_evolution")
@@ -109,9 +102,7 @@ class SecureClinicalExportListCreateView(ClinicalExportListCreateView):
     def post(self, request, patient_id):
         patient = self.get_patient(patient_id)
         has_foreign_confidential = (
-            Evolution.objects.filter(patient=patient, is_confidential=True)
-            .exclude(created_by=request.user)
-            .exists()
+            Evolution.objects.filter(patient=patient, is_confidential=True).exclude(created_by=request.user).exists()
         )
         if has_foreign_confidential and not has_explicit_records_permission(
             request.user,

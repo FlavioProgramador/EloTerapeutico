@@ -193,11 +193,7 @@ class OrganizationSettingsSerializer(serializers.ModelSerializer):
             .order_by("-created_at")
             .first()
         )
-        if not (
-            subscription
-            and subscription.has_access
-            and subscription.plan.has_telemedicine
-        ):
+        if not (subscription and subscription.has_access and subscription.plan.has_telemedicine):
             return False, "O plano atual não inclui atendimento online."
         return True, ""
 

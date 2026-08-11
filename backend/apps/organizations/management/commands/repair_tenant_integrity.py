@@ -45,8 +45,7 @@ class Command(BaseCommand):
                     _, created = ProfessionalProfile.objects.get_or_create(
                         membership=membership,
                         defaults={
-                            "display_name": getattr(membership.user, "display_name", "")
-                            or membership.user.full_name,
+                            "display_name": getattr(membership.user, "display_name", "") or membership.user.full_name,
                             "public_email": membership.user.email,
                             "default_appointment_duration": getattr(
                                 membership.user,
@@ -119,9 +118,11 @@ class Command(BaseCommand):
                 related_fields = {field.name for field in related_model._meta.get_fields()}
                 if "organization" not in related_fields:
                     continue
-                for object_id, organization_id in pending.exclude(
-                    **{f"{relation}__organization__isnull": True}
-                ).values_list("pk", f"{relation}__organization_id").iterator(chunk_size=500):
+                for object_id, organization_id in (
+                    pending.exclude(**{f"{relation}__organization__isnull": True})
+                    .values_list("pk", f"{relation}__organization_id")
+                    .iterator(chunk_size=500)
+                ):
                     total += model._default_manager.filter(
                         pk=object_id,
                         organization__isnull=True,

@@ -179,9 +179,7 @@ class CommunicationCreateSerializer(serializers.Serializer):
         organization = getattr(request, "organization", None)
         membership = getattr(request, "organization_membership", None)
         if organization is None or membership is None:
-            raise serializers.ValidationError(
-                {"organization": "Selecione uma organização."}
-            )
+            raise serializers.ValidationError({"organization": "Selecione uma organização."})
 
         patient_id = attrs.get("patient_id")
         appointment_id = attrs.get("appointment_id")
@@ -200,9 +198,7 @@ class CommunicationCreateSerializer(serializers.Serializer):
                 .first()
             )
             if patient is None:
-                raise serializers.ValidationError(
-                    {"patient_id": "Paciente não encontrado nesta organização."}
-                )
+                raise serializers.ValidationError({"patient_id": "Paciente não encontrado nesta organização."})
 
         if appointment_id:
             appointment = Appointment.objects.filter(
@@ -210,25 +206,17 @@ class CommunicationCreateSerializer(serializers.Serializer):
                 organization=organization,
             ).first()
             if appointment is None:
-                raise serializers.ValidationError(
-                    {"appointment_id": "Consulta não encontrada nesta organização."}
-                )
+                raise serializers.ValidationError({"appointment_id": "Consulta não encontrada nesta organização."})
             if membership.role == OrganizationMembership.Role.THERAPIST and (
                 appointment.therapist_id != request.user.pk
             ):
-                raise serializers.ValidationError(
-                    {"appointment_id": "Consulta não autorizada."}
-                )
+                raise serializers.ValidationError({"appointment_id": "Consulta não autorizada."})
             if patient is not None and appointment.patient_id != patient.pk:
-                raise serializers.ValidationError(
-                    {"appointment_id": "A consulta pertence a outro paciente."}
-                )
+                raise serializers.ValidationError({"appointment_id": "A consulta pertence a outro paciente."})
             patient = patient or appointment.patient
 
         if attrs["channel"] != Communication.Channel.IN_APP and patient is None:
-            raise serializers.ValidationError(
-                {"patient_id": "Selecione um paciente para este canal."}
-            )
+            raise serializers.ValidationError({"patient_id": "Selecione um paciente para este canal."})
 
         template = None
         template_id = attrs.get("template_id")
@@ -249,17 +237,11 @@ class CommunicationCreateSerializer(serializers.Serializer):
                 is_active=True,
             ).first()
             if template is None:
-                raise serializers.ValidationError(
-                    {"template_id": "Template não encontrado."}
-                )
+                raise serializers.ValidationError({"template_id": "Template não encontrado."})
             if template.channel != attrs["channel"]:
-                raise serializers.ValidationError(
-                    {"template_id": "O template não pertence ao canal selecionado."}
-                )
+                raise serializers.ValidationError({"template_id": "O template não pertence ao canal selecionado."})
         elif not attrs.get("body", "").strip():
-            raise serializers.ValidationError(
-                {"body": "Informe o conteúdo ou selecione um template."}
-            )
+            raise serializers.ValidationError({"body": "Informe o conteúdo ou selecione um template."})
 
         attrs["organization"] = organization
         attrs["patient"] = patient
@@ -273,8 +255,7 @@ class CommunicationCreateSerializer(serializers.Serializer):
         validated_data.pop("appointment_id", None)
         validated_data.pop("template_id", None)
         idempotency_key = request.headers.get("Idempotency-Key") or (
-            f"manual:{validated_data['organization'].pk}:{request.user.pk}:"
-            f"{uuid.uuid4().hex}"
+            f"manual:{validated_data['organization'].pk}:{request.user.pk}:" f"{uuid.uuid4().hex}"
         )
         return create_communication(
             owner=request.user,
@@ -292,19 +273,13 @@ class CommunicationDraftUpdateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         if self.instance.status != Communication.Status.DRAFT:
-            raise serializers.ValidationError(
-                "Somente rascunhos podem ser editados."
-            )
+            raise serializers.ValidationError("Somente rascunhos podem ser editados.")
         body = attrs.get("body", self.instance.body)
         if not str(body).strip():
-            raise serializers.ValidationError(
-                {"body": "O conteúdo é obrigatório."}
-            )
+            raise serializers.ValidationError({"body": "O conteúdo é obrigatório."})
         scheduled_at = attrs.get("scheduled_at")
         if scheduled_at and scheduled_at <= timezone.now():
-            raise serializers.ValidationError(
-                {"scheduled_at": "A data deve estar no futuro."}
-            )
+            raise serializers.ValidationError({"scheduled_at": "A data deve estar no futuro."})
         return attrs
 
     def update(self, instance, validated_data):

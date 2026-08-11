@@ -250,15 +250,9 @@ def test_billing_compatibility_packages_remain_thin():
 
 def test_billing_task_names_remain_public():
     tasks = import_module("apps.billing.tasks")
-    assert tasks.process_webhook_event_task.name == (
-        "apps.billing.tasks.process_webhook_event"
-    )
-    assert tasks.dispatch_pending_webhook_events.name == (
-        "apps.billing.tasks.dispatch_pending_webhook_events"
-    )
-    assert tasks.reconcile_asaas_payments.name == (
-        "apps.billing.tasks.reconcile_asaas_payments"
-    )
+    assert tasks.process_webhook_event_task.name == ("apps.billing.tasks.process_webhook_event")
+    assert tasks.dispatch_pending_webhook_events.name == ("apps.billing.tasks.dispatch_pending_webhook_events")
+    assert tasks.reconcile_asaas_payments.name == ("apps.billing.tasks.reconcile_asaas_payments")
 
 
 def test_billing_webhook_facade_preserves_patch_points():

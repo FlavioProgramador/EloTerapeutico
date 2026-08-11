@@ -121,9 +121,9 @@ def activate_organization(*, actor, organization: Organization) -> OrganizationM
         user=actor,
         status=OrganizationMembership.Status.ACTIVE,
     )
-    OrganizationMembership.objects.filter(user=actor, is_default=True).exclude(
-        pk=membership.pk
-    ).update(is_default=False)
+    OrganizationMembership.objects.filter(user=actor, is_default=True).exclude(pk=membership.pk).update(
+        is_default=False
+    )
     if not membership.is_default:
         membership.is_default = True
         membership.save(update_fields=["is_default", "updated_at"])

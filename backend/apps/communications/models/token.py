@@ -99,11 +99,15 @@ class PublicCommunicationActionToken(models.Model):
     @classmethod
     def resolve(cls, raw_token: str):
         token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
-        return cls.objects.select_related(
-            "owner", "patient", "communication", "appointment", "form_submission__form", "document"
-        ).filter(
-            token_hash=token_hash,
-            used_at__isnull=True,
-            revoked_at__isnull=True,
-            expires_at__gt=timezone.now(),
-        ).first()
+        return (
+            cls.objects.select_related(
+                "owner", "patient", "communication", "appointment", "form_submission__form", "document"
+            )
+            .filter(
+                token_hash=token_hash,
+                used_at__isnull=True,
+                revoked_at__isnull=True,
+                expires_at__gt=timezone.now(),
+            )
+            .first()
+        )

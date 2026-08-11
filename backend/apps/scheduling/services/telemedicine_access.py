@@ -46,9 +46,7 @@ TELEMEDICINE_CONSENT_TEXT = (
     "procurar os serviços públicos de urgência da minha região, pois esta sala não "
     "substitui atendimento emergencial."
 )
-TELEMEDICINE_CONSENT_HASH = hashlib.sha256(
-    TELEMEDICINE_CONSENT_TEXT.encode()
-).hexdigest()
+TELEMEDICINE_CONSENT_HASH = hashlib.sha256(TELEMEDICINE_CONSENT_TEXT.encode()).hexdigest()
 
 
 def _invitation_url(raw_token: str) -> str:
@@ -92,13 +90,9 @@ def _get_valid_invitation(*, raw_token: str, lock: bool) -> TelemedicineInvitati
     try:
         invitation = queryset.get(token_hash=token_hash)
     except TelemedicineInvitation.DoesNotExist as exc:
-        raise TelemedicineInvitationExpiredError(
-            "O acesso é inválido ou não está mais disponível."
-        ) from exc
+        raise TelemedicineInvitationExpiredError("O acesso é inválido ou não está mais disponível.") from exc
     if not invitation.is_valid:
-        raise TelemedicineInvitationExpiredError(
-            "O acesso é inválido ou não está mais disponível."
-        )
+        raise TelemedicineInvitationExpiredError("O acesso é inválido ou não está mais disponível.")
     return invitation
 
 
@@ -180,9 +174,7 @@ def record_telemedicine_consent(
     responsible_guardian_name: str = "",
 ) -> TelemedicineConsent:
     if accepted is not True:
-        raise TelemedicineConsentRequiredError(
-            "É necessário aceitar o termo para entrar no atendimento."
-        )
+        raise TelemedicineConsentRequiredError("É necessário aceitar o termo para entrar no atendimento.")
     invitation = _get_valid_invitation(raw_token=raw_token, lock=True)
     validate_room_availability(room=invitation.room, require_join_window=False)
 
@@ -234,9 +226,7 @@ def _issue_credentials(
             ttl_seconds=config.provider_token_ttl_seconds,
         )
     except TelemedicineProviderError as exc:
-        raise TelemedicineProviderUnavailableError(
-            "O atendimento online está temporariamente indisponível."
-        ) from exc
+        raise TelemedicineProviderUnavailableError("O atendimento online está temporariamente indisponível.") from exc
 
     return {
         **asdict(credentials),
@@ -252,9 +242,7 @@ def issue_patient_join_credentials(*, raw_token: str) -> dict:
     invitation = _get_valid_invitation(raw_token=raw_token, lock=False)
     validate_room_availability(room=invitation.room, require_join_window=True)
     if not get_active_telemedicine_consent(room=invitation.room):
-        raise TelemedicineConsentRequiredError(
-            "É necessário aceitar o termo para entrar no atendimento."
-        )
+        raise TelemedicineConsentRequiredError("É necessário aceitar o termo para entrar no atendimento.")
     return _issue_credentials(
         room=invitation.room,
         role="patient",

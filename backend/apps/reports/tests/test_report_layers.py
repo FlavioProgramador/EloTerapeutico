@@ -50,3 +50,59 @@ class ReportLayerTests(APITestCase):
         response = self.client.get("/api/v1/reports/export/", {"type": "unknown"})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data, {"detail": "Tipo de relatorio invalido."})
+
+    def test_patients_report_age_distribution_optimized(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        from apps.organizations.models import Organization, OrganizationMembership
+        from apps.reports.services.patient_reports import patients_report
+
+        org = Organization.objects.create(name="Org de Teste", slug="org-teste", created_by=self.owner)
+        OrganizationMembership.objects.create(
+            organization=org,
+            user=self.owner,
+            role=OrganizationMembership.Role.OWNER,
+            status=OrganizationMembership.Status.ACTIVE,
+        )
+
+        today = date.today()
+        # Minor (e.g., 4 years old)
+        Patient.objects.create(
+            organization=org,
+            full_name="Criança",
+            therapist=self.owner,
+            birth_date=date(today.year - 4, today.month, today.day),
+        )
+        # Adult (e.g., 30 years old)
+        Patient.objects.create(
+            organization=org,
+            full_name="Adulto",
+            therapist=self.owner,
+            birth_date=date(today.year - 30, today.month, today.day),
+        )
+        # No age
+        Patient.objects.create(
+            organization=org,
+            full_name="Sem Data",
+            therapist=self.owner,
+            birth_date=None,
+        )
+
+        # Let's count queries or at least check correctness and make sure no heavy patient query is done
+        with CaptureQueriesContext(connection) as ctx:
+            res = patients_report(self.owner, {}, organization=org)
+
+        # Ensure age distribution details are correct
+        age_dist = res["charts"]["age_distribution"]
+        # Find 0-5 bucket
+        bucket_0_5 = next(item for item in age_dist if item["label"] == "0-5")
+        self.assertEqual(bucket_0_5["value"], 1)
+
+        # Find 26-35 bucket
+        bucket_26_35 = next(item for item in age_dist if item["label"] == "26-35")
+        self.assertEqual(bucket_26_35["value"], 1)
+
+        # Find "Sem data" bucket
+        bucket_sem_data = next(item for item in age_dist if item["label"] == "Sem data")
+        self.assertEqual(bucket_sem_data["value"], 1)

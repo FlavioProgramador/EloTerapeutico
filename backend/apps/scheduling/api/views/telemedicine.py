@@ -313,9 +313,7 @@ class TelemedicinePublicExchangeView(APIView):
         serializer = TelemedicineInvitationTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            context = exchange_patient_invitation(
-                raw_token=serializer.validated_data["token"]
-            )
+            context = exchange_patient_invitation(raw_token=serializer.validated_data["token"])
         except TelemedicineUnavailableError as exc:
             return _telemedicine_error_response(exc)
         return _no_store(Response(context))
@@ -336,9 +334,7 @@ class TelemedicinePublicConsentView(APIView):
             consent = record_telemedicine_consent(
                 raw_token=serializer.validated_data["token"],
                 accepted=serializer.validated_data["accepted"],
-                responsible_guardian_name=serializer.validated_data.get(
-                    "responsible_guardian_name", ""
-                ),
+                responsible_guardian_name=serializer.validated_data.get("responsible_guardian_name", ""),
             )
         except TelemedicineUnavailableError as exc:
             return _telemedicine_error_response(exc)
@@ -365,9 +361,7 @@ class TelemedicinePublicJoinView(APIView):
         serializer = TelemedicineInvitationTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            credentials = issue_patient_join_credentials(
-                raw_token=serializer.validated_data["token"]
-            )
+            credentials = issue_patient_join_credentials(raw_token=serializer.validated_data["token"])
         except TelemedicineUnavailableError as exc:
             return _telemedicine_error_response(exc)
         return _no_store(Response(credentials))

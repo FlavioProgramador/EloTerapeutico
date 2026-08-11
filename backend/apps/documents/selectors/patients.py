@@ -26,6 +26,4 @@ def get_accessible_patient(
     )
     if organization is not None:
         queryset = queryset.filter(organization=organization)
-    return queryset.filter(
-        patient_access_q(owner, membership=membership)
-    ).distinct().first()
+    return queryset.filter(patient_access_q(owner, membership=membership)).distinct().first()

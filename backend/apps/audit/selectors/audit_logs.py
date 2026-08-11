@@ -41,9 +41,7 @@ def audit_logs_for_period(*, user, start_at, end_at) -> QuerySet[AuditLog]:
 
 
 def audit_logs_for_action(*, user, action) -> QuerySet[AuditLog]:
-    return audit_logs_accessible_to(user=user).filter(
-        action=str(getattr(action, "value", action))
-    )
+    return audit_logs_accessible_to(user=user).filter(action=str(getattr(action, "value", action)))
 
 
 __all__ = [

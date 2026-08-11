@@ -167,8 +167,5 @@ def can_view_confidential_evolution(user, evolution) -> bool:
     return bool(
         user
         and user.is_authenticated
-        and (
-            evolution.created_by_id == user.id
-            or has_explicit_records_permission(user, "view_confidential_evolution")
-        )
+        and (evolution.created_by_id == user.id or has_explicit_records_permission(user, "view_confidential_evolution"))
     )

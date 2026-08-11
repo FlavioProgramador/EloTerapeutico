@@ -4,7 +4,7 @@ Descreva o problema e o objetivo.
 
 ## Alterações
 
-- 
+-
 
 ## Impacto
 

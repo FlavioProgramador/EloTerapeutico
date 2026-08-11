@@ -44,11 +44,7 @@ def _plan_allows_telemedicine(room: TelemedicineRoom) -> bool:
         .order_by("-created_at")
         .first()
     )
-    return bool(
-        subscription
-        and subscription.has_access
-        and subscription.plan.has_telemedicine
-    )
+    return bool(subscription and subscription.has_access and subscription.plan.has_telemedicine)
 
 
 def validate_room_availability(
@@ -58,51 +54,33 @@ def validate_room_availability(
 ) -> None:
     config = get_telemedicine_config()
     if not config.enabled or not _organization_allows_telemedicine(room):
-        raise TelemedicineDisabledError(
-            "O atendimento online ainda não está disponível para esta organização."
-        )
+        raise TelemedicineDisabledError("O atendimento online ainda não está disponível para esta organização.")
     if not config.provider_configured:
-        raise TelemedicineProviderUnavailableError(
-            "O atendimento online está temporariamente indisponível."
-        )
+        raise TelemedicineProviderUnavailableError("O atendimento online está temporariamente indisponível.")
     if not _plan_allows_telemedicine(room):
-        raise TelemedicineAccessDeniedError(
-            "O plano atual não inclui atendimento online."
-        )
+        raise TelemedicineAccessDeniedError("O plano atual não inclui atendimento online.")
 
     appointment = room.appointment
     if appointment.modality not in {
         Appointment.Modality.ONLINE,
         Appointment.Modality.HYBRID,
     }:
-        raise TelemedicineInvalidStateError(
-            "Esta consulta não está configurada para atendimento online."
-        )
+        raise TelemedicineInvalidStateError("Esta consulta não está configurada para atendimento online.")
     if appointment.status in {
         Appointment.Status.CANCELLED,
         Appointment.Status.COMPLETED,
         Appointment.Status.MISSED,
     }:
-        raise TelemedicineInvalidStateError(
-            "O atendimento não pode ser iniciado neste estado."
-        )
+        raise TelemedicineInvalidStateError("O atendimento não pode ser iniciado neste estado.")
     if not room.is_accessible:
-        raise TelemedicineInvalidStateError(
-            "A sala expirou, foi revogada ou já foi encerrada."
-        )
+        raise TelemedicineInvalidStateError("A sala expirou, foi revogada ou já foi encerrada.")
 
     if require_join_window:
         now = timezone.now()
-        opens_at = appointment.start_time - timedelta(
-            minutes=config.join_before_minutes
-        )
-        closes_at = appointment.end_time + timedelta(
-            minutes=config.join_after_minutes
-        )
+        opens_at = appointment.start_time - timedelta(minutes=config.join_before_minutes)
+        closes_at = appointment.end_time + timedelta(minutes=config.join_after_minutes)
         if now < opens_at or now > closes_at:
-            raise TelemedicineOutsideJoinWindowError(
-                "A sala ainda não está disponível ou a janela de acesso terminou."
-            )
+            raise TelemedicineOutsideJoinWindowError("A sala ainda não está disponível ou a janela de acesso terminou.")
 
 
 def validate_professional_access(*, actor, room: TelemedicineRoom) -> None:
@@ -124,14 +102,8 @@ def validate_professional_access(*, actor, room: TelemedicineRoom) -> None:
         }
     )
     responsible_therapist = actor.pk == room.appointment.therapist_id
-    if not (
-        membership
-        and has_capability(membership, "scheduling.view")
-        and (allowed_role or responsible_therapist)
-    ):
-        raise TelemedicineAccessDeniedError(
-            "Você não possui acesso a este atendimento."
-        )
+    if not (membership and has_capability(membership, "scheduling.view") and (allowed_role or responsible_therapist)):
+        raise TelemedicineAccessDeniedError("Você não possui acesso a este atendimento.")
 
 
 def ensure_e2ee_key(*, room: TelemedicineRoom) -> TelemedicineRoom:
@@ -142,9 +114,7 @@ def ensure_e2ee_key(*, room: TelemedicineRoom) -> TelemedicineRoom:
         locked.e2ee_enabled = True
         locked.save(update_fields=["e2ee_key", "e2ee_enabled", "updated_at"])
     if config.require_e2ee and not locked.e2ee_key:
-        raise TelemedicineEncryptionUnavailableError(
-            "Não foi possível iniciar a chamada com segurança."
-        )
+        raise TelemedicineEncryptionUnavailableError("Não foi possível iniciar a chamada com segurança.")
     return locked
 
 
@@ -168,9 +138,7 @@ def ensure_provider_room(*, room: TelemedicineRoom) -> TelemedicineRoom:
             ended_at=timezone.now(),
             updated_at=timezone.now(),
         )
-        raise TelemedicineProviderUnavailableError(
-            "O atendimento online está temporariamente indisponível."
-        ) from exc
+        raise TelemedicineProviderUnavailableError("O atendimento online está temporariamente indisponível.") from exc
 
     with transaction.atomic():
         locked = TelemedicineRoom.objects.select_for_update().get(pk=room.pk)
@@ -233,9 +201,7 @@ def remove_telemedicine_participant(
             identity=identity,
         )
     except TelemedicineProviderError as exc:
-        raise TelemedicineProviderUnavailableError(
-            "Não foi possível remover o participante."
-        ) from exc
+        raise TelemedicineProviderUnavailableError("Não foi possível remover o participante.") from exc
 
 
 def expire_telemedicine_rooms(*, batch_size: int = 100) -> int:
@@ -257,9 +223,7 @@ def expire_telemedicine_rooms(*, batch_size: int = 100) -> int:
         return 0
 
     with transaction.atomic():
-        rooms = TelemedicineRoom.objects.select_for_update().filter(
-            pk__in=expired_ids
-        )
+        rooms = TelemedicineRoom.objects.select_for_update().filter(pk__in=expired_ids)
         count = 0
         for room in rooms:
             if room.status not in room.TERMINAL_STATUSES:

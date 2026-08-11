@@ -28,17 +28,9 @@ def send_communication(self, communication_id: int) -> None:
         countdown = min(30 * (2**self.request.retries), 300)
         final = self.request.retries >= self.max_retries
         updates = {
-            "status": (
-                Communication.Status.FAILED
-                if final
-                else Communication.Status.QUEUED
-            ),
+            "status": (Communication.Status.FAILED if final else Communication.Status.QUEUED),
             "processing_started_at": None,
-            "next_retry_at": (
-                None
-                if final
-                else timezone.now() + timedelta(seconds=countdown)
-            ),
+            "next_retry_at": (None if final else timezone.now() + timedelta(seconds=countdown)),
         }
         if final:
             updates["failed_at"] = timezone.now()

@@ -35,9 +35,7 @@ def recurrence_dates(rule: AppointmentRecurrence, limit: int | None = None):
         if rule.ends_on and current > rule.ends_on:
             break
         include = not (
-            rule.frequency == AppointmentRecurrence.Frequency.CUSTOM
-            and weekdays
-            and current.weekday() not in weekdays
+            rule.frequency == AppointmentRecurrence.Frequency.CUSTOM and weekdays and current.weekday() not in weekdays
         )
         if include:
             yield current

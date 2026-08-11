@@ -52,9 +52,7 @@ def _validate_root(errors: list[str]) -> None:
     root_files = {path.name for path in AUDIT.iterdir() if path.is_file()}
     allowed = {"README.md", "__init__.py", "apps.py"}
     if root_files != allowed:
-        errors.append(
-            f"Raiz de audit deve conter apenas {sorted(allowed)}; encontrado {sorted(root_files)}"
-        )
+        errors.append(f"Raiz de audit deve conter apenas {sorted(allowed)}; encontrado {sorted(root_files)}")
 
 
 def _validate_historical_contract(errors: list[str]) -> None:
@@ -78,9 +76,7 @@ def _validate_public_writes(errors: list[str]) -> None:
         if "migrations" in path.parts or "tests" in path.parts:
             continue
         source = path.read_text(encoding="utf-8")
-        if str(path) not in allowed_parts and (
-            direct_create.search(source) or direct_constructor.search(source)
-        ):
+        if str(path) not in allowed_parts and (direct_create.search(source) or direct_constructor.search(source)):
             errors.append(f"Escrita direta de AuditLog fora do service: {_relative(path)}")
 
 

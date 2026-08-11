@@ -375,11 +375,7 @@ class SafeTokenRefreshSerializer(serializers.Serializer):
             raise InvalidToken(_INVALID_TOKEN_MESSAGE) from exc
 
         current_hash = get_md5_hash_password(user.password)
-        if (
-            not user.is_active
-            or not token_hash
-            or not secrets.compare_digest(str(token_hash), str(current_hash))
-        ):
+        if not user.is_active or not token_hash or not secrets.compare_digest(str(token_hash), str(current_hash)):
             raise InvalidToken(_INVALID_TOKEN_MESSAGE)
 
         try:

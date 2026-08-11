@@ -91,14 +91,10 @@ class OrganizationContextView(APIView):
         membership = getattr(request, "organization_membership", None)
         return Response(
             {
-                "active_organization": OrganizationSerializer(
-                    getattr(request, "organization", None)
-                ).data
+                "active_organization": OrganizationSerializer(getattr(request, "organization", None)).data
                 if getattr(request, "organization", None)
                 else None,
-                "active_membership": MembershipSerializer(membership).data
-                if membership
-                else None,
+                "active_membership": MembershipSerializer(membership).data if membership else None,
                 "organizations": OrganizationSerializer(organizations, many=True).data,
             }
         )
@@ -340,9 +336,7 @@ class ProfessionalProfileView(APIView):
             data={"professional_profile": serializer.validated_data},
             request=request,
         )
-        return Response(
-            ProfessionalProfileSerializer(result["professional_profile"]).data
-        )
+        return Response(ProfessionalProfileSerializer(result["professional_profile"]).data)
 
 
 class OrganizationOnboardingView(APIView):
@@ -357,9 +351,7 @@ class OrganizationOnboardingView(APIView):
                 "organization": OrganizationSerializer(context["organization"]).data,
                 "membership": MembershipSerializer(context["membership"]).data,
                 "settings": OrganizationSettingsSerializer(context["settings"]).data,
-                "professional_profile": ProfessionalProfileSerializer(
-                    context["professional_profile"]
-                ).data
+                "professional_profile": ProfessionalProfileSerializer(context["professional_profile"]).data
                 if context["professional_profile"]
                 else None,
                 "status": context["status"],

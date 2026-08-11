@@ -18,9 +18,7 @@ class PackageFilter(filters.FilterSet):
 
     def filter_search(self, queryset, name, value):
         return queryset.filter(
-            Q(name__icontains=value)
-            | Q(patient__full_name__icontains=value)
-            | Q(patient__social_name__icontains=value)
+            Q(name__icontains=value) | Q(patient__full_name__icontains=value) | Q(patient__social_name__icontains=value)
         )
 
     def filter_balance(self, queryset, name, value):

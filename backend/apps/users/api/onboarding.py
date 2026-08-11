@@ -22,9 +22,7 @@ class OnboardingWorkingHoursSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs["start_time"] >= attrs["end_time"]:
-            raise serializers.ValidationError(
-                "O horário de início deve ser anterior ao horário de fim."
-            )
+            raise serializers.ValidationError("O horário de início deve ser anterior ao horário de fim.")
         return attrs
 
 
@@ -112,9 +110,9 @@ class OnboardingView(APIView):
                     },
                 )
             if supplied_weekdays:
-                WorkingHours.objects.filter(therapist=user).exclude(
-                    weekday__in=supplied_weekdays
-                ).update(is_active=False)
+                WorkingHours.objects.filter(therapist=user).exclude(weekday__in=supplied_weekdays).update(
+                    is_active=False
+                )
 
         record_audit_event(
             action=AuditLog.Action.UPDATE,

@@ -49,13 +49,7 @@ def claim_due_communications(*, batch_size: int | None = None) -> list[int]:
         queryset = (
             Communication.objects.select_for_update(skip_locked=True)
             .filter(
-                (
-                    Q(status=Communication.Status.QUEUED)
-                    & (
-                        Q(next_retry_at__isnull=True)
-                        | Q(next_retry_at__lte=now)
-                    )
-                )
+                (Q(status=Communication.Status.QUEUED) & (Q(next_retry_at__isnull=True) | Q(next_retry_at__lte=now)))
                 | Q(
                     status=Communication.Status.SCHEDULED,
                     scheduled_at__lte=now,
@@ -112,9 +106,7 @@ def dispatch_communication(communication_id: int) -> Communication:
     if not recipients:
         communication.status = Communication.Status.FAILED
         communication.failed_at = timezone.now()
-        communication.save(
-            update_fields=["status", "failed_at", "updated_at"]
-        )
+        communication.save(update_fields=["status", "failed_at", "updated_at"])
         return communication
 
     final_status: str = str(Communication.Status.SENT)
@@ -139,9 +131,7 @@ def dispatch_communication(communication_id: int) -> Communication:
         ) as exc:
             attempt.status = CommunicationAttempt.Status.PERMANENT_FAILURE
             attempt.error_code = _sanitize_error(exc)
-            attempt.error_message = (
-                "Falha permanente ao processar o canal ou destinatário."
-            )
+            attempt.error_message = "Falha permanente ao processar o canal ou destinatário."
             recipient.status = CommunicationRecipient.Status.FAILED
             final_status = Communication.Status.FAILED
         except (RetryableProviderError, ProviderError) as exc:
@@ -156,13 +146,9 @@ def dispatch_communication(communication_id: int) -> Communication:
                     attempt_number - 1,
                     len(RETRY_DELAYS_SECONDS) - 1,
                 )
-                attempt.next_retry_at = timezone.now() + timedelta(
-                    seconds=RETRY_DELAYS_SECONDS[delay_index]
-                )
+                attempt.next_retry_at = timezone.now() + timedelta(seconds=RETRY_DELAYS_SECONDS[delay_index])
                 communication.next_retry_at = attempt.next_retry_at
-                attempt.error_message = (
-                    "Falha temporária; uma nova tentativa foi agendada."
-                )
+                attempt.error_message = "Falha temporária; uma nova tentativa foi agendada."
                 final_status = Communication.Status.QUEUED
                 any_retry = True
             attempt.error_code = _sanitize_error(exc)
@@ -222,10 +208,7 @@ def dispatch_communication(communication_id: int) -> Communication:
             recipient=communication.owner,
             communication=communication,
             title="Falha no envio de comunicação",
-            message=(
-                "Não foi possível enviar uma comunicação. "
-                "Revise o canal e tente novamente."
-            ),
+            message=("Não foi possível enviar uma comunicação. " "Revise o canal e tente novamente."),
             event_type="communications.failed",
             category="communications",
             priority="high",

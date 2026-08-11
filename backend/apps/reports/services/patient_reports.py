@@ -1,7 +1,7 @@
 # mypy: ignore-errors
 """Construção do relatório de pacientes."""
 
-from datetime import timedelta
+from datetime import date, timedelta
 from typing import Any
 
 from django.db.models import Count, Max, Q
@@ -24,16 +24,8 @@ from apps.scheduling.models import Appointment
 
 def serialize_patient_risk(patient: Patient, threshold: int) -> dict[str, Any]:
     today = timezone.localdate()
-    last = (
-        patient.last_appointment.date()
-        if getattr(patient, "last_appointment", None)
-        else None
-    )
-    next_appt = (
-        patient.next_appointment.date()
-        if getattr(patient, "next_appointment", None)
-        else None
-    )
+    last = patient.last_appointment.date() if getattr(patient, "last_appointment", None) else None
+    next_appt = patient.next_appointment.date() if getattr(patient, "next_appointment", None) else None
     days_without = (today - last).days if last else threshold
     return {
         "id": patient.id,
@@ -74,11 +66,7 @@ def patients_report(user, params, organization=None) -> dict[str, Any]:
         .distinct()
         .count()
     )
-    retention = (
-        round((active_with_appointment / active_total) * 100, 1)
-        if active_total
-        else 0
-    )
+    retention = round((active_with_appointment / active_total) * 100, 1) if active_total else 0
 
     monthly = {
         month_key(month): {
@@ -101,9 +89,7 @@ def patients_report(user, params, organization=None) -> dict[str, Any]:
     inactive_total = patients.exclude(id__in=active.values("id")).count()
     by_professional = [
         {"label": row["therapist__full_name"] or "Sem profissional", "value": row["value"]}
-        for row in patients.values("therapist__full_name")
-        .annotate(value=Count("id"))
-        .order_by("therapist__full_name")
+        for row in patients.values("therapist__full_name").annotate(value=Count("id")).order_by("therapist__full_name")
     ]
 
     age_buckets = [
@@ -116,15 +102,18 @@ def patients_report(user, params, organization=None) -> dict[str, Any]:
         (46, 60, "46-60"),
         (61, 200, "60+"),
     ]
-    age_distribution = [
-        {"label": label, "value": 0} for _, _, label in age_buckets
-    ]
+    age_distribution = [{"label": label, "value": 0} for _, _, label in age_buckets]
     age_distribution.append({"label": "Sem data", "value": 0})
-    for patient in patients:
-        age = patient.age
-        if age is None:
+    today_date = date.today()
+    for birth_date in patients.values_list("birth_date", flat=True):
+        if birth_date is None:
             age_distribution[-1]["value"] += 1
             continue
+        age = (
+            today_date.year
+            - birth_date.year
+            - ((today_date.month, today_date.day) < (birth_date.month, birth_date.day))
+        )
         for index, (minimum, maximum, _label) in enumerate(age_buckets):
             if minimum <= age <= maximum:
                 age_distribution[index]["value"] += 1
@@ -149,10 +138,7 @@ def patients_report(user, params, organization=None) -> dict[str, Any]:
                 ],
             ),
         ),
-    ).filter(
-        Q(last_appointment__date__lt=cutoff)
-        | Q(last_appointment__isnull=True)
-    )
+    ).filter(Q(last_appointment__date__lt=cutoff) | Q(last_appointment__isnull=True))
 
     status_filter = params.get("status")
     professional_filter = params.get("professional")
@@ -186,9 +172,6 @@ def patients_report(user, params, organization=None) -> dict[str, Any]:
             "count": paginated["count"],
             "page": paginated["page"],
             "page_size": paginated["page_size"],
-            "results": [
-                serialize_patient_risk(item, risk_days)
-                for item in paginated["items"]
-            ],
+            "results": [serialize_patient_risk(item, risk_days) for item in paginated["items"]],
         },
     }

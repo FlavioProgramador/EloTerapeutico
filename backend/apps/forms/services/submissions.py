@@ -84,12 +84,16 @@ def update_submission(
     validated_data: dict,
     actor=None,
 ) -> FormSubmission:
-    submission = FormSubmission.objects.select_for_update().select_related(
-        "organization",
-        "form",
-        "patient",
-        "appointment",
-    ).get(pk=submission.pk)
+    submission = (
+        FormSubmission.objects.select_for_update()
+        .select_related(
+            "organization",
+            "form",
+            "patient",
+            "appointment",
+        )
+        .get(pk=submission.pk)
+    )
     _ensure_access(
         actor=actor,
         organization=submission.organization,
@@ -112,9 +116,7 @@ def update_submission(
 
 @transaction.atomic
 def submit_form_submission(*, actor, submission: FormSubmission) -> FormSubmission:
-    submission = FormSubmission.objects.select_for_update().select_related(
-        "organization"
-    ).get(pk=submission.pk)
+    submission = FormSubmission.objects.select_for_update().select_related("organization").get(pk=submission.pk)
     _ensure_access(
         actor=actor,
         organization=submission.organization,

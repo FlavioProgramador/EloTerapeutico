@@ -65,9 +65,7 @@ def create_generated_document(
 
     normalized_key = (idempotency_key or "").strip() or None
     if normalized_key and len(normalized_key) > 128:
-        raise DocumentDomainError(
-            "A chave de idempotência deve possuir no máximo 128 caracteres."
-        )
+        raise DocumentDomainError("A chave de idempotência deve possuir no máximo 128 caracteres.")
     if normalized_key:
         existing = find_by_idempotency_key(
             organization=organization,
@@ -123,9 +121,7 @@ def create_generated_document(
                 return GeneratedDocumentResult(document=existing, created=False)
         raise
 
-    DocumentTemplate.objects.filter(pk=template.pk).update(
-        usage_count=models.F("usage_count") + 1
-    )
+    DocumentTemplate.objects.filter(pk=template.pk).update(usage_count=models.F("usage_count") + 1)
     return GeneratedDocumentResult(document=document, created=True)
 
 
@@ -191,9 +187,7 @@ def cancel_document(*, document: GeneratedDocument, actor=None) -> GeneratedDocu
         GeneratedDocument.Status.DRAFT,
         GeneratedDocument.Status.FAILED,
     ):
-        raise DocumentDomainError(
-            "Somente rascunhos ou documentos com falha podem ser cancelados."
-        )
+        raise DocumentDomainError("Somente rascunhos ou documentos com falha podem ser cancelados.")
     document.status = GeneratedDocument.Status.CANCELLED
     document.save(update_fields=["status", "updated_at"])
     return document

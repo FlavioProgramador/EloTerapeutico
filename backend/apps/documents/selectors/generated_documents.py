@@ -40,9 +40,9 @@ def generated_documents_for_user(*, user, organization) -> QuerySet[GeneratedDoc
         user=user,
         status=OrganizationMembership.Status.ACTIVE,
     ).first()
-    queryset = GeneratedDocument.objects.filter(
-        organization=organization
-    ).select_related("patient", "professional", "template", "owner")
+    queryset = GeneratedDocument.objects.filter(organization=organization).select_related(
+        "patient", "professional", "template", "owner"
+    )
     if membership is None:
         return queryset.none()
     if membership.role == OrganizationMembership.Role.THERAPIST:

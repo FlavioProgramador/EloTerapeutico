@@ -29,25 +29,16 @@ def communication_dashboard(user, start_date=None, end_date=None, *, organizatio
             Communication.Status.RESPONDED,
         ]
     ).count()
-    by_channel = list(
-        queryset.values("channel").annotate(total=Count("id")).order_by("channel")
-    )
-    by_status = list(
-        queryset.values("status").annotate(total=Count("id")).order_by("status")
-    )
+    by_channel = list(queryset.values("channel").annotate(total=Count("id")).order_by("channel"))
+    by_status = list(queryset.values("status").annotate(total=Count("id")).order_by("status"))
     daily = list(
-        queryset.annotate(day=TruncDate("created_at"))
-        .values("day")
-        .annotate(total=Count("id"))
-        .order_by("day")
+        queryset.annotate(day=TruncDate("created_at")).values("day").annotate(total=Count("id")).order_by("day")
     )
     return {
         "period": {"start": start, "end": end},
         "metrics": {
             "total": total,
-            "scheduled": queryset.filter(
-                status=Communication.Status.SCHEDULED
-            ).count(),
+            "scheduled": queryset.filter(status=Communication.Status.SCHEDULED).count(),
             "delivered": queryset.filter(
                 status__in=[
                     Communication.Status.DELIVERED,

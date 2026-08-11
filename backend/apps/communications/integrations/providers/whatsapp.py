@@ -85,21 +85,13 @@ class WhatsAppCloudProvider(CommunicationProvider):
                 timeout=15,
             )
         except httpx.RequestError as exc:
-            raise RetryableProviderError(
-                "A API do WhatsApp está temporariamente indisponível."
-            ) from exc
+            raise RetryableProviderError("A API do WhatsApp está temporariamente indisponível.") from exc
         if response.status_code in {401, 403}:
-            raise ProviderNotConfigured(
-                "Credenciais do WhatsApp inválidas ou sem permissão."
-            )
+            raise ProviderNotConfigured("Credenciais do WhatsApp inválidas ou sem permissão.")
         if response.status_code >= 500:
-            raise RetryableProviderError(
-                "A API do WhatsApp está temporariamente indisponível."
-            )
+            raise RetryableProviderError("A API do WhatsApp está temporariamente indisponível.")
         if response.status_code >= 400:
-            raise PermanentProviderError(
-                "A Meta rejeitou a configuração informada."
-            )
+            raise PermanentProviderError("A Meta rejeitou a configuração informada.")
 
     def _send_text(self, destination: str, body: str) -> ProviderResult:
         digits = "".join(char for char in destination if char.isdigit())
@@ -119,21 +111,13 @@ class WhatsAppCloudProvider(CommunicationProvider):
                 timeout=20,
             )
         except httpx.RequestError as exc:
-            raise RetryableProviderError(
-                "A API do WhatsApp está temporariamente indisponível."
-            ) from exc
+            raise RetryableProviderError("A API do WhatsApp está temporariamente indisponível.") from exc
         if response.status_code in {401, 403}:
-            raise ProviderNotConfigured(
-                "Credenciais do WhatsApp inválidas ou expiradas."
-            )
+            raise ProviderNotConfigured("Credenciais do WhatsApp inválidas ou expiradas.")
         if response.status_code == 429 or response.status_code >= 500:
-            raise RetryableProviderError(
-                "A API do WhatsApp solicitou uma nova tentativa."
-            )
+            raise RetryableProviderError("A API do WhatsApp solicitou uma nova tentativa.")
         if response.status_code >= 400:
-            raise PermanentProviderError(
-                "A Meta rejeitou a mensagem. Verifique template, janela e destinatário."
-            )
+            raise PermanentProviderError("A Meta rejeitou a mensagem. Verifique template, janela e destinatário.")
         payload = response.json()
         messages = payload.get("messages") if isinstance(payload, dict) else None
         external_id = str(messages[0].get("id") if messages else "")

@@ -50,8 +50,7 @@ class Command(BaseCommand):
             self.stdout.write(payload)
         else:
             self.stdout.write(
-                f"Integridade tenant: {len(report['errors'])} erro(s), "
-                f"{len(report['warnings'])} alerta(s)."
+                f"Integridade tenant: {len(report['errors'])} erro(s), " f"{len(report['warnings'])} alerta(s)."
             )
             for item in report["errors"]:
                 self.stdout.write(self.style.ERROR(f"- {item['code']}: {item['count']}"))
@@ -65,12 +64,16 @@ class Command(BaseCommand):
             report[bucket].append({"code": code, "count": count, "model": model})
 
     def _check_memberships(self, report: Report) -> None:
-        organizations_without_owner = Organization.objects.exclude(status=Organization.Status.ARCHIVED).filter(
-            ~Q(
-                memberships__role=OrganizationMembership.Role.OWNER,
-                memberships__status=OrganizationMembership.Status.ACTIVE,
+        organizations_without_owner = (
+            Organization.objects.exclude(status=Organization.Status.ARCHIVED)
+            .filter(
+                ~Q(
+                    memberships__role=OrganizationMembership.Role.OWNER,
+                    memberships__status=OrganizationMembership.Status.ACTIVE,
+                )
             )
-        ).count()
+            .count()
+        )
         duplicate_defaults = (
             OrganizationMembership.objects.filter(is_default=True)
             .values("user_id")
@@ -99,9 +102,7 @@ class Command(BaseCommand):
             missing_queryset = model._default_manager.filter(organization__isnull=True)
             global_scope_flag = GLOBAL_SCOPE_FLAGS.get(label)
             if global_scope_flag and global_scope_flag in field_names:
-                missing_queryset = missing_queryset.filter(
-                    **{global_scope_flag: False}
-                )
+                missing_queryset = missing_queryset.filter(**{global_scope_flag: False})
             missing = missing_queryset.count()
             report["models"][label] = {"without_organization": missing, "cross_tenant": 0}
             self._add(report, "errors", "MISSING_ORGANIZATION", missing, label)
@@ -114,8 +115,10 @@ class Command(BaseCommand):
                 related_fields = {field.name for field in related_model._meta.get_fields()}
                 if "organization" not in related_fields:
                     continue
-                cross_total += model._default_manager.exclude(organization__isnull=True).exclude(
-                    **{f"{relation}__organization_id": F("organization_id")}
-                ).count()
+                cross_total += (
+                    model._default_manager.exclude(organization__isnull=True)
+                    .exclude(**{f"{relation}__organization_id": F("organization_id")})
+                    .count()
+                )
             report["models"][label]["cross_tenant"] = cross_total
             self._add(report, "errors", "CROSS_TENANT_RELATION", cross_total, label)

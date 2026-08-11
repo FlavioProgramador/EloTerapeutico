@@ -14,6 +14,13 @@ class FinancialTransactionFilter(filters.FilterSet):
     class Meta:
         model = FinancialTransaction
         fields = [
-            "transaction_type", "payment_status", "payment_method", "category",
-            "patient", "created_at_gte", "created_at_lte", "due_date_gte", "due_date_lte",
+            "transaction_type",
+            "payment_status",
+            "payment_method",
+            "category",
+            "patient",
+            "created_at_gte",
+            "created_at_lte",
+            "due_date_gte",
+            "due_date_lte",
         ]

@@ -22,11 +22,7 @@ from apps.communications.models import NotificationDelivery
     time_limit=90,
 )
 def send_notification_delivery(self, delivery_id: int) -> None:
-    delivery = (
-        NotificationDelivery.objects.select_related("notification__recipient")
-        .filter(pk=delivery_id)
-        .first()
-    )
+    delivery = NotificationDelivery.objects.select_related("notification__recipient").filter(pk=delivery_id).first()
     terminal_statuses = {
         NotificationDelivery.Status.SENT,
         NotificationDelivery.Status.DELIVERED,
@@ -38,9 +34,7 @@ def send_notification_delivery(self, delivery_id: int) -> None:
     delivery.status = NotificationDelivery.Status.PROCESSING
     delivery.attempt_count += 1
     delivery.last_error = ""
-    delivery.save(
-        update_fields=["status", "attempt_count", "last_error", "updated_at"]
-    )
+    delivery.save(update_fields=["status", "attempt_count", "last_error", "updated_at"])
     notification = delivery.notification
 
     try:
@@ -53,10 +47,7 @@ def send_notification_delivery(self, delivery_id: int) -> None:
         else:
             sent = send_mail(
                 subject=notification.title,
-                message=(
-                    f"{notification.message}\n\n"
-                    "Acesse o Elo Terapêutico para revisar."
-                ),
+                message=(f"{notification.message}\n\n" "Acesse o Elo Terapêutico para revisar."),
                 from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
                 recipient_list=[notification.recipient.email],
                 fail_silently=False,
@@ -82,17 +73,9 @@ def send_notification_delivery(self, delivery_id: int) -> None:
     except Exception as exc:
         countdown = min(60 * (2**self.request.retries), 3600)
         final = self.request.retries >= self.max_retries
-        delivery.status = (
-            NotificationDelivery.Status.FAILED
-            if final
-            else NotificationDelivery.Status.PENDING
-        )
+        delivery.status = NotificationDelivery.Status.FAILED if final else NotificationDelivery.Status.PENDING
         delivery.failed_at = timezone.now() if final else None
-        delivery.next_retry_at = (
-            None
-            if final
-            else timezone.now() + timedelta(seconds=countdown)
-        )
+        delivery.next_retry_at = None if final else timezone.now() + timedelta(seconds=countdown)
         delivery.last_error = "Falha temporária no envio da notificação."
         delivery.save(
             update_fields=[

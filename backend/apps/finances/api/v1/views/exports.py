@@ -11,7 +11,5 @@ class TransactionExportActionsMixin:
     def export_csv(self, request):
         content = transactions_csv(self.filter_queryset(self.get_queryset()))
         response = HttpResponse(content, content_type="text/csv; charset=utf-8-sig")
-        response["Content-Disposition"] = (
-            'attachment; filename="fluxo-financeiro.csv"'
-        )
+        response["Content-Disposition"] = 'attachment; filename="fluxo-financeiro.csv"'
         return response

@@ -4,9 +4,7 @@ from unittest import mock
 
 import pytest
 
-migration = importlib.import_module(
-    "apps.communications.migrations.0008_reconcile_runtime_schema"
-)
+migration = importlib.import_module("apps.communications.migrations.0008_reconcile_runtime_schema")
 
 
 class Cursor:

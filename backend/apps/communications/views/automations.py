@@ -70,9 +70,7 @@ class CommunicationAutomationViewSet(viewsets.ModelViewSet):
             connection_status=CommunicationChannelConfig.ConnectionStatus.CONFIGURED,
         ).first()
         if channel is None:
-            raise ValidationError(
-                "Configure e ative o canal antes de habilitar esta automação."
-            )
+            raise ValidationError("Configure e ative o canal antes de habilitar esta automação.")
         automation.is_active = True
         automation.save(update_fields=["is_active", "updated_at"])
         _audit(
@@ -116,10 +114,7 @@ class CommunicationAutomationViewSet(viewsets.ModelViewSet):
         automation = self.get_object()
         return Response(
             {
-                "would_send": bool(
-                    automation.template.is_active
-                    and not automation.template.is_archived
-                ),
+                "would_send": bool(automation.template.is_active and not automation.template.is_archived),
                 "event_type": automation.event_type,
                 "channel": automation.channel,
                 "template": automation.template.name,

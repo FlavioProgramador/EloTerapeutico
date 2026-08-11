@@ -28,11 +28,7 @@ def _participant_role(identity: str) -> str | None:
 
 
 def _active_roles(room: TelemedicineRoom) -> set[str]:
-    return set(
-        room.participant_sessions.filter(left_at__isnull=True).values_list(
-            "role", flat=True
-        )
-    )
+    return set(room.participant_sessions.filter(left_at__isnull=True).values_list("role", flat=True))
 
 
 def _update_room_presence(room: TelemedicineRoom) -> None:
@@ -147,16 +143,12 @@ def process_telemedicine_webhook(
     if not created or event.processed_at:
         return event, False
 
-    room = get_telemedicine_room_by_provider_name(
-        room_name=provider_event.room_name
-    )
+    room = get_telemedicine_room_by_provider_name(room_name=provider_event.room_name)
     event.room = room
     if room is None:
         event.processing_error = "Sala não encontrada."
         event.processed_at = timezone.now()
-        event.save(
-            update_fields=["room", "processing_error", "processed_at"]
-        )
+        event.save(update_fields=["room", "processing_error", "processed_at"])
         return event, True
 
     room = TelemedicineRoom.objects.select_for_update().get(pk=room.pk)

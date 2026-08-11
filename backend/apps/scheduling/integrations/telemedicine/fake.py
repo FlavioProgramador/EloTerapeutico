@@ -66,10 +66,6 @@ class FakeTelemedicineProvider:
             room_sid=str(payload.get("room_sid", "")),
             participant_identity=str(payload.get("participant_identity", "")),
             participant_sid=str(payload.get("participant_sid", "")),
-            occurred_at=(
-                datetime.fromisoformat(occurred_at).astimezone(UTC)
-                if occurred_at
-                else None
-            ),
+            occurred_at=(datetime.fromisoformat(occurred_at).astimezone(UTC) if occurred_at else None),
             disconnect_reason=str(payload.get("disconnect_reason", "")),
         )

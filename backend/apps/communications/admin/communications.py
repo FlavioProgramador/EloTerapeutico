@@ -68,9 +68,7 @@ class CommunicationRecipientAdmin(ReadOnlyHistoryAdmin):
     )
     list_filter = ("recipient_type", "channel", "status")
     search_fields = ("communication__id", "name", "destination_masked")
-    readonly_fields = tuple(
-        field.name for field in CommunicationRecipient._meta.fields
-    )
+    readonly_fields = tuple(field.name for field in CommunicationRecipient._meta.fields)
     list_select_related = ("communication", "patient")
 
 
@@ -87,9 +85,7 @@ class CommunicationAttemptAdmin(ReadOnlyHistoryAdmin):
     )
     list_filter = ("provider", "status", "created_at")
     search_fields = ("communication__id", "external_id", "error_code")
-    readonly_fields = tuple(
-        field.name for field in CommunicationAttempt._meta.fields
-    )
+    readonly_fields = tuple(field.name for field in CommunicationAttempt._meta.fields)
     list_select_related = ("communication", "recipient")
 
 
@@ -159,9 +155,7 @@ class PublicCommunicationActionTokenAdmin(ReadOnlyHistoryAdmin):
     search_fields = ("owner__email", "patient__full_name", "appointment__id")
     exclude = ("token_hash",)
     readonly_fields = tuple(
-        field.name
-        for field in PublicCommunicationActionToken._meta.fields
-        if field.name != "token_hash"
+        field.name for field in PublicCommunicationActionToken._meta.fields if field.name != "token_hash"
     )
     list_select_related = (
         "owner",

@@ -108,10 +108,13 @@ def test_first_send_queues_invitation_and_schedules_reminder():
     assert invitation_message.status == Communication.Status.QUEUED
     assert reminder.status == Communication.Status.SCHEDULED
     assert reminder.scheduled_at == appointment.start_time - timedelta(hours=2)
-    assert TelemedicineInvitation.objects.filter(
-        room=room,
-        revoked_at__isnull=True,
-    ).count() == 1
+    assert (
+        TelemedicineInvitation.objects.filter(
+            room=room,
+            revoked_at__isnull=True,
+        ).count()
+        == 1
+    )
 
 
 def test_reschedule_replaces_invitation_and_reschedules_reminder(

@@ -103,9 +103,7 @@ class FormSubmission(models.Model):
         self.status = self.Status.SUBMITTED
         self.submitted_by = user
         self.submitted_at = timezone.now()
-        self.save(
-            update_fields=["status", "submitted_by", "submitted_at", "updated_at"]
-        )
+        self.save(update_fields=["status", "submitted_by", "submitted_at", "updated_at"])
 
 
 class FormAnswer(models.Model):
@@ -136,6 +134,4 @@ class FormAnswer(models.Model):
         super().clean()
         if self.submission_id and self.field_id:
             if self.field.form_id != self.submission.form_id:
-                raise ValidationError(
-                    {"field": "O campo não pertence ao formulário da submissão."}
-                )
+                raise ValidationError({"field": "O campo não pertence ao formulário da submissão."})

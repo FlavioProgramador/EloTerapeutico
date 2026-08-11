@@ -75,9 +75,7 @@ def create_patient_package(*, actor, validated_data: dict) -> PatientPackage:
             room=room,
         )
         if any(conflicts.values()):
-            raise ValidationError(
-                {"first_appointment_at": "A primeira sessão possui conflito."}
-            )
+            raise ValidationError({"first_appointment_at": "A primeira sessão possui conflito."})
         first = Appointment.objects.create(
             organization=organization,
             patient=package.patient,

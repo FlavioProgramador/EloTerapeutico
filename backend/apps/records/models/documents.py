@@ -105,8 +105,7 @@ class ClinicalDocument(ClinicalTenantModel):
         ]
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(scan_status="clean", file__isnull=False)
-                | ~models.Q(scan_status="clean"),
+                condition=models.Q(scan_status="clean", file__isnull=False) | ~models.Q(scan_status="clean"),
                 name="clinical_document_clean_has_file",
             )
         ]
@@ -115,20 +114,14 @@ class ClinicalDocument(ClinicalTenantModel):
         super().clean()
         evolution = self.evolution if self.evolution_id else None
         if evolution is not None and (
-            evolution.organization_id != self.organization_id
-            or evolution.patient_id != self.patient_id
+            evolution.organization_id != self.organization_id or evolution.patient_id != self.patient_id
         ):
-            raise ValidationError(
-                {"evolution": "A evolução pertence a outro paciente ou organização."}
-            )
+            raise ValidationError({"evolution": "A evolução pertence a outro paciente ou organização."})
 
     @property
     def is_downloadable(self) -> bool:
         return bool(
-            self.scan_status == self.ScanStatus.CLEAN
-            and self.file
-            and not self.is_archived
-            and self.deleted_at is None
+            self.scan_status == self.ScanStatus.CLEAN and self.file and not self.is_archived and self.deleted_at is None
         )
 
     def soft_delete(self):

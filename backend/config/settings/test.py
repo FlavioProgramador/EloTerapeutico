@@ -15,9 +15,7 @@ INSTALLED_APPS += ["apps.organizations.apps.OrganizationsConfig"]  # noqa: F405
 CORS_ALLOW_HEADERS = [*CORS_ALLOW_HEADERS, "x-organization-id"]  # noqa: F405
 REST_FRAMEWORK = {
     **REST_FRAMEWORK,  # noqa: F405
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "apps.organizations.authentication.TenantSubscriptionJWTAuthentication",
-    ),
+    "DEFAULT_AUTHENTICATION_CLASSES": ("apps.organizations.authentication.TenantSubscriptionJWTAuthentication",),
 }
 
 ADMIN_SQL_EXPLORER_ENABLED = False

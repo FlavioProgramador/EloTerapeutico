@@ -19,9 +19,7 @@ class FormTemplateListView(UserFormMixin, APIView):
         )
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(queryset, request)
-        return paginator.get_paginated_response(
-            FormTemplateSerializer(page, many=True).data
-        )
+        return paginator.get_paginated_response(FormTemplateSerializer(page, many=True).data)
 
 
 class FormTemplateDetailView(UserFormMixin, APIView):

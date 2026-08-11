@@ -15,9 +15,7 @@ def active_form_templates(*, params=None, organization=None) -> QuerySet[FormTem
     category = params.get("category", "").strip()
     if search:
         queryset = queryset.filter(
-            Q(name__icontains=search)
-            | Q(description__icontains=search)
-            | Q(category__icontains=search)
+            Q(name__icontains=search) | Q(description__icontains=search) | Q(category__icontains=search)
         )
     if category:
         queryset = queryset.filter(category=category)

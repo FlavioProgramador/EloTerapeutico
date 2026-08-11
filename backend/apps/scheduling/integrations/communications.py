@@ -33,9 +33,7 @@ def _system_template(*, slug: str, channel: str) -> CommunicationTemplate:
         channel=channel,
     ).first()
     if template is None:
-        raise ValidationError(
-            "O modelo de comunicação online ainda não está disponível."
-        )
+        raise ValidationError("O modelo de comunicação online ainda não está disponível.")
     return template
 
 
@@ -79,9 +77,7 @@ def _schedule_telemedicine_reminder(
     invitation: TelemedicineInvitation,
     invitation_url: str,
 ) -> Communication | None:
-    scheduled_at = room.appointment.start_time - timedelta(
-        hours=TELEMEDICINE_REMINDER_HOURS
-    )
+    scheduled_at = room.appointment.start_time - timedelta(hours=TELEMEDICINE_REMINDER_HOURS)
     if scheduled_at <= timezone.now():
         return None
     return _create_telemedicine_communication(
@@ -90,10 +86,7 @@ def _schedule_telemedicine_reminder(
         channel=channel,
         template_slug="telemedicine-reminder",
         source_event="telemedicine.invitation.reminder",
-        idempotency_key=(
-            f"telemedicine-reminder:{invitation.pk}:{channel}:"
-            f"{scheduled_at.isoformat()}"
-        ),
+        idempotency_key=(f"telemedicine-reminder:{invitation.pk}:{channel}:" f"{scheduled_at.isoformat()}"),
         invitation_url=invitation_url,
         scheduled_at=scheduled_at,
     )
@@ -109,9 +102,7 @@ def send_telemedicine_invitation(
     """Gera convite, enfileira o envio e agenda um lembrete quando aplicável."""
 
     if channel not in ALLOWED_INVITATION_CHANNELS:
-        raise ValidationError(
-            {"channel": "Canal indisponível para convites de atendimento online."}
-        )
+        raise ValidationError({"channel": "Canal indisponível para convites de atendimento online."})
     validate_professional_access(actor=actor, room=room)
     had_active_invitation = room.invitations.filter(
         role=TelemedicineInvitation.Role.PATIENT,
@@ -121,11 +112,7 @@ def send_telemedicine_invitation(
         actor=actor,
         room=room,
     )
-    template_slug = (
-        "telemedicine-link-regenerated"
-        if had_active_invitation
-        else "telemedicine-invitation"
-    )
+    template_slug = "telemedicine-link-regenerated" if had_active_invitation else "telemedicine-invitation"
     communication = _create_telemedicine_communication(
         actor=actor,
         room=room,
@@ -193,8 +180,7 @@ def synchronize_sent_telemedicine_communications(
 
     appointment = room.appointment
     became_unavailable = (
-        appointment.status == Appointment.Status.CANCELLED
-        or appointment.modality == Appointment.Modality.IN_PERSON
+        appointment.status == Appointment.Status.CANCELLED or appointment.modality == Appointment.Modality.IN_PERSON
     )
     changed_schedule = previous_start_time != appointment.start_time
     status_changed = previous_status != appointment.status
@@ -210,8 +196,7 @@ def synchronize_sent_telemedicine_communications(
                 template_slug="telemedicine-canceled",
                 source_event="telemedicine.appointment.canceled",
                 idempotency_key=(
-                    f"telemedicine-canceled:{room.pk}:{latest.channel}:"
-                    f"{appointment.updated_at.isoformat()}"
+                    f"telemedicine-canceled:{room.pk}:{latest.channel}:" f"{appointment.updated_at.isoformat()}"
                 ),
             )
         except Exception as exc:

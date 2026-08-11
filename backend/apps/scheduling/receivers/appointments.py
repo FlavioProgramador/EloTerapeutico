@@ -31,9 +31,7 @@ def capture_telemedicine_appointment_state(
         stateful_instance._telemedicine_previous_state = None
         return
     stateful_instance._telemedicine_previous_state = (
-        Appointment.objects.filter(pk=instance.pk)
-        .values("start_time", "status", "modality")
-        .first()
+        Appointment.objects.filter(pk=instance.pk).values("start_time", "status", "modality").first()
     )
 
 

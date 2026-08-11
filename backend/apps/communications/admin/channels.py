@@ -40,9 +40,7 @@ class CommunicationChannelConfigAdmin(ModelAdmin):
 
     @admin.display(description="Credenciais")
     def credential_summary(self, obj):
-        configured = sorted(
-            key for key, value in obj.get_credentials().items() if value
-        )
+        configured = sorted(key for key, value in obj.get_credentials().items() if value)
         return ", ".join(configured) if configured else "Nenhum segredo armazenado"
 
 

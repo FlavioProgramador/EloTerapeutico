@@ -38,10 +38,14 @@ def create_invitation(
         )
         if actor_membership.role != OrganizationMembership.Role.OWNER:
             raise PermissionError("Somente um proprietário pode convidar outro proprietário.")
-    if OrganizationMembership.objects.filter(
-        organization=organization,
-        user__email__iexact=normalized_email,
-    ).exclude(status=OrganizationMembership.Status.REVOKED).exists():
+    if (
+        OrganizationMembership.objects.filter(
+            organization=organization,
+            user__email__iexact=normalized_email,
+        )
+        .exclude(status=OrganizationMembership.Status.REVOKED)
+        .exists()
+    ):
         raise ValueError("Este usuário já pertence à organização.")
 
     raw_token = secrets.token_urlsafe(48)
@@ -53,9 +57,7 @@ def create_invitation(
         expires_at=timezone.now() + timedelta(days=7),
         invited_by=actor,
     )
-    transaction.on_commit(
-        lambda: enqueue_invitation_email(invitation=invitation, raw_token=raw_token)
-    )
+    transaction.on_commit(lambda: enqueue_invitation_email(invitation=invitation, raw_token=raw_token))
     audit_organization_action(
         action="CREATE",
         actor=actor,
@@ -67,9 +69,7 @@ def create_invitation(
 
 
 @transaction.atomic
-def resend_invitation(
-    *, actor, invitation: OrganizationInvitation, request=None
-) -> tuple[OrganizationInvitation, str]:
+def resend_invitation(*, actor, invitation: OrganizationInvitation, request=None) -> tuple[OrganizationInvitation, str]:
     locked = OrganizationInvitation.objects.select_for_update().get(pk=invitation.pk)
     if locked.status != OrganizationInvitation.Status.PENDING:
         raise InvitationAlreadyUsedError()
@@ -77,9 +77,7 @@ def resend_invitation(
     locked.token_hash = hash_invitation_token(raw_token)
     locked.expires_at = timezone.now() + timedelta(days=7)
     locked.save(update_fields=["token_hash", "expires_at", "updated_at"])
-    transaction.on_commit(
-        lambda: enqueue_invitation_email(invitation=locked, raw_token=raw_token)
-    )
+    transaction.on_commit(lambda: enqueue_invitation_email(invitation=locked, raw_token=raw_token))
     audit_organization_action(
         action="UPDATE",
         actor=actor,
@@ -143,9 +141,7 @@ def accept_invitation(*, actor, raw_token: str, request=None) -> OrganizationMem
     locked.status = OrganizationInvitation.Status.ACCEPTED
     locked.accepted_by = actor
     locked.accepted_at = timezone.now()
-    locked.save(
-        update_fields=["status", "accepted_by", "accepted_at", "updated_at"]
-    )
+    locked.save(update_fields=["status", "accepted_by", "accepted_at", "updated_at"])
     audit_organization_action(
         action="CREATE",
         actor=actor,

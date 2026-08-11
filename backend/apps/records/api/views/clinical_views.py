@@ -92,11 +92,13 @@ class ClinicalPatientMixin:
                 "patient__therapist",
                 "created_by",
                 "clinical_data",
-            ).annotate(
+            )
+            .annotate(
                 version_count=Count("versions", distinct=True),
                 addenda_count=Count("addenda", distinct=True),
                 attached_documents_count=Count("documents", distinct=True),
-            ).prefetch_related("treatment_goals"),
+            )
+            .prefetch_related("treatment_goals"),
             pk=pk,
         )
         self.get_patient(evolution.patient_id)
@@ -538,9 +540,7 @@ class ClinicalDocumentListCreateView(ClinicalPatientMixin, APIView):
         user = request.user
         if not user.has_perm("records.view_confidential_evolution"):
             queryset = queryset.filter(
-                Q(evolution__isnull=True)
-                | Q(evolution__is_confidential=False)
-                | Q(evolution__created_by=user)
+                Q(evolution__isnull=True) | Q(evolution__is_confidential=False) | Q(evolution__created_by=user)
             )
 
         category = request.query_params.get("category")
@@ -600,10 +600,7 @@ class ClinicalDocumentDetailMixin(ClinicalPatientMixin):
         # Validação de confidencialidade da evolução vinculada
         if document.evolution_id and document.evolution.is_confidential:
             user = self.request.user
-            if (
-                document.evolution.created_by_id != user.id
-                and not user.has_perm("records.view_confidential_evolution")
-            ):
+            if document.evolution.created_by_id != user.id and not user.has_perm("records.view_confidential_evolution"):
                 self.permission_denied(
                     self.request,
                     message="Você não tem permissão para acessar documentos de uma evolução confidencial.",
@@ -813,11 +810,7 @@ class ClinicalExportListCreateView(ClinicalPatientMixin, APIView):
                 message="Secretárias não possuem acesso a exportações clínicas.",
             )
         patient = self.get_patient(patient_id)
-        queryset = (
-            ClinicalExport.objects.filter(patient=patient)
-            .select_related("created_by")
-            .order_by("-created_at")
-        )
+        queryset = ClinicalExport.objects.filter(patient=patient).select_related("created_by").order_by("-created_at")
 
         if not request.user.is_admin_role:
             queryset = queryset.filter(created_by=request.user)

@@ -56,9 +56,7 @@ class TherapeuticFormSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         organization = getattr(request, "organization", None)
         if organization is None:
-            raise serializers.ValidationError(
-                {"organization": "Selecione uma organização."}
-            )
+            raise serializers.ValidationError({"organization": "Selecione uma organização."})
         return organization
 
     def validate_name(self, value):
@@ -69,9 +67,7 @@ class TherapeuticFormSerializer(serializers.ModelSerializer):
 
     def validate_fields(self, fields):
         if not fields:
-            raise serializers.ValidationError(
-                "Adicione ao menos um campo ao formulário."
-            )
+            raise serializers.ValidationError("Adicione ao menos um campo ao formulário.")
         for index, field in enumerate(fields, start=1):
             field["order"] = field.get("order") or index
             validate_field_payload(field)

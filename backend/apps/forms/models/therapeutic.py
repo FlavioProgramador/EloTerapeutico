@@ -79,12 +79,9 @@ class TherapeuticForm(models.Model):
         super().clean()
         source_template = self.source_template if self.source_template_id else None
         if source_template is not None and (
-            not source_template.is_system_template
-            and source_template.organization_id != self.organization_id
+            not source_template.is_system_template and source_template.organization_id != self.organization_id
         ):
-            raise ValidationError(
-                {"source_template": "O template pertence a outra organização."}
-            )
+            raise ValidationError({"source_template": "O template pertence a outra organização."})
 
     def archive(self, user) -> None:
         self.status = self.Status.ARCHIVED
@@ -122,9 +119,7 @@ class FormField(models.Model):
 
     class Meta:
         ordering = ["order", "id"]
-        indexes = [
-            models.Index(fields=["form", "order"], name="form_field_order_idx")
-        ]
+        indexes = [models.Index(fields=["form", "order"], name="form_field_order_idx")]
 
     def __str__(self) -> str:
         return self.label

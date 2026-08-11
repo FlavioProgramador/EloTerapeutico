@@ -16,6 +16,4 @@ def get_telemedicine_provider() -> TelemedicineProvider:
         return LiveKitTelemedicineProvider()
     if provider_name == "fake" and settings.DEBUG:
         return FakeTelemedicineProvider()
-    raise TelemedicineProviderConfigurationError(
-        "O provedor de atendimento online não está disponível."
-    )
+    raise TelemedicineProviderConfigurationError("O provedor de atendimento online não está disponível.")

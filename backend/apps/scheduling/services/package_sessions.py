@@ -27,14 +27,10 @@ def cancel_patient_package(*, actor, package: PatientPackage) -> PatientPackage:
 @transaction.atomic
 def remove_package_session(*, actor, package_session: PackageSession) -> PatientPackage:
     item = (
-        PackageSession.objects.select_for_update()
-        .select_related("package", "appointment")
-        .get(pk=package_session.pk)
+        PackageSession.objects.select_for_update().select_related("package", "appointment").get(pk=package_session.pk)
     )
     if item.status == PackageSession.Status.COMPLETED:
-        raise CompletedPackageSessionRemovalError(
-            "Sessões realizadas não podem ser removidas."
-        )
+        raise CompletedPackageSessionRemovalError("Sessões realizadas não podem ser removidas.")
     if item.appointment:
         item.appointment.status = Appointment.Status.CANCELLED
         item.appointment.cancellation_reason = "Sessão removida do pacote."

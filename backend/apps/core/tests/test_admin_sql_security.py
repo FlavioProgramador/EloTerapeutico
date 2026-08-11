@@ -197,9 +197,7 @@ def test_explain_is_rejected(query: str):
 def test_subquery_is_rejected():
     with override_settings(ADMIN_SQL_EXPLORER_ALLOWED_TABLES=["django_migrations"]):
         with pytest.raises(UnsafeSQLQuery):
-            validate_read_only_query(
-                "SELECT * FROM (SELECT * FROM django_migrations) AS nested"
-            )
+            validate_read_only_query("SELECT * FROM (SELECT * FROM django_migrations) AS nested")
 
 
 def test_query_referencing_table_outside_allowlist_is_rejected():
@@ -210,9 +208,7 @@ def test_query_referencing_table_outside_allowlist_is_rejected():
 
 def test_allowed_select_exposes_only_validated_table_names():
     with override_settings(ADMIN_SQL_EXPLORER_ALLOWED_TABLES=["django_migrations"]):
-        validated = validate_read_only_query(
-            "SELECT id, app, name FROM django_migrations ORDER BY id DESC"
-        )
+        validated = validate_read_only_query("SELECT id, app, name FROM django_migrations ORDER BY id DESC")
 
     assert validated.referenced_tables == frozenset({"django_migrations"})
 
@@ -223,9 +219,7 @@ def test_allowed_select_exposes_only_validated_table_names():
     ADMIN_SQL_EXPLORER_TIMEOUT_MS=1_000,
 )
 def test_query_result_is_limited_and_marked_as_truncated():
-    columns, rows, truncated = execute_read_only_query(
-        "SELECT 1 AS value UNION ALL SELECT 2 UNION ALL SELECT 3"
-    )
+    columns, rows, truncated = execute_read_only_query("SELECT 1 AS value UNION ALL SELECT 2 UNION ALL SELECT 3")
 
     assert columns == ["value"]
     assert rows == [(1,), (2,)]

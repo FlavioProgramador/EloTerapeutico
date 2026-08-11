@@ -17,7 +17,9 @@ def build_default_variables(owner, patient=None, appointment=None) -> dict[str, 
         "support_email": getattr(settings, "COMMUNICATIONS_REPLY_TO", "") or settings.DEFAULT_FROM_EMAIL,
     }
     if patient is not None:
-        variables.update({"patient_name": patient.social_name or patient.full_name, "guardian_name": patient.guardian_name})
+        variables.update(
+            {"patient_name": patient.social_name or patient.full_name, "guardian_name": patient.guardian_name}
+        )
     if appointment is not None:
         local_start = timezone.localtime(appointment.start_time)
         variables.update(

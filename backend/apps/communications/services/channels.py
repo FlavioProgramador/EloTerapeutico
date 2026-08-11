@@ -59,13 +59,11 @@ _PROVIDER_DEFINITIONS: dict[str, dict[str, Any]] = {
                 "label": "Envio de e-mail da plataforma",
                 "description": "Canal de e-mail administrado com segurança pelo Elo Terapêutico.",
                 "instructions": (
-                    "Você pode definir o nome do remetente, o e-mail de resposta "
-                    "e a assinatura padrão."
+                    "Você pode definir o nome do remetente, o e-mail de resposta " "e a assinatura padrão."
                 ),
                 # Nunca incluído no catálogo público retornado pela API.
                 "internal_requirements": (
-                    "Configurar o backend de e-mail e o remetente padrão no ambiente "
-                    "de produção."
+                    "Configurar o backend de e-mail e o remetente padrão no ambiente " "de produção."
                 ),
                 "fields": [
                     {
@@ -228,8 +226,7 @@ _PROVIDER_DEFINITIONS: dict[str, dict[str, Any]] = {
                 "label": "WhatsApp Cloud API (Meta)",
                 "description": "Integração oficial com a API do WhatsApp Business da Meta.",
                 "instructions": (
-                    "Conecte uma conta empresarial válida e informe apenas as "
-                    "credenciais solicitadas nesta etapa."
+                    "Conecte uma conta empresarial válida e informe apenas as " "credenciais solicitadas nesta etapa."
                 ),
                 "fields": [
                     {
@@ -304,9 +301,7 @@ _PROVIDER_DEFINITIONS: dict[str, dict[str, Any]] = {
                 "id": "twilio",
                 "label": "Twilio SMS",
                 "description": "Envio de SMS por meio da integração oficial da Twilio.",
-                "instructions": (
-                    "Informe os dados da sua conta e um número remetente habilitado para SMS."
-                ),
+                "instructions": ("Informe os dados da sua conta e um número remetente habilitado para SMS."),
                 "fields": [
                     {
                         "name": "account_sid",
@@ -379,10 +374,7 @@ def get_channel_catalog(channel: str | None = None) -> list[dict[str, Any]] | di
             {
                 "channel": channel_name,
                 "default_provider": definition["default_provider"],
-                "providers": [
-                    _public_provider_definition(provider)
-                    for provider in definition["providers"]
-                ],
+                "providers": [_public_provider_definition(provider) for provider in definition["providers"]],
             }
             for channel_name, definition in _PROVIDER_DEFINITIONS.items()
         ]
@@ -392,10 +384,7 @@ def get_channel_catalog(channel: str | None = None) -> list[dict[str, Any]] | di
     return {
         "channel": channel,
         "default_provider": definition["default_provider"],
-        "providers": [
-            _public_provider_definition(provider)
-            for provider in definition["providers"]
-        ],
+        "providers": [_public_provider_definition(provider) for provider in definition["providers"]],
     }
 
 
@@ -404,10 +393,7 @@ def get_configured_secret_state(config: CommunicationChannelConfig) -> dict[str,
         return {}
     definition = _provider_definition(config.channel, config.provider)
     credentials = config.get_credentials()
-    return {
-        field: bool(credentials.get(field))
-        for field in definition.get("secret_fields", [])
-    }
+    return {field: bool(credentials.get(field)) for field in definition.get("secret_fields", [])}
 
 
 def get_missing_configuration_fields(config: CommunicationChannelConfig) -> list[str]:
@@ -428,11 +414,7 @@ def get_missing_configuration_fields(config: CommunicationChannelConfig) -> list
 
 def _normalize_metadata(definition: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
     clean: dict[str, Any] = {}
-    allowed_fields = {
-        field["name"]: field
-        for field in definition.get("fields", [])
-        if not field.get("secret")
-    }
+    allowed_fields = {field["name"]: field for field in definition.get("fields", []) if not field.get("secret")}
     for name, field in allowed_fields.items():
         if field.get("read_only"):
             continue
@@ -448,15 +430,11 @@ def _normalize_metadata(definition: dict[str, Any], payload: dict[str, Any]) -> 
             try:
                 clean[name] = int(value)
             except (TypeError, ValueError) as exc:
-                raise ValidationError(
-                    {"metadata": {name: "Informe um número válido."}}
-                ) from exc
+                raise ValidationError({"metadata": {name: "Informe um número válido."}}) from exc
         else:
             clean[name] = str(value).strip()[:2000]
     if clean.get("use_tls") and clean.get("use_ssl"):
-        raise ValidationError(
-            {"metadata": {"use_ssl": "TLS e SSL não podem ser ativados ao mesmo tempo."}}
-        )
+        raise ValidationError({"metadata": {"use_ssl": "TLS e SSL não podem ser ativados ao mesmo tempo."}})
     return clean
 
 
@@ -475,9 +453,7 @@ def configure_channel(
     definition = _provider_definition(config.channel, provider)
     provider_changed = bool(config.provider and config.provider != provider)
     if provider_changed and config.is_active and not confirm_provider_change:
-        raise ValidationError(
-            {"confirm_provider_change": "Confirme a troca do provedor ativo."}
-        )
+        raise ValidationError({"confirm_provider_change": "Confirme a troca do provedor ativo."})
 
     current_credentials = {} if provider_changed else config.get_credentials()
     allowed_secret_fields = set(definition.get("secret_fields", []))
@@ -490,25 +466,11 @@ def configure_channel(
 
     config.provider = provider
     config.metadata = _normalize_metadata(definition, metadata or {})
-    config.sender = str(
-        sender
-        or config.metadata.get("sender_email")
-        or config.metadata.get("sender")
-        or ""
-    )[:160]
+    config.sender = str(sender or config.metadata.get("sender_email") or config.metadata.get("sender") or "")[:160]
     config.public_identifier = str(
-        public_identifier
-        or config.metadata.get("phone_number_id")
-        or config.metadata.get("account_sid")
-        or ""
+        public_identifier or config.metadata.get("phone_number_id") or config.metadata.get("account_sid") or ""
     )[:160]
-    config.set_credentials(
-        {
-            key: value
-            for key, value in current_credentials.items()
-            if key in allowed_secret_fields
-        }
-    )
+    config.set_credentials({key: value for key, value in current_credentials.items() if key in allowed_secret_fields})
     config.is_active = False if provider_changed else config.is_active
     config.last_validated_at = None
     config.last_tested_at = None
@@ -572,9 +534,7 @@ def validate_channel_configuration(
     except ProviderError as exc:
         config.connection_status = CommunicationChannelConfig.ConnectionStatus.ERROR
         config.last_error_code = "CHANNEL_NOT_AVAILABLE"
-        config.last_error_message = (
-            "Não foi possível validar a conexão. Revise os dados e tente novamente."
-        )
+        config.last_error_message = "Não foi possível validar a conexão. Revise os dados e tente novamente."
         config.save(
             update_fields=[
                 "connection_status",

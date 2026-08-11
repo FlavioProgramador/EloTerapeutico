@@ -13,28 +13,19 @@ def _tenant_prefix(instance) -> str:
 
 def clinical_document_path(instance, filename: str) -> str:
     suffix = Path(filename).suffix.lower()
-    return (
-        f"clinical_documents/{_tenant_prefix(instance)}/"
-        f"{instance.patient_id}/{uuid4().hex}{suffix}"
-    )
+    return f"clinical_documents/{_tenant_prefix(instance)}/" f"{instance.patient_id}/{uuid4().hex}{suffix}"
 
 
 def clinical_document_quarantine_path(instance, filename: str) -> str:
     """Mantém arquivos ainda não analisados fora do prefixo liberado."""
 
     suffix = Path(filename).suffix.lower()
-    return (
-        f"clinical_quarantine/{_tenant_prefix(instance)}/"
-        f"{instance.patient_id}/{uuid4().hex}{suffix}"
-    )
+    return f"clinical_quarantine/{_tenant_prefix(instance)}/" f"{instance.patient_id}/{uuid4().hex}{suffix}"
 
 
 def clinical_export_path(instance, filename: str) -> str:
     suffix = Path(filename).suffix.lower()
-    return (
-        f"clinical_exports/{_tenant_prefix(instance)}/"
-        f"{instance.patient_id}/{uuid4().hex}{suffix}"
-    )
+    return f"clinical_exports/{_tenant_prefix(instance)}/" f"{instance.patient_id}/{uuid4().hex}{suffix}"
 
 
 # Mantém os caminhos históricos serializados nas migrations existentes.

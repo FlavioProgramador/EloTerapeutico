@@ -25,9 +25,7 @@ class LiveKitTelemedicineProvider:
 
     def _ensure_configured(self) -> None:
         if not self.configured:
-            raise TelemedicineProviderConfigurationError(
-                "O provedor de atendimento online não está disponível."
-            )
+            raise TelemedicineProviderConfigurationError("O provedor de atendimento online não está disponível.")
 
     def _client(self):
         config = get_telemedicine_config()
@@ -74,9 +72,7 @@ class LiveKitTelemedicineProvider:
         except TelemedicineProviderError:
             raise
         except Exception as exc:
-            raise TelemedicineProviderError(
-                "Não foi possível preparar a sala de atendimento."
-            ) from exc
+            raise TelemedicineProviderError("Não foi possível preparar a sala de atendimento.") from exc
 
     async def _close_room(self, *, room_name: str) -> None:
         client = self._client()
@@ -93,9 +89,7 @@ class LiveKitTelemedicineProvider:
             message = str(exc).lower()
             if "not_found" in message or "does not exist" in message:
                 return
-            raise TelemedicineProviderError(
-                "Não foi possível encerrar a sala de atendimento."
-            ) from exc
+            raise TelemedicineProviderError("Não foi possível encerrar a sala de atendimento.") from exc
 
     def create_participant_token(
         self,
@@ -137,16 +131,12 @@ class LiveKitTelemedicineProvider:
                 room_name=room_name,
             )
         except Exception as exc:
-            raise TelemedicineProviderError(
-                "Não foi possível autorizar o acesso à chamada."
-            ) from exc
+            raise TelemedicineProviderError("Não foi possível autorizar o acesso à chamada.") from exc
 
     async def _remove_participant(self, *, room_name: str, identity: str) -> None:
         client = self._client()
         try:
-            await client.room.remove_participant(
-                api.RoomParticipantIdentity(room=room_name, identity=identity)
-            )
+            await client.room.remove_participant(api.RoomParticipantIdentity(room=room_name, identity=identity))
         finally:
             await client.aclose()
 
@@ -158,9 +148,7 @@ class LiveKitTelemedicineProvider:
                 identity=identity,
             )
         except Exception as exc:
-            raise TelemedicineProviderError(
-                "Não foi possível remover o participante."
-            ) from exc
+            raise TelemedicineProviderError("Não foi possível remover o participante.") from exc
 
     def parse_webhook(
         self,
@@ -179,16 +167,10 @@ class LiveKitTelemedicineProvider:
             )
             event = receiver.receive(body, authorization)
         except Exception as exc:
-            raise TelemedicineWebhookVerificationError(
-                "Assinatura de webhook inválida."
-            ) from exc
+            raise TelemedicineWebhookVerificationError("Assinatura de webhook inválida.") from exc
 
         created_at = getattr(event, "created_at", 0) or 0
-        occurred_at = (
-            datetime.fromtimestamp(created_at, tz=UTC)
-            if created_at
-            else None
-        )
+        occurred_at = datetime.fromtimestamp(created_at, tz=UTC) if created_at else None
         room = getattr(event, "room", None)
         participant = getattr(event, "participant", None)
         return ProviderWebhookEvent(

@@ -64,9 +64,7 @@ class TenantPatientCreateUpdateSerializer(PatientCreateUpdateSerializer):
         request = self.context.get("request")
         organization = getattr(request, "organization", None)
         if organization is None:
-            raise serializers.ValidationError(
-                "Selecione uma organização antes de cadastrar o paciente."
-            )
+            raise serializers.ValidationError("Selecione uma organização antes de cadastrar o paciente.")
         queryset = Patient.all_objects.filter(
             organization=organization,
             cpf=clean_cpf,
@@ -74,9 +72,7 @@ class TenantPatientCreateUpdateSerializer(PatientCreateUpdateSerializer):
         if self.instance:
             queryset = queryset.exclude(pk=self.instance.pk)
         if queryset.exists():
-            raise serializers.ValidationError(
-                "Um paciente com este CPF já está cadastrado nesta organização."
-            )
+            raise serializers.ValidationError("Um paciente com este CPF já está cadastrado nesta organização.")
         return clean_cpf
 
     def validate_therapist(self, therapist):
@@ -95,9 +91,7 @@ class TenantPatientCreateUpdateSerializer(PatientCreateUpdateSerializer):
             ],
         ).exists()
         if not is_professional:
-            raise serializers.ValidationError(
-                "O terapeuta selecionado não pertence à organização."
-            )
+            raise serializers.ValidationError("O terapeuta selecionado não pertence à organização.")
         return therapist
 
     def validate(self, attrs):
@@ -191,17 +185,13 @@ class PatientViewSet(LegacyPatientViewSet):
         organization = getattr(self.request, "organization", None)
         membership = getattr(self.request, "organization_membership", None)
         if organization is None or membership is None:
-            raise DRFValidationError(
-                {"detail": "Selecione uma organização antes de cadastrar o paciente."}
-            )
+            raise DRFValidationError({"detail": "Selecione uma organização antes de cadastrar o paciente."})
 
         therapist = serializer.validated_data.get("therapist")
         if membership.role == OrganizationMembership.Role.THERAPIST:
             therapist = self.request.user
         if therapist is None:
-            raise DRFValidationError(
-                {"therapist": "Selecione um terapeuta da organização."}
-            )
+            raise DRFValidationError({"therapist": "Selecione um terapeuta da organização."})
 
         subscription_owner = organization.created_by or self.request.user
         try:

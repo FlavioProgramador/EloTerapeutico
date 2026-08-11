@@ -42,9 +42,7 @@ def _raise_conflict_error(conflicts: dict[str, bool]) -> None:
         "block": "bloqueio de agenda",
     }
     active = [labels[key] for key, value in conflicts.items() if value]
-    raise ValidationError(
-        {"start_time": f"Conflito de horário com: {', '.join(active)}."}
-    )
+    raise ValidationError({"start_time": f"Conflito de horário com: {', '.join(active)}."})
 
 
 def _validate_locked_conflicts(
@@ -113,9 +111,7 @@ def create_appointment(*, actor, validated_data: dict) -> Appointment:
     validated_data["created_by"] = actor
     validated_data["updated_by"] = actor
 
-    therapist = User.objects.select_for_update().get(
-        pk=validated_data["therapist"].pk
-    )
+    therapist = User.objects.select_for_update().get(pk=validated_data["therapist"].pk)
     validated_data["therapist"] = therapist
     if package:
         package = PatientPackage.objects.select_for_update().get(
@@ -123,9 +119,7 @@ def create_appointment(*, actor, validated_data: dict) -> Appointment:
             organization=organization,
         )
         if not package.can_consume():
-            raise ValidationError(
-                {"package": "O pacote está sem saldo, expirado ou inativo."}
-            )
+            raise ValidationError({"package": "O pacote está sem saldo, expirado ou inativo."})
         validated_data["package"] = package
 
     _validate_tenant_relations(
@@ -160,12 +154,7 @@ def create_appointment(*, actor, validated_data: dict) -> Appointment:
             ends_on=ends_on,
             max_occurrences=max_occurrences or 12,
             start_time=local_start.time().replace(tzinfo=None),
-            duration_minutes=int(
-                (
-                    validated_data["end_time"] - validated_data["start_time"]
-                ).total_seconds()
-                // 60
-            ),
+            duration_minutes=int((validated_data["end_time"] - validated_data["start_time"]).total_seconds() // 60),
             timezone_name=str(timezone.get_current_timezone()),
             modality=validated_data.get(
                 "modality",
@@ -214,11 +203,7 @@ def update_appointment(
     )
     validated_data.pop("organization", None)
     participants = validated_data.pop("participants", None)
-    effective_participants = (
-        participants
-        if participants is not None
-        else list(appointment.participants.all())
-    )
+    effective_participants = participants if participants is not None else list(appointment.participants.all())
     therapist = validated_data.get("therapist", appointment.therapist)
     therapist = User.objects.select_for_update().get(pk=therapist.pk)
     validated_data["therapist"] = therapist
@@ -272,9 +257,7 @@ def update_appointment(
         if package_session:
             package_session.scheduled_for = appointment.start_time
             package_session.status = PackageSession.Status.RESCHEDULED
-            package_session.save(
-                update_fields=["scheduled_for", "status", "updated_at"]
-            )
+            package_session.save(update_fields=["scheduled_for", "status", "updated_at"])
     return appointment
 
 
@@ -295,22 +278,14 @@ def update_appointment_status(
         appointment.cancellation_reason,
     )
     if appointment.status == Appointment.Status.CANCELLED:
-        raise ValidationError(
-            {"status": "Uma consulta cancelada não pode ser reativada diretamente."}
-        )
+        raise ValidationError({"status": "Uma consulta cancelada não pode ser reativada diretamente."})
     if appointment.status in {
         Appointment.Status.COMPLETED,
         Appointment.Status.MISSED,
     }:
-        raise ValidationError(
-            {"status": "Uma sessão finalizada não pode voltar para um estado anterior."}
-        )
-    if new_status == Appointment.Status.CANCELLED and not (
-        cancellation_reason or ""
-    ).strip():
-        raise ValidationError(
-            {"cancellation_reason": "Informe o motivo do cancelamento."}
-        )
+        raise ValidationError({"status": "Uma sessão finalizada não pode voltar para um estado anterior."})
+    if new_status == Appointment.Status.CANCELLED and not (cancellation_reason or "").strip():
+        raise ValidationError({"cancellation_reason": "Informe o motivo do cancelamento."})
 
     appointment.status = new_status
     appointment.cancellation_reason = cancellation_reason
@@ -347,9 +322,7 @@ def cancel_appointment_for_deletion(
         organization=appointment.organization,
     )
     if appointment.status == Appointment.Status.COMPLETED:
-        raise CompletedAppointmentDeletionError(
-            "Consultas realizadas não podem ser excluídas."
-        )
+        raise CompletedAppointmentDeletionError("Consultas realizadas não podem ser excluídas.")
     appointment.status = Appointment.Status.CANCELLED
     appointment.cancellation_reason = "Cancelada por exclusão administrativa."
     appointment.updated_by = actor

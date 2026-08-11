@@ -42,7 +42,4 @@ def appointments_for_period(
         return queryset.none()
     if membership.role == OrganizationMembership.Role.THERAPIST:
         queryset = queryset.filter(therapist=user)
-    return (
-        queryset.select_related("patient", "therapist", "room")
-        .prefetch_related("financial_transactions")
-    )
+    return queryset.select_related("patient", "therapist", "room").prefetch_related("financial_transactions")

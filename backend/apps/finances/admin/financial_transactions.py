@@ -20,10 +20,19 @@ from apps.finances.services import cancel_transaction, register_payment
 @admin.register(FinancialTransaction)
 class FinancialTransactionAdmin(ModelAdmin):
     list_display = (
-        "id", "therapist_name", "patient_name", "transaction_type_badge",
-        "category_display", "amount_display", "paid_amount_display",
-        "outstanding_amount_display", "payment_method_display",
-        "payment_status_badge", "due_date", "paid_at", "created_at",
+        "id",
+        "therapist_name",
+        "patient_name",
+        "transaction_type_badge",
+        "category_display",
+        "amount_display",
+        "paid_amount_display",
+        "outstanding_amount_display",
+        "payment_method_display",
+        "payment_status_badge",
+        "due_date",
+        "paid_at",
+        "created_at",
     )
     list_display_links = ("id", "therapist_name")
     list_filter = (
@@ -37,8 +46,11 @@ class FinancialTransactionAdmin(ModelAdmin):
         ("created_at", RangeDateFilter),
     )
     search_fields = (
-        "therapist__full_name", "therapist__email", "patient__full_name",
-        "description", "beneficiary",
+        "therapist__full_name",
+        "therapist__email",
+        "patient__full_name",
+        "description",
+        "beneficiary",
     )
     date_hierarchy = "created_at"
     ordering = ("-created_at",)
@@ -49,13 +61,28 @@ class FinancialTransactionAdmin(ModelAdmin):
     actions = ("action_cancel_pending", "action_mark_paid")
     fieldsets = (
         (_("Relacionamentos"), {"fields": ("therapist", "patient", "appointment", "subscription")}),
-        (_("Dados da transação"), {"fields": (
-            "transaction_type", "category", "source", "amount", "paid_amount",
-            "outstanding_amount_display", "payment_method", "payment_status",
-            "description", "beneficiary",
-        )}),
+        (
+            _("Dados da transação"),
+            {
+                "fields": (
+                    "transaction_type",
+                    "category",
+                    "source",
+                    "amount",
+                    "paid_amount",
+                    "outstanding_amount_display",
+                    "payment_method",
+                    "payment_status",
+                    "description",
+                    "beneficiary",
+                )
+            },
+        ),
         (_("Datas"), {"fields": ("due_date", "paid_at")}),
-        (_("Recorrência"), {"fields": ("is_recurring", "recurrence_frequency", "recurrence_end_date"), "classes": ("collapse",)}),
+        (
+            _("Recorrência"),
+            {"fields": ("is_recurring", "recurrence_frequency", "recurrence_end_date"), "classes": ("collapse",)},
+        ),
         (_("Documentação"), {"fields": ("payment_link", "receipt_url"), "classes": ("collapse",)}),
         (_("Auditoria"), {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
     )
@@ -85,7 +112,9 @@ class FinancialTransactionAdmin(ModelAdmin):
                     payment_method=item.payment_method or FinancialTransaction.PaymentMethod.PIX,
                 )
                 count += 1
-        self.message_user(request, _("%(count)s transação(ões) marcada(s) como paga(s).") % {"count": count}, messages.SUCCESS)
+        self.message_user(
+            request, _("%(count)s transação(ões) marcada(s) como paga(s).") % {"count": count}, messages.SUCCESS
+        )
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request).select_related("therapist", "patient", "appointment")
@@ -102,7 +131,11 @@ class FinancialTransactionAdmin(ModelAdmin):
     @admin.display(description=_("Tipo"), ordering="transaction_type")
     def transaction_type_badge(self, obj):
         color = "#15803d" if obj.transaction_type == "income" else "#b91c1c"
-        return format_html('<span style="background:{};color:#fff;padding:2px 8px;border-radius:999px;font-size:11px;">{}</span>', color, obj.get_transaction_type_display())
+        return format_html(
+            '<span style="background:{};color:#fff;padding:2px 8px;border-radius:999px;font-size:11px;">{}</span>',
+            color,
+            obj.get_transaction_type_display(),
+        )
 
     @admin.display(description=_("Categoria"), ordering="category")
     def category_display(self, obj):
@@ -128,12 +161,19 @@ class FinancialTransactionAdmin(ModelAdmin):
     @admin.display(description=_("Status"), ordering="payment_status")
     def payment_status_badge(self, obj):
         colors = {
-            "paid": ("#15803d", "#fff"), "partial": ("#0369a1", "#fff"),
-            "pending": ("#ca8a04", "#111827"), "cancelled": ("#6b7280", "#fff"),
+            "paid": ("#15803d", "#fff"),
+            "partial": ("#0369a1", "#fff"),
+            "pending": ("#ca8a04", "#111827"),
+            "cancelled": ("#6b7280", "#fff"),
             "refunded": ("#7c3aed", "#fff"),
         }
         color, text_color = colors.get(obj.payment_status, ("#6b7280", "#fff"))
-        return format_html('<span style="background:{};color:{};padding:2px 8px;border-radius:999px;font-size:11px;">{}</span>', color, text_color, obj.get_payment_status_display())
+        return format_html(
+            '<span style="background:{};color:{};padding:2px 8px;border-radius:999px;font-size:11px;">{}</span>',
+            color,
+            text_color,
+            obj.get_payment_status_display(),
+        )
 
     def changelist_view(self, request, extra_context=None):
         response = super().changelist_view(request, extra_context=extra_context)

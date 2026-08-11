@@ -154,7 +154,9 @@ class AppointmentValidationMixin(TenantRelationQuerysetMixin):
         if any(item.organization_id != organization.pk for item in participants):
             raise serializers.ValidationError({"participants": "Todos os participantes devem pertencer à organização."})
         if any(item.therapist_id != therapist.id for item in participants):
-            raise serializers.ValidationError({"participants": "Todos os participantes devem pertencer ao profissional."})
+            raise serializers.ValidationError(
+                {"participants": "Todos os participantes devem pertencer ao profissional."}
+            )
         if room and room.organization_id != organization.pk:
             raise serializers.ValidationError({"room": "A sala pertence a outra organização."})
         if package and package.organization_id != organization.pk:
@@ -209,14 +211,18 @@ class AppointmentCreateSerializer(AppointmentValidationMixin, serializers.ModelS
     participants = serializers.PrimaryKeyRelatedField(queryset=Patient.objects.none(), many=True, required=False)
     therapist = serializers.PrimaryKeyRelatedField(queryset=User.objects.none(), required=False)
     room = serializers.PrimaryKeyRelatedField(queryset=Room.objects.none(), required=False, allow_null=True)
-    package = serializers.PrimaryKeyRelatedField(queryset=PatientPackage.objects.none(), required=False, allow_null=True)
+    package = serializers.PrimaryKeyRelatedField(
+        queryset=PatientPackage.objects.none(), required=False, allow_null=True
+    )
     send_whatsapp_reminder = serializers.BooleanField(write_only=True, default=False)
     recurrence_frequency = serializers.ChoiceField(
         choices=AppointmentRecurrence.Frequency.choices,
         write_only=True,
         required=False,
     )
-    recurrence_interval = serializers.IntegerField(write_only=True, required=False, default=1, min_value=1, max_value=12)
+    recurrence_interval = serializers.IntegerField(
+        write_only=True, required=False, default=1, min_value=1, max_value=12
+    )
     recurrence_weekdays = serializers.ListField(
         child=serializers.IntegerField(min_value=0, max_value=6),
         write_only=True,
@@ -235,11 +241,25 @@ class AppointmentCreateSerializer(AppointmentValidationMixin, serializers.ModelS
     class Meta:
         model = Appointment
         fields = [
-            "patient", "participants", "therapist", "start_time", "end_time",
-            "modality", "appointment_type", "room", "session_value", "notes",
-            "package", "is_recurring", "send_whatsapp_reminder", "recurrence_frequency",
-            "recurrence_interval", "recurrence_weekdays", "recurrence_ends_on",
-            "recurrence_max_occurrences", "recurrence_conflict_strategy",
+            "patient",
+            "participants",
+            "therapist",
+            "start_time",
+            "end_time",
+            "modality",
+            "appointment_type",
+            "room",
+            "session_value",
+            "notes",
+            "package",
+            "is_recurring",
+            "send_whatsapp_reminder",
+            "recurrence_frequency",
+            "recurrence_interval",
+            "recurrence_weekdays",
+            "recurrence_ends_on",
+            "recurrence_max_occurrences",
+            "recurrence_conflict_strategy",
         ]
 
     def validate(self, attrs):
@@ -269,8 +289,16 @@ class AppointmentUpdateSerializer(AppointmentValidationMixin, serializers.ModelS
     class Meta:
         model = Appointment
         fields = [
-            "patient", "participants", "therapist", "start_time", "end_time",
-            "modality", "appointment_type", "room", "session_value", "notes",
+            "patient",
+            "participants",
+            "therapist",
+            "start_time",
+            "end_time",
+            "modality",
+            "appointment_type",
+            "room",
+            "session_value",
+            "notes",
         ]
 
     def validate(self, attrs):
@@ -297,5 +325,7 @@ class AppointmentStatusUpdateSerializer(serializers.ModelSerializer):
         if status_value == Appointment.Status.CANCELLED and not attrs.get("cancellation_reason", "").strip():
             raise serializers.ValidationError({"cancellation_reason": "Informe o motivo do cancelamento."})
         if self.instance.status in {Appointment.Status.COMPLETED, Appointment.Status.MISSED}:
-            raise serializers.ValidationError({"status": "Uma sessão finalizada não pode voltar para um estado anterior."})
+            raise serializers.ValidationError(
+                {"status": "Uma sessão finalizada não pode voltar para um estado anterior."}
+            )
         return attrs

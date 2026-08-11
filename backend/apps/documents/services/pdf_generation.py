@@ -21,14 +21,10 @@ def build_document_html(document: GeneratedDocument) -> str:
 
     context = json.loads(document.context_snapshot or "{}")
     header = (
-        render_safe_markdown(document.template_header_snapshot, context)
-        if document.template_header_snapshot
-        else ""
+        render_safe_markdown(document.template_header_snapshot, context) if document.template_header_snapshot else ""
     )
     footer = (
-        render_safe_markdown(document.template_footer_snapshot, context)
-        if document.template_footer_snapshot
-        else ""
+        render_safe_markdown(document.template_footer_snapshot, context) if document.template_footer_snapshot else ""
     )
     number = html.escape(document.document_number, quote=True)
     professional_name = html.escape(document.professional_name_snapshot, quote=True)

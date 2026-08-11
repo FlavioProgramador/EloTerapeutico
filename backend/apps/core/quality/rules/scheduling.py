@@ -37,9 +37,7 @@ def _validate_required_paths(errors: list[str]) -> None:
     ]
     for path in required:
         if not path.exists():
-            errors.append(
-                f"Estrutura obrigatória de scheduling ausente: {_relative(path)}"
-            )
+            errors.append(f"Estrutura obrigatória de scheduling ausente: {_relative(path)}")
 
 
 def _validate_app_config(errors: list[str]) -> None:
@@ -61,9 +59,7 @@ def _validate_root(errors: list[str]) -> None:
     ]
     for path in forbidden:
         if path.exists():
-            errors.append(
-                f"Módulo monolítico retornou à raiz de scheduling: {_relative(path)}"
-            )
+            errors.append(f"Módulo monolítico retornou à raiz de scheduling: {_relative(path)}")
 
 
 def _validate_removed_compatibility(errors: list[str]) -> None:
@@ -75,9 +71,7 @@ def _validate_removed_compatibility(errors: list[str]) -> None:
     if removed_api.exists():
         errors.append("A API legada apps.scheduling.api.legacy deve permanecer removida")
 
-    import_pattern = re.compile(
-        r"(?m)^\s*(?:from\s+apps\.agenda\b|import\s+apps\.agenda\b)"
-    )
+    import_pattern = re.compile(r"(?m)^\s*(?:from\s+apps\.agenda\b|import\s+apps\.agenda\b)")
     for path in BACKEND.rglob("*.py"):
         if "migrations" in path.parts:
             continue
@@ -110,9 +104,7 @@ def _validate_v1_views(errors: list[str]) -> None:
         if ".save(" in source or ".delete(" in source:
             errors.append(f"View v1 altera model diretamente: {_relative(path)}")
         if "apps.finances" in source or "apps.communications" in source:
-            errors.append(
-                f"View v1 importa integração externa diretamente: {_relative(path)}"
-            )
+            errors.append(f"View v1 importa integração externa diretamente: {_relative(path)}")
 
 
 def _validate_exports(errors: list[str]) -> None:

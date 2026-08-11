@@ -62,10 +62,7 @@ def public_action_context(raw_token: str) -> dict[str, object] | None:
         "clinic_name": token.owner.clinic_name or "Elo Terapêutico",
         "expires_at": token.expires_at,
     }
-    if (
-        token.purpose == PublicCommunicationActionToken.Purpose.FORM_ACCESS
-        and token.form_submission_id
-    ):
+    if token.purpose == PublicCommunicationActionToken.Purpose.FORM_ACCESS and token.form_submission_id:
         submission = token.form_submission
         if submission.status != submission.Status.DRAFT:
             return None
@@ -82,15 +79,10 @@ def public_action_context(raw_token: str) -> dict[str, object] | None:
                     "required": field.required,
                     "config": field.config,
                 }
-                for field in submission.form.fields.filter(
-                    is_visible=True
-                ).order_by("order", "id")
+                for field in submission.form.fields.filter(is_visible=True).order_by("order", "id")
             ],
         }
-    elif (
-        token.purpose == PublicCommunicationActionToken.Purpose.DOCUMENT_ACCESS
-        and token.document_id
-    ):
+    elif token.purpose == PublicCommunicationActionToken.Purpose.DOCUMENT_ACCESS and token.document_id:
         document = token.document
         if document.status != document.Status.COMPLETED or not document.pdf_file:
             return None
@@ -105,17 +97,12 @@ def submit_public_form(
     from apps.forms.models import FormAnswer
 
     token = PublicCommunicationActionToken.resolve(raw_token)
-    if (
-        token is None
-        or token.purpose != PublicCommunicationActionToken.Purpose.FORM_ACCESS
-    ):
+    if token is None or token.purpose != PublicCommunicationActionToken.Purpose.FORM_ACCESS:
         raise ValidationError("Não foi possível validar esta ação.")
     submission = token.form_submission
     if submission is None or submission.status != submission.Status.DRAFT:
         raise ValidationError("Não foi possível validar esta ação.")
-    fields = list(
-        submission.form.fields.filter(is_visible=True).order_by("order", "id")
-    )
+    fields = list(submission.form.fields.filter(is_visible=True).order_by("order", "id"))
     allowed_ids = {str(field.pk): field for field in fields}
     if set(answers) - set(allowed_ids):
         raise ValidationError("O formulário contém campos inválidos.")
@@ -137,9 +124,7 @@ def submit_public_form(
     submission.status = submission.Status.SUBMITTED
     submission.submitted_at = now
     submission.submitted_by = None
-    submission.save(
-        update_fields=["status", "submitted_at", "submitted_by", "updated_at"]
-    )
+    submission.save(update_fields=["status", "submitted_at", "submitted_by", "updated_at"])
     token.used_at = now
     token.save(update_fields=["used_at"])
     from .notifications import create_notification
@@ -149,10 +134,7 @@ def submit_public_form(
         owner=token.owner,
         recipient=token.owner,
         title="Formulário respondido",
-        message=(
-            "Um formulário foi respondido. "
-            "Abra o módulo de Formulários para revisar."
-        ),
+        message=("Um formulário foi respondido. " "Abra o módulo de Formulários para revisar."),
         event_type="forms.submitted",
         category="forms",
         priority="normal",
@@ -212,10 +194,7 @@ def handle_public_action(raw_token: str, action: str):
         owner=token.owner,
         recipient=token.owner,
         title=title,
-        message=(
-            "Uma ação foi registrada para uma consulta. "
-            "Abra a agenda para revisar."
-        ),
+        message=("Uma ação foi registrada para uma consulta. " "Abra a agenda para revisar."),
         event_type=notification_type,
         category="agenda",
         priority="high",

@@ -102,14 +102,10 @@ class CommunicationTemplate(models.Model):
         super().clean()
         if self.is_system_template:
             if self.organization_id or self.owner_id:
-                raise ValidationError(
-                    "Templates do sistema não podem pertencer a organização ou usuário."
-                )
+                raise ValidationError("Templates do sistema não podem pertencer a organização ou usuário.")
             return
         if not self.organization_id or not self.owner_id:
-            raise ValidationError(
-                "Templates personalizados exigem organização e responsável."
-            )
+            raise ValidationError("Templates personalizados exigem organização e responsável.")
 
     def __str__(self) -> str:
         return self.name
