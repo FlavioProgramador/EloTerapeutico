@@ -33,6 +33,8 @@ interface ExportsTabProps {
 
 export function ExportsTab({ patientId }: ExportsTabProps) {
   const queryClient = useQueryClient();
+  const exportTypeSelectId = React.useId();
+  const periodSelectId = React.useId();
   const [selectedType, setSelectedType] = useState("Completo");
   const [selectedPeriod, setSelectedPeriod] = useState("Todo o período");
 
@@ -203,13 +205,17 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
         <div className="flex flex-col gap-4 md:flex-row md:items-end justify-between">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 flex-1 max-w-xl">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <label
+                htmlFor={exportTypeSelectId}
+                className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+              >
                 Tipo de Exportação
               </label>
               <select
+                id={exportTypeSelectId}
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
               >
                 <option value="Completo">
                   Prontuário Completo (Evoluções + Fichas)
@@ -224,13 +230,17 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <label
+                htmlFor={periodSelectId}
+                className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+              >
                 Período
               </label>
               <select
+                id={periodSelectId}
                 value={selectedPeriod}
                 onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
               >
                 <option value="Todo o período">Todo o período clínico</option>
                 <option value="Últimos 30 dias">Últimos 30 dias</option>
@@ -319,6 +329,7 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
                             onClick={() => handleDownload(job)}
                             className="h-8 w-8 text-emerald-600 hover:bg-emerald-500/10"
                             title="Fazer download do arquivo PDF"
+                            aria-label={`Fazer download do arquivo ${job.filename}`}
                           >
                             <Download className="h-4 w-4" />
                           </Button>
@@ -330,6 +341,7 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
                             isLoading={retryMutation.isPending}
                             className="h-8 w-8 text-amber-600 hover:bg-amber-500/10"
                             title="Tentar reprocessar exportação"
+                            aria-label={`Tentar reprocessar exportação do arquivo ${job.filename}`}
                           >
                             <RefreshCw className="h-4 w-4" />
                           </Button>
