@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Outfit, Piazzolla, Work_Sans } from "next/font/google";
+import { IBM_Plex_Mono, Outfit, Playfair_Display, Work_Sans } from "next/font/google";
 
 import { Providers } from "@/providers/providers";
 import "@livekit/components-styles";
@@ -13,7 +13,7 @@ const outfit = Outfit({
   weight: ["300", "400", "500", "600", "700", "800"],
 });
 
-const piazzolla = Piazzolla({
+const playfairDisplay = Playfair_Display({
   subsets: ["latin"],
   variable: "--font-display",
   weight: ["600", "700"],
@@ -54,7 +54,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${outfit.variable} ${piazzolla.variable} ${workSans.variable} ${ibmPlexMono.variable} h-full antialiased`}
+      className={`${outfit.variable} ${playfairDisplay.variable} ${workSans.variable} ${ibmPlexMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body

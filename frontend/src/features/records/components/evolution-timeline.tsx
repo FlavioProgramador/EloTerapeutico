@@ -256,14 +256,14 @@ export function EvolutionTimeline({
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar nas evoluções..."
-              className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-xs text-foreground outline-none focus:border-emerald-400/50"
+              className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-xs text-foreground outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             />
           </label>
 
           <select
             value={period}
             onChange={(event) => setPeriod(event.target.value)}
-            className="h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground"
+            className="h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             aria-label="Filtrar por período"
           >
             <option value="all">Todo o período</option>
@@ -277,7 +277,7 @@ export function EvolutionTimeline({
             onChange={(event) =>
               setModality(event.target.value as "all" | EvolutionModality)
             }
-            className="h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground"
+            className="h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             aria-label="Filtrar por modalidade"
           >
             <option value="all">Todas as modalidades</option>
@@ -291,7 +291,7 @@ export function EvolutionTimeline({
             onChange={(event) =>
               setStatus(event.target.value as "all" | EvolutionStatus)
             }
-            className="h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground"
+            className="h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             aria-label="Filtrar por status"
           >
             <option value="all">Todos os status</option>
@@ -305,7 +305,7 @@ export function EvolutionTimeline({
             onClick={() =>
               setOrder((current) => (current === "desc" ? "asc" : "desc"))
             }
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-xs text-muted-foreground hover:bg-secondary"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-xs text-muted-foreground hover:bg-secondary outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
             <Filter className="h-3.5 w-3.5" />
             {order === "desc" ? "Mais recentes" : "Mais antigas"}
@@ -335,7 +335,7 @@ export function EvolutionTimeline({
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="text-[9px] font-semibold text-primary hover:underline"
+                  className="text-[9px] font-semibold text-primary hover:underline rounded-sm outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1"
                 >
                   Limpar filtros
                 </button>
@@ -369,6 +369,7 @@ export function EvolutionTimeline({
                     onClick={() => onSelect(evolution.id)}
                     className={cn(
                       "relative z-10 grid w-full grid-cols-[2.9rem_1fr] gap-3 rounded-lg border p-3 text-left transition",
+                      "outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2",
                       active
                         ? "border-primary/30 bg-gradient-to-r from-primary/10 to-accent/5 shadow-sm"
                         : "border-transparent bg-background/35 hover:border-sky-400/15 hover:bg-sky-500/5",
@@ -444,7 +445,7 @@ export function EvolutionTimeline({
                   type="button"
                   disabled={page === 1}
                   onClick={() => setPage((current) => Math.max(1, current - 1))}
-                  className="grid h-7 w-7 place-items-center rounded-md border border-border disabled:opacity-40"
+                  className="grid h-7 w-7 place-items-center rounded-md border border-border disabled:opacity-40 outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                   aria-label="Página anterior"
                 >
                   <ChevronLeft className="h-3.5 w-3.5" />
@@ -455,7 +456,7 @@ export function EvolutionTimeline({
                   onClick={() =>
                     setPage((current) => Math.min(totalPages, current + 1))
                   }
-                  className="grid h-7 w-7 place-items-center rounded-md border border-border disabled:opacity-40"
+                  className="grid h-7 w-7 place-items-center rounded-md border border-border disabled:opacity-40 outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                   aria-label="Próxima página"
                 >
                   <ChevronRight className="h-3.5 w-3.5" />
