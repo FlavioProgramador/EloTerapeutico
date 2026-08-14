@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, Send, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useId } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,17 @@ export function NewCommunicationModal({ onClose }: { onClose: () => void }) {
     draft: false,
   });
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
+
+  // Accessibility IDs
+  const patientId = useId();
+  const recipientId = useId();
+  const channelId = useId();
+  const categoryId = useId();
+  const templateId = useId();
+  const subjectId = useId();
+  const bodyId = useId();
+  const scheduleId = useId();
+  const datetimeId = useId();
 
   const channelTemplates = (templates.data ?? []).filter(
     (item) =>
@@ -136,6 +147,8 @@ export function NewCommunicationModal({ onClose }: { onClose: () => void }) {
     }
   }
 
+  const isSubmitting = create.isPending;
+
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-background/75 p-4 backdrop-blur-sm">
       <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-card shadow-2xl">
@@ -152,7 +165,8 @@ export function NewCommunicationModal({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-muted-foreground hover:bg-secondary"
+            disabled={isSubmitting}
+            className="rounded-lg p-2 text-muted-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Fechar"
           >
             <X className="h-4 w-4" />
@@ -160,12 +174,16 @@ export function NewCommunicationModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="grid gap-5 p-6 md:grid-cols-2">
-          <label className="grid gap-2 text-xs font-semibold text-foreground">
-            Paciente
+          {/* Paciente */}
+          <div className="grid gap-2">
+            <label htmlFor={patientId} className="text-xs font-semibold text-foreground">
+              Paciente
+            </label>
             <select
-              className="h-11 rounded-xl border border-input bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+              id={patientId}
+              className="h-11 rounded-xl border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               value={payload.patient_id ?? ""}
-              disabled={!requiresPatient}
+              disabled={!requiresPatient || isSubmitting}
               onChange={(event) =>
                 update(
                   "patient_id",
@@ -184,14 +202,18 @@ export function NewCommunicationModal({ onClose }: { onClose: () => void }) {
                 </option>
               ))}
             </select>
-          </label>
+          </div>
 
-          <label className="grid gap-2 text-xs font-semibold text-foreground">
-            Destinatário
+          {/* Destinatário */}
+          <div className="grid gap-2">
+            <label htmlFor={recipientId} className="text-xs font-semibold text-foreground">
+              Destinatário
+            </label>
             <select
-              className="h-11 rounded-xl border border-input bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+              id={recipientId}
+              className="h-11 rounded-xl border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               value={payload.recipient_type}
-              disabled={!requiresPatient}
+              disabled={!requiresPatient || isSubmitting}
               onChange={(event) =>
                 update(
                   "recipient_type",
@@ -206,13 +228,18 @@ export function NewCommunicationModal({ onClose }: { onClose: () => void }) {
                 <option value="guardian">Responsável legal</option>
               )}
             </select>
-          </label>
+          </div>
 
-          <label className="grid gap-2 text-xs font-semibold text-foreground">
-            Canal
+          {/* Canal */}
+          <div className="grid gap-2">
+            <label htmlFor={channelId} className="text-xs font-semibold text-foreground">
+              Canal
+            </label>
             <select
-              className="h-11 rounded-xl border border-input bg-background px-3 text-sm"
+              id={channelId}
+              className="h-11 rounded-xl border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               value={payload.channel}
+              disabled={isSubmitting}
               onChange={(event) =>
                 changeChannel(event.target.value as CommunicationChannel)
               }
@@ -233,13 +260,18 @@ export function NewCommunicationModal({ onClose }: { onClose: () => void }) {
                 );
               })}
             </select>
-          </label>
+          </div>
 
-          <label className="grid gap-2 text-xs font-semibold text-foreground">
-            Categoria
+          {/* Categoria */}
+          <div className="grid gap-2">
+            <label htmlFor={categoryId} className="text-xs font-semibold text-foreground">
+              Categoria
+            </label>
             <select
-              className="h-11 rounded-xl border border-input bg-background px-3 text-sm"
+              id={categoryId}
+              className="h-11 rounded-xl border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               value={payload.category}
+              disabled={isSubmitting}
               onChange={(event) =>
                 setPayload((current) => ({
                   ...current,
@@ -261,7 +293,7 @@ export function NewCommunicationModal({ onClose }: { onClose: () => void }) {
               <option value="payment_due">Aviso financeiro</option>
               <option value="other">Outro</option>
             </select>
-          </label>
+          </div>
 
           {selectedChannelConfig && !selectedChannelReady && (
             <div className="rounded-xl border border-warning/20 bg-warning/5 p-4 text-xs text-muted-foreground md:col-span-2">
@@ -278,11 +310,16 @@ export function NewCommunicationModal({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          <label className="grid gap-2 text-xs font-semibold text-foreground md:col-span-2">
-            Template
+          {/* Template */}
+          <div className="grid gap-2 md:col-span-2">
+            <label htmlFor={templateId} className="text-xs font-semibold text-foreground">
+              Template
+            </label>
             <select
-              className="h-11 rounded-xl border border-input bg-background px-3 text-sm"
+              id={templateId}
+              className="h-11 rounded-xl border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               value={payload.template_id ?? ""}
+              disabled={isSubmitting}
               onChange={(event) =>
                 update(
                   "template_id",
@@ -297,29 +334,40 @@ export function NewCommunicationModal({ onClose }: { onClose: () => void }) {
                 </option>
               ))}
             </select>
-          </label>
+          </div>
 
           {!selectedTemplate && (
             <>
-              <label className="grid gap-2 text-xs font-semibold text-foreground md:col-span-2">
-                Assunto
+              {/* Assunto */}
+              <div className="grid gap-2 md:col-span-2">
+                <label htmlFor={subjectId} className="text-xs font-semibold text-foreground">
+                  Assunto
+                </label>
                 <input
-                  className="h-11 rounded-xl border border-input bg-background px-3 text-sm"
+                  id={subjectId}
+                  className="h-11 rounded-xl border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                   value={payload.subject}
+                  disabled={isSubmitting}
                   onChange={(event) => update("subject", event.target.value)}
                   maxLength={255}
                 />
-              </label>
-              <label className="grid gap-2 text-xs font-semibold text-foreground md:col-span-2">
-                Conteúdo
+              </div>
+
+              {/* Conteúdo */}
+              <div className="grid gap-2 md:col-span-2">
+                <label htmlFor={bodyId} className="text-xs font-semibold text-foreground">
+                  Conteúdo
+                </label>
                 <textarea
-                  className="min-h-36 rounded-xl border border-input bg-background p-3 text-sm"
+                  id={bodyId}
+                  className="min-h-36 rounded-xl border border-input bg-background p-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                   value={payload.body}
+                  disabled={isSubmitting}
                   onChange={(event) => update("body", event.target.value)}
                   maxLength={10000}
                   placeholder="Escreva apenas informações administrativas necessárias."
                 />
-              </label>
+              </div>
             </>
           )}
 
@@ -341,21 +389,32 @@ export function NewCommunicationModal({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          <label className="flex items-center gap-3 rounded-xl border border-border p-4 text-xs font-semibold md:col-span-2">
+          {/* Agendar envio */}
+          <div className="flex items-center gap-3 rounded-xl border border-border p-4 md:col-span-2">
             <input
+              id={scheduleId}
               type="checkbox"
+              className="h-4 w-4 rounded border-gray-300 text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               checked={scheduleEnabled}
+              disabled={isSubmitting}
               onChange={(event) => setScheduleEnabled(event.target.checked)}
             />
-            Agendar envio
-          </label>
+            <label htmlFor={scheduleId} className="text-xs font-semibold text-foreground cursor-pointer select-none">
+              Agendar envio
+            </label>
+          </div>
 
           {scheduleEnabled && (
-            <label className="grid gap-2 text-xs font-semibold text-foreground md:col-span-2">
-              Data e hora
+            /* Data e hora */
+            <div className="grid gap-2 md:col-span-2">
+              <label htmlFor={datetimeId} className="text-xs font-semibold text-foreground">
+                Data e hora
+              </label>
               <input
+                id={datetimeId}
                 type="datetime-local"
-                className="h-11 rounded-xl border border-input bg-background px-3 text-sm"
+                className="h-11 rounded-xl border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isSubmitting}
                 onChange={(event) =>
                   update(
                     "scheduled_at",
@@ -365,7 +424,7 @@ export function NewCommunicationModal({ onClose }: { onClose: () => void }) {
                   )
                 }
               />
-            </label>
+            </div>
           )}
 
           <div
@@ -387,12 +446,16 @@ export function NewCommunicationModal({ onClose }: { onClose: () => void }) {
           <Button
             variant="outline"
             onClick={() => submit(true)}
-            disabled={create.isPending}
+            disabled={isSubmitting}
           >
             Salvar rascunho
           </Button>
-          <Button onClick={() => submit(false)} disabled={create.isPending}>
-            {create.isPending ? (
+          <Button
+            onClick={() => submit(false)}
+            disabled={isSubmitting}
+            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+          >
+            {isSubmitting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <Send className="mr-2 h-4 w-4" />
