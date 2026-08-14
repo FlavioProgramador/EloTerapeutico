@@ -33,6 +33,7 @@ cryptography>=50.0.0,<51.0
 
 # Correção de vulnerabilidade de imagem
 msgpack>=1.2.1
+setuptools>=78.1.1
 
 # Servidor de produção
 gunicorn>=22.0,<23.0

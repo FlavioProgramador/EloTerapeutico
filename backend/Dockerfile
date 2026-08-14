@@ -38,6 +38,7 @@ COPY requirements*.txt ./
 RUN python -m pip install --upgrade pip \
     && python -m pip install -r ${REQUIREMENTS_FILE} \
     && python -m pip install --upgrade setuptools msgpack \
+    && rm -rf /usr/lib/python*/site-packages/setuptools* /usr/lib/python*/site-packages/msgpack* \
     && apk del .build-deps
 
 COPY . .
