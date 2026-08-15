@@ -1,10 +1,12 @@
 from datetime import date
 
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.patients.models import Patient
 from apps.reports.selectors import patients_for_owner
+from apps.reports.services.patient_reports import patients_report
 from apps.reports.services.periods import resolve_period
 from apps.users.models import User
 
@@ -52,9 +54,6 @@ class ReportLayerTests(APITestCase):
         self.assertEqual(response.data, {"detail": "Tipo de relatorio invalido."})
 
     def test_patients_report_age_distribution(self):
-        from django.utils import timezone
-        from apps.reports.services.patient_reports import patients_report
-
         today = timezone.localdate()
         # Create patients in different age buckets
         Patient.objects.create(
