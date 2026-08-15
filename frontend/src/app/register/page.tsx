@@ -15,7 +15,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useId, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -245,6 +245,11 @@ function RegisterForm() {
     };
   }, []);
 
+  const termsId = useId();
+  const privacyId = useId();
+  const termsErrorId = `${termsId}-error`;
+  const privacyErrorId = `${privacyId}-error`;
+
   const {
     register,
     handleSubmit,
@@ -359,6 +364,7 @@ function RegisterForm() {
               type="text"
               autoComplete="name"
               variant="underline"
+              disabled={isSubmitting}
               error={errors.full_name?.message}
               leftIcon={
                 <User className="h-5 w-5" aria-hidden="true" />
@@ -373,6 +379,7 @@ function RegisterForm() {
                 type="email"
                 autoComplete="email"
                 variant="underline"
+                disabled={isSubmitting}
                 error={errors.email?.message}
                 leftIcon={
                   <Mail className="h-5 w-5" aria-hidden="true" />
@@ -385,6 +392,7 @@ function RegisterForm() {
                 type="tel"
                 autoComplete="tel"
                 variant="underline"
+                disabled={isSubmitting}
                 error={errors.phone?.message}
                 leftIcon={
                   <Phone className="h-5 w-5" aria-hidden="true" />
@@ -400,6 +408,7 @@ function RegisterForm() {
                 type="text"
                 autoComplete="off"
                 variant="underline"
+                disabled={isSubmitting}
                 error={errors.crp?.message}
                 placeholder="Opcional"
                 {...register("crp")}
@@ -410,6 +419,7 @@ function RegisterForm() {
                 type="text"
                 autoComplete="organization-title"
                 variant="underline"
+                disabled={isSubmitting}
                 error={errors.specialty?.message}
                 placeholder="Opcional"
                 {...register("specialty")}
@@ -423,6 +433,7 @@ function RegisterForm() {
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
                 variant="underline"
+                disabled={isSubmitting}
                 error={errors.password?.message}
                 leftIcon={
                   <Lock className="h-5 w-5" aria-hidden="true" />
@@ -431,7 +442,8 @@ function RegisterForm() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((current) => !current)}
-                    className="transition-colors hover:text-primary"
+                    disabled={isSubmitting}
+                    className="rounded-md transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
                     aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   >
                     {showPassword ? (
@@ -449,6 +461,7 @@ function RegisterForm() {
                 type={showConfirmPassword ? "text" : "password"}
                 autoComplete="new-password"
                 variant="underline"
+                disabled={isSubmitting}
                 error={errors.confirm_password?.message}
                 leftIcon={
                   <Lock className="h-5 w-5" aria-hidden="true" />
@@ -459,7 +472,8 @@ function RegisterForm() {
                     onClick={() =>
                       setShowConfirmPassword((current) => !current)
                     }
-                    className="transition-colors hover:text-primary"
+                    disabled={isSubmitting}
+                    className="rounded-md transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
                     aria-label={
                       showConfirmPassword ? "Ocultar senha" : "Mostrar senha"
                     }
@@ -476,57 +490,75 @@ function RegisterForm() {
             </div>
 
             <div className="space-y-3 rounded-xl border border-primary/10 bg-primary-soft/45 p-4">
-              <label className="flex items-start gap-3 text-sm text-muted-foreground">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-4 w-4 rounded border-input accent-primary"
-                  aria-invalid={Boolean(errors.terms_accepted)}
-                  {...register("terms_accepted")}
-                />
-                <span>
-                  Li e aceito os{" "}
-                  <Link
-                    href="/termos-de-uso"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-semibold text-primary hover:underline"
-                  >
-                    Termos de Uso
-                  </Link>
-                  .
-                </span>
-              </label>
-              {errors.terms_accepted && (
-                <p className="text-xs text-danger" role="alert">
-                  {errors.terms_accepted.message}
-                </p>
-              )}
+              <div>
+                <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                  <input
+                    id={termsId}
+                    type="checkbox"
+                    disabled={isSubmitting}
+                    className="mt-1 h-4 w-4 rounded border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-invalid={Boolean(errors.terms_accepted)}
+                    aria-describedby={
+                      errors.terms_accepted ? termsErrorId : undefined
+                    }
+                    {...register("terms_accepted")}
+                  />
+                  <span>
+                    <label htmlFor={termsId} className="cursor-pointer">
+                      Li e aceito os{" "}
+                    </label>
+                    <Link
+                      href="/termos-de-uso"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-xs font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1"
+                    >
+                      Termos de Uso
+                    </Link>
+                    .
+                  </span>
+                </div>
+                {errors.terms_accepted && (
+                  <p id={termsErrorId} className="mt-1 text-xs text-danger" role="alert">
+                    {errors.terms_accepted.message}
+                  </p>
+                )}
+              </div>
 
-              <label className="flex items-start gap-3 text-sm text-muted-foreground">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-4 w-4 rounded border-input accent-primary"
-                  aria-invalid={Boolean(errors.privacy_accepted)}
-                  {...register("privacy_accepted")}
-                />
-                <span>
-                  Li e aceito a{" "}
-                  <Link
-                    href="/politica-de-privacidade"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-semibold text-primary hover:underline"
-                  >
-                    Política de Privacidade
-                  </Link>
-                  .
-                </span>
-              </label>
-              {errors.privacy_accepted && (
-                <p className="text-xs text-danger" role="alert">
-                  {errors.privacy_accepted.message}
-                </p>
-              )}
+              <div>
+                <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                  <input
+                    id={privacyId}
+                    type="checkbox"
+                    disabled={isSubmitting}
+                    className="mt-1 h-4 w-4 rounded border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-invalid={Boolean(errors.privacy_accepted)}
+                    aria-describedby={
+                      errors.privacy_accepted ? privacyErrorId : undefined
+                    }
+                    {...register("privacy_accepted")}
+                  />
+                  <span>
+                    <label htmlFor={privacyId} className="cursor-pointer">
+                      Li e aceito a{" "}
+                    </label>
+                    <Link
+                      href="/politica-de-privacidade"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-xs font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1"
+                    >
+                      Política de Privacidade
+                    </Link>
+                    .
+                  </span>
+                </div>
+                {errors.privacy_accepted && (
+                  <p id={privacyErrorId} className="mt-1 text-xs text-danger" role="alert">
+                    {errors.privacy_accepted.message}
+                  </p>
+                )}
+              </div>
             </div>
 
             <Button
