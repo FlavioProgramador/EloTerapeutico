@@ -120,11 +120,15 @@ def patients_report(user, params, organization=None) -> dict[str, Any]:
         {"label": label, "value": 0} for _, _, label in age_buckets
     ]
     age_distribution.append({"label": "Sem data", "value": 0})
-    for patient in patients:
-        age = patient.age
-        if age is None:
+    for birth_date in patients.values_list("birth_date", flat=True):
+        if not birth_date:
             age_distribution[-1]["value"] += 1
             continue
+        age = (
+            today.year
+            - birth_date.year
+            - ((today.month, today.day) < (birth_date.month, birth_date.day))
+        )
         for index, (minimum, maximum, _label) in enumerate(age_buckets):
             if minimum <= age <= maximum:
                 age_distribution[index]["value"] += 1
