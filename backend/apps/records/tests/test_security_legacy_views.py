@@ -198,3 +198,32 @@ def test_anamnesis_put_cannot_reassign_patient(owner, patient):
 
     anamnesis.refresh_from_db()
     assert anamnesis.patient == patient
+
+
+@pytest.mark.django_db
+def test_evolution_add_addendum_author_only(owner, shared_therapist, patient, link):
+    """
+    Regression: Only the original author of the evolution can add an addendum.
+    Other therapists (even with access to patient) must receive 403 Forbidden.
+    """
+    ev = Evolution.objects.create(
+        patient=patient,
+        content="Original Note",
+        session_date=timezone.localdate(),
+        created_by=owner,
+        is_locked=True,
+    )
+
+    client = APIClient()
+
+    # Shared therapist (who has patient access but didn't create the evolution) tries to add an addendum
+    client.force_authenticate(shared_therapist)
+    url = f"/api/v1/records/evolutions/{ev.id}/addendum/"
+    response = client.post(url, {"content": "Unauthorized addendum"}, format="json")
+    assert response.status_code == 403
+
+    # Owner (original author) tries to add an addendum
+    client.force_authenticate(owner)
+    response = client.post(url, {"reason": "Correction", "content": "Authorized addendum"}, format="json")
+    assert response.status_code == 201
+    assert any(a.content == "Authorized addendum" for a in ev.addenda.all())
