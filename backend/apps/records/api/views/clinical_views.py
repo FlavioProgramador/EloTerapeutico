@@ -471,7 +471,14 @@ class TreatmentGoalListCreateView(ClinicalPatientMixin, APIView):
 
 class TreatmentGoalDetailView(ClinicalPatientMixin, APIView):
     def get_goal(self, pk):
-        goal = get_object_or_404(TreatmentGoal.objects.prefetch_related("evolutions"), pk=pk)
+        from apps.patients.models import Patient
+        from apps.patients.services.access_control import patient_access_q
+
+        accessible_patients = Patient.objects.filter(patient_access_q(self.request.user))
+        goal = get_object_or_404(
+            TreatmentGoal.objects.filter(patient__in=accessible_patients).prefetch_related("evolutions"),
+            pk=pk,
+        )
         self.get_patient(goal.patient_id)
         return goal
 
