@@ -1,3 +1,4 @@
+import { useId } from "react";
 import {
   Download,
   Plus,
@@ -31,6 +32,8 @@ interface Props {
 }
 
 export function PatientToolbarSafe(props: Props) {
+  const noNextSessionId = useId();
+
   const update = <K extends keyof SafeToolbarFilters>(
     key: K,
     value: SafeToolbarFilters[K],
@@ -95,7 +98,7 @@ export function PatientToolbarSafe(props: Props) {
               value={props.filters.search}
               onChange={(event) => update("search", event.target.value)}
               placeholder="Buscar por nome, CPF, telefone ou e-mail..."
-              className="h-10 w-full rounded-md border border-border bg-background pl-9 pr-3 text-xs text-foreground outline-none focus:border-primary"
+              className="h-10 w-full rounded-md border border-border bg-background pl-9 pr-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             />
           </label>
           <select
@@ -106,7 +109,8 @@ export function PatientToolbarSafe(props: Props) {
                 event.target.value as SafeToolbarFilters["status"],
               )
             }
-            className="h-10 rounded-md border border-border bg-background px-3 text-xs text-foreground"
+            aria-label="Filtrar por status"
+            className="h-10 rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
             <option value="all">Todos os status</option>
             <option value="active">Ativos</option>
@@ -122,7 +126,8 @@ export function PatientToolbarSafe(props: Props) {
             <select
               value={props.filters.modality}
               onChange={(event) => update("modality", event.target.value)}
-              className="h-9 rounded-md border border-border bg-background px-3 text-xs"
+              aria-label="Filtrar por modalidade"
+              className="h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             >
               <option value="">Todas as modalidades</option>
               <option value="in_person">Presencial</option>
@@ -132,7 +137,8 @@ export function PatientToolbarSafe(props: Props) {
             <select
               value={props.filters.payerType}
               onChange={(event) => update("payerType", event.target.value)}
-              className="h-9 rounded-md border border-border bg-background px-3 text-xs"
+              aria-label="Filtrar por tipo de atendimento"
+              className="h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             >
               <option value="">Todos os atendimentos</option>
               <option value="private">Particular</option>
@@ -141,19 +147,24 @@ export function PatientToolbarSafe(props: Props) {
             <input
               value={props.filters.tag}
               onChange={(event) => update("tag", event.target.value)}
+              aria-label="Filtrar por etiqueta"
               placeholder="Etiqueta"
-              className="h-9 rounded-md border border-border bg-background px-3 text-xs"
+              className="h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             />
-            <label className="flex h-9 items-center gap-2 rounded-md border border-border px-3 text-xs">
+            <div className="flex h-9 items-center gap-2 rounded-md border border-border px-3 text-xs text-foreground">
               <input
+                id={noNextSessionId}
                 type="checkbox"
                 checked={props.filters.noNextSession}
                 onChange={(event) =>
                   update("noNextSession", event.target.checked)
                 }
+                className="accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
               />
-              Sem próxima sessão
-            </label>
+              <label htmlFor={noNextSessionId} className="cursor-pointer">
+                Sem próxima sessão
+              </label>
+            </div>
           </div>
         )}
       </section>
