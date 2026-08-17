@@ -11,7 +11,7 @@ class AppointmentRecurrenceSerializer(serializers.ModelSerializer):
     patient_name = serializers.CharField(source="patient.display_name", read_only=True)
     therapist_name = serializers.CharField(source="therapist.full_name", read_only=True)
     frequency_display = serializers.CharField(source="get_frequency_display", read_only=True)
-    occurrences_count = serializers.IntegerField(source="appointments.count", read_only=True)
+    occurrences_count = serializers.SerializerMethodField()
     completed_count = serializers.SerializerMethodField()
     next_occurrence_id = serializers.SerializerMethodField()
     next_occurrence_at = serializers.SerializerMethodField()
@@ -86,27 +86,34 @@ class AppointmentRecurrenceSerializer(serializers.ModelSerializer):
         validated_data["organization"] = self.context["request"].organization
         return super().create(validated_data)
 
-    def get_completed_count(self, obj):
-        return obj.appointments.filter(
-            organization=obj.organization,
-            status=Appointment.Status.COMPLETED,
-        ).count()
+    def get_occurrences_count(self, obj):
+        return len(obj.appointments.all())
 
-    def _next(self, obj):
-        return (
-            obj.appointments.filter(
-                organization=obj.organization,
-                start_time__gte=timezone.now(),
-                status__in=[Appointment.Status.SCHEDULED, Appointment.Status.CONFIRMED],
-            )
-            .order_by("start_time")
-            .first()
+    def get_completed_count(self, obj):
+        return sum(
+            1 for appt in obj.appointments.all()
+            if appt.organization_id == obj.organization_id
+            and appt.status == Appointment.Status.COMPLETED
         )
 
+    def _get_next_appointment(self, obj):
+        if not hasattr(self, "_next_cache"):
+            self._next_cache = {}
+        if obj.pk not in self._next_cache:
+            now = timezone.now()
+            candidates = [
+                a for a in obj.appointments.all()
+                if a.organization_id == obj.organization_id
+                and a.start_time >= now
+                and a.status in (Appointment.Status.SCHEDULED, Appointment.Status.CONFIRMED)
+            ]
+            self._next_cache[obj.pk] = min(candidates, key=lambda a: a.start_time) if candidates else None
+        return self._next_cache[obj.pk]
+
     def get_next_occurrence_id(self, obj):
-        item = self._next(obj)
+        item = self._get_next_appointment(obj)
         return item.id if item else None
 
     def get_next_occurrence_at(self, obj):
-        item = self._next(obj)
+        item = self._get_next_appointment(obj)
         return item.start_time if item else None
