@@ -419,3 +419,98 @@ def test_preference_is_unique_per_patient(therapist, patient):
     )
     assert created is False
     assert first.pk == second.pk
+
+
+@pytest.mark.django_db
+@override_settings(BILLING_REQUIRE_SUBSCRIPTION=False)
+def test_patient_communication_preferences_security_isolation(
+    authenticated_client,
+    therapist,
+    other_therapist,
+    patient,
+):
+    # 1. Unauthenticated user is rejected
+    unauthenticated_client = APIClient()
+    unauth_resp = unauthenticated_client.get(f"/api/v1/communications/preferences/patient/{patient.pk}/")
+    assert unauth_resp.status_code == 401
+
+    # 2. Legitimate therapist with access can read and update
+    pref_get_resp = authenticated_client.get(f"/api/v1/communications/preferences/patient/{patient.pk}/")
+    assert pref_get_resp.status_code == 200
+    assert pref_get_resp.data["allow_email"] is True
+
+    pref_patch_resp = authenticated_client.patch(
+        f"/api/v1/communications/preferences/patient/{patient.pk}/",
+        {"allow_email": False},
+        format="json",
+    )
+    assert pref_patch_resp.status_code == 200
+    assert pref_patch_resp.data["allow_email"] is False
+
+    # 3. Therapist without relationship to patient in same organization is rejected (404)
+    unlinked_therapist = User.objects.create_user(
+        email="unlinked.therapist@example.test",
+        password="SenhaForte123!",
+        full_name="Terapeuta Sem Vínculo",
+        role=User.Role.THERAPIST,
+        phone="21999997777",
+        onboarding_completed_at=timezone.now(),
+    )
+    OrganizationMembership.objects.create(
+        organization=therapist.test_organization,
+        user=unlinked_therapist,
+        role=OrganizationMembership.Role.THERAPIST,
+        status=OrganizationMembership.Status.ACTIVE,
+    )
+    unlinked_client = APIClient()
+    unlinked_client.force_authenticate(unlinked_therapist)
+    unlinked_client.credentials(
+        HTTP_X_ORGANIZATION_ID=str(therapist.test_organization.pk)
+    )
+
+    unlinked_get = unlinked_client.get(f"/api/v1/communications/preferences/patient/{patient.pk}/")
+    assert unlinked_get.status_code == 404
+
+    unlinked_patch = unlinked_client.patch(
+        f"/api/v1/communications/preferences/patient/{patient.pk}/",
+        {"allow_email": True},
+        format="json",
+    )
+    assert unlinked_patch.status_code == 404
+
+    # 4. User from another tenant/organization is rejected (404)
+    other_client = APIClient()
+    other_client.force_authenticate(other_therapist)
+    other_client.credentials(
+        HTTP_X_ORGANIZATION_ID=str(other_therapist.test_organization.pk)
+    )
+
+    other_get = other_client.get(f"/api/v1/communications/preferences/patient/{patient.pk}/")
+    assert other_get.status_code == 404
+
+    # 5. List endpoint preferences only returns accessible patients
+    # Create a patient for other_therapist
+    other_patient = Patient.objects.create(
+        organization=other_therapist.test_organization,
+        therapist=other_therapist,
+        full_name="Paciente Outro",
+        email="other_patient@example.test",
+        status=Patient.Status.ACTIVE,
+        is_active=True,
+    )
+    CommunicationPreference.objects.get_or_create(
+        organization=other_therapist.test_organization,
+        patient=other_patient,
+        defaults={"owner": other_therapist},
+    )
+
+    list_resp = authenticated_client.get("/api/v1/communications/preferences/")
+    assert list_resp.status_code == 200
+    patient_ids_in_list = [item["patient"] for item in list_resp.data]
+    assert patient.pk in patient_ids_in_list
+    assert other_patient.pk not in patient_ids_in_list
+
+    # Check that unlinked therapist in same organization sees empty list
+    unlinked_list_resp = unlinked_client.get("/api/v1/communications/preferences/")
+    assert unlinked_list_resp.status_code == 200
+    assert len(unlinked_list_resp.data) == 0
