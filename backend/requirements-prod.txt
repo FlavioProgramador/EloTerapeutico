@@ -49,6 +49,10 @@ azure-storage-blob>=12.19,<12.20
 # Rate limiting
 django-ratelimit>=4.1,<4.2
 
+# Segurança de dependências de ambiente
+setuptools>=78.1.1
+msgpack>=1.2.1
+
 # Logging estruturado
 structlog>=24.1,<24.2
 

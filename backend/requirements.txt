@@ -53,6 +53,10 @@ azure-storage-blob>=12.19,<12.20
 # Rate limiting
 django-ratelimit>=4.1,<4.2
 
+# Segurança de dependências de ambiente
+setuptools>=78.1.1
+msgpack>=1.2.1
+
 # Testes
 pytest>=9.0.3,<10.0
 pytest-django>=4.8,<5.0
