@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useState } from "react";
+import { useDeferredValue, useState, useId } from "react";
 import { Edit3, Pause, Play, Square } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import { useRecurrenceAction, useRecurrences } from "../hooks/use-agenda";
 import { agendaService } from "../services/agenda.service";
 import type { AppointmentRecurrence } from "../types";
 import {
-  Field,
   FilterSelect,
   PaginationSummary,
   SearchInput,
@@ -22,6 +21,28 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AGENDA_QUERY_KEYS } from "../hooks/use-agenda";
+
+function FormField({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="block space-y-1.5">
+      <label
+        htmlFor={htmlFor}
+        className="text-xs font-semibold text-foreground cursor-pointer select-none"
+      >
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
 
 export function RecurrencesPanel() {
   const [search, setSearch] = useState("");
@@ -191,6 +212,11 @@ function RecurrenceEditModal({
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
+  const baseId = useId();
+  const timeId = `${baseId}-time`;
+  const durationId = `${baseId}-duration`;
+  const modalityId = `${baseId}-modality`;
+
   const [scope, setScope] = useState<"occurrence" | "following" | "all">(
     "following",
   );
@@ -199,6 +225,7 @@ function RecurrenceEditModal({
     String(item?.duration_minutes || 50),
   );
   const [modality, setModality] = useState(item?.modality || "in_person");
+
   const mutation = useMutation({
     mutationFn: () =>
       agendaService.recurrences.applyChange(item!.id, {
@@ -231,38 +258,65 @@ function RecurrenceEditModal({
       description={`${item.patient_name} · ${item.frequency_display}`}
       className="max-w-lg"
     >
-      <div className="space-y-4">
-        <Field label="Aplicar alteração em">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          mutation.mutate();
+        }}
+        className="space-y-4"
+      >
+        <div className="block space-y-1.5">
+          <span className="text-xs font-semibold text-foreground">
+            Aplicar alteração em
+          </span>
           <div className="space-y-2 rounded-lg border border-border p-3 text-sm">
             {[
               ["occurrence", "Apenas o próximo agendamento"],
               ["following", "Este e os seguintes"],
               ["all", "Todos da recorrência"],
-            ].map(([value, label]) => (
-              <label key={value} className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  checked={scope === value}
-                  onChange={() => setScope(value as typeof scope)}
-                />
-                {label}
-              </label>
-            ))}
+            ].map(([value, label]) => {
+              const radioId = `${baseId}-scope-${value}`;
+              return (
+                <div key={value} className="flex items-center gap-2">
+                  <input
+                    id={radioId}
+                    type="radio"
+                    name={`${baseId}-scope`}
+                    value={value}
+                    checked={scope === value}
+                    onChange={() => setScope(value as typeof scope)}
+                    disabled={mutation.isPending}
+                    className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+                  />
+                  <label
+                    htmlFor={radioId}
+                    className="cursor-pointer select-none text-sm font-medium"
+                  >
+                    {label}
+                  </label>
+                </div>
+              );
+            })}
           </div>
-        </Field>
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Horário">
+          <FormField label="Horário" htmlFor={timeId}>
             <input
+              id={timeId}
               type="time"
               value={time}
               onChange={(event) => setTime(event.target.value)}
+              disabled={mutation.isPending}
               className={fieldClass}
             />
-          </Field>
-          <Field label="Duração">
+          </FormField>
+          <FormField label="Duração" htmlFor={durationId}>
             <select
+              id={durationId}
               value={duration}
               onChange={(event) => setDuration(event.target.value)}
+              disabled={mutation.isPending}
               className={fieldClass}
             >
               {[30, 45, 50, 60, 90].map((value) => (
@@ -271,36 +325,45 @@ function RecurrenceEditModal({
                 </option>
               ))}
             </select>
-          </Field>
+          </FormField>
         </div>
-        <Field label="Modalidade">
+
+        <FormField label="Modalidade" htmlFor={modalityId}>
           <select
+            id={modalityId}
             value={modality}
             onChange={(event) =>
               setModality(
                 event.target.value as AppointmentRecurrence["modality"],
               )
             }
+            disabled={mutation.isPending}
             className={fieldClass}
           >
             <option value="in_person">Presencial</option>
             <option value="online">Online</option>
             <option value="hybrid">Híbrida</option>
           </select>
-        </Field>
+        </FormField>
+
         <div className="flex justify-end gap-2 border-t border-border pt-4">
-          <Button variant="outline" onClick={onClose}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={mutation.isPending}
+          >
             Cancelar
           </Button>
           <Button
-            onClick={() => mutation.mutate()}
+            type="submit"
             isLoading={mutation.isPending}
-            disabled={!item.next_occurrence_id}
+            disabled={!item.next_occurrence_id || mutation.isPending}
           >
             Salvar
           </Button>
         </div>
-      </div>
+      </form>
     </Modal>
   );
 }
