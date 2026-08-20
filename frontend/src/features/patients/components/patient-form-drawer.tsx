@@ -22,11 +22,11 @@ interface Props {
 }
 
 const inputClass =
-  "h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground outline-none transition placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/15";
+  "h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground outline-none transition placeholder:text-muted-foreground/50 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50";
 const selectClass =
-  "h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15";
+  "h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground outline-none transition focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50";
 const textareaClass =
-  "min-h-24 w-full resize-y rounded-md border border-border bg-background px-3 py-3 text-xs text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 placeholder:text-muted-foreground/50";
+  "min-h-24 w-full resize-y rounded-md border border-border bg-background px-3 py-3 text-xs text-foreground outline-none focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background placeholder:text-muted-foreground/50 disabled:cursor-not-allowed disabled:opacity-50";
 
 const UF_OPTIONS = [
   "",
@@ -202,6 +202,7 @@ export function PatientFormDrawer(props: Props) {
               preview={state.preview}
               current={state.patientQuery.data?.photo ?? null}
               error={state.form.formState.errors.photo?.message?.toString()}
+              disabled={submit.pending}
               onChange={state.changePhoto}
               onRemove={state.removePhoto}
               id={`${baseId}-photo`}
@@ -216,6 +217,7 @@ export function PatientFormDrawer(props: Props) {
               <input
                 id={`${baseId}-full-name`}
                 type="text"
+                disabled={submit.pending}
                 placeholder="Nome do paciente"
                 aria-describedby={
                   errors.full_name ? `${baseId}-full-name-error` : undefined
@@ -235,6 +237,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-email`}
                   type="email"
+                  disabled={submit.pending}
                   placeholder="email@exemplo.com"
                   aria-describedby={
                     errors.email ? `${baseId}-email-error` : undefined
@@ -253,6 +256,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-phone`}
                   type="text"
+                  disabled={submit.pending}
                   placeholder="(11) 99999-9999 ou +55 21 99999-9999"
                   aria-describedby={
                     errors.phone ? `${baseId}-phone-error` : undefined
@@ -279,6 +283,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-birth-date`}
                   type="date"
+                  disabled={submit.pending}
                   max={today}
                   aria-describedby={
                     errors.birth_date ? `${baseId}-birth-date-error` : undefined
@@ -297,6 +302,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-treatment-start-date`}
                   type="date"
+                  disabled={submit.pending}
                   max={today}
                   aria-describedby={
                     errors.treatment_start_date
@@ -319,6 +325,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-cpf`}
                   type="text"
+                  disabled={submit.pending}
                   placeholder="000.000.000-00"
                   aria-describedby={
                     errors.cpf ? `${baseId}-cpf-error` : undefined
@@ -343,6 +350,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-rg`}
                   type="text"
+                  disabled={submit.pending}
                   placeholder="00.000.000-0"
                   aria-describedby={
                     errors.rg ? `${baseId}-rg-error` : undefined
@@ -363,6 +371,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-profession`}
                   type="text"
+                  disabled={submit.pending}
                   placeholder="Profissão"
                   aria-describedby={
                     errors.profession ? `${baseId}-profession-error` : undefined
@@ -381,6 +390,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-social-network`}
                   type="text"
+                  disabled={submit.pending}
                   placeholder="@instagram"
                   aria-describedby={
                     errors.social_network
@@ -410,6 +420,7 @@ export function PatientFormDrawer(props: Props) {
             >
               <select
                 id={`${baseId}-payer-type`}
+                disabled={submit.pending}
                 aria-describedby={
                   errors.payer_type ? `${baseId}-payer-type-error` : undefined
                 }
@@ -431,6 +442,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-insurance-name`}
                   type="text"
+                  disabled={submit.pending}
                   placeholder="Nome do convênio"
                   aria-describedby={
                     errors.insurance_name
@@ -452,6 +464,7 @@ export function PatientFormDrawer(props: Props) {
               <input
                 id={`${baseId}-session-value`}
                 type="text"
+                disabled={submit.pending}
                 placeholder="0,00"
                 aria-describedby={
                   errors.session_value
@@ -477,6 +490,7 @@ export function PatientFormDrawer(props: Props) {
             >
               <select
                 id={`${baseId}-reminder-recipient`}
+                disabled={submit.pending}
                 aria-describedby={
                   errors.reminder_recipient
                     ? `${baseId}-reminder-recipient-error`
@@ -520,11 +534,12 @@ export function PatientFormDrawer(props: Props) {
                   {state.user?.role !== "therapist" && (
                     <button
                       type="button"
+                      disabled={submit.pending}
                       onClick={() => {
                         setValue("therapist", "", { shouldDirty: true });
                         setIsAddingTherapist(true);
                       }}
-                      className="text-[11px] font-medium text-destructive hover:underline"
+                      className="rounded-sm text-[11px] font-medium text-destructive transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Remover
                     </button>
@@ -533,6 +548,9 @@ export function PatientFormDrawer(props: Props) {
               ) : isAddingTherapist ? (
                 <div className="flex items-center gap-2">
                   <select
+                    id={`${baseId}-add-therapist-select`}
+                    aria-label="Selecione um profissional responsável"
+                    disabled={submit.pending}
                     value={watchTherapist || ""}
                     onChange={(e) => {
                       setValue("therapist", e.target.value, {
@@ -552,8 +570,9 @@ export function PatientFormDrawer(props: Props) {
                   </select>
                   <button
                     type="button"
+                    disabled={submit.pending}
                     onClick={() => setIsAddingTherapist(false)}
-                    className="text-xs text-muted-foreground hover:underline px-2"
+                    className="rounded-sm px-2 text-xs text-muted-foreground transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Cancelar
                   </button>
@@ -565,8 +584,9 @@ export function PatientFormDrawer(props: Props) {
                   </p>
                   <button
                     type="button"
+                    disabled={submit.pending}
                     onClick={() => setIsAddingTherapist(true)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/20 px-3 py-1.5 text-xs font-semibold text-foreground/80 hover:bg-secondary/40 transition"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/20 px-3 py-1.5 text-xs font-semibold text-foreground/80 transition hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <UserRound className="h-3.5 w-3.5 text-muted-foreground/80" />{" "}
                     Adicionar
@@ -574,7 +594,7 @@ export function PatientFormDrawer(props: Props) {
                 </div>
               )}
               {errors.therapist?.message && (
-                <span className="block text-[10px] text-destructive mt-0.5">
+                <span className="mt-0.5 block text-[10px] text-destructive">
                   {errors.therapist.message}
                 </span>
               )}
@@ -596,6 +616,7 @@ export function PatientFormDrawer(props: Props) {
               <input
                 id={`${baseId}-address-zip-code`}
                 type="text"
+                disabled={submit.pending}
                 placeholder="00000-000"
                 aria-describedby={
                   errors.address_zip_code
@@ -624,6 +645,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-address-street`}
                   type="text"
+                  disabled={submit.pending}
                   placeholder="Nome da rua"
                   aria-describedby={
                     errors.address_street
@@ -645,6 +667,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-address-number`}
                   type="text"
+                  disabled={submit.pending}
                   placeholder="123"
                   aria-describedby={
                     errors.address_number
@@ -667,6 +690,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-address-complement`}
                   type="text"
+                  disabled={submit.pending}
                   placeholder="Apto, Bloco..."
                   aria-describedby={
                     errors.address_complement
@@ -687,6 +711,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-address-neighborhood`}
                   type="text"
+                  disabled={submit.pending}
                   placeholder="Nome do bairro"
                   aria-describedby={
                     errors.address_neighborhood
@@ -709,6 +734,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-address-city`}
                   type="text"
+                  disabled={submit.pending}
                   placeholder="Cidade"
                   aria-describedby={
                     errors.address_city
@@ -728,6 +754,7 @@ export function PatientFormDrawer(props: Props) {
               >
                 <select
                   id={`${baseId}-address-state`}
+                  disabled={submit.pending}
                   aria-describedby={
                     errors.address_state
                       ? `${baseId}-address-state-error`
@@ -749,8 +776,8 @@ export function PatientFormDrawer(props: Props) {
           </div>
 
           {/* 4. CONTATO DE EMERGÊNCIA (Alerta amarelo) */}
-          <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-4 space-y-4 mt-6">
-            <div className="flex items-center gap-1.5 text-amber-500 text-xs font-bold">
+          <div className="mt-6 space-y-4 rounded-xl border border-amber-500/25 bg-amber-500/5 p-4">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-500">
               <AlertTriangle className="h-4 w-4" />
               <span>Contato de Emergência</span>
             </div>
@@ -764,6 +791,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-emergency-contact-name`}
                   type="text"
+                  disabled={submit.pending}
                   placeholder="Nome do contato de emergência"
                   aria-describedby={
                     errors.emergency_contact_name
@@ -784,6 +812,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-emergency-contact-phone`}
                   type="text"
+                  disabled={submit.pending}
                   placeholder="(11) 99999-9999 ou +55 21 99999-9999"
                   aria-describedby={
                     errors.emergency_contact_phone
@@ -826,6 +855,7 @@ export function PatientFormDrawer(props: Props) {
                   <input
                     id={`${baseId}-guardian-name`}
                     type="text"
+                    disabled={submit.pending}
                     placeholder="Nome do responsável legal"
                     aria-describedby={
                       errors.guardian_name
@@ -846,6 +876,7 @@ export function PatientFormDrawer(props: Props) {
                   <input
                     id={`${baseId}-guardian-cpf`}
                     type="text"
+                    disabled={submit.pending}
                     placeholder="000.000.000-00"
                     aria-describedby={
                       errors.guardian_cpf
@@ -874,6 +905,7 @@ export function PatientFormDrawer(props: Props) {
                   <input
                     id={`${baseId}-guardian-phone`}
                     type="text"
+                    disabled={submit.pending}
                     placeholder="(11) 99999-9999 ou +55 21 99999-9999"
                     aria-describedby={
                       errors.guardian_phone
@@ -900,6 +932,7 @@ export function PatientFormDrawer(props: Props) {
                   <input
                     id={`${baseId}-guardian-email`}
                     type="email"
+                    disabled={submit.pending}
                     placeholder="email@exemplo.com"
                     aria-describedby={
                       errors.guardian_email
@@ -921,6 +954,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-guardian-relationship`}
                   type="text"
+                  disabled={submit.pending}
                   placeholder="Ex: Mãe, Pai, Tutor..."
                   aria-describedby={
                     errors.guardian_relationship
@@ -952,6 +986,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-financial-responsible-name`}
                   type="text"
+                  disabled={submit.pending}
                   placeholder="Nome do responsável financeiro"
                   aria-describedby={
                     errors.financial_responsible_name
@@ -972,6 +1007,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-financial-responsible-cpf`}
                   type="text"
+                  disabled={submit.pending}
                   placeholder="000.000.000-00"
                   aria-describedby={
                     errors.financial_responsible_cpf
@@ -1004,6 +1040,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-financial-responsible-phone`}
                   type="text"
+                  disabled={submit.pending}
                   placeholder="(11) 99999-9999 ou +55 21 99999-9999"
                   aria-describedby={
                     errors.financial_responsible_phone
@@ -1034,6 +1071,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-financial-responsible-email`}
                   type="email"
+                  disabled={submit.pending}
                   placeholder="email@exemplo.com"
                   aria-describedby={
                     errors.financial_responsible_email
@@ -1055,6 +1093,7 @@ export function PatientFormDrawer(props: Props) {
               >
                 <select
                   id={`${baseId}-financial-responsible-marital-status`}
+                  disabled={submit.pending}
                   aria-describedby={
                     errors.financial_responsible_marital_status
                       ? `${baseId}-financial-responsible-marital-status-error`
@@ -1080,6 +1119,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-financial-responsible-naturality`}
                   type="text"
+                  disabled={submit.pending}
                   placeholder="Cidade/Estado"
                   aria-describedby={
                     errors.financial_responsible_naturality
@@ -1100,6 +1140,7 @@ export function PatientFormDrawer(props: Props) {
                 <input
                   id={`${baseId}-financial-responsible-occupation`}
                   type="text"
+                  disabled={submit.pending}
                   placeholder="Ocupação"
                   aria-describedby={
                     errors.financial_responsible_occupation
@@ -1118,8 +1159,9 @@ export function PatientFormDrawer(props: Props) {
           <div className="pt-2">
             <button
               type="button"
+              disabled={submit.pending}
               onClick={() => setShowAdditionalFields(!showAdditionalFields)}
-              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground font-semibold py-1 transition"
+              className="flex items-center gap-1 rounded-sm py-1 text-[11px] font-semibold text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {showAdditionalFields ? (
                 <>
@@ -1135,7 +1177,7 @@ export function PatientFormDrawer(props: Props) {
             </button>
 
             {showAdditionalFields && (
-              <div className="grid gap-4 mt-3 p-4 rounded-xl border border-border/50 bg-secondary/5 space-y-2 animate-in fade-in duration-200">
+              <div className="mt-3 grid gap-4 space-y-2 rounded-xl border border-border/50 bg-secondary/5 p-4 animate-in fade-in duration-200">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <FormField
                     label="Gênero"
@@ -1144,6 +1186,7 @@ export function PatientFormDrawer(props: Props) {
                   >
                     <select
                       id={`${baseId}-gender`}
+                      disabled={submit.pending}
                       aria-describedby={
                         errors.gender ? `${baseId}-gender-error` : undefined
                       }
@@ -1166,6 +1209,7 @@ export function PatientFormDrawer(props: Props) {
                   >
                     <select
                       id={`${baseId}-marital-status`}
+                      disabled={submit.pending}
                       aria-describedby={
                         errors.marital_status
                           ? `${baseId}-marital-status-error`
@@ -1192,6 +1236,7 @@ export function PatientFormDrawer(props: Props) {
                   >
                     <select
                       id={`${baseId}-attendance-type`}
+                      disabled={submit.pending}
                       aria-describedby={
                         errors.attendance_type
                           ? `${baseId}-attendance-type-error`
@@ -1216,6 +1261,7 @@ export function PatientFormDrawer(props: Props) {
                   >
                     <select
                       id={`${baseId}-modality`}
+                      disabled={submit.pending}
                       aria-describedby={
                         errors.modality ? `${baseId}-modality-error` : undefined
                       }
@@ -1238,6 +1284,7 @@ export function PatientFormDrawer(props: Props) {
                   >
                     <select
                       id={`${baseId}-planned-frequency`}
+                      disabled={submit.pending}
                       aria-describedby={
                         errors.planned_frequency
                           ? `${baseId}-planned-frequency-error`
@@ -1263,6 +1310,7 @@ export function PatientFormDrawer(props: Props) {
                     <input
                       id={`${baseId}-tags`}
                       type="text"
+                      disabled={submit.pending}
                       placeholder="Ex: TCC, Ansiedade"
                       aria-describedby={
                         errors.tags ? `${baseId}-tags-error` : undefined
@@ -1282,6 +1330,7 @@ export function PatientFormDrawer(props: Props) {
                   <input
                     id={`${baseId}-referral-source`}
                     type="text"
+                    disabled={submit.pending}
                     placeholder="Ex: Google, Recomendação médica"
                     aria-describedby={
                       errors.referral_source
@@ -1312,6 +1361,7 @@ export function PatientFormDrawer(props: Props) {
             >
               <textarea
                 id={`${baseId}-notes`}
+                disabled={submit.pending}
                 placeholder="Observações sobre o paciente..."
                 aria-describedby={
                   errors.notes ? `${baseId}-notes-error` : undefined
@@ -1320,7 +1370,7 @@ export function PatientFormDrawer(props: Props) {
                 {...register("notes")}
                 className={textareaClass}
               />
-              <div className="flex justify-between items-center text-[10px] text-muted-foreground mt-1">
+              <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
                 <span>
                   Informações clínicas devem ser registradas no prontuário.
                 </span>
@@ -1328,16 +1378,21 @@ export function PatientFormDrawer(props: Props) {
               </div>
             </FormField>
 
-            <label className="flex items-start gap-2 text-xs text-foreground/95 select-none cursor-pointer mt-4">
+            <div className="mt-4 flex items-start gap-2">
               <input
+                id={`${baseId}-consent-terms`}
                 type="checkbox"
+                disabled={submit.pending}
                 {...register("consent_terms_accepted")}
-                className="mt-0.5 rounded border-border text-primary focus:ring-primary/20"
+                className="mt-0.5 rounded border-border text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
               />
-              <span>
+              <label
+                htmlFor={`${baseId}-consent-terms`}
+                className="select-none text-xs text-foreground/95 cursor-pointer"
+              >
                 Confirmo que os consentimentos necessários foram coletados.
-              </span>
-            </label>
+              </label>
+            </div>
           </div>
 
           <button type="submit" className="sr-only">

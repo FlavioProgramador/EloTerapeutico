@@ -1,10 +1,13 @@
 import { Camera, UserRound, X } from "lucide-react";
 import type { ChangeEvent } from "react";
 
+import { cn } from "@/lib/utils";
+
 interface Props {
   preview: string | null;
   current: string | null;
   error?: string;
+  disabled?: boolean;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onRemove: () => void;
   id?: string;
@@ -62,7 +65,10 @@ export function PatientPhotoField(props: Props) {
         </div>
         <label
           htmlFor={props.id}
-          className="absolute bottom-0 right-0 grid h-6 w-6 cursor-pointer place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition hover:bg-primary/95"
+          className={cn(
+            "absolute bottom-0 right-0 grid h-6 w-6 cursor-pointer place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition hover:bg-primary/95 focus-within:ring-2 focus-within:ring-primary/40 focus-within:ring-offset-2 focus-within:ring-offset-background",
+            props.disabled && "pointer-events-none cursor-not-allowed opacity-50",
+          )}
         >
           <Camera className="h-3.5 w-3.5" />
           <span className="sr-only">Selecionar foto</span>
@@ -70,6 +76,7 @@ export function PatientPhotoField(props: Props) {
             id={props.id}
             type="file"
             accept="image/jpeg,image/png"
+            disabled={props.disabled}
             className="sr-only"
             aria-describedby={props.error ? errorId : undefined}
             aria-invalid={!!props.error}
@@ -81,14 +88,15 @@ export function PatientPhotoField(props: Props) {
         <p className="font-semibold text-foreground/90">
           Foto do paciente (opcional)
         </p>
-        <p className="text-[11px] mt-0.5 text-muted-foreground/75">
+        <p className="mt-0.5 text-[11px] text-muted-foreground/75">
           JPG, PNG até 2MB
         </p>
         {photoSrc && (
           <button
             type="button"
+            disabled={props.disabled}
             onClick={props.onRemove}
-            className="mt-2 inline-flex items-center gap-1 text-[11px] text-destructive hover:underline"
+            className="mt-2 inline-flex items-center gap-1 text-[11px] text-destructive transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <X className="h-3 w-3" /> Remover foto
           </button>
