@@ -38,6 +38,10 @@ cryptography>=50.0.0,<51.0
 # Servidor de produção
 gunicorn>=22.0,<23.0
 
+# Atualizações de segurança
+setuptools>=78.1.1
+msgpack>=1.2.1
+
 # Documentação automática da API (Swagger/OpenAPI)
 drf-spectacular>=0.29.0,<0.30
 
