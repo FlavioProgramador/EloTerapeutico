@@ -82,6 +82,7 @@ export function EvolutionContentSection({
             <Button
               type="button"
               size="sm"
+              disabled={controller.busy}
               onClick={() => controller.applyTemplate("replace")}
             >
               Substituir texto
@@ -90,6 +91,7 @@ export function EvolutionContentSection({
               type="button"
               size="sm"
               variant="outline"
+              disabled={controller.busy}
               onClick={() => controller.applyTemplate("append")}
             >
               Anexar ao final
@@ -98,6 +100,7 @@ export function EvolutionContentSection({
               type="button"
               size="sm"
               variant="ghost"
+              disabled={controller.busy}
               onClick={() => controller.setPendingTemplate(null)}
             >
               Cancelar

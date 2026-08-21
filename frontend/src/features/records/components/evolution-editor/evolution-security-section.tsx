@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { LockKeyhole, ShieldCheck } from "lucide-react";
 
 import type { EvolutionEditorController } from "../../hooks/use-evolution-editor-controller";
@@ -8,11 +9,14 @@ export function EvolutionSecuritySection({
 }: {
   controller: EvolutionEditorController;
 }) {
+  const confidentialId = useId();
+
   return (
     <>
       <section>
-        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-secondary/10 p-4">
+        <div className="flex items-start gap-3 rounded-lg border border-border bg-secondary/10 p-4">
           <input
+            id={confidentialId}
             type="checkbox"
             checked={controller.form.confidential}
             onChange={(event) =>
@@ -20,23 +24,26 @@ export function EvolutionSecuritySection({
             }
             disabled={controller.busy}
             aria-describedby="evolution-confidential-description"
-            className="mt-0.5 size-4 rounded border-border"
+            className="mt-0.5 size-4 rounded border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           />
-          <span>
-            <strong className="flex items-center gap-2 text-xs text-foreground">
+          <div>
+            <label
+              htmlFor={confidentialId}
+              className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-foreground"
+            >
               <LockKeyhole className="size-3.5 text-muted-foreground" />
               Marcar como confidencial
-            </strong>
-            <span
+            </label>
+            <p
               id="evolution-confidential-description"
-              className="mt-1 block text-[11px] leading-4 text-muted-foreground"
+              className="mt-1 text-[11px] leading-4 text-muted-foreground"
             >
               Apenas você (autor) e administradores com permissão clínica
               explícita poderão visualizar esta evolução. Secretárias e outros
               profissionais não autorizados não terão acesso.
-            </span>
-          </span>
-        </label>
+            </p>
+          </div>
+        </div>
       </section>
 
       <section className="space-y-2">
