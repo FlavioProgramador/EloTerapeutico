@@ -70,3 +70,27 @@ class FormsLayerTests(APITestCase):
                 },
             )
         self.assertFalse(FormSubmission.objects.exists())
+
+    def test_form_list_query_count_constant(self):
+        # Create additional forms with fields
+        for i in range(5):
+            f = TherapeuticForm.objects.create(
+                owner=self.owner,
+                name=f"Form {i}",
+                created_by=self.owner,
+                updated_by=self.owner,
+            )
+            FormField.objects.create(
+                form=f,
+                type=FieldType.SHORT_TEXT,
+                label=f"Campo {i}",
+                order=1,
+            )
+
+        # Listing 6 forms executes constant 5 queries (user, membership, pagination count, fetch forms, prefetch fields)
+        with self.assertNumQueries(5):
+            response = self.client.get("/api/v1/forms/")
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(len(response.data["results"]), 6)
+            for form_data in response.data["results"]:
+                self.assertEqual(form_data["fields_count"], 1)
