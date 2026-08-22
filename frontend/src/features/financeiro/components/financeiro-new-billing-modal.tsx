@@ -43,7 +43,6 @@ export function FinanceiroNewBillingModal({
 
   const baseId = useId();
   const patientSelectId = `${baseId}-patient`;
-  const dueDateId = `${baseId}-due-date`;
 
   const patientUnbilled = useMemo(() => {
     if (!patientId) return [];
@@ -61,6 +60,7 @@ export function FinanceiroNewBillingModal({
   );
 
   const resetAndClose = () => {
+    if (generateCharges.isPending) return;
     setPatientId("");
     setDueDate(today());
     setSelectedSessions([]);
@@ -100,7 +100,8 @@ export function FinanceiroNewBillingModal({
   };
 
   const submit = () => {
-    if (!dueDate || selectedSessions.length === 0) return;
+    if (!dueDate || selectedSessions.length === 0 || generateCharges.isPending)
+      return;
     generateCharges.mutate(
       { appointmentIds: selectedSessions, dueDate },
       { onSuccess: resetAndClose },
@@ -123,8 +124,9 @@ export function FinanceiroNewBillingModal({
           <select
             id={patientSelectId}
             value={patientId}
+            disabled={generateCharges.isPending}
             onChange={(event) => selectPatient(event.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+            className="flex h-10 w-full rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <option value="">Selecione um paciente</option>
             {patients.map((patient) => (
@@ -145,7 +147,8 @@ export function FinanceiroNewBillingModal({
                 <button
                   type="button"
                   onClick={toggleAll}
-                  className="text-xs text-muted-foreground hover:text-foreground"
+                  disabled={generateCharges.isPending}
+                  className="rounded text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {selectedSessions.length === patientUnbilled.length
                     ? "Desmarcar todas"
@@ -163,24 +166,30 @@ export function FinanceiroNewBillingModal({
                 patientUnbilled.map((session) => {
                   const isSelected = selectedSessions.includes(session.id);
                   const startsAt = new Date(session.start_time);
+                  const sessionId = `${baseId}-session-${session.id}`;
 
                   return (
-                    <label
+                    <div
                       key={session.id}
-                      className={`flex cursor-pointer items-center justify-between rounded-lg border p-3 transition-colors ${
+                      className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
                         isSelected
-                          ? "border-blue-500/50 bg-blue-500/5"
+                          ? "border-primary/50 bg-primary/5"
                           : "border-border"
                       }`}
                     >
-                      <span className="flex items-center gap-3">
+                      <div className="flex items-center gap-3">
                         <input
+                          id={sessionId}
                           type="checkbox"
                           checked={isSelected}
+                          disabled={generateCharges.isPending}
                           onChange={() => toggleSession(session.id)}
-                          className="rounded border-input text-blue-500"
+                          className="rounded border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         />
-                        <span>
+                        <label
+                          htmlFor={sessionId}
+                          className="cursor-pointer text-sm font-semibold"
+                        >
                           <span className="block text-sm font-semibold">
                             {startsAt.toLocaleDateString("pt-BR")} às{" "}
                             {startsAt.toLocaleTimeString("pt-BR", {
@@ -188,15 +197,15 @@ export function FinanceiroNewBillingModal({
                               minute: "2-digit",
                             })}
                           </span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="block text-xs font-normal text-muted-foreground">
                             Consulta
                           </span>
-                        </span>
-                      </span>
-                      <span className="text-sm font-semibold text-blue-500">
+                        </label>
+                      </div>
+                      <span className="text-sm font-semibold text-primary">
                         {formatCurrency(session.session_value)}
                       </span>
-                    </label>
+                    </div>
                   );
                 })
               )}
@@ -207,7 +216,7 @@ export function FinanceiroNewBillingModal({
                 <span className="text-sm font-medium">
                   {selectedSessions.length} sessão(ões) selecionada(s)
                 </span>
-                <span className="text-lg font-bold text-blue-500">
+                <span className="text-lg font-bold text-primary">
                   {formatCurrency(totalValue.toFixed(2))}
                 </span>
               </div>
@@ -215,24 +224,24 @@ export function FinanceiroNewBillingModal({
           </div>
         )}
 
-        <div className="space-y-1.5">
-          <label htmlFor={dueDateId} className="text-sm font-semibold">
-            Vencimento
-          </label>
-          <Input
-            id={dueDateId}
-            type="date"
-            value={dueDate}
-            onChange={(event) => setDueDate(event.target.value)}
-          />
-        </div>
+        <Input
+          label="Vencimento"
+          type="date"
+          value={dueDate}
+          disabled={generateCharges.isPending}
+          onChange={(event) => setDueDate(event.target.value)}
+        />
 
         <p className="text-xs text-muted-foreground">
           O valor de cada lançamento será o valor registrado na respectiva sessão.
         </p>
 
         <div className="flex justify-end gap-2 pt-4">
-          <Button variant="outline" onClick={resetAndClose}>
+          <Button
+            variant="outline"
+            onClick={resetAndClose}
+            disabled={generateCharges.isPending}
+          >
             Cancelar
           </Button>
           <Button
@@ -242,9 +251,9 @@ export function FinanceiroNewBillingModal({
               !dueDate ||
               selectedSessions.length === 0
             }
-            className="bg-blue-600 text-white hover:bg-blue-700"
+            isLoading={generateCharges.isPending}
           >
-            {generateCharges.isPending ? "Criando..." : "Criar cobrança"}
+            Criar cobrança
           </Button>
         </div>
       </div>
