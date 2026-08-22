@@ -218,6 +218,39 @@ class TestPatientIsolationAndPermissions:
         response = admin_client.delete(url)
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
+    def test_cross_tenant_therapist_assignment_is_rejected(self, api_client, secretary_user, therapist_user, other_therapist):
+        from apps.organizations.models import Organization, OrganizationMembership
+        from conftest import _ensure_test_organization
+
+        org1 = _ensure_test_organization(therapist_user)
+        _ensure_test_organization(secretary_user)
+
+        org2 = Organization.objects.create(
+            name="Organização 2",
+            slug="org-2-teste",
+            organization_type=Organization.Type.CLINIC,
+            created_by=other_therapist,
+        )
+        OrganizationMembership.objects.create(
+            organization=org2,
+            user=other_therapist,
+            role=OrganizationMembership.Role.THERAPIST,
+            status=OrganizationMembership.Status.ACTIVE,
+        )
+
+        api_client.force_authenticate(user=secretary_user)
+        list_url = reverse("patient-list")
+
+        create_data = {
+            "full_name": "Paciente Com Terapeuta Trans-Tenant",
+            "cpf": format_cpf(generate_valid_cpf()),
+            "birth_date": "1990-01-01",
+            "therapist": other_therapist.id,
+            "status": "active",
+        }
+        response = api_client.post(list_url, create_data, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
 
 @pytest.mark.django_db
 class TestPatientSoftDeleteAndRestore:

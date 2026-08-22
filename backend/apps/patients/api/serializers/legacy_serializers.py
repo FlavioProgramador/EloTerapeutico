@@ -186,6 +186,35 @@ class PatientCreateUpdateSerializer(serializers.ModelSerializer):
             validate_phone(value)
         return value
 
+    def validate_therapist(self, therapist):
+        if therapist is None:
+            return therapist
+        request = self.context.get("request")
+        organization = None
+        if request:
+            organization = getattr(request, "organization", None)
+        if not organization:
+            organization = self.context.get("organization")
+
+        if organization is not None:
+            from apps.organizations.models import OrganizationMembership
+
+            is_professional = OrganizationMembership.objects.filter(
+                organization=organization,
+                user=therapist,
+                status=OrganizationMembership.Status.ACTIVE,
+                role__in=[
+                    OrganizationMembership.Role.OWNER,
+                    OrganizationMembership.Role.ADMIN,
+                    OrganizationMembership.Role.THERAPIST,
+                ],
+            ).exists()
+            if not is_professional:
+                raise serializers.ValidationError(
+                    "O terapeuta selecionado não pertence à organização."
+                )
+        return therapist
+
     def validate(self, attrs):
         import json
 
