@@ -26,7 +26,7 @@ interface Props {
 }
 
 const fieldClass =
-  "h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
+  "h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 export function GenerateDocumentModal({
   open,
@@ -85,10 +85,16 @@ export function GenerateDocumentModal({
 
   const isPending = submitting || pendingAction !== null;
 
+  const handleClose = () => {
+    if (!isPending) {
+      onClose();
+    }
+  };
+
   return (
     <Modal
       isOpen={open}
-      onClose={onClose}
+      onClose={handleClose}
       title="Gerar documento"
       description="Selecione um modelo e revise o rascunho antes de concluir a emissão."
       className="max-w-xl"
@@ -103,6 +109,7 @@ export function GenerateDocumentModal({
             className={fieldClass}
             value={patientId}
             onChange={(event) => setPatientId(event.target.value)}
+            disabled={isPending}
           >
             <option value="">Selecione um paciente</option>
             {patients.map((patient) => (
@@ -128,6 +135,7 @@ export function GenerateDocumentModal({
               );
               if (selected && !title) setTitle(selected.name);
             }}
+            disabled={isPending}
           >
             <option value="">Selecione um template ativo</option>
             {templates
@@ -150,6 +158,7 @@ export function GenerateDocumentModal({
             maxLength={200}
             onChange={(event) => setTitle(event.target.value)}
             placeholder="Usa o nome do template quando vazio"
+            disabled={isPending}
           />
         </div>
         <div className="space-y-1.5">
@@ -163,6 +172,7 @@ export function GenerateDocumentModal({
             maxLength={160}
             onChange={(event) => setLocalEmissao(event.target.value)}
             placeholder="Ex.: São Gonçalo/RJ"
+            disabled={isPending}
           />
         </div>
         {error && (
