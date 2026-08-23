@@ -3,7 +3,8 @@ FROM node:24-alpine AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-RUN npm install --no-audit --no-fund
+RUN npm install --no-audit --no-fund \
+    && npm install nanoid@^3.3.18 --no-save
 
 COPY . .
 
