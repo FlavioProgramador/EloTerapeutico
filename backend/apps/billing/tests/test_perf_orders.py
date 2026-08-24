@@ -2,9 +2,9 @@ from datetime import date
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
+from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
-from django.db import connection
 
 from apps.billing.api.v1.serializers import BillingOrderSerializer
 from apps.billing.models import BillingOrder, Payment, Plan, PlanPrice
