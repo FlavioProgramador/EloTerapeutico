@@ -60,3 +60,7 @@ whitenoise>=6.6,<6.7
 
 # Storage privado e persistente para documentos clínicos
 django-storages[azure]>=1.14,<1.15
+
+# Seguranca e pacotes base
+setuptools>=78.1.1
+msgpack>=1.2.1
