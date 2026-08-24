@@ -1,3 +1,4 @@
+import { useId } from "react";
 import {
   Download,
   Plus,
@@ -48,6 +49,11 @@ export function PatientToolbar({
   onImport,
   onExport,
 }: Props) {
+  const modalityId = useId();
+  const payerTypeId = useId();
+  const tagId = useId();
+  const noNextSessionId = useId();
+
   const update = <K extends keyof PatientToolbarFilters>(
     key: K,
     value: PatientToolbarFilters[K],
@@ -127,7 +133,7 @@ export function PatientToolbar({
               key={value}
               type="button"
               onClick={() => update("status", value)}
-              className={`min-w-max rounded-md px-3 py-2 text-[10px] font-semibold transition ${
+              className={`min-w-max rounded-md px-3 py-2 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 ${
                 filters.status === value
                   ? "bg-primary/12 text-primary"
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -148,7 +154,7 @@ export function PatientToolbar({
               value={filters.search}
               onChange={(event) => update("search", event.target.value)}
               placeholder="Buscar por nome, CPF, telefone ou e-mail..."
-              className="h-10 w-full rounded-md border border-border bg-background pl-9 pr-3 text-xs text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+              className="h-10 w-full rounded-md border border-border bg-background pl-9 pr-3 text-xs text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             />
           </label>
           <Button
@@ -167,51 +173,75 @@ export function PatientToolbar({
 
         {advancedOpen && (
           <div className="grid gap-3 border-t border-border bg-secondary/20 p-3 sm:grid-cols-2 xl:grid-cols-4">
-            <label className="space-y-1 text-[10px] font-semibold text-muted-foreground">
-              Modalidade
+            <div className="space-y-1">
+              <label
+                htmlFor={modalityId}
+                className="block text-[10px] font-semibold text-muted-foreground"
+              >
+                Modalidade
+              </label>
               <select
+                id={modalityId}
                 value={filters.modality}
                 onChange={(event) => update("modality", event.target.value)}
-                className="h-9 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground"
+                className="h-9 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
               >
                 <option value="">Todas</option>
                 <option value="in_person">Presencial</option>
                 <option value="online">Online</option>
                 <option value="hybrid">Híbrido</option>
               </select>
-            </label>
-            <label className="space-y-1 text-[10px] font-semibold text-muted-foreground">
-              Atendimento
+            </div>
+            <div className="space-y-1">
+              <label
+                htmlFor={payerTypeId}
+                className="block text-[10px] font-semibold text-muted-foreground"
+              >
+                Atendimento
+              </label>
               <select
+                id={payerTypeId}
                 value={filters.payerType}
                 onChange={(event) => update("payerType", event.target.value)}
-                className="h-9 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground"
+                className="h-9 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
               >
                 <option value="">Particular ou convênio</option>
                 <option value="private">Particular</option>
                 <option value="insurance">Convênio</option>
               </select>
-            </label>
-            <label className="space-y-1 text-[10px] font-semibold text-muted-foreground">
-              Etiqueta
+            </div>
+            <div className="space-y-1">
+              <label
+                htmlFor={tagId}
+                className="block text-[10px] font-semibold text-muted-foreground"
+              >
+                Etiqueta
+              </label>
               <input
+                id={tagId}
                 value={filters.tag}
                 onChange={(event) => update("tag", event.target.value)}
                 placeholder="Ex.: ansiedade"
-                className="h-9 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground"
+                className="h-9 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
               />
-            </label>
-            <label className="flex h-9 items-center gap-2 self-end rounded-md border border-border bg-background px-3 text-xs text-foreground">
+            </div>
+            <div className="flex h-9 items-center gap-2 self-end rounded-md border border-border bg-background px-3 text-xs text-foreground">
               <input
+                id={noNextSessionId}
                 type="checkbox"
                 checked={filters.noNextSession}
                 onChange={(event) =>
                   update("noNextSession", event.target.checked)
                 }
-                className="accent-primary"
+                className="accent-primary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
               />
-              Sem próxima sessão
-            </label>
+              <label
+                htmlFor={noNextSessionId}
+                className="cursor-pointer select-none"
+              >
+                Sem próxima sessão
+              </label>
+            </div>
           </div>
         )}
       </section>
