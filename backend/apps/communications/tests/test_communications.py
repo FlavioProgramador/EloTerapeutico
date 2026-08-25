@@ -419,3 +419,66 @@ def test_preference_is_unique_per_patient(therapist, patient):
     )
     assert created is False
     assert first.pk == second.pk
+
+
+@pytest.mark.django_db
+@override_settings(BILLING_REQUIRE_SUBSCRIPTION=False)
+def test_communication_preferences_patient_isolation(
+    authenticated_client,
+    therapist,
+    other_therapist,
+    patient,
+):
+    organization = therapist.test_organization
+    OrganizationMembership.objects.create(
+        organization=organization,
+        user=other_therapist,
+        role=OrganizationMembership.Role.THERAPIST,
+        status=OrganizationMembership.Status.ACTIVE,
+    )
+    other_patient = Patient.objects.create(
+        organization=organization,
+        therapist=other_therapist,
+        full_name="Paciente Outro Terapeuta",
+        email="other_patient@example.test",
+        phone="21977776666",
+        status=Patient.Status.ACTIVE,
+        is_active=True,
+    )
+
+    unauth_client = APIClient()
+    unauth_resp = unauth_client.get(
+        f"/api/v1/communications/preferences/patient/{patient.pk}/"
+    )
+    assert unauth_resp.status_code in (401, 403)
+
+    get_resp = authenticated_client.get(
+        f"/api/v1/communications/preferences/patient/{patient.pk}/"
+    )
+    assert get_resp.status_code == 200
+
+    patch_resp = authenticated_client.patch(
+        f"/api/v1/communications/preferences/patient/{patient.pk}/",
+        {"allow_email": False},
+        format="json",
+    )
+    assert patch_resp.status_code == 200
+    assert patch_resp.data["allow_email"] is False
+
+    get_other = authenticated_client.get(
+        f"/api/v1/communications/preferences/patient/{other_patient.pk}/"
+    )
+    assert get_other.status_code == 404
+
+    patch_other = authenticated_client.patch(
+        f"/api/v1/communications/preferences/patient/{other_patient.pk}/",
+        {"allow_email": False},
+        format="json",
+    )
+    assert patch_other.status_code == 404
+
+    list_resp = authenticated_client.get("/api/v1/communications/preferences/")
+    assert list_resp.status_code == 200
+    patient_ids = [item["patient"] for item in list_resp.data]
+    assert patient.pk in patient_ids
+    assert other_patient.pk not in patient_ids

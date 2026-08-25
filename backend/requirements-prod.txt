@@ -5,6 +5,10 @@
 # requirements.txt – Dependências compartilhadas entre todos os ambientes
 # ===============================================================================
 
+# Security overrides
+setuptools>=78.1.1
+msgpack>=1.2.1
+
 # Core
 Django>=6.0.7,<6.1
 djangorestframework>=3.17.1,<3.18
@@ -13,7 +17,7 @@ django-filter>=24.1,<24.2
 django-environ>=0.14.0,<0.15
 httpx>=0.28,<0.29
 python-dateutil>=2.9,<3.0
-sqlparse>=0.5.5,<0.6
+sqlparse>=0.6.0,<0.7
 
 # Processamento assíncrono e broker
 celery>=5.4,<5.6
@@ -29,7 +33,7 @@ djangorestframework-simplejwt>=5.5.1,<6.0
 psycopg2-binary>=2.9,<3.0
 
 # Criptografia de campos sensíveis
-cryptography>=49.0.0,<50.0
+cryptography>=50.0.0,<51.0
 
 # Servidor de produção
 gunicorn>=22.0,<23.0
