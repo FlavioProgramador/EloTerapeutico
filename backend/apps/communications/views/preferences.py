@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from apps.audit.models import AuditLog
 from apps.organizations.services.tenant_context import ensure_request_organization
 from apps.patients.models import Patient
+from apps.patients.services.access_control import patient_access_q
 
 from ..models import CommunicationPreference
 from ..permissions import CanAccessCommunications, CanSendCommunication
@@ -31,8 +32,15 @@ class CommunicationPreferenceMixin:
 
 class CommunicationPreferenceListView(CommunicationPreferenceMixin, APIView):
     def get(self, request):
+        organization, membership = ensure_request_organization(
+            request=request,
+            required=True,
+        )
         queryset = CommunicationPreference.objects.filter(
-            organization=self.get_organization(request),
+            organization=organization,
+            patient__in=Patient.objects.filter(
+                patient_access_q(request.user, membership=membership)
+            ),
         ).select_related("organization", "patient", "owner")
         return Response(
             CommunicationPreferenceSerializer(queryset, many=True).data
@@ -41,9 +49,14 @@ class CommunicationPreferenceListView(CommunicationPreferenceMixin, APIView):
 
 class PatientCommunicationPreferenceView(CommunicationPreferenceMixin, APIView):
     def get_preference(self, request, patient_id):
-        organization = self.get_organization(request)
+        organization, membership = ensure_request_organization(
+            request=request,
+            required=True,
+        )
         patient = get_object_or_404(
-            Patient,
+            Patient.objects.filter(
+                patient_access_q(request.user, membership=membership)
+            ),
             pk=patient_id,
             organization=organization,
             deleted_at__isnull=True,
