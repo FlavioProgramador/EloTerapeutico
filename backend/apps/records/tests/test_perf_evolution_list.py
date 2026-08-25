@@ -91,3 +91,27 @@ def test_evolution_list_queries_optimized(client, therapist, patient):
         assert item['version_count'] == 1
         assert item['addenda_count'] == 1
         assert item['attached_documents_count'] == 1
+
+
+@pytest.mark.django_db
+def test_evolution_serializer_uses_prefetched_cache(therapist, patient):
+    from apps.records.api.evolution_serializer_fields import EvolutionFlowReadFieldsMixin
+
+    class TestFieldsSerializer(EvolutionFlowReadFieldsMixin):
+        pass
+
+    create_evolutions(therapist, patient, 3)
+
+    qs = Evolution.objects.filter(patient=patient).prefetch_related("addenda", "documents")
+    evolutions = list(qs)
+
+    mixin = TestFieldsSerializer()
+    with CaptureQueriesContext(connection) as queries:
+        for evo in evolutions:
+            addenda_cnt = mixin.get_addenda_count(evo)
+            docs_cnt = mixin.get_attached_documents_count(evo)
+            assert addenda_cnt == 1
+            assert docs_cnt == 1
+
+        # No database queries should be executed for addenda_count or attached_documents_count on prefetched items
+        assert len(queries) == 0
