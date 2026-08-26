@@ -74,7 +74,10 @@ export default function LoginPage() {
         />
         <Link
           href="/"
-          className="absolute left-6 top-6 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary sm:left-10 sm:top-10"
+          className={`absolute left-6 top-6 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 rounded-sm sm:left-10 sm:top-10 ${
+            isSubmitting ? "pointer-events-none opacity-50" : ""
+          }`}
+          tabIndex={isSubmitting ? -1 : 0}
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Voltar
@@ -131,7 +134,8 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((current) => !current)}
-                    className="transition-colors hover:text-primary"
+                    disabled={isSubmitting}
+                    className="rounded-sm transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
                     aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   >
                     {showPassword ? (
@@ -146,7 +150,10 @@ export default function LoginPage() {
               <div className="mt-2 flex justify-end">
                 <Link
                   href="/forgot-password"
-                  className="text-xs font-semibold text-primary hover:text-primary-hover hover:underline"
+                  className={`rounded-sm text-xs font-semibold text-primary hover:text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 ${
+                    isSubmitting ? "pointer-events-none opacity-50" : ""
+                  }`}
+                  tabIndex={isSubmitting ? -1 : 0}
                 >
                   Esqueci minha senha
                 </Link>
@@ -167,7 +174,10 @@ export default function LoginPage() {
             Ainda não possui acesso?{" "}
             <Link
               href="/register"
-              className="font-semibold text-primary hover:text-primary-hover hover:underline"
+              className={`rounded-sm font-semibold text-primary hover:text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 ${
+                isSubmitting ? "pointer-events-none opacity-50" : ""
+              }`}
+              tabIndex={isSubmitting ? -1 : 0}
             >
               Cadastre-se
             </Link>
