@@ -2,6 +2,8 @@ FROM node:24-alpine AS builder
 
 WORKDIR /app
 
+RUN apk upgrade --no-cache
+
 COPY package.json package-lock.json* ./
 RUN npm install --no-audit --no-fund
 
@@ -16,6 +18,8 @@ RUN npm run build \
 FROM node:24-alpine
 
 WORKDIR /app
+
+RUN apk upgrade --no-cache
 
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1
