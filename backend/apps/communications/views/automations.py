@@ -9,6 +9,7 @@ from apps.organizations.services.tenant_context import ensure_request_organizati
 
 from ..models import CommunicationAutomation, CommunicationChannelConfig
 from ..permissions import CanAccessCommunications, CanManageCommunicationAutomations
+from ..selectors import automations_for_user
 from ..serializers import (
     CommunicationAutomationRunSerializer,
     CommunicationAutomationSerializer,
@@ -33,12 +34,9 @@ class CommunicationAutomationViewSet(viewsets.ModelViewSet):
         return organization
 
     def get_queryset(self):
-        return (
-            CommunicationAutomation.objects.filter(
-                organization=self._organization(),
-            )
-            .select_related("organization", "template", "owner")
-            .prefetch_related("runs")
+        return automations_for_user(
+            self.request.user,
+            organization=self._organization(),
         )
 
     def perform_create(self, serializer):

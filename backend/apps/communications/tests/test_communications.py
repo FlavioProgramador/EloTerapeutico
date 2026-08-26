@@ -19,8 +19,10 @@ from apps.users.models import User
 from ..models import (
     Communication,
     CommunicationAttempt,
+    CommunicationAutomation,
     CommunicationPlanEntitlement,
     CommunicationPreference,
+    CommunicationTemplate,
     InAppNotification,
     PublicCommunicationActionToken,
 )
@@ -419,3 +421,130 @@ def test_preference_is_unique_per_patient(therapist, patient):
     )
     assert created is False
     assert first.pk == second.pk
+
+
+@pytest.mark.django_db
+@override_settings(BILLING_REQUIRE_SUBSCRIPTION=False)
+def test_automation_api_isolation_unauthenticated_and_cross_tenant_and_therapist(
+    authenticated_client,
+    therapist,
+    other_therapist,
+):
+    organization = therapist.test_organization
+    other_organization = other_therapist.test_organization
+
+    template = CommunicationTemplate.objects.create(
+        organization=organization,
+        owner=therapist,
+        name="Template Automação",
+        slug="template-automacao",
+        channel=Communication.Channel.IN_APP,
+        created_by=therapist,
+        updated_by=therapist,
+    )
+
+    other_therapist_in_same_org = User.objects.create_user(
+        email="therapist2.sameorg@example.test",
+        password="SenhaForte123!",
+        full_name="Segundo Terapeuta Mesma Org",
+        role=User.Role.THERAPIST,
+        onboarding_completed_at=timezone.now(),
+    )
+    OrganizationMembership.objects.create(
+        organization=organization,
+        user=other_therapist_in_same_org,
+        role=OrganizationMembership.Role.THERAPIST,
+        status=OrganizationMembership.Status.ACTIVE,
+    )
+
+    auto_therapist1 = CommunicationAutomation.objects.create(
+        organization=organization,
+        owner=therapist,
+        name="Automação Terapeuta 1",
+        event_type="appointment.created",
+        channel=Communication.Channel.IN_APP,
+        template=template,
+        created_by=therapist,
+        updated_by=therapist,
+    )
+
+    auto_therapist2 = CommunicationAutomation.objects.create(
+        organization=organization,
+        owner=other_therapist_in_same_org,
+        name="Automação Terapeuta 2",
+        event_type="appointment.created",
+        channel=Communication.Channel.IN_APP,
+        template=template,
+        created_by=other_therapist_in_same_org,
+        updated_by=other_therapist_in_same_org,
+    )
+
+    other_template = CommunicationTemplate.objects.create(
+        organization=other_organization,
+        owner=other_therapist,
+        name="Template Outra Org",
+        slug="template-outra-org",
+        channel=Communication.Channel.IN_APP,
+        created_by=other_therapist,
+        updated_by=other_therapist,
+    )
+    auto_other_org = CommunicationAutomation.objects.create(
+        organization=other_organization,
+        owner=other_therapist,
+        name="Automação Outra Org",
+        event_type="appointment.created",
+        channel=Communication.Channel.IN_APP,
+        template=other_template,
+        created_by=other_therapist,
+        updated_by=other_therapist,
+    )
+
+    # 1. Unauthenticated rejected
+    unauth_client = APIClient()
+    unauth_response = unauth_client.get("/api/v1/communications/automations/")
+    assert unauth_response.status_code == 401
+
+    # 2. Therapist 1 sees only their automation, not Therapist 2's or Other Org's
+    response = authenticated_client.get("/api/v1/communications/automations/")
+    assert response.status_code == 200
+    returned_ids = [item["id"] for item in response.data["results"]]
+    assert auto_therapist1.pk in returned_ids
+    assert auto_therapist2.pk not in returned_ids
+    assert auto_other_org.pk not in returned_ids
+
+    # 3. Cross-tenant request rejected with 404 Not Found
+    detail_response_other_tenant = authenticated_client.get(
+        f"/api/v1/communications/automations/{auto_other_org.pk}/"
+    )
+    assert detail_response_other_tenant.status_code == 404
+
+    # 4. Cross-therapist request within same tenant rejected with 404 Not Found for therapist 1
+    detail_response_other_therapist = authenticated_client.get(
+        f"/api/v1/communications/automations/{auto_therapist2.pk}/"
+    )
+    assert detail_response_other_therapist.status_code == 404
+
+    # 5. Admin role in the organization sees all automations within that organization
+    admin_user = User.objects.create_user(
+        email="admin.org@example.test",
+        password="SenhaForte123!",
+        full_name="Admin Org",
+        role=User.Role.ADMIN,
+        onboarding_completed_at=timezone.now(),
+    )
+    OrganizationMembership.objects.create(
+        organization=organization,
+        user=admin_user,
+        role=OrganizationMembership.Role.ADMIN,
+        status=OrganizationMembership.Status.ACTIVE,
+    )
+    admin_client = APIClient()
+    admin_client.force_authenticate(admin_user)
+    admin_client.credentials(HTTP_X_ORGANIZATION_ID=str(organization.pk))
+
+    admin_response = admin_client.get("/api/v1/communications/automations/")
+    assert admin_response.status_code == 200
+    admin_returned_ids = [item["id"] for item in admin_response.data["results"]]
+    assert auto_therapist1.pk in admin_returned_ids
+    assert auto_therapist2.pk in admin_returned_ids
+    assert auto_other_org.pk not in admin_returned_ids
