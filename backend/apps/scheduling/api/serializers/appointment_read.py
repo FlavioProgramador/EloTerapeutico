@@ -51,22 +51,17 @@ class AppointmentListSerializer(serializers.ModelSerializer):
         ]
 
     def get_telemedicine_status(self, obj):
-        try:
-            return obj.telemedicine_room.status
-        except TelemedicineRoom.DoesNotExist:
-            return None
+        telemedicine_room = getattr(obj, "telemedicine_room", None)
+        return telemedicine_room.status if telemedicine_room else None
 
     def get_evolution_id(self, obj):
-        try:
-            return obj.evolution.id
-        except Exception:
-            return None
+        evolution = getattr(obj, "evolution", None)
+        return evolution.id if evolution else None
 
     def get_evolution_status(self, obj):
-        try:
-            return obj.evolution.clinical_data.status
-        except Exception:
-            return None
+        evolution = getattr(obj, "evolution", None)
+        clinical_data = getattr(evolution, "clinical_data", None) if evolution else None
+        return clinical_data.status if clinical_data else None
 
 
 class AppointmentDetailSerializer(AppointmentListSerializer):
@@ -92,7 +87,7 @@ class AppointmentDetailSerializer(AppointmentListSerializer):
         ]
 
     def get_telemedicine(self, obj):
-        try:
-            return TelemedicineRoomSerializer(obj.telemedicine_room, context=self.context).data
-        except TelemedicineRoom.DoesNotExist:
-            return None
+        telemedicine_room = getattr(obj, "telemedicine_room", None)
+        if telemedicine_room:
+            return TelemedicineRoomSerializer(telemedicine_room, context=self.context).data
+        return None
