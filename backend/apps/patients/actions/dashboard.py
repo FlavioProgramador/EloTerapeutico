@@ -4,6 +4,7 @@ from datetime import timedelta
 from io import StringIO
 
 from django.db import transaction
+from django.db.models import Count, Q
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import action
@@ -35,14 +36,33 @@ class PatientDashboardActions(PatientInviteActions, PatientFormActions):
         current_month = today.replace(day=1)
         previous_month_end = current_month - timedelta(days=1)
         previous_month = previous_month_end.replace(day=1)
-        total = queryset.count()
-        active = queryset.filter(status="active").count()
-        discharged = queryset.filter(status__in=["discharged", "inactive"]).count()
-        new_current = queryset.filter(created_at__date__gte=current_month).count()
-        new_previous = queryset.filter(
-            created_at__date__gte=previous_month,
-            created_at__date__lte=previous_month_end,
-        ).count()
+        metrics = queryset.aggregate(
+            total=Count("id", distinct=True),
+            active=Count("id", filter=Q(status="active"), distinct=True),
+            discharged=Count(
+                "id",
+                filter=Q(status__in=["discharged", "inactive"]),
+                distinct=True,
+            ),
+            new_current=Count(
+                "id",
+                filter=Q(created_at__date__gte=current_month),
+                distinct=True,
+            ),
+            new_previous=Count(
+                "id",
+                filter=Q(
+                    created_at__date__gte=previous_month,
+                    created_at__date__lte=previous_month_end,
+                ),
+                distinct=True,
+            ),
+        )
+        total = metrics["total"] or 0
+        active = metrics["active"] or 0
+        discharged = metrics["discharged"] or 0
+        new_current = metrics["new_current"] or 0
+        new_previous = metrics["new_previous"] or 0
         return Response(
             {
                 "total": total,
