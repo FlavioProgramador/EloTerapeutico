@@ -198,3 +198,56 @@ def test_anamnesis_put_cannot_reassign_patient(owner, patient):
 
     anamnesis.refresh_from_db()
     assert anamnesis.patient == patient
+
+
+@pytest.mark.django_db
+def test_evolution_viewset_admin_cross_tenant_isolation(admin_user, other_therapist):
+    """
+    Regression: Admin cannot see evolutions from another tenant/organization when listing without patient param.
+    """
+    from apps.organizations.models import Organization, OrganizationMembership
+
+    # Create Org A and Org B
+    org_a = Organization.objects.create(name="Org A", slug="org-a", created_by=admin_user)
+    org_b = Organization.objects.create(name="Org B", slug="org-b", created_by=other_therapist)
+
+    # admin_user is ADMIN in Org A only
+    OrganizationMembership.objects.create(
+        user=admin_user,
+        organization=org_a,
+        role=OrganizationMembership.Role.ADMIN,
+        status=OrganizationMembership.Status.ACTIVE,
+    )
+
+    # other_therapist is THERAPIST in Org B
+    OrganizationMembership.objects.create(
+        user=other_therapist,
+        organization=org_b,
+        role=OrganizationMembership.Role.THERAPIST,
+        status=OrganizationMembership.Status.ACTIVE,
+    )
+
+    # Patient in Org B
+    patient_b = Patient.objects.create(
+        full_name="Patient in Org B",
+        therapist=other_therapist,
+        organization=org_b,
+        status=Patient.Status.ACTIVE,
+    )
+
+    ev_b = Evolution.objects.create(
+        patient=patient_b,
+        content="Note in Org B",
+        session_date=timezone.localdate(),
+        created_by=other_therapist,
+    )
+
+    client = APIClient()
+    client.force_authenticate(admin_user)
+
+    # Admin requests evolution list without patient filter
+    response = client.get("/api/v1/records/evolutions/")
+    assert response.status_code == 200
+
+    results = response.data.get("results", response.data)
+    assert not any(item["id"] == ev_b.id for item in results)
