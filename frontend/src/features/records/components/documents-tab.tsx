@@ -79,6 +79,7 @@ export function DocumentsTab({
   );
 
   const baseId = useId();
+  const searchId = `${baseId}-search`;
   const uploadCategoryId = `${baseId}-upload-category`;
   const uploadDescriptionId = `${baseId}-upload-description`;
   const editCategoryId = `${baseId}-edit-category`;
@@ -229,20 +230,23 @@ export function DocumentsTab({
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_17rem]">
         <section className="overflow-hidden rounded-xl border border-border bg-card">
           <div className="flex flex-col gap-2 border-b border-border p-3 sm:flex-row">
-            <label className="relative min-w-0 flex-1">
-              <span className="sr-only">Buscar documentos</span>
+            <div className="relative min-w-0 flex-1">
+              <label htmlFor={searchId} className="sr-only">
+                Buscar documentos
+              </label>
               <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <input
+                id={searchId}
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Buscar documentos..."
-                className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-xs text-foreground outline-none focus:border-emerald-400/50"
+                className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
               />
-            </label>
+            </div>
             <select
               value={categoryFilter}
               onChange={(event) => setCategoryFilter(event.target.value)}
-              className="h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground sm:w-52"
+              className="h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 sm:w-52"
               aria-label="Filtrar por categoria"
             >
               {categories.map(([value, label]) => (
@@ -557,19 +561,20 @@ export function DocumentsTab({
 
       <Modal
         isOpen={uploadOpen}
-        onClose={() => setUploadOpen(false)}
+        onClose={() => !uploading && setUploadOpen(false)}
         title="Anexar documento"
         description="Os arquivos são validados e permanecem acessíveis somente por rotas autenticadas."
         className="max-w-xl"
       >
         <div
           onDragEnter={(event) => {
+            if (uploading) return;
             event.preventDefault();
             setDragging(true);
           }}
-          onDragOver={(event) => event.preventDefault()}
+          onDragOver={(event) => !uploading && event.preventDefault()}
           onDragLeave={() => setDragging(false)}
-          onDrop={onDrop}
+          onDrop={(event) => !uploading && onDrop(event)}
           className={cn(
             "rounded-xl border border-dashed p-7 text-center transition",
             dragging
@@ -590,6 +595,7 @@ export function DocumentsTab({
             multiple
             accept=".pdf,.jpg,.jpeg,.png,.txt,.docx"
             className="sr-only"
+            disabled={uploading}
             onChange={(event) =>
               validateFiles(Array.from(event.target.files ?? []))
             }
@@ -598,6 +604,7 @@ export function DocumentsTab({
             size="sm"
             variant="outline"
             className="mt-4"
+            disabled={uploading}
             onClick={() => inputRef.current?.click()}
           >
             Selecionar arquivos
@@ -622,12 +629,13 @@ export function DocumentsTab({
                 </div>
                 <button
                   type="button"
+                  disabled={uploading}
                   onClick={() =>
                     setFiles((current) =>
                       current.filter((item) => item !== file),
                     )
                   }
-                  className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+                  className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                   aria-label={`Remover ${file.name}`}
                 >
                   <X className="h-3.5 w-3.5" />
@@ -645,8 +653,9 @@ export function DocumentsTab({
             <select
               id={uploadCategoryId}
               value={category}
+              disabled={uploading}
               onChange={(event) => setCategory(event.target.value)}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-50"
             >
               {categories.slice(1).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -662,20 +671,21 @@ export function DocumentsTab({
             <input
               id={uploadDescriptionId}
               value={description}
+              disabled={uploading}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="Descrição opcional"
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-50"
             />
           </div>
         </div>
 
         <div className="mt-5 flex justify-end gap-2 border-t border-border pt-4">
-          <Button variant="ghost" onClick={() => setUploadOpen(false)}>
+          <Button variant="ghost" disabled={uploading} onClick={() => setUploadOpen(false)}>
             Cancelar
           </Button>
           <Button
             isLoading={uploading}
-            disabled={files.length === 0}
+            disabled={files.length === 0 || uploading}
             onClick={upload}
             className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
           >
@@ -686,7 +696,7 @@ export function DocumentsTab({
 
       <Modal
         isOpen={Boolean(editingDocument)}
-        onClose={() => setEditingDocument(null)}
+        onClose={() => !updating && setEditingDocument(null)}
         title="Editar detalhes do documento"
         description="Atualize apenas os metadados. O arquivo original permanece preservado."
         className="max-w-lg"
@@ -699,8 +709,9 @@ export function DocumentsTab({
             <select
               id={editCategoryId}
               value={editCategory}
+              disabled={updating}
               onChange={(event) => setEditCategory(event.target.value)}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-50"
             >
               {categories.slice(1).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -717,17 +728,19 @@ export function DocumentsTab({
               id={editDescriptionId}
               rows={4}
               value={editDescription}
+              disabled={updating}
               onChange={(event) => setEditDescription(event.target.value)}
-              className="w-full rounded-md border border-border bg-background p-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+              className="w-full rounded-md border border-border bg-background p-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-50"
             />
           </div>
         </div>
         <div className="mt-5 flex justify-end gap-2 border-t border-border pt-4">
-          <Button variant="ghost" onClick={() => setEditingDocument(null)}>
+          <Button variant="ghost" disabled={updating} onClick={() => setEditingDocument(null)}>
             Cancelar
           </Button>
           <Button
             isLoading={updating}
+            disabled={updating}
             onClick={saveMetadata}
             className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
           >
