@@ -41,60 +41,81 @@ export function FinanceiroMarkPaidModal({
 
   if (!transaction) return null;
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isPending) return;
+    onConfirm({
+      id: transaction.id,
+      paymentMethod: (paymentMethod ||
+        "uninformed") as FinancialPaymentMethod,
+      paidAt,
+    });
+  };
+
   return (
-    <Modal isOpen={!!transaction} onClose={onClose} title="Confirmar Pagamento">
-      <div className="space-y-4 pt-2">
-        <Input
-          label="Data do pagamento"
-          type="date"
-          value={paidAt}
-          onChange={(e) => setPaidAt(e.target.value)}
-        />
+    <Modal
+      isOpen={!!transaction}
+      onClose={() => {
+        if (!isPending) {
+          onClose();
+        }
+      }}
+      title="Confirmar Pagamento"
+    >
+      <form onSubmit={handleSubmit}>
+        <div className="space-y-4 pt-2">
+          <Input
+            label="Data do pagamento"
+            type="date"
+            value={paidAt}
+            onChange={(e) => setPaidAt(e.target.value)}
+            disabled={isPending}
+          />
 
-        <div className="space-y-1.5">
-          <label htmlFor={paymentMethodSelectId} className="text-sm font-semibold">
-            Meio de pagamento
-          </label>
-          <select
-            id={paymentMethodSelectId}
-            value={paymentMethod}
-            onChange={(e) =>
-              setPaymentMethod(e.target.value as FinancialPaymentMethod)
-            }
-            className="flex h-10 w-full rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <option value="uninformed">Selecionar (opcional)</option>
-            <option value="pix">PIX</option>
-            <option value="boleto">Boleto</option>
-            <option value="credit_card">Cartão de Crédito</option>
-            <option value="debit_card">Cartão de Débito</option>
-            <option value="bank_transfer">Transferência Bancária</option>
-            <option value="cash">Dinheiro</option>
-            <option value="payment_link">Link de Pag. (WhatsApp)</option>
-            <option value="other">Outro</option>
-          </select>
+          <div className="space-y-1.5">
+            <label htmlFor={paymentMethodSelectId} className="text-sm font-semibold">
+              Meio de pagamento
+            </label>
+            <select
+              id={paymentMethodSelectId}
+              value={paymentMethod}
+              onChange={(e) =>
+                setPaymentMethod(e.target.value as FinancialPaymentMethod)
+              }
+              disabled={isPending}
+              className="flex h-10 w-full rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="uninformed">Selecionar (opcional)</option>
+              <option value="pix">PIX</option>
+              <option value="boleto">Boleto</option>
+              <option value="credit_card">Cartão de Crédito</option>
+              <option value="debit_card">Cartão de Débito</option>
+              <option value="bank_transfer">Transferência Bancária</option>
+              <option value="cash">Dinheiro</option>
+              <option value="payment_link">Link de Pag. (WhatsApp)</option>
+              <option value="other">Outro</option>
+            </select>
+          </div>
         </div>
-      </div>
 
-      <div className="mt-6 flex justify-end gap-2">
-        <Button variant="outline" onClick={onClose} disabled={isPending}>
-          Cancelar
-        </Button>
-        <Button
-          className="bg-blue-500 hover:bg-blue-600 text-white"
-          onClick={() =>
-            onConfirm({
-              id: transaction.id,
-              paymentMethod: (paymentMethod ||
-                "uninformed") as FinancialPaymentMethod,
-              paidAt,
-            })
-          }
-          isLoading={isPending}
-        >
-          Confirmar
-        </Button>
-      </div>
+        <div className="mt-6 flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={isPending}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            isLoading={isPending}
+          >
+            Confirmar
+          </Button>
+        </div>
+      </form>
     </Modal>
   );
 }
