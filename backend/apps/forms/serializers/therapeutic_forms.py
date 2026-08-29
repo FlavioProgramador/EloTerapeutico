@@ -8,7 +8,7 @@ from .fields import FormFieldSerializer, validate_field_payload
 
 class TherapeuticFormSerializer(serializers.ModelSerializer):
     fields = FormFieldSerializer(many=True)
-    fields_count = serializers.IntegerField(source="fields.count", read_only=True)
+    fields_count = serializers.SerializerMethodField()
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     category_display = serializers.CharField(source="get_category_display", read_only=True)
     created_by_name = serializers.CharField(
@@ -51,6 +51,11 @@ class TherapeuticFormSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
+
+    def get_fields_count(self, obj) -> int:
+        if hasattr(obj, "_prefetched_objects_cache") and "fields" in obj._prefetched_objects_cache:
+            return len(obj.fields.all())
+        return obj.fields.count()
 
     def _organization(self):
         request = self.context.get("request")
