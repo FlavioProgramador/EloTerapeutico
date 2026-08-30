@@ -83,12 +83,14 @@ export function TelemedicinePanel() {
         />
         <button
           type="button"
+          aria-pressed={pendingOnly}
           onClick={() => setPendingOnly((value) => !value)}
           className={cn(
-            "h-9 rounded-md border px-3 text-xs font-semibold",
+            "h-9 rounded-md border px-3 text-xs font-semibold transition-colors",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2",
             pendingOnly
               ? "border-primary bg-primary/10 text-primary"
-              : "border-border text-muted-foreground",
+              : "border-border text-muted-foreground hover:bg-secondary/50",
           )}
         >
           Aguardando atendimento
@@ -117,8 +119,9 @@ export function TelemedicinePanel() {
           <div key={dateKey} className="rounded-xl border border-border bg-card overflow-hidden">
             <button
               type="button"
+              aria-expanded={!isClosed}
               onClick={() => setClosedGroups(prev => ({ ...prev, [dateKey]: !prev[dateKey] }))}
-              className="flex w-full items-center justify-between border-b border-border px-4 py-3 text-left text-sm font-semibold capitalize transition-colors hover:bg-secondary/20"
+              className="flex w-full items-center justify-between border-b border-border px-4 py-3 text-left text-sm font-semibold capitalize transition-colors hover:bg-secondary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             >
               <span>
                 {new Date(dateKey).toLocaleDateString("pt-BR", {
@@ -185,6 +188,10 @@ export function TelemedicinePanel() {
                       <Button
                         size="sm"
                         variant="outline"
+                        isLoading={
+                          sendInvitation.isPending &&
+                          sendInvitation.variables?.roomId === room.id
+                        }
                         disabled={!room.is_accessible || sendInvitation.isPending}
                         leftIcon={<Send className="size-3.5" />}
                         onClick={() => sendByEmail(room.id, invitationValid)}
@@ -194,6 +201,10 @@ export function TelemedicinePanel() {
                       <Button
                         size="sm"
                         variant="outline"
+                        isLoading={
+                          createInvitation.isPending &&
+                          createInvitation.variables === room.id
+                        }
                         disabled={!room.is_accessible || createInvitation.isPending}
                         leftIcon={
                           invitationValid ? (
@@ -210,6 +221,10 @@ export function TelemedicinePanel() {
                         <Button
                           size="sm"
                           variant="ghost"
+                          isLoading={
+                            revokeInvitation.isPending &&
+                            revokeInvitation.variables === room.id
+                          }
                           disabled={revokeInvitation.isPending}
                           leftIcon={<Ban className="size-3.5" />}
                           onClick={() => revoke(room.id)}
