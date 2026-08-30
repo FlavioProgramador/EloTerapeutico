@@ -1,5 +1,7 @@
 FROM node:24-alpine AS builder
 
+RUN apk upgrade --no-cache libcrypto3 libssl3
+
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
@@ -14,6 +16,8 @@ RUN npm run build \
     && npm prune --omit=dev
 
 FROM node:24-alpine
+
+RUN apk upgrade --no-cache libcrypto3 libssl3
 
 WORKDIR /app
 
