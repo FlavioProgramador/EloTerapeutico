@@ -144,5 +144,16 @@ class DocumentTemplateListSerializer(DocumentTemplateSerializer):
         ) + ("content_preview",)
 
     def get_content_preview(self, obj) -> str:
-        content = " ".join((obj.content or "").split())
+        raw = (obj.content or "").strip()
+        if not raw:
+            return ""
+        if len(raw) <= 180:
+            content = " ".join(raw.split())
+            return content[:180] + ("…" if len(content) > 180 else "")
+
+        chunk = " ".join(raw[:400].split())
+        if len(chunk) >= 181 or len(raw) > 400:
+            return chunk[:180] + "…"
+
+        content = " ".join(raw.split())
         return content[:180] + ("…" if len(content) > 180 else "")
