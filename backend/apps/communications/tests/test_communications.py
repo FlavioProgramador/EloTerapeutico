@@ -419,3 +419,59 @@ def test_preference_is_unique_per_patient(therapist, patient):
     )
     assert created is False
     assert first.pk == second.pk
+
+
+@pytest.mark.django_db
+@override_settings(BILLING_REQUIRE_SUBSCRIPTION=False)
+def test_communication_list_query_count_performance(
+    authenticated_client,
+    therapist,
+    patient,
+    django_assert_num_queries,
+):
+    organization = therapist.test_organization
+    ensure_default_channels(therapist, organization=organization)
+    for i in range(5):
+        comm = create_communication(
+            organization=organization,
+            owner=therapist,
+            created_by=therapist,
+            patient=patient,
+            channel=Communication.Channel.EMAIL,
+            category=Communication.Category.PATIENT_MESSAGE,
+            subject=f"Comunicação {i}",
+            body=f"Corpo da mensagem {i}",
+            idempotency_key=f"test:perf:{i}",
+            draft=True,
+        )
+        rec = comm.recipients.first()
+        if rec:
+            CommunicationAttempt.objects.create(
+                communication=comm,
+                recipient=rec,
+                attempt_number=1,
+                provider="smtp",
+                status=CommunicationAttempt.Status.SUCCESS,
+            )
+
+    CommunicationPreference.objects.update_or_create(
+        organization=organization,
+        patient=patient,
+        defaults={
+            "owner": therapist,
+            "allow_email": True,
+        },
+    )
+
+    # Queries expected:
+    # 1. User fetch query for auth
+    # 2. Auth Session check
+    # 3. OrganizationMembership query (for authentication / tenant access)
+    # 4. COUNT query for pagination
+    # 5. Main query SELECT Communication with select_related (organization, patient, appointment, template, created_by)
+    # 6. Prefetch query for recipients (prefetch_related("recipients"))
+    # Note: attempts query is omitted because attempts are not used in list serializer.
+    with django_assert_num_queries(6):
+        response = authenticated_client.get("/api/v1/communications/")
+        assert response.status_code == 200
+        assert len(response.data["results"]) == 5
