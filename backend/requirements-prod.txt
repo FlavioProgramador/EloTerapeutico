@@ -5,6 +5,10 @@
 # requirements.txt – Dependências compartilhadas entre todos os ambientes
 # ===============================================================================
 
+# Security upgrades
+setuptools>=78.1.1
+msgpack>=1.2.1
+
 # Core
 Django>=6.0.7,<6.1
 djangorestframework>=3.17.1,<3.18

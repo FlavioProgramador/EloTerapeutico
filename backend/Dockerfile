@@ -36,8 +36,9 @@ ARG REQUIREMENTS_FILE=requirements-prod.txt
 
 COPY requirements*.txt ./
 
-RUN python -m pip install --upgrade "pip>=26.0" "setuptools>=78.1.1" "msgpack>=1.2.1" \
+RUN python -m pip install --upgrade pip \
     && python -m pip install -r ${REQUIREMENTS_FILE} \
+    && python -m pip install --upgrade "setuptools>=78.1.1" "msgpack>=1.2.1" \
     && apk del .build-deps
 
 COPY . .
