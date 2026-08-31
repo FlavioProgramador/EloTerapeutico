@@ -10,7 +10,8 @@ COPY . .
 ARG LIVEKIT_URL=""
 ENV LIVEKIT_URL=${LIVEKIT_URL}
 
-RUN npm run build \
+RUN apk add --no-cache openssl \
+    && npm run build \
     && npm prune --omit=dev
 
 FROM node:24-alpine
@@ -19,6 +20,8 @@ WORKDIR /app
 
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1
+
+RUN apk add --no-cache openssl
 
 COPY --from=builder /app ./
 
