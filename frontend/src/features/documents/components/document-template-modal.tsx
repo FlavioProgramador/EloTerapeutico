@@ -123,7 +123,9 @@ export function DocumentTemplateModal({
     });
   };
 
-  const submit = async () => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (submitting) return;
     if (!form.name.trim() || !form.category.trim() || !form.content.trim()) {
       setError("Preencha nome, categoria e conteúdo do template.");
       return;
@@ -135,12 +137,14 @@ export function DocumentTemplateModal({
   return (
     <Modal
       isOpen={open}
-      onClose={onClose}
+      onClose={() => {
+        if (!submitting) onClose();
+      }}
       title={initial ? "Editar template" : "Novo template"}
       description="Crie um modelo seguro com variáveis controladas para agilizar a emissão."
       className="max-w-4xl"
     >
-      <div className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <label htmlFor={nameId} className="block text-xs font-semibold text-foreground">
@@ -377,16 +381,15 @@ export function DocumentTemplateModal({
             Cancelar
           </Button>
           <Button
-            type="button"
+            type="submit"
             size="sm"
             isLoading={submitting}
             leftIcon={<FileText className="h-4 w-4" />}
-            onClick={submit}
           >
             {initial ? "Salvar alterações" : "Criar template"}
           </Button>
         </div>
-      </div>
+      </form>
     </Modal>
   );
 }
@@ -438,7 +441,9 @@ export function EvolutionTemplateModal({
     });
   }, [initial, open]);
 
-  const submit = async () => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (submitting) return;
     if (!form.name.trim() || !form.content.trim()) {
       setError("Preencha o nome e o conteúdo do template.");
       return;
@@ -450,14 +455,16 @@ export function EvolutionTemplateModal({
   return (
     <Modal
       isOpen={open}
-      onClose={onClose}
+      onClose={() => {
+        if (!submitting) onClose();
+      }}
       title={
         initial ? "Editar template de evolução" : "Novo template de evolução"
       }
       description="Crie um texto-base que poderá ser inserido sem apagar o que já foi digitado."
       className="max-w-2xl"
     >
-      <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <label htmlFor={nameId} className="block text-xs font-semibold text-foreground">
@@ -563,6 +570,7 @@ export function EvolutionTemplateModal({
         )}
         <div className="flex justify-end gap-2 border-t border-border pt-4">
           <Button
+            type="button"
             variant="outline"
             size="sm"
             onClick={onClose}
@@ -570,11 +578,11 @@ export function EvolutionTemplateModal({
           >
             Cancelar
           </Button>
-          <Button size="sm" isLoading={submitting} onClick={submit}>
+          <Button type="submit" size="sm" isLoading={submitting}>
             {initial ? "Salvar alterações" : "Criar template"}
           </Button>
         </div>
-      </div>
+      </form>
     </Modal>
   );
 }
