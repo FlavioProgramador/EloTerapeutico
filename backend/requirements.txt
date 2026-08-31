@@ -35,6 +35,10 @@ psycopg2-binary>=2.9,<3.0
 # Criptografia de campos sensíveis
 cryptography>=50.0.0,<51.0
 
+# Segurança / Auditoria de dependências
+setuptools>=78.1.1
+msgpack>=1.2.1
+
 # Servidor de produção
 gunicorn>=22.0,<23.0
 
