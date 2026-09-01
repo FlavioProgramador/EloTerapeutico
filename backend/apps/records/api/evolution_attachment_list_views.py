@@ -8,7 +8,10 @@ from rest_framework.views import APIView
 from apps.audit.models import AuditLog
 from apps.audit.services import log_access
 from apps.records.api.views.clinical_views import ClinicalPatientMixin
-from apps.records.services.evolution_security import max_evolution_attachments
+from apps.records.services.evolution_security import (
+    can_view_confidential_evolution,
+    max_evolution_attachments,
+)
 
 from ..selectors.evolutions import active_evolution_attachments
 from .evolution_attachment_serializers import EvolutionAttachmentSerializer
@@ -19,6 +22,11 @@ class EvolutionAttachmentListCreateView(ClinicalPatientMixin, APIView):
 
     def get(self, request, evolution_id):
         evolution = self.get_evolution(evolution_id)
+        if not can_view_confidential_evolution(request.user, evolution):
+            self.permission_denied(
+                request,
+                message="Você não pode acessar este anexo.",
+            )
         queryset = active_evolution_attachments(evolution=evolution)
         serializer = EvolutionAttachmentSerializer(
             queryset,
@@ -29,6 +37,11 @@ class EvolutionAttachmentListCreateView(ClinicalPatientMixin, APIView):
 
     def post(self, request, evolution_id):
         evolution = self.get_evolution(evolution_id)
+        if not can_view_confidential_evolution(request.user, evolution):
+            self.permission_denied(
+                request,
+                message="Você não pode acessar este anexo.",
+            )
         attachment_count = active_evolution_attachments(evolution=evolution).count()
         if attachment_count >= max_evolution_attachments():
             return Response(
