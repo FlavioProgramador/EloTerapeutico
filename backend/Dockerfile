@@ -37,7 +37,7 @@ COPY requirements*.txt ./
 
 RUN python -m pip install --upgrade pip \
     && python -m pip install -r ${REQUIREMENTS_FILE} \
-    && python -m pip install --upgrade "setuptools>=78.1.1" "msgpack>=1.2.1" \
+    && python -m pip install --upgrade --force-reinstall "setuptools>=78.1.1" "msgpack>=1.2.1" \
     && apk del .build-deps
 
 COPY . .
