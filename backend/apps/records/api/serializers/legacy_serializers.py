@@ -121,9 +121,7 @@ class EvolutionListSerializer(serializers.ModelSerializer):
     is_editable = serializers.SerializerMethodField(
         help_text="True se a evolução ainda pode ser editada (criada há < 48h e não bloqueada).",
     )
-    addenda_count = serializers.IntegerField(
-        source="addenda.count",
-        read_only=True,
+    addenda_count = serializers.SerializerMethodField(
         label="Quantidade de aditivos",
     )
 
@@ -146,6 +144,15 @@ class EvolutionListSerializer(serializers.ModelSerializer):
 
     def get_is_editable(self, obj: Evolution) -> bool:
         return obj.can_be_edited()
+
+    def get_addenda_count(self, obj: Evolution) -> int:
+        count = getattr(obj, "annotated_addenda_count", None)
+        if count is not None:
+            return count
+        prefetched = getattr(obj, "_prefetched_objects_cache", {})
+        if "addenda" in prefetched:
+            return len(prefetched["addenda"])
+        return obj.addenda.count()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
