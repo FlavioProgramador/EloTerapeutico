@@ -88,10 +88,16 @@ export function FinanceiroTransactionModal({
     );
   });
 
+  const handleClose = () => {
+    if (!mutation.isPending) {
+      onClose();
+    }
+  };
+
   return (
     <Modal
       isOpen={open}
-      onClose={onClose}
+      onClose={handleClose}
       title="Nova transação"
       description={
         mode === "income"
@@ -105,12 +111,14 @@ export function FinanceiroTransactionModal({
             label="Valor (R$)"
             inputMode="decimal"
             placeholder="0,00"
+            disabled={mutation.isPending}
             error={form.formState.errors.amount?.message}
             {...form.register("amount")}
           />
           <Input
             label="Data de vencimento"
             type="date"
+            disabled={mutation.isPending}
             error={form.formState.errors.due_date?.message}
             {...form.register("due_date")}
           />
@@ -122,7 +130,8 @@ export function FinanceiroTransactionModal({
           </label>
           <select
             id={typeSelectId}
-            className="flex h-11 w-full rounded-lg border border-input bg-card px-3.5 py-2 text-base shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+            disabled={mutation.isPending}
+            className="flex h-11 w-full rounded-lg border border-input bg-card px-3.5 py-2 text-base shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             {...form.register("type")}
           >
             <option value="income">Receita (A receber)</option>
@@ -136,7 +145,8 @@ export function FinanceiroTransactionModal({
           </label>
           <select
             id={categorySelectId}
-            className="flex h-11 w-full rounded-lg border border-input bg-card px-3.5 py-2 text-base shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+            disabled={mutation.isPending}
+            className="flex h-11 w-full rounded-lg border border-input bg-card px-3.5 py-2 text-base shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             {...form.register("category")}
           >
             {formType === "income" && (
@@ -157,7 +167,8 @@ export function FinanceiroTransactionModal({
             </label>
             <select
               id={patientSelectId}
-              className="flex h-11 w-full rounded-lg border border-input bg-card px-3.5 py-2 text-base shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+              disabled={mutation.isPending}
+              className="flex h-11 w-full rounded-lg border border-input bg-card px-3.5 py-2 text-base shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               {...form.register("patient")}
             >
               <option value="">Nenhum</option>
@@ -176,7 +187,8 @@ export function FinanceiroTransactionModal({
           </label>
           <select
             id={paymentMethodSelectId}
-            className="flex h-11 w-full rounded-lg border border-input bg-card px-3.5 py-2 text-base shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+            disabled={mutation.isPending}
+            className="flex h-11 w-full rounded-lg border border-input bg-card px-3.5 py-2 text-base shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             {...form.register("payment_method")}
           >
             <option value="uninformed">Não informado</option>
@@ -194,6 +206,7 @@ export function FinanceiroTransactionModal({
           <Input
             label="Link pagamento (Opcional)"
             placeholder="https://..."
+            disabled={mutation.isPending}
             error={form.formState.errors.payment_link?.message}
             {...form.register("payment_link")}
           />
@@ -213,7 +226,8 @@ export function FinanceiroTransactionModal({
           <input
             id={paidCheckboxId}
             type="checkbox"
-            className="h-4 w-4 rounded border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+            disabled={mutation.isPending}
+            className="h-4 w-4 rounded border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             checked={status === "paid"}
             onChange={(event) => {
               form.setValue(
@@ -230,6 +244,7 @@ export function FinanceiroTransactionModal({
             <Input
               label="Data do pagamento (Opcional)"
               type="date"
+              disabled={mutation.isPending}
               error={form.formState.errors.payment_date?.message}
               {...form.register("payment_date")}
             />
@@ -242,12 +257,18 @@ export function FinanceiroTransactionModal({
         <Textarea
           label="Descrição"
           placeholder="Descrição da transação"
+          disabled={mutation.isPending}
           error={form.formState.errors.description?.message}
           {...form.register("description")}
         />
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleClose}
+            disabled={mutation.isPending}
+          >
             Cancelar
           </Button>
           <Button type="submit" isLoading={mutation.isPending}>
