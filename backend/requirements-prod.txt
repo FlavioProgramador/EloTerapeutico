@@ -58,5 +58,9 @@ django-health-check>=3.18,<3.19
 # Whitenoise para arquivos estáticos
 whitenoise>=6.6,<6.7
 
+# Correções de segurança para dependências transitivas
+setuptools>=78.1.1
+msgpack>=1.2.1
+
 # Storage privado e persistente para documentos clínicos
 django-storages[azure]>=1.14,<1.15
