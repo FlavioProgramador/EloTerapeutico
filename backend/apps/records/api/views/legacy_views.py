@@ -3,7 +3,7 @@ apps/records/views.py
 Views e ViewSets para o app de Prontuários Eletrônicos (Records).
 """
 
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status, viewsets
 from rest_framework.decorators import action
@@ -129,7 +129,11 @@ class EvolutionViewSet(AuditLogMixin, viewsets.ModelViewSet):
         if user.is_anonymous:
             return Evolution.objects.none()
 
-        queryset = Evolution.objects.all()
+        queryset = (
+            Evolution.objects.select_related("created_by")
+            .annotate(annotated_addenda_count=Count("addenda", distinct=True))
+            .order_by("-session_date", "-created_at")
+        )
 
         # Filtro de confidencialidade global:
         # Se não tiver permissão especial, só vê se não for confidencial OU se for o autor.
