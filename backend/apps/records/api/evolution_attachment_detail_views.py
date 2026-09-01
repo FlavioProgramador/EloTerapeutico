@@ -28,6 +28,11 @@ class EvolutionAttachmentDetailView(ClinicalPatientMixin, APIView):
 
     def delete(self, request, evolution_id, attachment_id):
         evolution, document = self.get_document(evolution_id, attachment_id)
+        if not can_view_confidential_evolution(request.user, evolution):
+            self.permission_denied(
+                request,
+                message="Você não pode acessar este anexo.",
+            )
         remove_evolution_attachment(
             evolution=evolution,
             document=document,

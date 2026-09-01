@@ -149,3 +149,73 @@ def test_upload_valido_e_assinatura_invalida(api, patient, tmp_path, settings):
     assert valid.data["scan_status"] == "pending"
     assert valid.data["download_url"] is None
     assert invalid.status_code == 400
+
+
+@pytest.mark.django_db
+def test_confidential_evolution_attachment_permissions(api, therapist, patient, tmp_path, settings):
+    settings.MEDIA_ROOT = tmp_path
+    other_therapist = User.objects.create_user(
+        email="other.therapist@example.com",
+        password="safe-password",
+        full_name="Outro Terapeuta",
+        role=User.Role.THERAPIST,
+    )
+    from apps.organizations.models import OrganizationMembership
+    from apps.patients.models import PatientProfessional
+    OrganizationMembership.objects.create(
+        user=other_therapist,
+        organization=patient.organization,
+        role="therapist",
+    )
+    PatientProfessional.objects.create(
+        patient=patient,
+        professional=other_therapist,
+        assigned_by=therapist,
+        is_active=True,
+    )
+
+    created = api.post(
+        endpoint(patient),
+        valid_payload(is_confidential=True),
+        format="json",
+    )
+    evolution_id = created.data["id"]
+    attachments_url = f"/api/v1/records/clinical-evolutions/{evolution_id}/attachments/"
+
+    valid_png = SimpleUploadedFile(
+        "exame.png",
+        b"\x89PNG\r\n\x1a\n" + b"0" * 32,
+        content_type="image/png",
+    )
+    upload_res = api.post(attachments_url, {"file": valid_png}, format="multipart")
+    assert upload_res.status_code == 202
+    attachment_id = upload_res.data["id"]
+
+    other_api = APIClient()
+    other_api.force_authenticate(other_therapist)
+
+    # 1. Non-creator without view_confidential_evolution cannot list attachments
+    get_res = other_api.get(attachments_url)
+    assert get_res.status_code == 403
+
+    # 2. Non-creator without view_confidential_evolution cannot create attachment
+    new_png = SimpleUploadedFile(
+        "novo.png",
+        b"\x89PNG\r\n\x1a\n" + b"0" * 32,
+        content_type="image/png",
+    )
+    post_res = other_api.post(attachments_url, {"file": new_png}, format="multipart")
+    assert post_res.status_code == 403
+
+    # 3. Non-creator without view_confidential_evolution cannot delete attachment
+    attachment_detail_url = f"/api/v1/records/clinical-evolutions/{evolution_id}/attachments/{attachment_id}/"
+    del_res = other_api.delete(attachment_detail_url)
+    assert del_res.status_code == 403
+
+    # 4. Creator can list and delete attachment
+    creator_list = api.get(attachments_url)
+    assert creator_list.status_code == 200
+    assert len(creator_list.data) == 1
+
+    creator_del = api.delete(attachment_detail_url)
+    assert creator_del.status_code == 204
