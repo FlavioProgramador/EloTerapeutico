@@ -15,6 +15,8 @@ RUN npm run build \
 
 FROM node:24-alpine
 
+RUN apk upgrade --no-cache
+
 WORKDIR /app
 
 ENV NODE_ENV=production \
