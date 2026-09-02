@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.scheduling.models import Appointment, TelemedicineRoom
+from apps.scheduling.models import Appointment
 
 from .summary import (
     AppointmentReminderSerializer,
@@ -51,22 +51,19 @@ class AppointmentListSerializer(serializers.ModelSerializer):
         ]
 
     def get_telemedicine_status(self, obj):
-        try:
-            return obj.telemedicine_room.status
-        except TelemedicineRoom.DoesNotExist:
-            return None
+        room = getattr(obj, "telemedicine_room", None)
+        return room.status if room is not None else None
 
     def get_evolution_id(self, obj):
-        try:
-            return obj.evolution.id
-        except Exception:
-            return None
+        evolution = getattr(obj, "evolution", None)
+        return evolution.id if evolution is not None else None
 
     def get_evolution_status(self, obj):
-        try:
-            return obj.evolution.clinical_data.status
-        except Exception:
+        evolution = getattr(obj, "evolution", None)
+        if evolution is None:
             return None
+        clinical_data = getattr(evolution, "clinical_data", None)
+        return clinical_data.status if clinical_data is not None else None
 
 
 class AppointmentDetailSerializer(AppointmentListSerializer):
@@ -92,7 +89,7 @@ class AppointmentDetailSerializer(AppointmentListSerializer):
         ]
 
     def get_telemedicine(self, obj):
-        try:
-            return TelemedicineRoomSerializer(obj.telemedicine_room, context=self.context).data
-        except TelemedicineRoom.DoesNotExist:
+        room = getattr(obj, "telemedicine_room", None)
+        if room is None:
             return None
+        return TelemedicineRoomSerializer(room, context=self.context).data
