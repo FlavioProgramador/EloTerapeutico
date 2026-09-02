@@ -70,3 +70,53 @@ class FormsLayerTests(APITestCase):
                 },
             )
         self.assertFalse(FormSubmission.objects.exists())
+
+    def test_form_submission_listing_isolation(self):
+        from apps.organizations.models import Organization, OrganizationMembership
+
+        org = Organization.objects.create(name="Clínica Teste", slug="clinica-teste", created_by=self.owner)
+        OrganizationMembership.objects.create(
+            user=self.owner,
+            organization=org,
+            role=OrganizationMembership.Role.THERAPIST,
+            status=OrganizationMembership.Status.ACTIVE,
+        )
+        OrganizationMembership.objects.create(
+            user=self.other_owner,
+            organization=org,
+            role=OrganizationMembership.Role.THERAPIST,
+            status=OrganizationMembership.Status.ACTIVE,
+        )
+
+        self.form.organization = org
+        self.form.save()
+
+        sub_owner = FormSubmission.objects.create(
+            form=self.form,
+            organization=org,
+            owner=self.owner,
+            professional=self.owner,
+            submitted_by=self.owner,
+        )
+        sub_other = FormSubmission.objects.create(
+            form=self.form,
+            organization=org,
+            owner=self.other_owner,
+            professional=self.other_owner,
+            submitted_by=self.other_owner,
+        )
+
+        # 1. Unauthenticated request is rejected
+        self.client.logout()
+        res_unauth = self.client.get(f"/api/v1/forms/{self.form.pk}/submissions/")
+        self.assertIn(res_unauth.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+        # 2. Authenticated as owner (Therapist A)
+        self.client.force_authenticate(self.owner)
+        self.client.credentials(HTTP_X_ORGANIZATION_ID=str(org.id))
+        res_owner = self.client.get(f"/api/v1/forms/{self.form.pk}/submissions/")
+        self.assertEqual(res_owner.status_code, status.HTTP_200_OK)
+        results_owner = res_owner.data.get("results", res_owner.data)
+        ids_owner = [item["id"] for item in results_owner]
+        self.assertIn(sub_owner.pk, ids_owner)
+        self.assertNotIn(sub_other.pk, ids_owner)
