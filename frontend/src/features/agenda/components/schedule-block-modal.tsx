@@ -11,7 +11,7 @@ import { useCreateScheduleBlock } from "../hooks/use-agenda";
 import { toDateInput } from "../lib/calendar.mjs";
 
 const fieldClass =
-  "h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15";
+  "h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50";
 
 export function ScheduleBlockModal({
   open,
@@ -88,10 +88,14 @@ export function ScheduleBlockModal({
     );
   }
 
+  const isPending = createMutation.isPending;
+
   return (
     <Modal
       isOpen={open}
-      onClose={onClose}
+      onClose={() => {
+        if (!isPending) onClose();
+      }}
       title="Bloquear horário"
       description="Crie indisponibilidades sem cancelar consultas automaticamente."
       className="max-w-lg"
@@ -108,6 +112,7 @@ export function ScheduleBlockModal({
             <select
               id={therapistId}
               value={form.therapist}
+              disabled={isPending}
               onChange={(event) =>
                 setForm((current) => ({
                   ...current,
@@ -131,6 +136,7 @@ export function ScheduleBlockModal({
             id={dateId}
             type="date"
             value={form.date}
+            disabled={isPending}
             onChange={(event) =>
               setForm((current) => ({ ...current, date: event.target.value }))
             }
@@ -144,6 +150,7 @@ export function ScheduleBlockModal({
               id={startId}
               type="time"
               value={form.start}
+              disabled={isPending}
               onChange={(event) =>
                 setForm((current) => ({
                   ...current,
@@ -158,6 +165,7 @@ export function ScheduleBlockModal({
               id={endId}
               type="time"
               value={form.end}
+              disabled={isPending}
               onChange={(event) =>
                 setForm((current) => ({ ...current, end: event.target.value }))
               }
@@ -170,6 +178,7 @@ export function ScheduleBlockModal({
           <select
             id={reasonId}
             value={form.reason}
+            disabled={isPending}
             onChange={(event) =>
               setForm((current) => ({ ...current, reason: event.target.value }))
             }
@@ -188,6 +197,7 @@ export function ScheduleBlockModal({
           <select
             id={recurrenceId}
             value={form.recurrence}
+            disabled={isPending}
             onChange={(event) =>
               setForm((current) => ({
                 ...current,
@@ -206,6 +216,7 @@ export function ScheduleBlockModal({
           <input
             id={notesId}
             value={form.notes}
+            disabled={isPending}
             onChange={(event) =>
               setForm((current) => ({ ...current, notes: event.target.value }))
             }
@@ -214,27 +225,28 @@ export function ScheduleBlockModal({
           />
         </Field>
 
-        <label
-          htmlFor={confirmConflictsId}
-          className="flex items-start gap-2 rounded-lg border border-border bg-secondary/20 p-3 text-xs cursor-pointer select-none"
-        >
+        <div className="flex items-start gap-2 rounded-lg border border-border bg-secondary/20 p-3 text-xs">
           <input
             id={confirmConflictsId}
             type="checkbox"
             checked={form.confirmConflicts}
+            disabled={isPending}
             onChange={(event) =>
               setForm((current) => ({
                 ...current,
                 confirmConflicts: event.target.checked,
               }))
             }
-            className="mt-0.5"
+            className="mt-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
           />
-          <span>
+          <label
+            htmlFor={confirmConflictsId}
+            className="cursor-pointer select-none text-muted-foreground"
+          >
             Confirmo a criação mesmo que existam consultas no intervalo. Nenhuma
             consulta será cancelada automaticamente.
-          </span>
-        </label>
+          </label>
+        </div>
 
         {error && (
           <p role="alert" className="text-xs font-medium text-destructive">
@@ -243,10 +255,15 @@ export function ScheduleBlockModal({
         )}
 
         <div className="flex justify-end gap-2 border-t border-border pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={isPending}
+          >
             Cancelar
           </Button>
-          <Button type="submit" isLoading={createMutation.isPending}>
+          <Button type="submit" isLoading={isPending}>
             Bloquear
           </Button>
         </div>
