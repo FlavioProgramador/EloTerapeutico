@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useId } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   FileDown,
@@ -33,6 +33,8 @@ interface ExportsTabProps {
 
 export function ExportsTab({ patientId }: ExportsTabProps) {
   const queryClient = useQueryClient();
+  const typeSelectId = useId();
+  const periodSelectId = useId();
   const [selectedType, setSelectedType] = useState("Completo");
   const [selectedPeriod, setSelectedPeriod] = useState("Todo o período");
 
@@ -203,13 +205,18 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
         <div className="flex flex-col gap-4 md:flex-row md:items-end justify-between">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 flex-1 max-w-xl">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <label
+                htmlFor={typeSelectId}
+                className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+              >
                 Tipo de Exportação
               </label>
               <select
+                id={typeSelectId}
                 value={selectedType}
+                disabled={createMutation.isPending}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="Completo">
                   Prontuário Completo (Evoluções + Fichas)
@@ -224,13 +231,18 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <label
+                htmlFor={periodSelectId}
+                className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+              >
                 Período
               </label>
               <select
+                id={periodSelectId}
                 value={selectedPeriod}
+                disabled={createMutation.isPending}
                 onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="Todo o período">Todo o período clínico</option>
                 <option value="Últimos 30 dias">Últimos 30 dias</option>
@@ -244,8 +256,9 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
             size="md"
             onClick={() => createMutation.mutate()}
             isLoading={createMutation.isPending}
+            disabled={createMutation.isPending}
             leftIcon={<Play className="h-4 w-4" />}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white"
+            className="bg-emerald-600 hover:bg-emerald-500 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
             Iniciar Exportação
           </Button>
@@ -317,8 +330,9 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleDownload(job)}
-                            className="h-8 w-8 text-emerald-600 hover:bg-emerald-500/10"
+                            className="h-8 w-8 text-emerald-600 hover:bg-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                             title="Fazer download do arquivo PDF"
+                            aria-label={`Baixar arquivo PDF de ${job.filename}`}
                           >
                             <Download className="h-4 w-4" />
                           </Button>
@@ -328,8 +342,10 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
                             size="icon"
                             onClick={() => retryMutation.mutate(job.id)}
                             isLoading={retryMutation.isPending}
-                            className="h-8 w-8 text-amber-600 hover:bg-amber-500/10"
+                            disabled={retryMutation.isPending}
+                            className="h-8 w-8 text-amber-600 hover:bg-amber-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                             title="Tentar reprocessar exportação"
+                            aria-label={`Reprocessar exportação ${job.filename}`}
                           >
                             <RefreshCw className="h-4 w-4" />
                           </Button>
