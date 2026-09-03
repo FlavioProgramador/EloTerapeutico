@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from apps.audit.models import AuditLog
 from apps.organizations.services.tenant_context import ensure_request_organization
 from apps.patients.models import Patient
+from apps.patients.services.access_control import patient_access_q
 
 from ..models import CommunicationPreference
 from ..permissions import CanAccessCommunications, CanSendCommunication
@@ -43,7 +44,7 @@ class PatientCommunicationPreferenceView(CommunicationPreferenceMixin, APIView):
     def get_preference(self, request, patient_id):
         organization = self.get_organization(request)
         patient = get_object_or_404(
-            Patient,
+            Patient.objects.filter(patient_access_q(request.user)),
             pk=patient_id,
             organization=organization,
             deleted_at__isnull=True,
