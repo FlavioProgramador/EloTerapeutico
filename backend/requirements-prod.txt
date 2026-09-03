@@ -55,6 +55,10 @@ structlog>=24.1,<24.2
 # Health checks
 django-health-check>=3.18,<3.19
 
+# Segurança e pacotes base
+setuptools>=78.1.1
+msgpack>=1.2.1
+
 # Whitenoise para arquivos estáticos
 whitenoise>=6.6,<6.7
 
