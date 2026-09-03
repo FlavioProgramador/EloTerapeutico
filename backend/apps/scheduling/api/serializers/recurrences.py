@@ -11,7 +11,7 @@ class AppointmentRecurrenceSerializer(serializers.ModelSerializer):
     patient_name = serializers.CharField(source="patient.display_name", read_only=True)
     therapist_name = serializers.CharField(source="therapist.full_name", read_only=True)
     frequency_display = serializers.CharField(source="get_frequency_display", read_only=True)
-    occurrences_count = serializers.IntegerField(source="appointments.count", read_only=True)
+    occurrences_count = serializers.SerializerMethodField()
     completed_count = serializers.SerializerMethodField()
     next_occurrence_id = serializers.SerializerMethodField()
     next_occurrence_at = serializers.SerializerMethodField()
@@ -86,22 +86,55 @@ class AppointmentRecurrenceSerializer(serializers.ModelSerializer):
         validated_data["organization"] = self.context["request"].organization
         return super().create(validated_data)
 
+    def get_occurrences_count(self, obj):
+        prefetched = getattr(obj, "_prefetched_objects_cache", {})
+        if "appointments" in prefetched:
+            return len(prefetched["appointments"])
+        return obj.appointments.count()
+
     def get_completed_count(self, obj):
+        prefetched = getattr(obj, "_prefetched_objects_cache", {})
+        if "appointments" in prefetched:
+            return sum(
+                1
+                for appt in prefetched["appointments"]
+                if appt.organization_id == obj.organization_id
+                and appt.status == Appointment.Status.COMPLETED
+            )
         return obj.appointments.filter(
             organization=obj.organization,
             status=Appointment.Status.COMPLETED,
         ).count()
 
     def _next(self, obj):
-        return (
-            obj.appointments.filter(
-                organization=obj.organization,
-                start_time__gte=timezone.now(),
-                status__in=[Appointment.Status.SCHEDULED, Appointment.Status.CONFIRMED],
+        if hasattr(obj, "_cached_next_occurrence"):
+            return obj._cached_next_occurrence
+
+        prefetched = getattr(obj, "_prefetched_objects_cache", {})
+        if "appointments" in prefetched:
+            now = timezone.now()
+            candidates = [
+                appt
+                for appt in prefetched["appointments"]
+                if appt.organization_id == obj.organization_id
+                and appt.start_time >= now
+                and appt.status in (Appointment.Status.SCHEDULED, Appointment.Status.CONFIRMED)
+            ]
+            candidates.sort(key=lambda x: x.start_time)
+            next_item = candidates[0] if candidates else None
+        else:
+            next_item = (
+                obj.appointments.filter(
+                    organization=obj.organization,
+                    start_time__gte=timezone.now(),
+                    status__in=[Appointment.Status.SCHEDULED, Appointment.Status.CONFIRMED],
+                )
+                .order_by("start_time")
+                .first()
             )
-            .order_by("start_time")
-            .first()
-        )
+
+        obj._cached_next_occurrence = next_item
+        return next_item
 
     def get_next_occurrence_id(self, obj):
         item = self._next(obj)
