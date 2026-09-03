@@ -1,4 +1,8 @@
-FROM node:24-alpine AS builder
+FROM node:24-alpine AS base
+
+RUN apk upgrade --no-cache libcrypto3 libssl3
+
+FROM base AS builder
 
 WORKDIR /app
 
@@ -13,7 +17,7 @@ ENV LIVEKIT_URL=${LIVEKIT_URL}
 RUN npm run build \
     && npm prune --omit=dev
 
-FROM node:24-alpine
+FROM base
 
 WORKDIR /app
 
