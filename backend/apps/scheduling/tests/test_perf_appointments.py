@@ -9,7 +9,7 @@ from rest_framework.test import APIClient
 from apps.patients.models import Patient
 from apps.records.extended_models import EvolutionClinicalData
 from apps.records.models import Evolution
-from apps.scheduling.models import Appointment
+from apps.scheduling.models import Appointment, AppointmentRecurrence
 from apps.users.models import User
 
 
@@ -76,3 +76,50 @@ def test_appointment_list_optimized_queries(
 
     assert response.status_code == status.HTTP_200_OK
     assert len(response.data["results"]) == num_appointments
+
+
+@pytest.mark.django_db
+def test_appointment_recurrence_list_optimized_queries(
+    api_client,
+    therapist,
+    patient,
+    django_assert_num_queries,
+):
+    """Verifica que a listagem de recorrencias nao gera N+1 consultas ao calcular contadores."""
+
+    num_recurrences = 5
+    for i in range(num_recurrences):
+        rec = AppointmentRecurrence.objects.create(
+            patient=patient,
+            therapist=therapist,
+            frequency=AppointmentRecurrence.Frequency.WEEKLY,
+            starts_on=timezone.localdate(),
+            start_time=timezone.now().time(),
+            duration_minutes=50,
+            session_value=100,
+        )
+        for j in range(4):
+            start = timezone.now() + timedelta(days=7 * j)
+            Appointment.objects.create(
+                patient=patient,
+                therapist=therapist,
+                recurrence=rec,
+                start_time=start,
+                end_time=start + timedelta(minutes=50),
+                session_value=100,
+                status=Appointment.Status.COMPLETED if j == 0 else Appointment.Status.SCHEDULED,
+            )
+
+    url = reverse("appointment-recurrence-list")
+
+    # Membership + count + recurrences list + prefetched appointments = 4 queries constantes
+    with django_assert_num_queries(4):
+        response = api_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.data["results"]) == num_recurrences
+    for rec_data in response.data["results"]:
+        assert rec_data["occurrences_count"] == 4
+        assert rec_data["completed_count"] == 1
+        assert rec_data["next_occurrence_id"] is not None
+        assert rec_data["next_occurrence_at"] is not None
