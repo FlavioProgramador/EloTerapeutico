@@ -1,3 +1,4 @@
+import { useId } from "react";
 import type { AgendaRoom, AppointmentModality, AppointmentType } from "../../types";
 import { Field, SectionLabel, fieldClass } from "../agenda-ui";
 import type {
@@ -9,20 +10,31 @@ interface AppointmentDetailsSectionProps {
   form: AppointmentFormState;
   setForm: AppointmentFormSetter;
   rooms: AgendaRoom[];
+  disabled?: boolean;
 }
 
 export function AppointmentDetailsSection({
   form,
   setForm,
   rooms,
+  disabled,
 }: AppointmentDetailsSectionProps) {
+  const baseId = useId();
+  const durationId = `${baseId}-duration`;
+  const appointmentTypeId = `${baseId}-type`;
+  const modalityId = `${baseId}-modality`;
+  const roomId = `${baseId}-room`;
+  const sessionValueId = `${baseId}-session-value`;
+
   return (
     <section className="space-y-3 border-t border-border pt-4">
       <SectionLabel>Detalhes</SectionLabel>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Duração">
+        <Field label="Duração" htmlFor={durationId}>
           <select
+            id={durationId}
             value={form.duration}
+            disabled={disabled}
             onChange={(event) =>
               setForm((current) => ({
                 ...current,
@@ -38,9 +50,11 @@ export function AppointmentDetailsSection({
             ))}
           </select>
         </Field>
-        <Field label="Tipo">
+        <Field label="Tipo" htmlFor={appointmentTypeId}>
           <select
+            id={appointmentTypeId}
             value={form.appointmentType}
+            disabled={disabled}
             onChange={(event) =>
               setForm((current) => ({
                 ...current,
@@ -59,9 +73,11 @@ export function AppointmentDetailsSection({
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Modalidade">
+        <Field label="Modalidade" htmlFor={modalityId}>
           <select
+            id={modalityId}
             value={form.modality}
+            disabled={disabled}
             onChange={(event) =>
               setForm((current) => ({
                 ...current,
@@ -76,9 +92,11 @@ export function AppointmentDetailsSection({
             <option value="hybrid">Híbrida</option>
           </select>
         </Field>
-        <Field label="Sala">
+        <Field label="Sala" htmlFor={roomId}>
           <select
+            id={roomId}
             value={form.room}
+            disabled={disabled || form.modality === "online"}
             onChange={(event) =>
               setForm((current) => ({
                 ...current,
@@ -86,7 +104,6 @@ export function AppointmentDetailsSection({
               }))
             }
             className={fieldClass}
-            disabled={form.modality === "online"}
           >
             <option value="">Sem sala</option>
             {rooms.map((room) => (
@@ -97,10 +114,12 @@ export function AppointmentDetailsSection({
           </select>
         </Field>
       </div>
-      <Field label="Valor (R$)">
+      <Field label="Valor (R$)" htmlFor={sessionValueId}>
         <input
+          id={sessionValueId}
           inputMode="decimal"
           value={form.sessionValue}
+          disabled={disabled}
           onChange={(event) =>
             setForm((current) => ({
               ...current,

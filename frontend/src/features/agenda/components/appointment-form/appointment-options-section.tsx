@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { Field, SectionLabel, Toggle, fieldClass } from "../agenda-ui";
 import type {
   AppointmentFormSetter,
@@ -7,17 +8,29 @@ import type {
 interface AppointmentOptionsSectionProps {
   form: AppointmentFormState;
   setForm: AppointmentFormSetter;
+  disabled?: boolean;
 }
 
 export function AppointmentOptionsSection({
   form,
   setForm,
+  disabled,
 }: AppointmentOptionsSectionProps) {
+  const baseId = useId();
+  const reminderId = `${baseId}-reminder`;
+  const recurringId = `${baseId}-recurring`;
+  const frequencyId = `${baseId}-frequency`;
+  const occurrencesId = `${baseId}-occurrences`;
+  const endsOnId = `${baseId}-ends-on`;
+  const conflictStrategyId = `${baseId}-conflict-strategy`;
+
   return (
     <section className="space-y-3">
       <SectionLabel>Opções</SectionLabel>
       <Toggle
+        id={reminderId}
         checked={form.reminder}
+        disabled={disabled}
         onChange={(value) =>
           setForm((current) => ({ ...current, reminder: value }))
         }
@@ -25,7 +38,9 @@ export function AppointmentOptionsSection({
         description="O envio fica registrado na fila de lembretes."
       />
       <Toggle
+        id={recurringId}
         checked={form.recurring}
+        disabled={disabled}
         onChange={(value) =>
           setForm((current) => ({ ...current, recurring: value }))
         }
@@ -35,9 +50,11 @@ export function AppointmentOptionsSection({
       {form.recurring && (
         <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Frequência">
+            <Field label="Frequência" htmlFor={frequencyId}>
               <select
+                id={frequencyId}
                 value={form.frequency}
+                disabled={disabled}
                 onChange={(event) =>
                   setForm((current) => ({
                     ...current,
@@ -52,12 +69,14 @@ export function AppointmentOptionsSection({
                 <option value="monthly">Mensal</option>
               </select>
             </Field>
-            <Field label="Quantidade">
+            <Field label="Quantidade" htmlFor={occurrencesId}>
               <input
+                id={occurrencesId}
                 type="number"
                 min={2}
                 max={365}
                 value={form.occurrences}
+                disabled={disabled}
                 onChange={(event) =>
                   setForm((current) => ({
                     ...current,
@@ -68,10 +87,12 @@ export function AppointmentOptionsSection({
               />
             </Field>
           </div>
-          <Field label="Encerrar em (opcional)">
+          <Field label="Encerrar em (opcional)" htmlFor={endsOnId}>
             <input
+              id={endsOnId}
               type="date"
               value={form.endsOn}
+              disabled={disabled}
               onChange={(event) =>
                 setForm((current) => ({
                   ...current,
@@ -81,9 +102,11 @@ export function AppointmentOptionsSection({
               className={fieldClass}
             />
           </Field>
-          <Field label="Quando houver conflito">
+          <Field label="Quando houver conflito" htmlFor={conflictStrategyId}>
             <select
+              id={conflictStrategyId}
               value={form.conflictStrategy}
+              disabled={disabled}
               onChange={(event) =>
                 setForm((current) => ({
                   ...current,

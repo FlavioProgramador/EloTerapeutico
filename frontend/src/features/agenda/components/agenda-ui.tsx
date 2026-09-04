@@ -1,11 +1,12 @@
 "use client";
 
+import { useId } from "react";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgendaPagination, AppointmentStatus } from "../types";
 
 export const fieldClass =
-  "h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-60";
+  "h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
 
 export function Toolbar({ children }: { children: React.ReactNode }) {
   return (
@@ -79,11 +80,27 @@ export function Field({
   label,
   children,
   hint,
+  htmlFor,
 }: {
   label: string;
   children: React.ReactNode;
   hint?: string;
+  htmlFor?: string;
 }) {
+  if (htmlFor) {
+    return (
+      <div className="space-y-1.5">
+        <label htmlFor={htmlFor} className="block text-xs font-semibold text-foreground">
+          {label}
+        </label>
+        {children}
+        {hint && (
+          <span className="block text-[11px] text-muted-foreground">{hint}</span>
+        )}
+      </div>
+    );
+  }
+
   return (
     <label className="block space-y-1.5">
       <span className="text-xs font-semibold text-foreground">{label}</span>
@@ -108,29 +125,42 @@ export function Toggle({
   onChange,
   label,
   description,
+  disabled,
+  id,
 }: {
   checked: boolean;
   onChange: (value: boolean) => void;
   label: string;
   description?: string;
+  disabled?: boolean;
+  id?: string;
 }) {
+  const generatedId = useId();
+  const toggleId = id || generatedId;
   return (
-    <label className="flex cursor-pointer items-start justify-between gap-4 rounded-lg border border-border bg-secondary/10 p-3">
-      <span>
+    <div
+      className={cn(
+        "flex items-start justify-between gap-4 rounded-lg border border-border bg-secondary/10 p-3",
+        disabled && "cursor-not-allowed opacity-60",
+      )}
+    >
+      <label htmlFor={toggleId} className={cn("cursor-pointer", disabled && "cursor-not-allowed")}>
         <strong className="block text-sm font-medium">{label}</strong>
         {description && (
           <span className="mt-0.5 block text-xs text-muted-foreground">
             {description}
           </span>
         )}
-      </span>
+      </label>
       <input
+        id={toggleId}
         type="checkbox"
         checked={checked}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
-        className="mt-1"
+        className="mt-1 rounded border-border text-primary focus:ring-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
       />
-    </label>
+    </div>
   );
 }
 

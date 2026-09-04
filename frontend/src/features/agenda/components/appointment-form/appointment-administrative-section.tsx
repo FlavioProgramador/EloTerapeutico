@@ -1,6 +1,6 @@
+import { useId } from "react";
 import { CalendarDays, Clock3, Repeat2, Users, Video } from "lucide-react";
 
-import { SectionLabel } from "../agenda-ui";
 import type {
   AppointmentFormSetter,
   AppointmentFormState,
@@ -10,19 +10,30 @@ interface AppointmentAdministrativeSectionProps {
   form: AppointmentFormState;
   setForm: AppointmentFormSetter;
   duration: number;
+  disabled?: boolean;
 }
 
 export function AppointmentAdministrativeSection({
   form,
   setForm,
   duration,
+  disabled,
 }: AppointmentAdministrativeSectionProps) {
+  const notesId = useId();
+
   return (
     <>
       <section className="space-y-3 border-t border-border pt-4">
-        <SectionLabel>Observações administrativas</SectionLabel>
+        <label
+          htmlFor={notesId}
+          className="block text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground"
+        >
+          Observações administrativas
+        </label>
         <textarea
+          id={notesId}
           value={form.notes}
+          disabled={disabled}
           onChange={(event) =>
             setForm((current) => ({
               ...current,
@@ -31,7 +42,7 @@ export function AppointmentAdministrativeSection({
           }
           rows={6}
           placeholder="Informações operacionais sobre a consulta..."
-          className="w-full rounded-md border border-border bg-background p-3 text-sm outline-none focus:border-primary"
+          className="w-full rounded-md border border-border bg-background p-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         />
       </section>
 
