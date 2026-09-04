@@ -1,3 +1,4 @@
+import { useId } from "react";
 import type { Patient } from "@/types";
 import type { PatientProfessionalOption } from "@/features/patients/types/patient-form.types";
 import type { TimeSlot } from "../../types";
@@ -18,6 +19,7 @@ interface AppointmentWhoWhenSectionProps {
   loadingSlots: boolean;
   showTherapistField: boolean;
   onApplySlot: (value: string) => void;
+  disabled?: boolean;
 }
 
 export function AppointmentWhoWhenSection({
@@ -31,21 +33,34 @@ export function AppointmentWhoWhenSection({
   loadingSlots,
   showTherapistField,
   onApplySlot,
+  disabled,
 }: AppointmentWhoWhenSectionProps) {
+  const baseId = useId();
+  const searchId = `${baseId}-search`;
+  const patientId = `${baseId}-patient`;
+  const therapistId = `${baseId}-therapist`;
+  const dateId = `${baseId}-date`;
+  const timeId = `${baseId}-time`;
+  const slotsId = `${baseId}-slots`;
+
   return (
     <section className="space-y-3">
       <SectionLabel>Quem e quando</SectionLabel>
-      <Field label="Buscar paciente">
+      <Field label="Buscar paciente" htmlFor={searchId}>
         <input
+          id={searchId}
           value={search}
+          disabled={disabled}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Nome, telefone, e-mail ou CPF..."
           className={fieldClass}
         />
       </Field>
-      <Field label="Paciente *">
+      <Field label="Paciente *" htmlFor={patientId}>
         <select
+          id={patientId}
           value={form.patient}
+          disabled={disabled}
           onChange={(event) =>
             setForm((current) => ({
               ...current,
@@ -64,9 +79,11 @@ export function AppointmentWhoWhenSection({
         </select>
       </Field>
       {showTherapistField && (
-        <Field label="Profissional responsável *">
+        <Field label="Profissional responsável *" htmlFor={therapistId}>
           <select
+            id={therapistId}
             value={form.therapist}
+            disabled={disabled}
             onChange={(event) =>
               setForm((current) => ({
                 ...current,
@@ -86,10 +103,12 @@ export function AppointmentWhoWhenSection({
         </Field>
       )}
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Data *">
+        <Field label="Data *" htmlFor={dateId}>
           <input
+            id={dateId}
             type="date"
             value={form.date}
+            disabled={disabled}
             onChange={(event) =>
               setForm((current) => ({
                 ...current,
@@ -100,10 +119,12 @@ export function AppointmentWhoWhenSection({
             required
           />
         </Field>
-        <Field label="Horário *">
+        <Field label="Horário *" htmlFor={timeId}>
           <input
+            id={timeId}
             type="time"
             value={form.time}
+            disabled={disabled}
             onChange={(event) =>
               setForm((current) => ({
                 ...current,
@@ -115,8 +136,10 @@ export function AppointmentWhoWhenSection({
           />
         </Field>
       </div>
-      <Field label="Horários livres sugeridos">
+      <Field label="Horários livres sugeridos" htmlFor={slotsId}>
         <select
+          id={slotsId}
+          disabled={disabled}
           onChange={(event) => onApplySlot(event.target.value)}
           className={fieldClass}
           defaultValue=""

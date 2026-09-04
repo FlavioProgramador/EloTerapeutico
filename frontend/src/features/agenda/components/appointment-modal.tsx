@@ -28,10 +28,15 @@ export function AppointmentModal({
     onSuccess: onClose,
   });
 
+  const handleClose = () => {
+    if (appointmentForm.isSubmitting) return;
+    onClose();
+  };
+
   return (
     <Modal
       isOpen={open}
-      onClose={onClose}
+      onClose={handleClose}
       title="Nova consulta"
       description="Todos os campos essenciais em uma única tela."
       className="max-w-4xl"
@@ -52,11 +57,13 @@ export function AppointmentModal({
             loadingSlots={appointmentForm.loadingSlots}
             showTherapistField={appointmentForm.showTherapistField}
             onApplySlot={appointmentForm.applySlot}
+            disabled={appointmentForm.isSubmitting}
           />
           <AppointmentDetailsSection
             form={appointmentForm.form}
             setForm={appointmentForm.setForm}
             rooms={appointmentForm.rooms}
+            disabled={appointmentForm.isSubmitting}
           />
         </div>
 
@@ -64,16 +71,23 @@ export function AppointmentModal({
           <AppointmentOptionsSection
             form={appointmentForm.form}
             setForm={appointmentForm.setForm}
+            disabled={appointmentForm.isSubmitting}
           />
           <AppointmentAdministrativeSection
             form={appointmentForm.form}
             setForm={appointmentForm.setForm}
             duration={appointmentForm.duration}
+            disabled={appointmentForm.isSubmitting}
           />
         </div>
 
         <div className="flex justify-end gap-2 border-t border-border pt-4 lg:col-span-2">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleClose}
+            disabled={appointmentForm.isSubmitting}
+          >
             Cancelar
           </Button>
           <Button type="submit" isLoading={appointmentForm.isSubmitting}>
