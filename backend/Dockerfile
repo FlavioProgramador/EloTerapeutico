@@ -27,7 +27,8 @@ RUN apk add --no-cache --virtual .build-deps \
         fribidi \
         fontconfig \
         libffi \
-        openssl
+        openssl \
+    && apk upgrade --no-cache
 
 WORKDIR /app
 
@@ -35,7 +36,7 @@ ARG REQUIREMENTS_FILE=requirements-prod.txt
 
 COPY requirements*.txt ./
 
-RUN python -m pip install --upgrade pip \
+RUN python -m pip install --upgrade pip setuptools "msgpack>=1.2.1" \
     && python -m pip install -r ${REQUIREMENTS_FILE} \
     && apk del .build-deps
 
