@@ -144,8 +144,9 @@ class OrganizationSettingsSerializer(serializers.ModelSerializer):
             "telemedicine_unavailable_reason",
         ]
 
-    def _billing_user(self):
-        organization = getattr(self.instance, "organization", None)
+    def _billing_user(self, obj=None):
+        target = obj if obj is not None else self.instance
+        organization = getattr(target, "organization", None)
         if organization is not None:
             membership = (
                 OrganizationMembership.objects.select_related("user")
@@ -166,19 +167,28 @@ class OrganizationSettingsSerializer(serializers.ModelSerializer):
             return request_user
         return None
 
-    def _telemedicine_state(self) -> tuple[bool, str]:
+    def _telemedicine_state(self, obj=None) -> tuple[bool, str]:
+        target = obj if obj is not None else self.instance
+        cache_key = f"_telemedicine_state_{getattr(target, 'pk', None)}"
+        if hasattr(self, cache_key):
+            return getattr(self, cache_key)
+
         config = get_telemedicine_config()
         if not config.enabled or not config.provider_configured:
-            return (
+            res = (
                 False,
                 "O atendimento online ainda não está disponível para esta organização.",
             )
+            setattr(self, cache_key, res)
+            return res
 
-        user = self._billing_user()
+        user = self._billing_user(target)
         if user is None:
             # Em serializers de escrita sem instance o service transacional realiza
             # a validação final usando a organização e o ator autenticado.
-            return True, ""
+            res = (True, "")
+            setattr(self, cache_key, res)
+            return res
 
         subscription = (
             Subscription.objects.select_related("plan")
@@ -198,16 +208,19 @@ class OrganizationSettingsSerializer(serializers.ModelSerializer):
             and subscription.has_access
             and subscription.plan.has_telemedicine
         ):
-            return False, "O plano atual não inclui atendimento online."
-        return True, ""
+            res = (False, "O plano atual não inclui atendimento online.")
+            setattr(self, cache_key, res)
+            return res
+
+        res = (True, "")
+        setattr(self, cache_key, res)
+        return res
 
     def get_telemedicine_available(self, obj):
-        del obj
-        return self._telemedicine_state()[0]
+        return self._telemedicine_state(obj)[0]
 
     def get_telemedicine_unavailable_reason(self, obj):
-        del obj
-        return self._telemedicine_state()[1]
+        return self._telemedicine_state(obj)[1]
 
     def validate_allow_telemedicine(self, value):
         if value:
