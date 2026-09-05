@@ -152,6 +152,7 @@ function ResetPasswordForm() {
             placeholder="••••••••"
             type={showPassword ? "text" : "password"}
             autoComplete="new-password"
+            disabled={isSubmitting}
             leftIcon={
               <Lock
                 className="h-4.5 w-4.5 text-muted-foreground"
@@ -161,9 +162,10 @@ function ResetPasswordForm() {
             rightIcon={
               <button
                 type="button"
+                disabled={isSubmitting}
                 onClick={() => setShowPassword((current) => !current)}
                 aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                className="cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
+                className="cursor-pointer text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 rounded-xs disabled:pointer-events-none disabled:opacity-50"
               >
                 {showPassword ? (
                   <EyeOff className="h-4.5 w-4.5" aria-hidden="true" />
@@ -182,6 +184,7 @@ function ResetPasswordForm() {
             placeholder="••••••••"
             type={showConfirmPassword ? "text" : "password"}
             autoComplete="new-password"
+            disabled={isSubmitting}
             leftIcon={
               <Lock
                 className="h-4.5 w-4.5 text-muted-foreground"
@@ -191,11 +194,12 @@ function ResetPasswordForm() {
             rightIcon={
               <button
                 type="button"
+                disabled={isSubmitting}
                 onClick={() => setShowConfirmPassword((current) => !current)}
                 aria-label={
                   showConfirmPassword ? "Ocultar senha" : "Mostrar senha"
                 }
-                className="cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
+                className="cursor-pointer text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 rounded-xs disabled:pointer-events-none disabled:opacity-50"
               >
                 {showConfirmPassword ? (
                   <EyeOff className="h-4.5 w-4.5" aria-hidden="true" />
