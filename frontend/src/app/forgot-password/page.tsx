@@ -22,6 +22,7 @@ import {
 } from "@/features/auth/schemas/auth.schemas";
 import { authService } from "@/features/auth/services/auth.service";
 import { getPublicErrorMessage } from "@/lib/errors/public-error";
+import { cn } from "@/lib/utils";
 
 export default function ForgotPasswordPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -128,6 +129,7 @@ export default function ForgotPasswordPage() {
                   placeholder="seuemail@exemplo.com"
                   type="email"
                   autoComplete="email"
+                  disabled={isSubmitting}
                   leftIcon={
                     <Mail
                       className="h-4.5 w-4.5 text-muted-foreground"
@@ -150,7 +152,11 @@ export default function ForgotPasswordPage() {
                 <div className="flex justify-center pt-2">
                   <Link
                     href="/login"
-                    className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                    tabIndex={isSubmitting ? -1 : undefined}
+                    className={cn(
+                      "flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2",
+                      isSubmitting && "pointer-events-none opacity-50",
+                    )}
                   >
                     <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
                     Voltar para o login
