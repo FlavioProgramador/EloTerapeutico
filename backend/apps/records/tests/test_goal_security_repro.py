@@ -99,3 +99,20 @@ def test_unauthenticated_user_is_rejected(security_context):
         format="json"
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+@pytest.mark.django_db
+def test_other_therapist_cannot_access_goal_of_unauthorized_patient(security_context):
+    owner, linked, patient, goal = security_context
+
+    other_therapist = User.objects.create_user(
+        email="other@example.com",
+        password="password",
+        full_name="Other Therapist",
+        role=User.Role.THERAPIST,
+    )
+
+    client = APIClient()
+    client.force_authenticate(other_therapist)
+
+    response = client.get(f"/api/v1/records/goals/{goal.id}/")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
