@@ -5,7 +5,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from apps.patients.models import Patient
-from apps.records.treatment_models import ClinicalExport, ClinicalFormResponse
+from apps.records.treatment_models import ClinicalExport, ClinicalFormResponse, TreatmentGoal
 from apps.users.models import User
 
 
@@ -55,18 +55,30 @@ def create_clinical_exports(therapist, patient, count):
         )
 
 
+def create_treatment_goals(therapist, patient, count):
+    for i in range(count):
+        TreatmentGoal.objects.create(
+            patient=patient,
+            title=f"Meta {i}",
+            created_by=therapist,
+        )
+
+
 @pytest.mark.django_db
 def test_clinical_lists_queries_optimized(client, therapist, patient):
     form_url = reverse("patient-forms", kwargs={"patient_id": patient.id})
     export_url = reverse("patient-exports", kwargs={"patient_id": patient.id})
+    goals_url = reverse("treatment-goals", kwargs={"patient_id": patient.id})
 
     # Warm up to avoid initial auth/session/content-type queries
     client.get(form_url)
     client.get(export_url)
+    client.get(goals_url)
 
     # 1. Setup 2 items for each list
     create_form_responses(therapist, patient, 2)
     create_clinical_exports(therapist, patient, 2)
+    create_treatment_goals(therapist, patient, 2)
 
     with CaptureQueriesContext(connection) as queries_forms_small:
         response = client.get(form_url)
@@ -78,13 +90,20 @@ def test_clinical_lists_queries_optimized(client, therapist, patient):
         assert response.status_code == 200
         count_exports_small = len(queries_exports_small)
 
+    with CaptureQueriesContext(connection) as queries_goals_small:
+        response = client.get(goals_url)
+        assert response.status_code == 200
+        count_goals_small = len(queries_goals_small)
+
     # Clean up before creating larger dataset
     ClinicalFormResponse.objects.all().delete()
     ClinicalExport.objects.all().delete()
+    TreatmentGoal.objects.all().delete()
 
     # 2. Setup 5 items for each list
     create_form_responses(therapist, patient, 5)
     create_clinical_exports(therapist, patient, 5)
+    create_treatment_goals(therapist, patient, 5)
 
     with CaptureQueriesContext(connection) as queries_forms_large:
         response = client.get(form_url)
@@ -96,15 +115,24 @@ def test_clinical_lists_queries_optimized(client, therapist, patient):
         assert response.status_code == 200
         count_exports_large = len(queries_exports_large)
 
+    with CaptureQueriesContext(connection) as queries_goals_large:
+        response = client.get(goals_url)
+        assert response.status_code == 200
+        count_goals_large = len(queries_goals_large)
+
     print("\nClinical Lists Queries:")
     print(f"Form responses (2 items): {count_forms_small}")
     print(f"Form responses (5 items): {count_forms_large}")
     print(f"Clinical exports (2 items): {count_exports_small}")
     print(f"Clinical exports (5 items): {count_exports_large}")
+    print(f"Treatment goals (2 items): {count_goals_small}")
+    print(f"Treatment goals (5 items): {count_goals_large}")
 
     # Prior to optimization:
     # - Form responses would execute N+1 queries to retrieve therapist name
     # - Clinical exports would execute N+1 queries to retrieve created_by name
+    # - Treatment goals would execute N+1 queries to retrieve created_by name
     # After adding select_related, the query count must be constant (equal for small & large datasets).
     assert count_forms_large == count_forms_small
     assert count_exports_large == count_exports_small
+    assert count_goals_large == count_goals_small
