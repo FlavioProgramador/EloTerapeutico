@@ -20,6 +20,8 @@ WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1
 
+RUN apk upgrade --no-cache libcrypto3 libssl3
+
 COPY --from=builder /app ./
 
 RUN rm -rf \
