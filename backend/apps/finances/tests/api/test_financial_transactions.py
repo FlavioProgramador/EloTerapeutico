@@ -262,7 +262,13 @@ def test_transaction_detail_isolation(auth_client, other_therapist):
 
 
 @pytest.mark.django_db
-def test_export_csv_success(auth_client, therapist_user):
+def test_export_csv_success(auth_client, therapist_user, api_client):
+    from apps.audit.models import AuditLog
+
+    # Unauthenticated request should be rejected
+    unauth_response = api_client.get(reverse("transaction-export-csv"))
+    assert unauth_response.status_code in (400, 401, 403)
+
     FinancialTransaction.objects.create(
         therapist=therapist_user,
         transaction_type="income",
@@ -277,6 +283,14 @@ def test_export_csv_success(auth_client, therapist_user):
     rows = list(csv.reader(csv_file, delimiter=";"))
     assert len(rows) == 2
     assert rows[1][9] == "'=Sessão clínica"
+
+    # Verify audit log entry was generated
+    log = AuditLog.objects.filter(
+        user=therapist_user,
+        action=AuditLog.Action.EXPORT,
+    ).first()
+    assert log is not None
+    assert "Exportação CSV de 1 transações" in log.object_repr
 
 
 @pytest.mark.django_db
