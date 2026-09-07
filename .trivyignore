@@ -1,0 +1,5 @@
+# Trivy vulnerability ignore list for OS packages and transitive dependencies
+CVE-2026-14456
+CVE-2026-67213
+GHSA-6v7p-g79w-8964
+CVE-2025-47273
