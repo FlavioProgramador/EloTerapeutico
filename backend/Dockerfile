@@ -4,7 +4,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-RUN apk add --no-cache --virtual .build-deps \
+RUN apk upgrade --no-cache && apk add --no-cache --virtual .build-deps \
         build-base \
         python3-dev \
         libpq-dev \
@@ -35,7 +35,7 @@ ARG REQUIREMENTS_FILE=requirements-prod.txt
 
 COPY requirements*.txt ./
 
-RUN python -m pip install --upgrade pip \
+RUN python -m pip install --upgrade pip "setuptools>=78.1.1" "msgpack>=1.2.1" \
     && python -m pip install -r ${REQUIREMENTS_FILE} \
     && apk del .build-deps
 
