@@ -1,5 +1,9 @@
 def serialize_patient_professionals(patient):
-    links = patient.professional_links.filter(is_active=True).select_related("professional")
+    prefetched = getattr(patient, "_prefetched_objects_cache", {})
+    if "professional_links" in prefetched:
+        links = [link for link in patient.professional_links.all() if link.is_active]
+    else:
+        links = patient.professional_links.filter(is_active=True).select_related("professional")
     data = [
         {
             "id": link.professional_id,

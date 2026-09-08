@@ -301,3 +301,34 @@ class TestPatientFiltering:
         results = response.data.get("results", [])
         assert len(results) == 1
         assert results[0]["id"] == p2.id
+
+
+@pytest.mark.django_db
+def test_serialize_patient_professionals_uses_prefetched_cache(django_assert_num_queries, therapist_user, other_therapist):
+    from apps.patients.api.serializers.patient_professionals import serialize_patient_professionals
+    from apps.patients.models import PatientProfessional
+
+    patient = Patient.objects.create(
+        full_name="Paciente Com Profissionais",
+        cpf=generate_valid_cpf(),
+        birth_date=date(1990, 1, 1),
+        therapist=therapist_user,
+        status=Patient.Status.ACTIVE,
+    )
+
+    PatientProfessional.objects.create(
+        patient=patient,
+        professional=other_therapist,
+        assigned_by=therapist_user,
+        is_active=True,
+        is_primary=False,
+    )
+
+    # Buscar paciente com select_related e prefetch_related
+    patient_prefetched = Patient.objects.select_related("therapist").prefetch_related("professional_links__professional").get(pk=patient.pk)
+
+    # Deve serializar sem realizar nenhuma consulta ao banco de dados adicional
+    with django_assert_num_queries(0):
+        data = serialize_patient_professionals(patient_prefetched)
+
+    assert len(data) == 2
