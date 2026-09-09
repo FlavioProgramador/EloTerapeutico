@@ -419,3 +419,37 @@ def test_preference_is_unique_per_patient(therapist, patient):
     )
     assert created is False
     assert first.pk == second.pk
+
+
+@pytest.mark.django_db
+@override_settings(BILLING_REQUIRE_SUBSCRIPTION=False)
+def test_communication_list_does_not_query_attempts(
+    authenticated_client,
+    therapist,
+    django_assert_num_queries,
+):
+    organization = therapist.test_organization
+    ensure_default_channels(therapist, organization=organization)
+    for i in range(3):
+        create_communication(
+            organization=organization,
+            owner=therapist,
+            created_by=therapist,
+            channel=Communication.Channel.IN_APP,
+            category=Communication.Category.SYSTEM_NOTIFICATION,
+            subject=f"Comunicação {i}",
+            body="Conteúdo",
+            idempotency_key=f"test:perf:{i}",
+        )
+
+    # 1: Session/Auth user lookup
+    # 2: Request organization lookup
+    # 3: Organization membership check
+    # 4: Communication count (pagination)
+    # 5: Communication list query
+    # 6: Communication recipients prefetch
+    with django_assert_num_queries(6):
+        response = authenticated_client.get("/api/v1/communications/")
+
+    assert response.status_code == 200
+    assert len(response.data["results"]) == 3
