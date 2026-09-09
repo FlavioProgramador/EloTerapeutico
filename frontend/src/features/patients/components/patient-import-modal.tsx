@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { Download, UploadCloud } from "lucide-react";
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ interface Props {
 }
 
 export function PatientImportModal({ open, onClose }: Props) {
+  const fileInputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
@@ -98,7 +99,7 @@ export function PatientImportModal({ open, onClose }: Props) {
     >
       <div className="space-y-4">
         <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-6 text-center">
-          <UploadCloud className="mx-auto h-7 w-7 text-primary" />
+          <UploadCloud className="mx-auto h-7 w-7 text-primary" aria-hidden="true" />
           <p className="mt-3 text-sm font-semibold text-foreground">
             Arquivo CSV com até 500 pacientes
           </p>
@@ -107,6 +108,7 @@ export function PatientImportModal({ open, onClose }: Props) {
           </p>
           <input
             ref={inputRef}
+            id={fileInputId}
             type="file"
             accept=".csv,text/csv"
             aria-label="Upload de arquivo CSV"
@@ -132,7 +134,7 @@ export function PatientImportModal({ open, onClose }: Props) {
               variant="ghost"
               size="sm"
               onClick={downloadTemplate}
-              leftIcon={<Download className="h-4 w-4" />}
+              leftIcon={<Download className="h-4 w-4" aria-hidden="true" />}
               disabled={loading}
             >
               Baixar modelo
@@ -146,7 +148,13 @@ export function PatientImportModal({ open, onClose }: Props) {
         </div>
 
         {preview && (
-          <section className="rounded-xl border border-border bg-secondary/25 p-4">
+          <section
+            role="region"
+            aria-label="Resultado da validação do arquivo CSV"
+            aria-live="polite"
+            aria-atomic="true"
+            className="rounded-xl border border-border bg-secondary/25 p-4"
+          >
             <div className="grid grid-cols-3 gap-3 text-center">
               <div>
                 <strong className="block text-lg text-foreground">
