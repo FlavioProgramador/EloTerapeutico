@@ -73,6 +73,19 @@ class TelemedicineRoomSerializer(serializers.ModelSerializer):
         }
 
     def get_active_participants(self, obj):
+        if (
+            hasattr(obj, "_prefetched_objects_cache")
+            and "participant_sessions" in obj._prefetched_objects_cache
+        ):
+            return [
+                {
+                    "role": s.role,
+                    "provider_participant_identity": s.provider_participant_identity,
+                    "joined_at": s.joined_at,
+                }
+                for s in obj.participant_sessions.all()
+                if s.left_at is None
+            ]
         return list(
             obj.participant_sessions.filter(left_at__isnull=True).values(
                 "role",
