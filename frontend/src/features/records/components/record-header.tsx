@@ -47,14 +47,13 @@ export function RecordHeader({
         <button
           type="button"
           onClick={onBack}
-          aria-label="Voltar para Pacientes"
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200"
           title="Voltar para Pacientes"
         >
-          <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+          <ChevronLeft className="h-5 w-5" />
         </button>
         <div className="flex items-center gap-2">
-          <BookOpen className="h-6 w-6 text-primary" aria-hidden="true" />
+          <BookOpen className="h-6 w-6 text-primary" />
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Prontuário Clínico
@@ -88,19 +87,19 @@ export function RecordHeader({
 
               <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <User className="h-3.5 w-3.5 text-primary/60" aria-hidden="true" />
+                  <User className="h-3.5 w-3.5 text-primary/60" />
                   {patient.age ? `${patient.age} anos` : "Idade não informada"}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Phone className="h-3.5 w-3.5 text-primary/60" aria-hidden="true" />
+                  <Phone className="h-3.5 w-3.5 text-primary/60" />
                   {patient.phone || "Sem telefone"}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Mail className="h-3.5 w-3.5 text-primary/60" aria-hidden="true" />
+                  <Mail className="h-3.5 w-3.5 text-primary/60" />
                   {patient.email || "Sem e-mail"}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5 text-primary/60" aria-hidden="true" />
+                  <Calendar className="h-3.5 w-3.5 text-primary/60" />
                   Início: {new Date(summary.treatment_start).toLocaleDateString("pt-BR")}
                 </span>
               </div>
@@ -112,7 +111,7 @@ export function RecordHeader({
             <Button
               size="md"
               onClick={onNewEvolution}
-              leftIcon={<Plus className="h-4 w-4" aria-hidden="true" />}
+              leftIcon={<Plus className="h-4 w-4" />}
               className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs"
             >
               Nova Evolução
@@ -121,7 +120,7 @@ export function RecordHeader({
               size="md"
               variant="outline"
               onClick={onFillForm}
-              leftIcon={<FileSpreadsheet className="h-4 w-4" aria-hidden="true" />}
+              leftIcon={<FileSpreadsheet className="h-4 w-4" />}
               className="border-primary/20 text-primary hover:bg-primary/10"
             >
               Preencher Formulário
@@ -131,7 +130,7 @@ export function RecordHeader({
               variant="outline"
               isLoading={exporting}
               onClick={onExport}
-              leftIcon={<FileDown className="h-4 w-4" aria-hidden="true" />}
+              leftIcon={<FileDown className="h-4 w-4" />}
               className="border-primary/20 text-primary hover:bg-primary/10"
             >
               Gerar Documento
