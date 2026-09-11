@@ -81,7 +81,7 @@ Elas suportam compilação de dependências, PostgreSQL e renderização do Weas
 | Tecnologia | Versão | Finalidade |
 | --- | --- | --- |
 | Node.js | 24 na imagem | Runtime de build e servidor Next.js |
-| Next.js | 16.2.11 | App Router, SSR, Route Handlers e BFF |
+| Next.js | ^16.3.4 | App Router, SSR, Route Handlers e BFF |
 | React | 19.2.7 | Interface baseada em componentes |
 | React DOM | 19.2.4 | Renderização web |
 | TypeScript | 6 | Tipagem estática |
@@ -208,7 +208,7 @@ Redis não substitui o PostgreSQL como fonte oficial dos estados de negócio.
 | Ferramenta | Versão/faixa | Uso |
 | --- | --- | --- |
 | ESLint | `^9` | Lint |
-| eslint-config-next | `16.2.11` | Regras Next.js |
+| eslint-config-next | `^16.3.4` | Regras Next.js |
 | TypeScript compiler | 6 | `tsc --noEmit` |
 | Node Test Runner | Node 24 | Testes `.mjs` e cobertura experimental |
 | Playwright | pacote isolado em `frontend/e2e` | Autenticação e gateway E2E |
