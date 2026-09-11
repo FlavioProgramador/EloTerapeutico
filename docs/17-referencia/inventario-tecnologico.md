@@ -36,6 +36,8 @@ Versões devem ser atualizadas quando `requirements*.txt`, `package.json`, Docke
 
 | Dependência | Versão/faixa | Uso |
 | --- | --- | --- |
+| `setuptools` | `>=78.1.1` | Utilitários de empacotamento Python |
+| `msgpack` | `>=1.2.1` | Serialização binária eficiente para Celery/Redis |
 | `django-cors-headers` | `>=4.3,<4.4` | CORS e headers permitidos |
 | `django-filter` | `>=24.1,<24.2` | Filtros da API |
 | `django-environ` | `>=0.14.0,<0.15` | Leitura e tipagem de variáveis de ambiente |
