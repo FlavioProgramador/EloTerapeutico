@@ -107,14 +107,14 @@ export function PatientSidePanel({ data, loading, onClose }: Props) {
         <button
           type="button"
           onClick={() => router.push(`/dashboard/patients/${patient.id}`)}
-          className="flex items-center justify-center gap-2 border-r border-border px-3 py-3 text-xs font-semibold text-foreground hover:bg-primary/8 hover:text-primary"
+          className="flex items-center justify-center gap-2 border-r border-border px-3 py-3 text-xs font-semibold text-foreground hover:bg-primary/8 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
         >
           <Settings2 className="h-4 w-4" aria-hidden="true" /> Gerenciar cadastro
         </button>
         <button
           type="button"
           onClick={() => router.push(`/dashboard/agenda?patient=${patient.id}`)}
-          className="flex items-center justify-center gap-2 px-3 py-3 text-xs font-semibold text-foreground hover:bg-primary/8 hover:text-primary"
+          className="flex items-center justify-center gap-2 px-3 py-3 text-xs font-semibold text-foreground hover:bg-primary/8 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
         >
           <CalendarDays className="h-4 w-4" aria-hidden="true" /> Agendar sessão
         </button>

@@ -129,7 +129,7 @@ export function PatientDetailPanel({ data, loading, onClose }: Props) {
           <button
             type="button"
             onClick={() => router.push(`/dashboard/records/${patient.id}`)}
-            className="flex items-center justify-center gap-2 border-r border-border px-3 py-3 text-xs font-semibold text-foreground hover:bg-primary/8 hover:text-primary"
+            className="flex items-center justify-center gap-2 border-r border-border px-3 py-3 text-xs font-semibold text-foreground hover:bg-primary/8 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
             <NotebookPen className="h-4 w-4" aria-hidden="true" /> Ver prontuário
           </button>
@@ -138,7 +138,7 @@ export function PatientDetailPanel({ data, loading, onClose }: Props) {
             onClick={() =>
               router.push(`/dashboard/agenda?patient=${patient.id}`)
             }
-            className="flex items-center justify-center gap-2 px-3 py-3 text-xs font-semibold text-foreground hover:bg-primary/8 hover:text-primary"
+            className="flex items-center justify-center gap-2 px-3 py-3 text-xs font-semibold text-foreground hover:bg-primary/8 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
             <CalendarDays className="h-4 w-4" aria-hidden="true" /> Agendar sessão
           </button>
@@ -147,14 +147,14 @@ export function PatientDetailPanel({ data, loading, onClose }: Props) {
             onClick={() =>
               router.push(`/dashboard/records/${patient.id}?new=evolution`)
             }
-            className="flex items-center justify-center gap-2 border-r border-t border-border px-3 py-3 text-xs font-semibold text-foreground hover:bg-primary/8 hover:text-primary"
+            className="flex items-center justify-center gap-2 border-r border-t border-border px-3 py-3 text-xs font-semibold text-foreground hover:bg-primary/8 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
             <FileText className="h-4 w-4" aria-hidden="true" /> Nova evolução
           </button>
           <button
             type="button"
             disabled
-            className="flex items-center justify-center gap-2 border-t border-border px-3 py-3 text-xs font-semibold text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex items-center justify-center gap-2 border-t border-border px-3 py-3 text-xs font-semibold text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
             <MessageCircle className="h-4 w-4" aria-hidden="true" /> Mensagem indisponível
           </button>
@@ -163,7 +163,7 @@ export function PatientDetailPanel({ data, loading, onClose }: Props) {
         <button
           type="button"
           onClick={() => router.push(`/dashboard/agenda?patient=${patient.id}`)}
-          className="flex w-full items-center justify-center gap-2 border-b border-border px-3 py-3 text-xs font-semibold text-foreground hover:bg-primary/8 hover:text-primary"
+          className="flex w-full items-center justify-center gap-2 border-b border-border px-3 py-3 text-xs font-semibold text-foreground hover:bg-primary/8 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
         >
           <CalendarDays className="h-4 w-4" aria-hidden="true" /> Agendar sessão
         </button>
@@ -222,7 +222,7 @@ export function PatientDetailPanel({ data, loading, onClose }: Props) {
                   onClick={() =>
                     router.push(`/dashboard/records/${patient.id}`)
                   }
-                  className="mt-3 text-xs font-semibold text-primary hover:underline"
+                  className="mt-3 text-xs font-semibold text-primary hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                 >
                   Abrir prontuário
                 </button>
