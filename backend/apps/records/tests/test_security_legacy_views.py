@@ -198,3 +198,27 @@ def test_anamnesis_put_cannot_reassign_patient(owner, patient):
 
     anamnesis.refresh_from_db()
     assert anamnesis.patient == patient
+
+
+@pytest.mark.django_db
+def test_evolution_viewset_locked_edit_rejected(owner, patient):
+    """
+    Regression: Ensure editing a locked evolution returns 400 Bad Request instead of 200 OK.
+    """
+    ev = Evolution.objects.create(
+        patient=patient,
+        content="Original locked note",
+        session_date=timezone.localdate(),
+        created_by=owner,
+        is_locked=True,
+    )
+
+    client = APIClient()
+    client.force_authenticate(owner)
+
+    url = f"/api/v1/records/evolutions/{ev.id}/"
+    response = client.patch(url, {"content": "Attempted edit"}, format="json")
+
+    assert response.status_code == 400
+    ev.refresh_from_db()
+    assert ev.content == "Original locked note"

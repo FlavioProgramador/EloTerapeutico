@@ -5,7 +5,7 @@ Views e ViewSets para o app de Prontuários Eletrônicos (Records).
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from rest_framework import generics, status, viewsets
+from rest_framework import generics, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -179,11 +179,8 @@ class EvolutionViewSet(AuditLogMixin, viewsets.ModelViewSet):
             )
 
         if not instance.can_be_edited():
-            return Response(
-                {
-                    "detail": "Esta evolução está bloqueada para edição (limite de 48h atingido ou bloqueada manualmente)."
-                },
-                status=status.HTTP_400_BAD_REQUEST,
+            raise serializers.ValidationError(
+                "Esta evolução está bloqueada para edição (limite de 48h atingido ou bloqueada manualmente)."
             )
 
         updated_instance = serializer.save()
