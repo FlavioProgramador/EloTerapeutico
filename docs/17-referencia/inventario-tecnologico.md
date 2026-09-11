@@ -50,7 +50,7 @@ Versões devem ser atualizadas quando `requirements*.txt`, `package.json`, Docke
 | `cryptography` | `>=49.0.0,<50.0` | Criptografia de campos e tokens técnicos |
 | `drf-spectacular` | `>=0.29.0,<0.30` | Schema OpenAPI, Swagger e ReDoc |
 | `argon2-cffi` | `>=23.1,<23.2` | Password hashing Argon2 |
-| `weasyprint` | `>=69.0,<70.0` | PDFs de prontuário, documentos e recibos |
+| `weasyprint` | `>=70.0,<71.0` | PDFs de prontuário, documentos e recibos |
 | `azure-storage-blob` | `>=12.19,<12.20` | SDK de acesso ao Azure Blob |
 | `django-ratelimit` | `>=4.1,<4.2` | Rate limiting |
 
