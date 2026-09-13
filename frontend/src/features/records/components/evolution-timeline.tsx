@@ -176,7 +176,7 @@ export function EvolutionTimeline({
   if (evolutions.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-primary/20 bg-primary/5 px-6 py-16 text-center">
-        <CalendarDays className="mx-auto h-7 w-7 text-primary" />
+        <CalendarDays className="mx-auto h-7 w-7 text-primary" aria-hidden="true" />
         <h3 className="mt-4 text-sm font-bold text-foreground">
           Nenhuma evolução registrada
         </h3>
@@ -251,19 +251,19 @@ export function EvolutionTimeline({
         <div className="grid gap-2 md:grid-cols-[minmax(12rem,1fr)_repeat(4,minmax(8rem,auto))]">
           <label className="relative min-w-0">
             <span className="sr-only">Buscar evoluções</span>
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar nas evoluções..."
-              className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-xs text-foreground outline-none focus:border-emerald-400/50"
+              className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-xs text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             />
           </label>
 
           <select
             value={period}
             onChange={(event) => setPeriod(event.target.value)}
-            className="h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground"
+            className="h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             aria-label="Filtrar por período"
           >
             <option value="all">Todo o período</option>
@@ -277,7 +277,7 @@ export function EvolutionTimeline({
             onChange={(event) =>
               setModality(event.target.value as "all" | EvolutionModality)
             }
-            className="h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground"
+            className="h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             aria-label="Filtrar por modalidade"
           >
             <option value="all">Todas as modalidades</option>
@@ -291,7 +291,7 @@ export function EvolutionTimeline({
             onChange={(event) =>
               setStatus(event.target.value as "all" | EvolutionStatus)
             }
-            className="h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground"
+            className="h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             aria-label="Filtrar por status"
           >
             <option value="all">Todos os status</option>
@@ -305,9 +305,9 @@ export function EvolutionTimeline({
             onClick={() =>
               setOrder((current) => (current === "desc" ? "asc" : "desc"))
             }
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-xs text-muted-foreground hover:bg-secondary"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-xs text-muted-foreground transition hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
-            <Filter className="h-3.5 w-3.5" />
+            <Filter className="h-3.5 w-3.5" aria-hidden="true" />
             {order === "desc" ? "Mais recentes" : "Mais antigas"}
           </button>
         </div>
@@ -335,7 +335,7 @@ export function EvolutionTimeline({
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="text-[9px] font-semibold text-primary hover:underline"
+                  className="rounded-sm text-[9px] font-semibold text-primary transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                 >
                   Limpar filtros
                 </button>
@@ -346,7 +346,7 @@ export function EvolutionTimeline({
           {filtered.length === 0 ? (
             <div className="grid flex-1 place-items-center px-5 py-14 text-center">
               <div>
-                <Search className="mx-auto h-6 w-6 text-muted-foreground" />
+                <Search className="mx-auto h-6 w-6 text-muted-foreground" aria-hidden="true" />
                 <p className="mt-3 text-xs font-semibold text-foreground">
                   Nenhuma evolução encontrada
                 </p>
@@ -369,6 +369,7 @@ export function EvolutionTimeline({
                     onClick={() => onSelect(evolution.id)}
                     className={cn(
                       "relative z-10 grid w-full grid-cols-[2.9rem_1fr] gap-3 rounded-lg border p-3 text-left transition",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2",
                       active
                         ? "border-primary/30 bg-gradient-to-r from-primary/10 to-accent/5 shadow-sm"
                         : "border-transparent bg-background/35 hover:border-sky-400/15 hover:bg-sky-500/5",
@@ -412,17 +413,17 @@ export function EvolutionTimeline({
                       </span>
                       <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[9px] text-muted-foreground">
                         <span className="inline-flex items-center gap-1">
-                          <MapPin className="h-3 w-3 text-sky-300" />
+                          <MapPin className="h-3 w-3 text-sky-300" aria-hidden="true" />
                           {modalityLabel(evolution.modality)}
                         </span>
                         <span className="inline-flex items-center gap-1">
-                          <Clock3 className="h-3 w-3 text-violet-300" />
+                          <Clock3 className="h-3 w-3 text-violet-300" aria-hidden="true" />
                           {formatTime(evolution.session_time)} ·{" "}
                           {evolution.duration_minutes} min
                         </span>
                         {(evolution.attached_documents_count ?? 0) > 0 && (
                           <span className="inline-flex items-center gap-1">
-                            <Paperclip className="h-3 w-3 text-amber-300" />
+                            <Paperclip className="h-3 w-3 text-amber-300" aria-hidden="true" />
                             {evolution.attached_documents_count} anexo(s)
                           </span>
                         )}
@@ -444,10 +445,10 @@ export function EvolutionTimeline({
                   type="button"
                   disabled={page === 1}
                   onClick={() => setPage((current) => Math.max(1, current - 1))}
-                  className="grid h-7 w-7 place-items-center rounded-md border border-border disabled:opacity-40"
+                  className="grid h-7 w-7 place-items-center rounded-md border border-border transition disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                   aria-label="Página anterior"
                 >
-                  <ChevronLeft className="h-3.5 w-3.5" />
+                  <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
                 <button
                   type="button"
@@ -455,10 +456,10 @@ export function EvolutionTimeline({
                   onClick={() =>
                     setPage((current) => Math.min(totalPages, current + 1))
                   }
-                  className="grid h-7 w-7 place-items-center rounded-md border border-border disabled:opacity-40"
+                  className="grid h-7 w-7 place-items-center rounded-md border border-border transition disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                   aria-label="Próxima página"
                 >
-                  <ChevronRight className="h-3.5 w-3.5" />
+                  <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               </div>
             </footer>
@@ -469,7 +470,7 @@ export function EvolutionTimeline({
           {!selected ? (
             <div className="grid h-full min-h-[26rem] place-items-center text-center">
               <div>
-                <UserRound className="mx-auto h-7 w-7 text-sky-300" />
+                <UserRound className="mx-auto h-7 w-7 text-sky-300" aria-hidden="true" />
                 <p className="mt-3 text-xs font-semibold text-foreground">
                   Selecione uma evolução
                 </p>
@@ -579,7 +580,7 @@ export function EvolutionTimeline({
               <div className="grid gap-3 border-t border-sky-400/15 py-4 sm:grid-cols-3">
                 <div className="rounded-lg bg-background/35 p-3">
                   <div className="flex items-center gap-2 text-sky-300">
-                    <UserRound className="h-3.5 w-3.5" />
+                    <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
                     <strong className="text-[10px]">Autoria</strong>
                   </div>
                   <p className="mt-2 text-[10px] text-muted-foreground truncate">
@@ -588,7 +589,7 @@ export function EvolutionTimeline({
                 </div>
                 <div className="rounded-lg bg-background/35 p-3">
                   <div className="flex items-center gap-2 text-violet-300">
-                    <MapPin className="h-3.5 w-3.5" />
+                    <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
                     <strong className="text-[10px]">Modalidade</strong>
                   </div>
                   <p className="mt-2 text-[10px] text-muted-foreground">
@@ -598,7 +599,7 @@ export function EvolutionTimeline({
                 </div>
                 <div className="rounded-lg bg-background/35 p-3">
                   <div className="flex items-center gap-2 text-amber-300">
-                    <History className="h-3.5 w-3.5" />
+                    <History className="h-3.5 w-3.5" aria-hidden="true" />
                     <strong className="text-[10px]">Versões</strong>
                   </div>
                   <p className="mt-2 text-[10px] text-muted-foreground">
@@ -613,7 +614,7 @@ export function EvolutionTimeline({
                   {new Date(selected.created_at).toLocaleString("pt-BR")}
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <Archive className="h-3 w-3 text-violet-300" />
+                  <Archive className="h-3 w-3 text-violet-300" aria-hidden="true" />
                   {selected.addenda_count} aditivo(s) · última edição{" "}
                   {new Date(selected.updated_at).toLocaleString("pt-BR")}
                 </span>
