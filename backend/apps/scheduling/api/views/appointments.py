@@ -187,9 +187,11 @@ class AppointmentViewSet(AuditLogMixin, ScopedAgendaMixin, viewsets.ModelViewSet
             context={"request": request},
         )
         serializer.is_valid(raise_exception=True)
+        organization = getattr(request, "organization", None)
         therapist = get_accessible_therapist(
             actor=request.user,
             therapist_id=serializer.validated_data.get("therapist_id"),
+            organization=organization,
         )
         return Response(
             serializer.get_available_slots(
