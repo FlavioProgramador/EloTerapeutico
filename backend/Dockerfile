@@ -27,7 +27,8 @@ RUN apk add --no-cache --virtual .build-deps \
         fribidi \
         fontconfig \
         libffi \
-        openssl
+        openssl \
+    && apk upgrade --no-cache
 
 WORKDIR /app
 
