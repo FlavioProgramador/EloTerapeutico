@@ -41,6 +41,8 @@ Versões devem ser atualizadas quando `requirements*.txt`, `package.json`, Docke
 | `django-environ` | `>=0.14.0,<0.15` | Leitura e tipagem de variáveis de ambiente |
 | `httpx` | `>=0.28,<0.29` | Clients HTTP, incluindo integrações |
 | `python-dateutil` | `>=2.9,<3.0` | Datas, recorrências e utilitários |
+| `setuptools` | `>=78.1.1` | Utilitários de pacote Python |
+| `msgpack` | `>=1.2.1` | Serializador de dados em formato binário |
 | `sqlparse` | `>=0.6.0,<0.7` | Parsing SQL usado pelo ecossistema Django |
 | `redis` | `>=5.0,<6.0` | Cliente Redis e integração Celery |
 | `livekit-api` | `>=1.2.0,<1.3` | Salas, participantes, tokens e webhooks LiveKit |
