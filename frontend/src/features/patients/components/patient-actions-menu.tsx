@@ -153,7 +153,7 @@ export function PatientActionsMenu({
     action();
   };
   const itemClass =
-    "flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-xs font-medium text-popover-foreground outline-none transition hover:bg-secondary focus-visible:bg-secondary focus-visible:ring-2 focus-visible:ring-ring/40";
+    "flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-xs font-medium text-popover-foreground outline-none transition hover:bg-secondary focus-visible:bg-secondary focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2";
   const restorable = ["inactive", "archived"].includes(patient.status);
 
   const menu = open ? (
@@ -178,7 +178,7 @@ export function PatientActionsMenu({
               run(() => router.push(`/dashboard/records/${patient.id}`))
             }
           >
-            <ClipboardList className="h-4 w-4" /> Ver Prontuário
+            <ClipboardList className="h-4 w-4" aria-hidden="true" /> Ver Prontuário
           </button>
         )}
         <button
@@ -189,7 +189,7 @@ export function PatientActionsMenu({
             run(() => router.push(`/dashboard/agenda?patient=${patient.id}`))
           }
         >
-          <CalendarPlus className="h-4 w-4" /> Agendar Consulta
+          <CalendarPlus className="h-4 w-4" aria-hidden="true" /> Agendar Consulta
         </button>
         <button
           type="button"
@@ -208,7 +208,7 @@ export function PatientActionsMenu({
             })
           }
         >
-          <MessageCircle className="h-4 w-4" /> Enviar WhatsApp
+          <MessageCircle className="h-4 w-4" aria-hidden="true" /> Enviar WhatsApp
         </button>
         {canManage && (
           <button
@@ -217,7 +217,7 @@ export function PatientActionsMenu({
             className={itemClass}
             onClick={() => run(onRegistrationLink)}
           >
-            <Link2 className="h-4 w-4" /> Enviar Link de Cadastro
+            <Link2 className="h-4 w-4" aria-hidden="true" /> Enviar Link de Cadastro
           </button>
         )}
         {canManage && (
@@ -227,7 +227,7 @@ export function PatientActionsMenu({
             className={itemClass}
             onClick={() => run(onEdit)}
           >
-            <Pencil className="h-4 w-4" /> Editar Dados
+            <Pencil className="h-4 w-4" aria-hidden="true" /> Editar Dados
           </button>
         )}
         {canManage && (
@@ -238,9 +238,9 @@ export function PatientActionsMenu({
             onClick={() => run(restorable ? onRestore : onDeactivate)}
           >
             {restorable ? (
-              <RotateCcw className="h-4 w-4" />
+              <RotateCcw className="h-4 w-4" aria-hidden="true" />
             ) : (
-              <UserRoundX className="h-4 w-4" />
+              <UserRoundX className="h-4 w-4" aria-hidden="true" />
             )}
             {restorable ? "Reativar Paciente" : "Inativar Paciente"}
           </button>
@@ -254,7 +254,7 @@ export function PatientActionsMenu({
             className={`${itemClass} text-destructive hover:bg-destructive/10 focus-visible:bg-destructive/10`}
             onClick={() => run(onRemove)}
           >
-            <Trash2 className="h-4 w-4" /> Remover Paciente
+            <Trash2 className="h-4 w-4" aria-hidden="true" /> Remover Paciente
           </button>
         </div>
       )}
@@ -270,9 +270,9 @@ export function PatientActionsMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+        className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
       >
-        <MoreHorizontal className="h-4 w-4" />
+        <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
       </button>
       {typeof document !== "undefined" && menu
         ? createPortal(menu, document.body)
