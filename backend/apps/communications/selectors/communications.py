@@ -14,7 +14,7 @@ def communications_for_user(user, *, organization=None):
             "template",
             "created_by",
         )
-        .prefetch_related("recipients", "attempts")
+        .prefetch_related("recipients")
     )
     if not user or user.is_anonymous:
         return queryset.none()
