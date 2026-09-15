@@ -63,27 +63,10 @@ class CommunicationAutomationSerializer(serializers.ModelSerializer):
         self.fields["template"].queryset = queryset
 
     def get_last_run_at(self, obj):
-        if (
-            getattr(obj, "_prefetched_objects_cache", None) is not None
-            and "runs" in obj._prefetched_objects_cache
-        ):
-            runs = obj.runs.all()
-            if not runs:
-                return None
-            return max(runs, key=lambda r: r.started_at).started_at
         run = obj.runs.order_by("-started_at").first()
         return run.started_at if run else None
 
     def get_failures(self, obj):
-        if (
-            getattr(obj, "_prefetched_objects_cache", None) is not None
-            and "runs" in obj._prefetched_objects_cache
-        ):
-            return sum(
-                1
-                for r in obj.runs.all()
-                if r.status == CommunicationAutomationRun.Status.FAILED
-            )
         return obj.runs.filter(
             status=CommunicationAutomationRun.Status.FAILED
         ).count()
