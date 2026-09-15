@@ -53,6 +53,7 @@ Versões devem ser atualizadas quando `requirements*.txt`, `package.json`, Docke
 | `weasyprint` | `>=70.0,<71.0` | PDFs de prontuário, documentos e recibos |
 | `azure-storage-blob` | `>=12.19,<12.20` | SDK de acesso ao Azure Blob |
 | `django-ratelimit` | `>=4.1,<4.2` | Rate limiting |
+| `msgpack` | `>=1.2.1,<2.0` | Serialização binária para transporte |
 
 ## Dependências de produção
 

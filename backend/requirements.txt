@@ -52,6 +52,7 @@ azure-storage-blob>=12.19,<12.20
 
 # Rate limiting
 django-ratelimit>=4.1,<4.2
+msgpack>=1.2.1,<2.0
 
 # Testes
 pytest>=9.0.3,<10.0
