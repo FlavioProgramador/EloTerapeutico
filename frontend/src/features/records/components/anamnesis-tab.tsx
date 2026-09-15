@@ -260,7 +260,7 @@ export function AnamnesisTab({
                       : "bg-secondary text-muted-foreground",
                   )}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-4 w-4" aria-hidden="true" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
@@ -280,6 +280,7 @@ export function AnamnesisTab({
                     "h-4 w-4 shrink-0 transition",
                     selected ? "text-emerald-300" : "text-muted-foreground",
                   )}
+                  aria-hidden="true"
                 />
               </button>
             );
@@ -300,8 +301,9 @@ export function AnamnesisTab({
               <Button
                 size="sm"
                 variant="outline"
+                disabled={saving}
                 onClick={() => setEditing(true)}
-                leftIcon={<Pencil className="h-3.5 w-3.5" />}
+                leftIcon={<Pencil className="h-3.5 w-3.5" aria-hidden="true" />}
                 className="border-emerald-400/20 text-emerald-200 hover:bg-emerald-500/10"
               >
                 Editar seção
@@ -329,7 +331,7 @@ export function AnamnesisTab({
                       setDirty(true);
                     }}
                     rows={5}
-                    className="w-full resize-y rounded-lg border border-border bg-background/80 p-3 text-xs font-normal leading-5 text-foreground outline-none transition focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/10 disabled:opacity-50"
+                    className="w-full resize-y rounded-lg border border-border bg-background/80 p-3 text-xs font-normal leading-5 text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-50"
                     placeholder={`Registre ${label.toLowerCase()}...`}
                   />
                 </div>
@@ -362,7 +364,7 @@ export function AnamnesisTab({
                   isLoading={saving}
                   disabled={!dirty || saving}
                   onClick={saveSection}
-                  leftIcon={<Save className="h-3.5 w-3.5" />}
+                  leftIcon={<Save className="h-3.5 w-3.5" aria-hidden="true" />}
                   className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
                 >
                   Salvar seção
@@ -384,6 +386,7 @@ export function AnamnesisTab({
 
           <div className="my-5 flex justify-center">
             <div
+              role="img"
               className="grid h-24 w-24 place-items-center rounded-full p-2"
               style={{
                 background: `conic-gradient(rgb(52 211 153) ${completion * 3.6}deg, rgba(255,255,255,0.08) 0deg)`,
@@ -428,8 +431,9 @@ export function AnamnesisTab({
           <div className="mt-4 grid gap-2 border-t border-emerald-400/10 pt-4">
             <Button
               size="sm"
+              disabled={saving}
               onClick={() => setEditing(true)}
-              leftIcon={<Pencil className="h-3.5 w-3.5" />}
+              leftIcon={<Pencil className="h-3.5 w-3.5" aria-hidden="true" />}
               className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
             >
               Editar seção atual
@@ -437,8 +441,9 @@ export function AnamnesisTab({
             <Button
               size="sm"
               variant="outline"
+              disabled={saving}
               onClick={onExport ?? (() => window.print())}
-              leftIcon={<Download className="h-3.5 w-3.5" />}
+              leftIcon={<Download className="h-3.5 w-3.5" aria-hidden="true" />}
             >
               Exportar PDF
             </Button>
@@ -447,7 +452,7 @@ export function AnamnesisTab({
 
         <section className="rounded-xl border border-sky-400/15 bg-sky-500/5 p-4 text-[10px] text-muted-foreground">
           <div className="flex items-center gap-2 text-foreground">
-            <History className="h-4 w-4 text-sky-300" />
+            <History className="h-4 w-4 text-sky-300" aria-hidden="true" />
             <strong>Histórico de versões</strong>
           </div>
           <p className="mt-3 leading-4">
@@ -455,9 +460,9 @@ export function AnamnesisTab({
           </p>
           <div className="mt-3 flex items-center gap-2 border-t border-sky-400/10 pt-3">
             {data?.updated_at ? (
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" aria-hidden="true" />
             ) : (
-              <Clock3 className="h-3.5 w-3.5 text-amber-300" />
+              <Clock3 className="h-3.5 w-3.5 text-amber-300" aria-hidden="true" />
             )}
             <span>
               {data?.updated_at
