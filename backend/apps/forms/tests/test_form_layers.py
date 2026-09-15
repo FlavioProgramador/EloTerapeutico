@@ -5,6 +5,7 @@ from apps.forms.exceptions import InvalidFormAnswerError
 from apps.forms.models import FieldType, FormField, FormSubmission, TherapeuticForm
 from apps.forms.selectors import forms_for_owner
 from apps.forms.services import create_submission, duplicate_form
+from apps.organizations.models import Organization, OrganizationMembership
 from apps.patients.models import Patient
 from apps.users.models import User
 
@@ -17,15 +18,42 @@ class FormsLayerTests(APITestCase):
             full_name="Profissional Formulários",
             role=User.Role.THERAPIST,
         )
+        self.organization = Organization.objects.create(
+            name="Clínica Teste",
+            slug="clinica-teste",
+            created_by=self.owner,
+        )
+        OrganizationMembership.objects.create(
+            user=self.owner,
+            organization=self.organization,
+            role=OrganizationMembership.Role.THERAPIST,
+            status=OrganizationMembership.Status.ACTIVE,
+        )
         self.other_owner = User.objects.create_user(
             email="other-forms-owner@example.test",
             password="strong-password",
             full_name="Outro Profissional",
             role=User.Role.THERAPIST,
         )
-        self.patient = Patient.objects.create(full_name="Paciente Formulários", therapist=self.owner)
+        OrganizationMembership.objects.create(
+            user=self.other_owner,
+            organization=self.organization,
+            role=OrganizationMembership.Role.THERAPIST,
+            status=OrganizationMembership.Status.ACTIVE,
+        )
+        self.patient = Patient.objects.create(
+            full_name="Paciente Formulários",
+            therapist=self.owner,
+            organization=self.organization,
+        )
+        self.other_patient = Patient.objects.create(
+            full_name="Outro Paciente",
+            therapist=self.other_owner,
+            organization=self.organization,
+        )
         self.form = TherapeuticForm.objects.create(
             owner=self.owner,
+            organization=self.organization,
             name="Formulário privado",
             created_by=self.owner,
             updated_by=self.owner,
@@ -70,3 +98,28 @@ class FormsLayerTests(APITestCase):
                 },
             )
         self.assertFalse(FormSubmission.objects.exists())
+
+    def test_therapist_cannot_list_another_therapist_form_submissions(self):
+        submission_owner = FormSubmission.objects.create(
+            form=self.form,
+            organization=self.organization,
+            patient=self.patient,
+            professional=self.owner,
+            owner=self.owner,
+            submitted_by=self.owner,
+        )
+        submission_other = FormSubmission.objects.create(
+            form=self.form,
+            organization=self.organization,
+            patient=self.other_patient,
+            professional=self.other_owner,
+            owner=self.other_owner,
+            submitted_by=self.other_owner,
+        )
+
+        self.client.credentials(HTTP_X_ORGANIZATION_ID=str(self.organization.pk))
+        response = self.client.get(f"/api/v1/forms/{self.form.pk}/submissions/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        returned_ids = [item["id"] for item in response.data["results"]]
+        self.assertIn(submission_owner.pk, returned_ids)
+        self.assertNotIn(submission_other.pk, returned_ids)
