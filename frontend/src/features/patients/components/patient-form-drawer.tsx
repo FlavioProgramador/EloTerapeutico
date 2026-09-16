@@ -22,11 +22,11 @@ interface Props {
 }
 
 const inputClass =
-  "h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground outline-none transition placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/15";
+  "h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground outline-none transition placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
 const selectClass =
-  "h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15";
+  "h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground outline-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
 const textareaClass =
-  "min-h-24 w-full resize-y rounded-md border border-border bg-background px-3 py-3 text-xs text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 placeholder:text-muted-foreground/50";
+  "min-h-24 w-full resize-y rounded-md border border-border bg-background px-3 py-3 text-xs text-foreground outline-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 placeholder:text-muted-foreground/50 disabled:opacity-50 disabled:cursor-not-allowed";
 
 const UF_OPTIONS = [
   "",
@@ -221,6 +221,7 @@ export function PatientFormDrawer(props: Props) {
                   errors.full_name ? `${baseId}-full-name-error` : undefined
                 }
                 aria-invalid={!!errors.full_name}
+                disabled={submit.pending}
                 {...register("full_name")}
                 className={inputClass}
               />
@@ -240,6 +241,7 @@ export function PatientFormDrawer(props: Props) {
                     errors.email ? `${baseId}-email-error` : undefined
                   }
                   aria-invalid={!!errors.email}
+                  disabled={submit.pending}
                   {...register("email")}
                   className={inputClass}
                 />
@@ -258,6 +260,7 @@ export function PatientFormDrawer(props: Props) {
                     errors.phone ? `${baseId}-phone-error` : undefined
                   }
                   aria-invalid={!!errors.phone}
+                  disabled={submit.pending}
                   {...register("phone")}
                   className={inputClass}
                   onChange={(e) =>
@@ -284,6 +287,7 @@ export function PatientFormDrawer(props: Props) {
                     errors.birth_date ? `${baseId}-birth-date-error` : undefined
                   }
                   aria-invalid={!!errors.birth_date}
+                  disabled={submit.pending}
                   {...register("birth_date")}
                   className={inputClass}
                 />
@@ -304,6 +308,7 @@ export function PatientFormDrawer(props: Props) {
                       : undefined
                   }
                   aria-invalid={!!errors.treatment_start_date}
+                  disabled={submit.pending}
                   {...register("treatment_start_date")}
                   className={inputClass}
                 />
@@ -324,6 +329,7 @@ export function PatientFormDrawer(props: Props) {
                     errors.cpf ? `${baseId}-cpf-error` : undefined
                   }
                   aria-invalid={!!errors.cpf}
+                  disabled={submit.pending}
                   {...register("cpf")}
                   className={inputClass}
                   onChange={(e) =>
@@ -348,6 +354,7 @@ export function PatientFormDrawer(props: Props) {
                     errors.rg ? `${baseId}-rg-error` : undefined
                   }
                   aria-invalid={!!errors.rg}
+                  disabled={submit.pending}
                   {...register("rg")}
                   className={inputClass}
                 />
@@ -368,6 +375,7 @@ export function PatientFormDrawer(props: Props) {
                     errors.profession ? `${baseId}-profession-error` : undefined
                   }
                   aria-invalid={!!errors.profession}
+                  disabled={submit.pending}
                   {...register("profession")}
                   className={inputClass}
                 />
@@ -388,6 +396,7 @@ export function PatientFormDrawer(props: Props) {
                       : undefined
                   }
                   aria-invalid={!!errors.social_network}
+                  disabled={submit.pending}
                   {...register("social_network")}
                   className={inputClass}
                 />
@@ -414,6 +423,7 @@ export function PatientFormDrawer(props: Props) {
                   errors.payer_type ? `${baseId}-payer-type-error` : undefined
                 }
                 aria-invalid={!!errors.payer_type}
+                disabled={submit.pending}
                 {...register("payer_type")}
                 className={selectClass}
               >
@@ -438,6 +448,7 @@ export function PatientFormDrawer(props: Props) {
                       : undefined
                   }
                   aria-invalid={!!errors.insurance_name}
+                  disabled={submit.pending}
                   {...register("insurance_name")}
                   className={inputClass}
                 />
@@ -459,6 +470,7 @@ export function PatientFormDrawer(props: Props) {
                     : undefined
                 }
                 aria-invalid={!!errors.session_value}
+                disabled={submit.pending}
                 {...register("session_value")}
                 className={inputClass}
                 onChange={(e) =>
@@ -483,6 +495,7 @@ export function PatientFormDrawer(props: Props) {
                     : undefined
                 }
                 aria-invalid={!!errors.reminder_recipient}
+                disabled={submit.pending}
                 {...register("reminder_recipient")}
                 className={selectClass}
               >
@@ -520,11 +533,12 @@ export function PatientFormDrawer(props: Props) {
                   {state.user?.role !== "therapist" && (
                     <button
                       type="button"
+                      disabled={submit.pending}
                       onClick={() => {
                         setValue("therapist", "", { shouldDirty: true });
                         setIsAddingTherapist(true);
                       }}
-                      className="text-[11px] font-medium text-destructive hover:underline"
+                      className="text-[11px] font-medium text-destructive hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 rounded px-1 disabled:opacity-50 disabled:pointer-events-none"
                     >
                       Remover
                     </button>
@@ -534,6 +548,7 @@ export function PatientFormDrawer(props: Props) {
                 <div className="flex items-center gap-2">
                   <select
                     value={watchTherapist || ""}
+                    disabled={submit.pending}
                     onChange={(e) => {
                       setValue("therapist", e.target.value, {
                         shouldDirty: true,
@@ -552,8 +567,9 @@ export function PatientFormDrawer(props: Props) {
                   </select>
                   <button
                     type="button"
+                    disabled={submit.pending}
                     onClick={() => setIsAddingTherapist(false)}
-                    className="text-xs text-muted-foreground hover:underline px-2"
+                    className="text-xs text-muted-foreground hover:underline px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 rounded disabled:opacity-50 disabled:pointer-events-none"
                   >
                     Cancelar
                   </button>
@@ -565,10 +581,11 @@ export function PatientFormDrawer(props: Props) {
                   </p>
                   <button
                     type="button"
+                    disabled={submit.pending}
                     onClick={() => setIsAddingTherapist(true)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/20 px-3 py-1.5 text-xs font-semibold text-foreground/80 hover:bg-secondary/40 transition"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/20 px-3 py-1.5 text-xs font-semibold text-foreground/80 hover:bg-secondary/40 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none"
                   >
-                    <UserRound className="h-3.5 w-3.5 text-muted-foreground/80" />{" "}
+                    <UserRound className="h-3.5 w-3.5 text-muted-foreground/80" aria-hidden="true" />{" "}
                     Adicionar
                   </button>
                 </div>
@@ -603,6 +620,7 @@ export function PatientFormDrawer(props: Props) {
                     : undefined
                 }
                 aria-invalid={!!errors.address_zip_code}
+                disabled={submit.pending}
                 {...register("address_zip_code")}
                 className={inputClass}
                 onChange={(e) =>
@@ -631,6 +649,7 @@ export function PatientFormDrawer(props: Props) {
                       : undefined
                   }
                   aria-invalid={!!errors.address_street}
+                  disabled={submit.pending}
                   {...register("address_street")}
                   className={inputClass}
                 />
@@ -652,6 +671,7 @@ export function PatientFormDrawer(props: Props) {
                       : undefined
                   }
                   aria-invalid={!!errors.address_number}
+                  disabled={submit.pending}
                   {...register("address_number")}
                   className={inputClass}
                 />
@@ -674,6 +694,7 @@ export function PatientFormDrawer(props: Props) {
                       : undefined
                   }
                   aria-invalid={!!errors.address_complement}
+                  disabled={submit.pending}
                   {...register("address_complement")}
                   className={inputClass}
                 />
@@ -694,6 +715,7 @@ export function PatientFormDrawer(props: Props) {
                       : undefined
                   }
                   aria-invalid={!!errors.address_neighborhood}
+                  disabled={submit.pending}
                   {...register("address_neighborhood")}
                   className={inputClass}
                 />
@@ -716,6 +738,7 @@ export function PatientFormDrawer(props: Props) {
                       : undefined
                   }
                   aria-invalid={!!errors.address_city}
+                  disabled={submit.pending}
                   {...register("address_city")}
                   className={inputClass}
                 />
@@ -734,6 +757,7 @@ export function PatientFormDrawer(props: Props) {
                       : undefined
                   }
                   aria-invalid={!!errors.address_state}
+                  disabled={submit.pending}
                   {...register("address_state")}
                   className={selectClass}
                 >
@@ -751,7 +775,7 @@ export function PatientFormDrawer(props: Props) {
           {/* 4. CONTATO DE EMERGÊNCIA (Alerta amarelo) */}
           <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-4 space-y-4 mt-6">
             <div className="flex items-center gap-1.5 text-amber-500 text-xs font-bold">
-              <AlertTriangle className="h-4 w-4" />
+              <AlertTriangle className="h-4 w-4" aria-hidden="true" />
               <span>Contato de Emergência</span>
             </div>
 
@@ -771,6 +795,7 @@ export function PatientFormDrawer(props: Props) {
                       : undefined
                   }
                   aria-invalid={!!errors.emergency_contact_name}
+                  disabled={submit.pending}
                   {...register("emergency_contact_name")}
                   className={inputClass}
                 />
@@ -791,6 +816,7 @@ export function PatientFormDrawer(props: Props) {
                       : undefined
                   }
                   aria-invalid={!!errors.emergency_contact_phone}
+                  disabled={submit.pending}
                   {...register("emergency_contact_phone")}
                   className={inputClass}
                   onChange={(e) =>
@@ -833,6 +859,7 @@ export function PatientFormDrawer(props: Props) {
                         : undefined
                     }
                     aria-invalid={!!errors.guardian_name}
+                    disabled={submit.pending}
                     {...register("guardian_name")}
                     className={inputClass}
                   />
@@ -853,6 +880,7 @@ export function PatientFormDrawer(props: Props) {
                         : undefined
                     }
                     aria-invalid={!!errors.guardian_cpf}
+                    disabled={submit.pending}
                     {...register("guardian_cpf")}
                     className={inputClass}
                     onChange={(e) =>
@@ -881,6 +909,7 @@ export function PatientFormDrawer(props: Props) {
                         : undefined
                     }
                     aria-invalid={!!errors.guardian_phone}
+                    disabled={submit.pending}
                     {...register("guardian_phone")}
                     className={inputClass}
                     onChange={(e) =>
@@ -907,6 +936,7 @@ export function PatientFormDrawer(props: Props) {
                         : undefined
                     }
                     aria-invalid={!!errors.guardian_email}
+                    disabled={submit.pending}
                     {...register("guardian_email")}
                     className={inputClass}
                   />
@@ -928,6 +958,7 @@ export function PatientFormDrawer(props: Props) {
                       : undefined
                   }
                   aria-invalid={!!errors.guardian_relationship}
+                  disabled={submit.pending}
                   {...register("guardian_relationship")}
                   className={inputClass}
                 />
@@ -959,6 +990,7 @@ export function PatientFormDrawer(props: Props) {
                       : undefined
                   }
                   aria-invalid={!!errors.financial_responsible_name}
+                  disabled={submit.pending}
                   {...register("financial_responsible_name")}
                   className={inputClass}
                 />
@@ -979,6 +1011,7 @@ export function PatientFormDrawer(props: Props) {
                       : undefined
                   }
                   aria-invalid={!!errors.financial_responsible_cpf}
+                  disabled={submit.pending}
                   {...register("financial_responsible_cpf")}
                   className={inputClass}
                   onChange={(e) =>
@@ -1011,6 +1044,7 @@ export function PatientFormDrawer(props: Props) {
                       : undefined
                   }
                   aria-invalid={!!errors.financial_responsible_phone}
+                  disabled={submit.pending}
                   {...register("financial_responsible_phone")}
                   className={inputClass}
                   onChange={(e) =>
@@ -1041,6 +1075,7 @@ export function PatientFormDrawer(props: Props) {
                       : undefined
                   }
                   aria-invalid={!!errors.financial_responsible_email}
+                  disabled={submit.pending}
                   {...register("financial_responsible_email")}
                   className={inputClass}
                 />
@@ -1061,6 +1096,7 @@ export function PatientFormDrawer(props: Props) {
                       : undefined
                   }
                   aria-invalid={!!errors.financial_responsible_marital_status}
+                  disabled={submit.pending}
                   {...register("financial_responsible_marital_status")}
                   className={selectClass}
                 >
@@ -1087,6 +1123,7 @@ export function PatientFormDrawer(props: Props) {
                       : undefined
                   }
                   aria-invalid={!!errors.financial_responsible_naturality}
+                  disabled={submit.pending}
                   {...register("financial_responsible_naturality")}
                   className={inputClass}
                 />
@@ -1107,6 +1144,7 @@ export function PatientFormDrawer(props: Props) {
                       : undefined
                   }
                   aria-invalid={!!errors.financial_responsible_occupation}
+                  disabled={submit.pending}
                   {...register("financial_responsible_occupation")}
                   className={inputClass}
                 />
@@ -1118,17 +1156,19 @@ export function PatientFormDrawer(props: Props) {
           <div className="pt-2">
             <button
               type="button"
+              aria-expanded={showAdditionalFields}
+              disabled={submit.pending}
               onClick={() => setShowAdditionalFields(!showAdditionalFields)}
-              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground font-semibold py-1 transition"
+              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground font-semibold py-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 rounded px-1 disabled:opacity-50 disabled:pointer-events-none"
             >
               {showAdditionalFields ? (
                 <>
-                  <ChevronUp className="h-3.5 w-3.5" />
+                  <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>Ocultar campos adicionais</span>
                 </>
               ) : (
                 <>
-                  <ChevronDown className="h-3.5 w-3.5" />
+                  <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>Mostrar campos adicionais</span>
                 </>
               )}
@@ -1148,6 +1188,7 @@ export function PatientFormDrawer(props: Props) {
                         errors.gender ? `${baseId}-gender-error` : undefined
                       }
                       aria-invalid={!!errors.gender}
+                      disabled={submit.pending}
                       {...register("gender")}
                       className={selectClass}
                     >
@@ -1172,6 +1213,7 @@ export function PatientFormDrawer(props: Props) {
                           : undefined
                       }
                       aria-invalid={!!errors.marital_status}
+                      disabled={submit.pending}
                       {...register("marital_status")}
                       className={selectClass}
                     >
@@ -1198,6 +1240,7 @@ export function PatientFormDrawer(props: Props) {
                           : undefined
                       }
                       aria-invalid={!!errors.attendance_type}
+                      disabled={submit.pending}
                       {...register("attendance_type")}
                       className={selectClass}
                     >
@@ -1220,6 +1263,7 @@ export function PatientFormDrawer(props: Props) {
                         errors.modality ? `${baseId}-modality-error` : undefined
                       }
                       aria-invalid={!!errors.modality}
+                      disabled={submit.pending}
                       {...register("modality")}
                       className={selectClass}
                     >
@@ -1244,6 +1288,7 @@ export function PatientFormDrawer(props: Props) {
                           : undefined
                       }
                       aria-invalid={!!errors.planned_frequency}
+                      disabled={submit.pending}
                       {...register("planned_frequency")}
                       className={selectClass}
                     >
@@ -1268,6 +1313,7 @@ export function PatientFormDrawer(props: Props) {
                         errors.tags ? `${baseId}-tags-error` : undefined
                       }
                       aria-invalid={!!errors.tags}
+                      disabled={submit.pending}
                       {...register("tags")}
                       className={inputClass}
                     />
@@ -1289,6 +1335,7 @@ export function PatientFormDrawer(props: Props) {
                         : undefined
                     }
                     aria-invalid={!!errors.referral_source}
+                    disabled={submit.pending}
                     {...register("referral_source")}
                     className={inputClass}
                   />
@@ -1317,6 +1364,7 @@ export function PatientFormDrawer(props: Props) {
                   errors.notes ? `${baseId}-notes-error` : undefined
                 }
                 aria-invalid={!!errors.notes}
+                disabled={submit.pending}
                 {...register("notes")}
                 className={textareaClass}
               />
@@ -1328,16 +1376,21 @@ export function PatientFormDrawer(props: Props) {
               </div>
             </FormField>
 
-            <label className="flex items-start gap-2 text-xs text-foreground/95 select-none cursor-pointer mt-4">
+            <div className="flex items-start gap-2 text-xs text-foreground/95 mt-4">
               <input
+                id={`${baseId}-consent`}
                 type="checkbox"
+                disabled={submit.pending}
                 {...register("consent_terms_accepted")}
-                className="mt-0.5 rounded border-border text-primary focus:ring-primary/20"
+                className="mt-0.5 rounded border-border text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               />
-              <span>
+              <label
+                htmlFor={`${baseId}-consent`}
+                className="select-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 Confirmo que os consentimentos necessários foram coletados.
-              </span>
-            </label>
+              </label>
+            </div>
           </div>
 
           <button type="submit" className="sr-only">
