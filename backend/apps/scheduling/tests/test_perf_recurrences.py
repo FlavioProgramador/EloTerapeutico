@@ -1,8 +1,9 @@
 from decimal import Decimal
+
+from django.db import connection
 from django.test import RequestFactory, TestCase
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
-from django.db import connection
 
 from apps.organizations.models import Organization, OrganizationMembership
 from apps.patients.models import Patient
