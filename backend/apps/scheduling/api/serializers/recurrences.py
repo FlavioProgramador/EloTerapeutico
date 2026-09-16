@@ -11,7 +11,7 @@ class AppointmentRecurrenceSerializer(serializers.ModelSerializer):
     patient_name = serializers.CharField(source="patient.display_name", read_only=True)
     therapist_name = serializers.CharField(source="therapist.full_name", read_only=True)
     frequency_display = serializers.CharField(source="get_frequency_display", read_only=True)
-    occurrences_count = serializers.IntegerField(source="appointments.count", read_only=True)
+    occurrences_count = serializers.SerializerMethodField()
     completed_count = serializers.SerializerMethodField()
     next_occurrence_id = serializers.SerializerMethodField()
     next_occurrence_at = serializers.SerializerMethodField()
@@ -86,13 +86,28 @@ class AppointmentRecurrenceSerializer(serializers.ModelSerializer):
         validated_data["organization"] = self.context["request"].organization
         return super().create(validated_data)
 
+    def get_occurrences_count(self, obj):
+        if hasattr(obj, "_prefetched_objects_cache") and "appointments" in obj._prefetched_objects_cache:
+            return len(obj.appointments.all())
+        return obj.appointments.count()
+
     def get_completed_count(self, obj):
+        if hasattr(obj, "_prefetched_objects_cache") and "appointments" in obj._prefetched_objects_cache:
+            return sum(1 for a in obj.appointments.all() if a.status == Appointment.Status.COMPLETED)
         return obj.appointments.filter(
             organization=obj.organization,
             status=Appointment.Status.COMPLETED,
         ).count()
 
     def _next(self, obj):
+        if hasattr(obj, "_prefetched_objects_cache") and "appointments" in obj._prefetched_objects_cache:
+            now = timezone.now()
+            upcoming = [
+                a for a in obj.appointments.all()
+                if a.start_time >= now and a.status in (Appointment.Status.SCHEDULED, Appointment.Status.CONFIRMED)
+            ]
+            upcoming.sort(key=lambda a: a.start_time)
+            return upcoming[0] if upcoming else None
         return (
             obj.appointments.filter(
                 organization=obj.organization,
