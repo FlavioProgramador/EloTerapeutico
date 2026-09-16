@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 
 from apps.audit.models import AuditLog
 from apps.organizations.services.tenant_context import ensure_request_organization
-from apps.patients.models import Patient
+from apps.patients.selectors.patients import patients_accessible_to
 
 from ..models import CommunicationPreference
 from ..permissions import CanAccessCommunications, CanSendCommunication
@@ -21,18 +21,29 @@ class CommunicationPreferenceMixin:
         CanSendCommunication,
     ]
 
-    def get_organization(self, request):
-        organization, _ = ensure_request_organization(
+    def get_context(self, request):
+        organization, membership = ensure_request_organization(
             request=request,
             required=True,
         )
+        return organization, membership
+
+    def get_organization(self, request):
+        organization, _ = self.get_context(request)
         return organization
 
 
 class CommunicationPreferenceListView(CommunicationPreferenceMixin, APIView):
     def get(self, request):
+        organization, membership = self.get_context(request)
+        accessible_patients = patients_accessible_to(
+            request.user,
+            organization=organization,
+            membership=membership,
+        )
         queryset = CommunicationPreference.objects.filter(
-            organization=self.get_organization(request),
+            organization=organization,
+            patient__in=accessible_patients,
         ).select_related("organization", "patient", "owner")
         return Response(
             CommunicationPreferenceSerializer(queryset, many=True).data
@@ -41,12 +52,14 @@ class CommunicationPreferenceListView(CommunicationPreferenceMixin, APIView):
 
 class PatientCommunicationPreferenceView(CommunicationPreferenceMixin, APIView):
     def get_preference(self, request, patient_id):
-        organization = self.get_organization(request)
+        organization, membership = self.get_context(request)
         patient = get_object_or_404(
-            Patient,
+            patients_accessible_to(
+                request.user,
+                organization=organization,
+                membership=membership,
+            ),
             pk=patient_id,
-            organization=organization,
-            deleted_at__isnull=True,
         )
         return get_or_create_preference(
             request.user,
