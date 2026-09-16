@@ -26,7 +26,7 @@ export function PatientFormDrawerShell(props: Props) {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") props.onClose();
+      if (event.key === "Escape" && !props.submitting) props.onClose();
       if (event.key !== "Tab" || !panelRef.current) return;
       const items = panelRef.current.querySelectorAll<HTMLElement>(
         "button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex='-1'])",
@@ -57,7 +57,10 @@ export function PatientFormDrawerShell(props: Props) {
         type="button"
         className="absolute inset-0 bg-black/65 backdrop-blur-[1px]"
         aria-label="Fechar formulário"
-        onClick={props.onClose}
+        onClick={() => {
+          if (!props.submitting) props.onClose();
+        }}
+        disabled={props.submitting}
       />
       <div
         ref={panelRef}
@@ -73,10 +76,11 @@ export function PatientFormDrawerShell(props: Props) {
           <button
             type="button"
             onClick={props.onClose}
-            className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+            disabled={props.submitting}
+            className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:opacity-50 disabled:pointer-events-none"
             aria-label="Fechar"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </header>
 
