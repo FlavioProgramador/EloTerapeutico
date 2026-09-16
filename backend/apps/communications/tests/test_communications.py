@@ -419,3 +419,60 @@ def test_preference_is_unique_per_patient(therapist, patient):
     )
     assert created is False
     assert first.pk == second.pk
+
+
+@pytest.mark.django_db
+@override_settings(BILLING_REQUIRE_SUBSCRIPTION=False)
+def test_preference_api_security_isolation(
+    authenticated_client,
+    therapist,
+    other_therapist,
+    patient,
+):
+    # 1. Unauthenticated request is rejected
+    unauthenticated_client = APIClient()
+    res_unauth = unauthenticated_client.get(
+        f"/api/v1/communications/preferences/patient/{patient.pk}/"
+    )
+    assert res_unauth.status_code == 401
+
+    # 2. Legitimate therapist access (GET list, GET detail, PATCH)
+    res_list = authenticated_client.get("/api/v1/communications/preferences/")
+    assert res_list.status_code == 200
+
+    res_get = authenticated_client.get(
+        f"/api/v1/communications/preferences/patient/{patient.pk}/"
+    )
+    assert res_get.status_code == 200
+    assert res_get.data["patient"] == patient.pk
+
+    res_patch = authenticated_client.patch(
+        f"/api/v1/communications/preferences/patient/{patient.pk}/",
+        {"allow_whatsapp": True},
+        format="json",
+    )
+    assert res_patch.status_code == 200
+    assert res_patch.data["allow_whatsapp"] is True
+
+    # 3. Other therapist (different organization / non-linked patient) is rejected with 404
+    other_client = APIClient()
+    other_client.force_authenticate(other_therapist)
+    other_client.credentials(
+        HTTP_X_ORGANIZATION_ID=str(other_therapist.test_organization.pk)
+    )
+
+    res_other_get = other_client.get(
+        f"/api/v1/communications/preferences/patient/{patient.pk}/"
+    )
+    assert res_other_get.status_code == 404
+
+    res_other_patch = other_client.patch(
+        f"/api/v1/communications/preferences/patient/{patient.pk}/",
+        {"allow_email": False},
+        format="json",
+    )
+    assert res_other_patch.status_code == 404
+
+    res_other_list = other_client.get("/api/v1/communications/preferences/")
+    assert res_other_list.status_code == 200
+    assert len(res_other_list.data) == 0
