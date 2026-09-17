@@ -106,7 +106,7 @@ function LoadingState() {
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="rounded-xl border border-danger/20 bg-danger/5 px-6 py-12 text-center">
-      <XCircle className="mx-auto h-8 w-8 text-danger" />
+      <XCircle className="mx-auto h-8 w-8 text-danger" aria-hidden="true" />
       <h3 className="mt-3 text-sm font-bold text-foreground">
         Não foi possível carregar os dados
       </h3>
@@ -140,7 +140,7 @@ function EmptyState({
   return (
     <div className="rounded-xl border border-border bg-card px-6 py-14 text-center">
       <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-primary/12 text-primary">
-        <Icon className="h-8 w-8" />
+        <Icon className="h-8 w-8" aria-hidden="true" />
       </span>
       <h3 className="mt-5 text-sm font-bold text-foreground">{title}</h3>
       <p className="mx-auto mt-2 max-w-lg text-xs leading-5 text-muted-foreground">
@@ -154,7 +154,7 @@ function EmptyState({
         )}
         <Button
           size="sm"
-          leftIcon={<Plus className="h-4 w-4" />}
+          leftIcon={<Plus className="h-4 w-4" aria-hidden="true" />}
           onClick={onPrimary}
         >
           {primaryLabel}
@@ -360,7 +360,7 @@ export function DocumentsWorkspace() {
           <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
             Documentos
           </h1>
-          <BookOpen className="h-5 w-5 text-primary" />
+          <BookOpen className="h-5 w-5 text-primary" aria-hidden="true" />
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           Gerencie templates e gere documentos protegidos para pacientes.
@@ -386,7 +386,7 @@ export function DocumentsWorkspace() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="h-4 w-4" aria-hidden="true" />
               {item.label}
               {active && (
                 <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" />
@@ -398,7 +398,7 @@ export function DocumentsWorkspace() {
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative min-w-0 flex-1 lg:max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <input
             value={search}
             onChange={(event) => updateSearch(event.target.value)}
@@ -466,7 +466,7 @@ export function DocumentsWorkspace() {
                 onClick={() => navigate("templates")}
                 className={`mb-2 inline-flex items-center gap-1 rounded-md p-1 text-xs font-semibold text-muted-foreground hover:text-foreground ${focusRingClass}`}
               >
-                <ChevronLeft className="h-4 w-4" /> Voltar aos templates
+                <ChevronLeft className="h-4 w-4" aria-hidden="true" /> Voltar aos templates
               </button>
               <h2 className="text-base font-bold text-foreground">
                 Biblioteca de templates
@@ -529,7 +529,7 @@ export function DocumentsWorkspace() {
                       variant="outline"
                       size="sm"
                       isLoading={previewLoading}
-                      leftIcon={<Eye className="h-4 w-4" />}
+                      leftIcon={<Eye className="h-4 w-4" aria-hidden="true" />}
                       onClick={() => showTemplatePreview(template, true)}
                     >
                       Visualizar
@@ -537,7 +537,7 @@ export function DocumentsWorkspace() {
                     <Button
                       size="sm"
                       isLoading={importLibrary.isPending}
-                      leftIcon={<Download className="h-4 w-4" />}
+                      leftIcon={<Download className="h-4 w-4" aria-hidden="true" />}
                       onClick={() => importLibrary.mutate(template.public_id)}
                     >
                       Importar
@@ -564,14 +564,14 @@ export function DocumentsWorkspace() {
               <Button
                 variant="outline"
                 size="sm"
-                leftIcon={<Library className="h-4 w-4" />}
+                leftIcon={<Library className="h-4 w-4" aria-hidden="true" />}
                 onClick={() => navigate("templates", { library: true })}
               >
                 Biblioteca
               </Button>
               <Button
                 size="sm"
-                leftIcon={<Plus className="h-4 w-4" />}
+                leftIcon={<Plus className="h-4 w-4" aria-hidden="true" />}
                 onClick={() => openTemplateEditor()}
               >
                 Novo template
@@ -647,7 +647,7 @@ export function DocumentsWorkspace() {
                               className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground ${focusRingClass}`}
                               aria-label={`Visualizar ${template.name}`}
                             >
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-4 w-4" aria-hidden="true" />
                             </button>
                             <button
                               type="button"
@@ -655,23 +655,25 @@ export function DocumentsWorkspace() {
                               className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground ${focusRingClass}`}
                               aria-label={`Editar ${template.name}`}
                             >
-                              <Edit3 className="h-4 w-4" />
+                              <Edit3 className="h-4 w-4" aria-hidden="true" />
                             </button>
                             <button
                               type="button"
+                              disabled={templateAction.isPending}
                               onClick={() =>
                                 templateAction.mutate({
                                   publicId: template.public_id,
                                   action: "duplicate",
                                 })
                               }
-                              className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground ${focusRingClass}`}
+                              className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-40 ${focusRingClass}`}
                               aria-label={`Duplicar ${template.name}`}
                             >
-                              <Copy className="h-4 w-4" />
+                              <Copy className="h-4 w-4" aria-hidden="true" />
                             </button>
                             <button
                               type="button"
+                              disabled={templateAction.isPending}
                               onClick={() =>
                                 templateAction.mutate({
                                   publicId: template.public_id,
@@ -681,7 +683,7 @@ export function DocumentsWorkspace() {
                                       : "activate",
                                 })
                               }
-                              className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground ${focusRingClass}`}
+                              className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-40 ${focusRingClass}`}
                               aria-label={
                                 template.status === "active"
                                   ? "Inativar template"
@@ -689,13 +691,14 @@ export function DocumentsWorkspace() {
                               }
                             >
                               {template.status === "active" ? (
-                                <XCircle className="h-4 w-4" />
+                                <XCircle className="h-4 w-4" aria-hidden="true" />
                               ) : (
-                                <CheckCircle2 className="h-4 w-4" />
+                                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                               )}
                             </button>
                             <button
                               type="button"
+                              disabled={templateAction.isPending}
                               onClick={() => {
                                 if (
                                   confirm(
@@ -708,10 +711,10 @@ export function DocumentsWorkspace() {
                                   });
                                 }
                               }}
-                              className={`rounded-md p-2 text-muted-foreground hover:bg-danger/10 hover:text-danger ${focusRingClass}`}
+                              className={`rounded-md p-2 text-muted-foreground hover:bg-danger/10 hover:text-danger disabled:opacity-40 ${focusRingClass}`}
                               aria-label={`Arquivar ${template.name}`}
                             >
-                              <Archive className="h-4 w-4" />
+                              <Archive className="h-4 w-4" aria-hidden="true" />
                             </button>
                           </div>
                         </td>
@@ -744,7 +747,7 @@ export function DocumentsWorkspace() {
             </div>
             <Button
               size="sm"
-              leftIcon={<FilePlus2 className="h-4 w-4" />}
+              leftIcon={<FilePlus2 className="h-4 w-4" aria-hidden="true" />}
               onClick={() => setGenerateModalOpen(true)}
             >
               Gerar documento
@@ -819,22 +822,23 @@ export function DocumentsWorkspace() {
                               className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground ${focusRingClass}`}
                               aria-label={`Visualizar ${document.title}`}
                             >
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-4 w-4" aria-hidden="true" />
                             </button>
                             {(document.status === "draft" ||
                               document.status === "failed") && (
                               <button
                                 type="button"
+                                disabled={generatedAction.isPending}
                                 onClick={() =>
                                   generatedAction.mutate({
                                     publicId: document.public_id,
                                     action: "generate",
                                   })
                                 }
-                                className={`rounded-md p-2 text-primary hover:bg-primary/10 ${focusRingClass}`}
+                                className={`rounded-md p-2 text-primary hover:bg-primary/10 disabled:opacity-40 ${focusRingClass}`}
                                 aria-label={`Gerar PDF de ${document.title}`}
                               >
-                                <RefreshCw className="h-4 w-4" />
+                                <RefreshCw className="h-4 w-4" aria-hidden="true" />
                               </button>
                             )}
                             {document.status === "completed" && (
@@ -853,12 +857,13 @@ export function DocumentsWorkspace() {
                                 className={`rounded-md p-2 text-emerald-300 hover:bg-emerald-500/10 ${focusRingClass}`}
                                 aria-label={`Baixar ${document.title}`}
                               >
-                                <Download className="h-4 w-4" />
+                                <Download className="h-4 w-4" aria-hidden="true" />
                               </button>
                             )}
                             {document.status !== "archived" && (
                               <button
                                 type="button"
+                                disabled={generatedAction.isPending}
                                 onClick={() => {
                                   if (
                                     confirm(
@@ -871,10 +876,10 @@ export function DocumentsWorkspace() {
                                     });
                                   }
                                 }}
-                                className={`rounded-md p-2 text-muted-foreground hover:bg-danger/10 hover:text-danger ${focusRingClass}`}
+                                className={`rounded-md p-2 text-muted-foreground hover:bg-danger/10 hover:text-danger disabled:opacity-40 ${focusRingClass}`}
                                 aria-label={`Arquivar ${document.title}`}
                               >
-                                <Archive className="h-4 w-4" />
+                                <Archive className="h-4 w-4" aria-hidden="true" />
                               </button>
                             )}
                           </div>
@@ -908,7 +913,7 @@ export function DocumentsWorkspace() {
             </div>
             <Button
               size="sm"
-              leftIcon={<Plus className="h-4 w-4" />}
+              leftIcon={<Plus className="h-4 w-4" aria-hidden="true" />}
               onClick={() => {
                 setEditingEvolution(null);
                 setEvolutionModalOpen(true);
@@ -995,24 +1000,26 @@ export function DocumentsWorkspace() {
                                 className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-40 ${focusRingClass}`}
                                 aria-label={`Editar ${template.name}`}
                               >
-                                <Edit3 className="h-4 w-4" />
+                                <Edit3 className="h-4 w-4" aria-hidden="true" />
                               </button>
                               <button
                                 type="button"
+                                disabled={evolutionAction.isPending}
                                 onClick={() =>
                                   evolutionAction.mutate({
                                     id: template.id,
                                     action: "duplicate",
                                   })
                                 }
-                                className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground ${focusRingClass}`}
+                                className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-40 ${focusRingClass}`}
                                 aria-label={`Duplicar ${template.name}`}
                               >
-                                <Copy className="h-4 w-4" />
+                                <Copy className="h-4 w-4" aria-hidden="true" />
                               </button>
                               {!template.is_system && (
                                 <button
                                   type="button"
+                                  disabled={evolutionAction.isPending}
                                   onClick={() =>
                                     evolutionAction.mutate({
                                       id: template.id,
@@ -1021,21 +1028,22 @@ export function DocumentsWorkspace() {
                                         : "activate",
                                     })
                                   }
-                                  className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground ${focusRingClass}`}
+                                  className={`rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-40 ${focusRingClass}`}
                                   aria-label={
                                     template.is_active ? "Inativar" : "Ativar"
                                   }
                                 >
                                   {template.is_active ? (
-                                    <XCircle className="h-4 w-4" />
+                                    <XCircle className="h-4 w-4" aria-hidden="true" />
                                   ) : (
-                                    <CheckCircle2 className="h-4 w-4" />
+                                    <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                                   )}
                                 </button>
                               )}
                               {!template.is_system && (
                                 <button
                                   type="button"
+                                  disabled={evolutionAction.isPending}
                                   onClick={() => {
                                     if (
                                       confirm(
@@ -1048,10 +1056,10 @@ export function DocumentsWorkspace() {
                                       });
                                     }
                                   }}
-                                  className={`rounded-md p-2 text-muted-foreground hover:bg-danger/10 hover:text-danger ${focusRingClass}`}
+                                  className={`rounded-md p-2 text-muted-foreground hover:bg-danger/10 hover:text-danger disabled:opacity-40 ${focusRingClass}`}
                                   aria-label={`Arquivar ${template.name}`}
                                 >
-                                  <Archive className="h-4 w-4" />
+                                  <Archive className="h-4 w-4" aria-hidden="true" />
                                 </button>
                               )}
                             </div>
@@ -1200,7 +1208,7 @@ function Pagination({
         className={`grid h-9 w-9 place-items-center rounded-lg border border-border bg-card disabled:opacity-40 ${focusRingClass}`}
         aria-label="Página anterior"
       >
-        <ChevronLeft className="h-4 w-4" />
+        <ChevronLeft className="h-4 w-4" aria-hidden="true" />
       </button>
       <span>
         Página {page} de {totalPages}
@@ -1212,7 +1220,7 @@ function Pagination({
         className={`grid h-9 w-9 place-items-center rounded-lg border border-border bg-card disabled:opacity-40 ${focusRingClass}`}
         aria-label="Próxima página"
       >
-        <ChevronRight className="h-4 w-4" />
+        <ChevronRight className="h-4 w-4" aria-hidden="true" />
       </button>
     </div>
   );
