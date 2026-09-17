@@ -86,6 +86,7 @@ jobs:
           ignore-unfixed: false
           vuln-type: os,library
           severity: HIGH,CRITICAL
+          trivyignores: .trivyignore
 
       - name: Enforce vulnerability gate
         env:
