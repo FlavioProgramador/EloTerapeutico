@@ -19,7 +19,7 @@ sqlparse>=0.6.0,<0.7
 celery>=5.4,<5.6
 redis>=5.0,<6.0
 msgpack>=1.2.1,<2.0
-setuptools>=78.1.1,<79.0
+setuptools>=83.0.0,<84.0
 
 # Admin interno / backoffice
 django-unfold>=0.96,<0.97
