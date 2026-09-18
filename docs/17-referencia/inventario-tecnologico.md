@@ -41,16 +41,16 @@ Versões devem ser atualizadas quando `requirements*.txt`, `package.json`, Docke
 | `django-environ` | `>=0.14.0,<0.15` | Leitura e tipagem de variáveis de ambiente |
 | `httpx` | `>=0.28,<0.29` | Clients HTTP, incluindo integrações |
 | `python-dateutil` | `>=2.9,<3.0` | Datas, recorrências e utilitários |
-| `sqlparse` | `>=0.6.0,<0.7` | Parsing SQL usado pelo ecossistema Django |
+| `sqlparse` | `>=0.5.5,<0.6` | Parsing SQL usado pelo ecossistema Django |
 | `redis` | `>=5.0,<6.0` | Cliente Redis e integração Celery |
 | `livekit-api` | `>=1.2.0,<1.3` | Salas, participantes, tokens e webhooks LiveKit |
 | `django-unfold` | `>=0.96,<0.97` | Backoffice e tema do Django Admin |
 | `djangorestframework-simplejwt` | `>=5.5.1,<6.0` | JWT, rotação e blacklist |
 | `psycopg2-binary` | `>=2.9,<3.0` | Driver PostgreSQL |
-| `cryptography` | `>=50.0.0,<51.0` | Criptografia de campos e tokens técnicos |
+| `cryptography` | `>=49.0.0,<50.0` | Criptografia de campos e tokens técnicos |
 | `drf-spectacular` | `>=0.29.0,<0.30` | Schema OpenAPI, Swagger e ReDoc |
 | `argon2-cffi` | `>=23.1,<23.2` | Password hashing Argon2 |
-| `weasyprint` | `>=70.0,<71.0` | PDFs de prontuário, documentos e recibos |
+| `weasyprint` | `>=69.0,<70.0` | PDFs de prontuário, documentos e recibos |
 | `azure-storage-blob` | `>=12.19,<12.20` | SDK de acesso ao Azure Blob |
 | `django-ratelimit` | `>=4.1,<4.2` | Rate limiting |
 
