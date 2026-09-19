@@ -332,3 +332,47 @@ def test_fake_webhook_is_idempotent_and_tracks_presence():
         left_at__isnull=True,
     ).count() == 1
     assert TelemedicineConsent.objects.filter(room=room).count() == 1
+
+
+def test_telemedicine_room_list_uses_prefetch_cache_for_active_participants(django_assert_num_queries):
+    therapist, organization, _, _, room1 = create_context(suffix="perf-1")
+
+    # Criar consultas adicionais com salas para o mesmo terapeuta e organização
+    for idx in range(2, 4):
+        p = Patient.objects.create(
+            organization=organization,
+            therapist=therapist,
+            full_name=f"Paciente {idx}",
+        )
+        st = timezone.now() + timedelta(hours=idx)
+        app = Appointment.objects.create(
+            organization=organization,
+            patient=p,
+            therapist=therapist,
+            start_time=st,
+            end_time=st + timedelta(minutes=50),
+            status=Appointment.Status.CONFIRMED,
+            modality=Appointment.Modality.ONLINE,
+            session_value=Decimal("150.00"),
+            created_by=therapist,
+            updated_by=therapist,
+        )
+        room = TelemedicineRoom.objects.get(appointment=app)
+        TelemedicineParticipantSession.objects.create(
+            organization=organization,
+            room=room,
+            role=TelemedicineParticipantSession.Role.PATIENT,
+            provider_participant_identity=f"identity_{idx}",
+            joined_at=timezone.now(),
+        )
+
+    client = authenticated_client(
+        therapist=therapist,
+        organization=organization,
+    )
+
+    with django_assert_num_queries(5):
+        response = client.get(reverse("telemedicine-list"))
+
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.data["results"]) == 3
