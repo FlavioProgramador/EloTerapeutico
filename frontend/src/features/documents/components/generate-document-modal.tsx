@@ -26,7 +26,7 @@ interface Props {
 }
 
 const fieldClass =
-  "h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
+  "h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60";
 
 export function GenerateDocumentModal({
   open,
@@ -85,15 +85,26 @@ export function GenerateDocumentModal({
 
   const isPending = submitting || pendingAction !== null;
 
+  const handleClose = () => {
+    if (isPending) return;
+    onClose();
+  };
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (isPending) return;
+    submit(true);
+  };
+
   return (
     <Modal
       isOpen={open}
-      onClose={onClose}
+      onClose={handleClose}
       title="Gerar documento"
       description="Selecione um modelo e revise o rascunho antes de concluir a emissão."
       className="max-w-xl"
     >
-      <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <label htmlFor={patientFieldId} className="block text-xs font-semibold text-foreground">
             Paciente <span className="text-danger">*</span>
@@ -102,6 +113,7 @@ export function GenerateDocumentModal({
             id={patientFieldId}
             className={fieldClass}
             value={patientId}
+            disabled={isPending}
             onChange={(event) => setPatientId(event.target.value)}
           >
             <option value="">Selecione um paciente</option>
@@ -120,6 +132,7 @@ export function GenerateDocumentModal({
             id={templateFieldId}
             className={fieldClass}
             value={templateId}
+            disabled={isPending}
             onChange={(event) => {
               const value = event.target.value;
               setTemplateId(value);
@@ -147,6 +160,7 @@ export function GenerateDocumentModal({
             id={titleFieldId}
             className={fieldClass}
             value={title}
+            disabled={isPending}
             maxLength={200}
             onChange={(event) => setTitle(event.target.value)}
             placeholder="Usa o nome do template quando vazio"
@@ -160,6 +174,7 @@ export function GenerateDocumentModal({
             id={localFieldId}
             className={fieldClass}
             value={localEmissao}
+            disabled={isPending}
             maxLength={160}
             onChange={(event) => setLocalEmissao(event.target.value)}
             placeholder="Ex.: São Gonçalo/RJ"
@@ -178,30 +193,37 @@ export function GenerateDocumentModal({
           template não modificam documentos já criados.
         </p>
         <div className="flex flex-col-reverse justify-end gap-2 border-t border-border pt-4 sm:flex-row">
-          <Button variant="outline" size="sm" onClick={onClose} disabled={isPending}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleClose}
+            disabled={isPending}
+          >
             Cancelar
           </Button>
           <Button
+            type="button"
             variant="secondary"
             size="sm"
             isLoading={pendingAction === "draft"}
             disabled={isPending}
-            leftIcon={<Save className="h-4 w-4" />}
+            leftIcon={<Save className="h-4 w-4" aria-hidden="true" />}
             onClick={() => submit(false)}
           >
             Salvar rascunho
           </Button>
           <Button
+            type="submit"
             size="sm"
             isLoading={pendingAction === "pdf"}
             disabled={isPending}
-            leftIcon={<FileCheck2 className="h-4 w-4" />}
-            onClick={() => submit(true)}
+            leftIcon={<FileCheck2 className="h-4 w-4" aria-hidden="true" />}
           >
             Gerar PDF
           </Button>
         </div>
-      </div>
+      </form>
     </Modal>
   );
 }
