@@ -61,7 +61,6 @@ export function FinanceiroNewBillingModal({
   );
 
   const resetAndClose = () => {
-    if (generateCharges.isPending) return;
     setPatientId("");
     setDueDate(today());
     setSelectedSessions([]);
@@ -101,7 +100,7 @@ export function FinanceiroNewBillingModal({
   };
 
   const submit = () => {
-    if (generateCharges.isPending || !dueDate || selectedSessions.length === 0) return;
+    if (!dueDate || selectedSessions.length === 0) return;
     generateCharges.mutate(
       { appointmentIds: selectedSessions, dueDate },
       { onSuccess: resetAndClose },
@@ -116,13 +115,7 @@ export function FinanceiroNewBillingModal({
       description="Selecione o paciente e as sessões que devem gerar lançamentos financeiros."
       className="max-w-2xl"
     >
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          submit();
-        }}
-        className="space-y-6 pt-2"
-      >
+      <div className="space-y-6 pt-2">
         <div className="space-y-1.5">
           <label htmlFor={patientSelectId} className="text-sm font-semibold">
             Paciente
@@ -130,9 +123,8 @@ export function FinanceiroNewBillingModal({
           <select
             id={patientSelectId}
             value={patientId}
-            disabled={generateCharges.isPending}
             onChange={(event) => selectPatient(event.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 w-full rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
             <option value="">Selecione um paciente</option>
             {patients.map((patient) => (
@@ -152,9 +144,8 @@ export function FinanceiroNewBillingModal({
               {patientUnbilled.length > 0 && (
                 <button
                   type="button"
-                  disabled={generateCharges.isPending}
                   onClick={toggleAll}
-                  className="rounded-sm text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="text-xs text-muted-foreground hover:text-foreground"
                 >
                   {selectedSessions.length === patientUnbilled.length
                     ? "Desmarcar todas"
@@ -178,7 +169,7 @@ export function FinanceiroNewBillingModal({
                       key={session.id}
                       className={`flex cursor-pointer items-center justify-between rounded-lg border p-3 transition-colors ${
                         isSelected
-                          ? "border-primary/50 bg-primary/5"
+                          ? "border-blue-500/50 bg-blue-500/5"
                           : "border-border"
                       }`}
                     >
@@ -186,9 +177,8 @@ export function FinanceiroNewBillingModal({
                         <input
                           type="checkbox"
                           checked={isSelected}
-                          disabled={generateCharges.isPending}
                           onChange={() => toggleSession(session.id)}
-                          className="rounded border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded border-input text-blue-500"
                         />
                         <span>
                           <span className="block text-sm font-semibold">
@@ -203,7 +193,7 @@ export function FinanceiroNewBillingModal({
                           </span>
                         </span>
                       </span>
-                      <span className="text-sm font-semibold text-primary">
+                      <span className="text-sm font-semibold text-blue-500">
                         {formatCurrency(session.session_value)}
                       </span>
                     </label>
@@ -217,7 +207,7 @@ export function FinanceiroNewBillingModal({
                 <span className="text-sm font-medium">
                   {selectedSessions.length} sessão(ões) selecionada(s)
                 </span>
-                <span className="text-lg font-bold text-primary">
+                <span className="text-lg font-bold text-blue-500">
                   {formatCurrency(totalValue.toFixed(2))}
                 </span>
               </div>
@@ -233,7 +223,6 @@ export function FinanceiroNewBillingModal({
             id={dueDateId}
             type="date"
             value={dueDate}
-            disabled={generateCharges.isPending}
             onChange={(event) => setDueDate(event.target.value)}
           />
         </div>
@@ -243,28 +232,22 @@ export function FinanceiroNewBillingModal({
         </p>
 
         <div className="flex justify-end gap-2 pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={generateCharges.isPending}
-            onClick={resetAndClose}
-          >
+          <Button variant="outline" onClick={resetAndClose}>
             Cancelar
           </Button>
           <Button
-            type="submit"
-            variant="primary"
-            isLoading={generateCharges.isPending}
+            onClick={submit}
             disabled={
               generateCharges.isPending ||
               !dueDate ||
               selectedSessions.length === 0
             }
+            className="bg-blue-600 text-white hover:bg-blue-700"
           >
-            Criar cobrança
+            {generateCharges.isPending ? "Criando..." : "Criar cobrança"}
           </Button>
         </div>
-      </form>
+      </div>
     </Modal>
   );
 }
