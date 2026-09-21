@@ -295,3 +295,44 @@ class BillingAPITests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["results"]), 1)
         self.assertEqual(response.data["results"][0]["id"], own.id)
+
+    def test_orders_list_performance_and_prefetched_serialization(self):
+        self.authenticate()
+        today = timezone.localdate()
+
+        for index in range(3):
+            order = BillingOrder.objects.create(
+                user=self.user,
+                plan=self.plan,
+                plan_price=self.monthly,
+                total_amount=Decimal("99.90"),
+                installment_count=2,
+                status=BillingOrder.Status.PENDING,
+                idempotency_key=f"order-perf-test-{index}",
+                external_reference=f"ext-ref-perf-{index}",
+            )
+            Payment.objects.create(
+                billing_order=order,
+                user=self.user,
+                amount=Decimal("49.95"),
+                status=Payment.Status.CONFIRMED,
+                due_date=today - timedelta(days=10),
+                gateway_payment_id=f"pay_conf_{index}",
+            )
+            Payment.objects.create(
+                billing_order=order,
+                user=self.user,
+                amount=Decimal("49.95"),
+                status=Payment.Status.PENDING,
+                due_date=today + timedelta(days=20),
+                gateway_payment_id=f"pay_pend_{index}",
+            )
+
+        with self.assertNumQueries(3):
+            response = self.client.get("/api/v1/billing/orders/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data["results"]), 3)
+        for order_data in response.data["results"]:
+            self.assertEqual(order_data["paid_installments"], 1)
+            self.assertEqual(order_data["next_due_date"], today + timedelta(days=20))
