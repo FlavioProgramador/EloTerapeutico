@@ -18,12 +18,14 @@ def get_accessible_patient(
     if organization is None and owner and getattr(owner, "is_authenticated", False):
         memberships = list_active_memberships_for_user(user=owner)
         default_membership = memberships.filter(is_default=True).first()
-        if default_membership:
+        if default_membership is not None:
             membership = default_membership
             organization = default_membership.organization
         elif memberships.count() == 1:
-            membership = memberships.first()
-            organization = membership.organization
+            first_membership = memberships.first()
+            if first_membership is not None:
+                membership = first_membership
+                organization = first_membership.organization
 
     if organization is not None and membership is None and owner:
         membership = OrganizationMembership.objects.filter(
