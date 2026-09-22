@@ -81,7 +81,7 @@ Elas suportam compilação de dependências, PostgreSQL e renderização do Weas
 | Tecnologia | Versão | Finalidade |
 | --- | --- | --- |
 | Node.js | 24 na imagem | Runtime de build e servidor Next.js |
-| Next.js | 16.3.3 | App Router, SSR, Route Handlers e BFF |
+| Next.js | 16.3.5 | App Router, SSR, Route Handlers e BFF |
 | React | 19.2.7 | Interface baseada em componentes |
 | React DOM | 19.2.4 | Renderização web |
 | TypeScript | 6 | Tipagem estática |
