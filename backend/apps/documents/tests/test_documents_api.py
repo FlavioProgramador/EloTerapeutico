@@ -44,6 +44,14 @@ class DocumentModuleApiTests(APITestCase):
             created_by=self.therapist,
             updated_by=self.therapist,
         )
+        self.library_template = DocumentTemplate.objects.create(
+            owner=None,
+            name="Modelo global para preview",
+            category="Declaração",
+            document_type=DocumentTemplate.DocumentType.DECLARATION,
+            content="Declaro que {{paciente.nome_completo}} está em acompanhamento.",
+            is_library_template=True,
+        )
         self.client.force_authenticate(self.therapist)
 
     def tearDown(self):
@@ -172,6 +180,16 @@ class DocumentModuleApiTests(APITestCase):
         # Tentativa de usar dados de paciente de outro tenant para prévia deve falhar
         response = self.client.post(
             f"/api/v1/documents/templates/{self.template.public_id}/preview/",
+            {"patient_id": self.other_patient.pk},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("patient_id", response.data["error"]["details"])
+
+    def test_library_preview_does_not_allow_cross_tenant_patient_data(self):
+        # Prévia na biblioteca pública informando patient_id de outro terapeuta deve falhar
+        response = self.client.post(
+            f"/api/v1/documents/library/{self.library_template.public_id}/preview/",
             {"patient_id": self.other_patient.pk},
             format="json",
         )
