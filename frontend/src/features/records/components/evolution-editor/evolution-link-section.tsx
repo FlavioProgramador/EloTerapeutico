@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { CalendarDays, Link2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -13,6 +14,8 @@ export function EvolutionLinkSection({
 }: {
   controller: EvolutionEditorController;
 }) {
+  const dateOverrideId = useId();
+
   return (
     <>
       <section className="space-y-2">
@@ -20,7 +23,7 @@ export function EvolutionLinkSection({
           htmlFor="evolution-appointment"
           className="flex items-center gap-2 text-xs font-semibold text-foreground"
         >
-          <Link2 className="size-4 text-muted-foreground" />
+          <Link2 className="size-4 text-muted-foreground" aria-hidden="true" />
           Vincular a Consulta
         </label>
         <select
@@ -59,7 +62,10 @@ export function EvolutionLinkSection({
           htmlFor="evolution-session-date"
           className="flex items-center gap-2 text-xs font-semibold text-foreground"
         >
-          <CalendarDays className="size-4 text-muted-foreground" />
+          <CalendarDays
+            className="size-4 text-muted-foreground"
+            aria-hidden="true"
+          />
           Data do Atendimento
         </label>
         <input
@@ -88,8 +94,9 @@ export function EvolutionLinkSection({
           )}
         />
         {controller.dateDiffersFromAppointment && (
-          <label className="flex items-start gap-2 rounded-md border border-amber-500/25 bg-amber-500/10 p-3 text-[11px] text-foreground">
+          <div className="flex items-start gap-2 rounded-md border border-amber-500/25 bg-amber-500/10 p-3 text-[11px] text-foreground">
             <input
+              id={dateOverrideId}
               type="checkbox"
               checked={controller.form.dateOverrideConfirmed}
               onChange={(event) =>
@@ -99,16 +106,18 @@ export function EvolutionLinkSection({
                 )
               }
               disabled={controller.busy}
-              className="mt-0.5"
+              className="mt-0.5 rounded border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             />
-            Confirmo que a data informada difere da consulta vinculada (
-            {controller.linkedAppointmentDate
-              ? formatEvolutionDate(
-                  `${controller.linkedAppointmentDate}T12:00:00`,
-                )
-              : "data não disponível"}
-            ).
-          </label>
+            <label htmlFor={dateOverrideId} className="cursor-pointer">
+              Confirmo que a data informada difere da consulta vinculada (
+              {controller.linkedAppointmentDate
+                ? formatEvolutionDate(
+                    `${controller.linkedAppointmentDate}T12:00:00`,
+                  )
+                : "data não disponível"}
+              ).
+            </label>
+          </div>
         )}
         {controller.errors.sessionDate && (
           <p

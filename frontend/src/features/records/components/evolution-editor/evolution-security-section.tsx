@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { LockKeyhole, ShieldCheck } from "lucide-react";
 
 import type { EvolutionEditorController } from "../../hooks/use-evolution-editor-controller";
@@ -8,11 +9,14 @@ export function EvolutionSecuritySection({
 }: {
   controller: EvolutionEditorController;
 }) {
+  const confidentialId = useId();
+
   return (
     <>
       <section>
-        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-secondary/10 p-4">
+        <div className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-secondary/10 p-4">
           <input
+            id={confidentialId}
             type="checkbox"
             checked={controller.form.confidential}
             onChange={(event) =>
@@ -20,11 +24,14 @@ export function EvolutionSecuritySection({
             }
             disabled={controller.busy}
             aria-describedby="evolution-confidential-description"
-            className="mt-0.5 size-4 rounded border-border"
+            className="mt-0.5 size-4 rounded border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           />
-          <span>
+          <label htmlFor={confidentialId} className="cursor-pointer">
             <strong className="flex items-center gap-2 text-xs text-foreground">
-              <LockKeyhole className="size-3.5 text-muted-foreground" />
+              <LockKeyhole
+                className="size-3.5 text-muted-foreground"
+                aria-hidden="true"
+              />
               Marcar como confidencial
             </strong>
             <span
@@ -35,8 +42,8 @@ export function EvolutionSecuritySection({
               explícita poderão visualizar esta evolução. Secretárias e outros
               profissionais não autorizados não terão acesso.
             </span>
-          </span>
-        </label>
+          </label>
+        </div>
       </section>
 
       <section className="space-y-2">
@@ -57,7 +64,10 @@ export function EvolutionSecuritySection({
       </section>
 
       <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-[11px] text-muted-foreground">
-        <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+        <ShieldCheck
+          className="mt-0.5 size-4 shrink-0 text-primary"
+          aria-hidden="true"
+        />
         O conteúdo é enviado somente ao servidor autenticado, armazenado de
         forma criptografada e registrado em auditoria. Nenhum texto clínico é
         salvo no navegador.

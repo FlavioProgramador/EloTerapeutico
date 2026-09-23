@@ -30,8 +30,10 @@ export function EvolutionContentSection({
               controller.setTemplateMenuOpen((value) => !value)
             }
             disabled={controller.busy}
-            leftIcon={<FileText className="size-3.5" />}
-            rightIcon={<ChevronDown className="size-3.5" />}
+            aria-expanded={controller.templateMenuOpen}
+            aria-haspopup="true"
+            leftIcon={<FileText className="size-3.5" aria-hidden="true" />}
+            rightIcon={<ChevronDown className="size-3.5" aria-hidden="true" />}
           >
             Usar Template
           </Button>
@@ -51,7 +53,8 @@ export function EvolutionContentSection({
                     key={template.id}
                     type="button"
                     onClick={() => controller.chooseTemplate(template)}
-                    className="w-full rounded-md px-3 py-2 text-left transition hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    disabled={controller.busy}
+                    className="w-full rounded-md px-3 py-2 text-left transition hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-50"
                   >
                     <strong className="block text-xs text-foreground">
                       {template.name}
