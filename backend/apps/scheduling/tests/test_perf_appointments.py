@@ -76,3 +76,32 @@ def test_appointment_list_optimized_queries(
 
     assert response.status_code == status.HTTP_200_OK
     assert len(response.data["results"]) == num_appointments
+
+
+@pytest.mark.django_db
+def test_appointment_list_optimized_queries_without_relations(
+    api_client,
+    therapist,
+    patient,
+    django_assert_num_queries,
+):
+    """Verifica que consultas sem telemedicina nem evolução não disparam N+1 ao checar OneToOne inexistentes."""
+
+    num_appointments = 10
+    for i in range(num_appointments):
+        start = timezone.now() + timedelta(days=i)
+        Appointment.objects.create(
+            patient=patient,
+            therapist=therapist,
+            start_time=start,
+            end_time=start + timedelta(minutes=50),
+            session_value=100,
+        )
+
+    url = reverse("appointment-list")
+
+    with django_assert_num_queries(3):
+        response = api_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.data["results"]) == num_appointments

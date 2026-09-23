@@ -51,18 +51,29 @@ class AppointmentListSerializer(serializers.ModelSerializer):
         ]
 
     def get_telemedicine_status(self, obj):
+        if hasattr(obj, "_state") and "telemedicine_room" in obj._state.fields_cache:
+            room = obj._state.fields_cache["telemedicine_room"]
+            return room.status if room is not None else None
         try:
             return obj.telemedicine_room.status
         except TelemedicineRoom.DoesNotExist:
             return None
 
     def get_evolution_id(self, obj):
+        if hasattr(obj, "_state") and "evolution" in obj._state.fields_cache:
+            evolution = obj._state.fields_cache["evolution"]
+            return evolution.id if evolution is not None else None
         try:
             return obj.evolution.id
         except Exception:
             return None
 
     def get_evolution_status(self, obj):
+        if hasattr(obj, "_state") and "evolution" in obj._state.fields_cache:
+            evolution = obj._state.fields_cache["evolution"]
+            if evolution is None:
+                return None
+            return getattr(getattr(evolution, "clinical_data", None), "status", None)
         try:
             return obj.evolution.clinical_data.status
         except Exception:
