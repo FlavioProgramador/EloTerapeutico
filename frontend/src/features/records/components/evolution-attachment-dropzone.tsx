@@ -100,13 +100,13 @@ export function EvolutionAttachmentDropzone({
         }}
         className={cn(
           "flex min-h-28 w-full flex-col items-center justify-center rounded-lg border border-dashed border-border bg-secondary/10 px-4 py-5 text-center transition",
-          "hover:border-primary/60 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+          "hover:border-primary/60 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2",
           dragging && "border-primary bg-primary/10",
           disabled && "cursor-not-allowed opacity-60",
         )}
         aria-label="Selecionar anexos da evolução"
       >
-        <UploadCloud className="size-7 text-muted-foreground" />
+        <UploadCloud className="size-7 text-muted-foreground" aria-hidden="true" />
         <strong className="mt-2 text-xs text-foreground">
           Arraste arquivos ou clique para selecionar
         </strong>
@@ -200,9 +200,9 @@ function AttachmentRow({
     >
       <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-md bg-secondary text-muted-foreground">
         {isImage ? (
-          <ImageIcon className="size-5" />
+          <ImageIcon className="size-5" aria-hidden="true" />
         ) : (
-          <FileText className="size-5" />
+          <FileText className="size-5" aria-hidden="true" />
         )}
       </span>
       <div className="min-w-0 flex-1">
@@ -221,7 +221,7 @@ function AttachmentRow({
         {error && <p className="mt-1 text-[11px] text-destructive">{error}</p>}
       </div>
       {uploading ? (
-        <LoaderCircle className="size-4 animate-spin text-primary" />
+        <LoaderCircle className="size-4 animate-spin text-primary" aria-hidden="true" />
       ) : (
         <Button
           type="button"
@@ -231,7 +231,7 @@ function AttachmentRow({
           disabled={disabled}
           aria-label={`Remover ${name}`}
         >
-          <Trash2 className="size-4" />
+          <Trash2 className="size-4" aria-hidden="true" />
         </Button>
       )}
     </div>

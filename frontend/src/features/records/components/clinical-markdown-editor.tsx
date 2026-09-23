@@ -136,7 +136,7 @@ function ToolButton({
       onClick={onClick}
       title={label}
       aria-label={label}
-      className="grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
     >
       {children}
     </button>

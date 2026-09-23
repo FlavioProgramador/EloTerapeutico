@@ -19,6 +19,11 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
 
   if (!props.open) return null;
 
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    controller.submit();
+  };
+
   return (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-0 backdrop-blur-[2px] sm:p-4"
@@ -26,12 +31,13 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
         if (event.target === event.currentTarget) controller.requestClose();
       }}
     >
-      <div
-        ref={dialogRef}
+      <form
+        ref={dialogRef as unknown as React.RefObject<HTMLFormElement>}
         role="dialog"
         aria-modal="true"
         aria-labelledby="evolution-modal-title"
         aria-describedby="evolution-modal-description"
+        onSubmit={handleSubmit}
         className="flex h-full w-full flex-col overflow-hidden border-border bg-card shadow-2xl sm:h-auto sm:max-h-[94vh] sm:max-w-2xl sm:rounded-xl sm:border"
       >
         <header className="flex shrink-0 items-start justify-between border-b border-border px-5 py-4">
@@ -56,9 +62,9 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
             onClick={controller.requestClose}
             disabled={controller.busy}
             aria-label="Fechar modal"
-            className="grid size-8 place-items-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+            className="grid size-8 place-items-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-50"
           >
-            <X className="size-4" />
+            <X className="size-4" aria-hidden="true" />
           </button>
         </header>
 
@@ -83,8 +89,7 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
             Cancelar
           </Button>
           <Button
-            type="button"
-            onClick={controller.submit}
+            type="submit"
             isLoading={controller.submitting}
             disabled={
               controller.busy ||
@@ -97,7 +102,7 @@ export function EvolutionEditor(props: EvolutionEditorProps) {
               : "Adicionar Registro"}
           </Button>
         </footer>
-      </div>
+      </form>
     </div>
   );
 }
