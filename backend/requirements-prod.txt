@@ -16,6 +16,8 @@ python-dateutil>=2.9,<3.0
 sqlparse>=0.6.0,<0.7
 
 # Processamento assíncrono e broker
+msgpack>=1.2.1
+setuptools>=78.1.1
 celery>=5.4,<5.6
 redis>=5.0,<6.0
 
