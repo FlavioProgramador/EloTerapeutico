@@ -89,7 +89,7 @@ def test_painel_lateral_rejeita_paciente_de_outro_terapeuta(dashboard_context):
 
 @pytest.mark.django_db
 def test_exportacao_csv_nao_expoe_cpf_completo(dashboard_context):
-    client, _, patient, _ = dashboard_context
+    client, _, patient, foreign_patient = dashboard_context
 
     response = client.get(reverse("patient-export-csv"))
     content = (
@@ -99,6 +99,14 @@ def test_exportacao_csv_nao_expoe_cpf_completo(dashboard_context):
     assert response.status_code == 200
     assert patient.cpf not in content
     assert patient.masked_cpf in content
+    assert foreign_patient.full_name not in content
+
+
+@pytest.mark.django_db
+def test_exportacao_csv_rejeita_usuario_nao_autenticado():
+    unauth_client = APIClient()
+    response = unauth_client.get(reverse("patient-export-csv"))
+    assert response.status_code == 401
 
 
 @pytest.mark.django_db

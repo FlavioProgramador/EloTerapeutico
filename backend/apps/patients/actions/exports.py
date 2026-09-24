@@ -7,11 +7,16 @@ from rest_framework.decorators import action
 
 from apps.audit.models import AuditLog
 from apps.audit.services import log_access
+from apps.organizations.permissions import require_capability
+from apps.organizations.services.tenant_context import ensure_request_organization
 
 
 class PatientExportActions:
     @action(detail=False, methods=["get"], url_path="export-csv")
     def export_csv(self, request):
+        _, membership = ensure_request_organization(request=request, required=True)
+        require_capability(membership, "patients.view")
+
         queryset = self.filter_queryset(self.get_queryset()).order_by("full_name")
         buffer = StringIO()
         writer = csv.writer(buffer)
@@ -43,6 +48,7 @@ class PatientExportActions:
         log_access(
             request,
             AuditLog.Action.EXPORT,
+            obj=None,
             obj_repr="Exportação autorizada da listagem de pacientes",
         )
         response = HttpResponse(
