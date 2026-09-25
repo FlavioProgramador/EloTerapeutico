@@ -15,11 +15,12 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState, useId } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import {
   registerSchema,
@@ -203,9 +204,9 @@ function PlanSummary({
 
       <Link
         href="/planos"
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl p-2 text-sm font-bold text-primary transition-colors hover:bg-primary-soft hover:text-primary-hover"
+        className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl p-2 text-sm font-bold text-primary transition-colors hover:bg-primary-soft hover:text-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
       >
-        Alterar ou escolher plano <ArrowRight className="h-4 w-4" />
+        Alterar ou escolher plano <ArrowRight className="h-4 w-4" aria-hidden="true" />
       </Link>
     </div>
   );
@@ -214,6 +215,10 @@ function PlanSummary({
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const termsCheckboxId = useId();
+  const privacyCheckboxId = useId();
+  const termsErrorId = `${termsCheckboxId}-error`;
+  const privacyErrorId = `${privacyCheckboxId}-error`;
   const [plans, setPlans] = useState<Plan[]>([]);
   const [plansLoading, setPlansLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -359,6 +364,7 @@ function RegisterForm() {
               type="text"
               autoComplete="name"
               variant="underline"
+              disabled={isSubmitting}
               error={errors.full_name?.message}
               leftIcon={
                 <User className="h-5 w-5" aria-hidden="true" />
@@ -373,6 +379,7 @@ function RegisterForm() {
                 type="email"
                 autoComplete="email"
                 variant="underline"
+                disabled={isSubmitting}
                 error={errors.email?.message}
                 leftIcon={
                   <Mail className="h-5 w-5" aria-hidden="true" />
@@ -385,6 +392,7 @@ function RegisterForm() {
                 type="tel"
                 autoComplete="tel"
                 variant="underline"
+                disabled={isSubmitting}
                 error={errors.phone?.message}
                 leftIcon={
                   <Phone className="h-5 w-5" aria-hidden="true" />
@@ -400,6 +408,7 @@ function RegisterForm() {
                 type="text"
                 autoComplete="off"
                 variant="underline"
+                disabled={isSubmitting}
                 error={errors.crp?.message}
                 placeholder="Opcional"
                 {...register("crp")}
@@ -410,6 +419,7 @@ function RegisterForm() {
                 type="text"
                 autoComplete="organization-title"
                 variant="underline"
+                disabled={isSubmitting}
                 error={errors.specialty?.message}
                 placeholder="Opcional"
                 {...register("specialty")}
@@ -423,6 +433,7 @@ function RegisterForm() {
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
                 variant="underline"
+                disabled={isSubmitting}
                 error={errors.password?.message}
                 leftIcon={
                   <Lock className="h-5 w-5" aria-hidden="true" />
@@ -431,7 +442,8 @@ function RegisterForm() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((current) => !current)}
-                    className="transition-colors hover:text-primary"
+                    disabled={isSubmitting}
+                    className="rounded-xs transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
                     aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   >
                     {showPassword ? (
@@ -449,6 +461,7 @@ function RegisterForm() {
                 type={showConfirmPassword ? "text" : "password"}
                 autoComplete="new-password"
                 variant="underline"
+                disabled={isSubmitting}
                 error={errors.confirm_password?.message}
                 leftIcon={
                   <Lock className="h-5 w-5" aria-hidden="true" />
@@ -459,7 +472,8 @@ function RegisterForm() {
                     onClick={() =>
                       setShowConfirmPassword((current) => !current)
                     }
-                    className="transition-colors hover:text-primary"
+                    disabled={isSubmitting}
+                    className="rounded-xs transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
                     aria-label={
                       showConfirmPassword ? "Ocultar senha" : "Mostrar senha"
                     }
@@ -476,57 +490,93 @@ function RegisterForm() {
             </div>
 
             <div className="space-y-3 rounded-xl border border-primary/10 bg-primary-soft/45 p-4">
-              <label className="flex items-start gap-3 text-sm text-muted-foreground">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-4 w-4 rounded border-input accent-primary"
-                  aria-invalid={Boolean(errors.terms_accepted)}
-                  {...register("terms_accepted")}
-                />
-                <span>
-                  Li e aceito os{" "}
-                  <Link
-                    href="/termos-de-uso"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-semibold text-primary hover:underline"
+              <div>
+                <div className="flex items-start gap-3">
+                  <input
+                    id={termsCheckboxId}
+                    type="checkbox"
+                    disabled={isSubmitting}
+                    aria-describedby={
+                      errors.terms_accepted ? termsErrorId : undefined
+                    }
+                    aria-invalid={Boolean(errors.terms_accepted)}
+                    className="mt-1 h-4 w-4 rounded border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                    {...register("terms_accepted")}
+                  />
+                  <label
+                    htmlFor={termsCheckboxId}
+                    className="text-sm text-muted-foreground"
                   >
-                    Termos de Uso
-                  </Link>
-                  .
-                </span>
-              </label>
-              {errors.terms_accepted && (
-                <p className="text-xs text-danger" role="alert">
-                  {errors.terms_accepted.message}
-                </p>
-              )}
+                    Li e aceito os{" "}
+                    <Link
+                      href="/termos-de-uso"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        "font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 rounded-xs",
+                        isSubmitting && "pointer-events-none opacity-50",
+                      )}
+                      tabIndex={isSubmitting ? -1 : undefined}
+                    >
+                      Termos de Uso
+                    </Link>
+                    .
+                  </label>
+                </div>
+                {errors.terms_accepted && (
+                  <p
+                    id={termsErrorId}
+                    className="mt-1 text-xs text-danger"
+                    role="alert"
+                  >
+                    {errors.terms_accepted.message}
+                  </p>
+                )}
+              </div>
 
-              <label className="flex items-start gap-3 text-sm text-muted-foreground">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-4 w-4 rounded border-input accent-primary"
-                  aria-invalid={Boolean(errors.privacy_accepted)}
-                  {...register("privacy_accepted")}
-                />
-                <span>
-                  Li e aceito a{" "}
-                  <Link
-                    href="/politica-de-privacidade"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-semibold text-primary hover:underline"
+              <div>
+                <div className="flex items-start gap-3">
+                  <input
+                    id={privacyCheckboxId}
+                    type="checkbox"
+                    disabled={isSubmitting}
+                    aria-describedby={
+                      errors.privacy_accepted ? privacyErrorId : undefined
+                    }
+                    aria-invalid={Boolean(errors.privacy_accepted)}
+                    className="mt-1 h-4 w-4 rounded border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                    {...register("privacy_accepted")}
+                  />
+                  <label
+                    htmlFor={privacyCheckboxId}
+                    className="text-sm text-muted-foreground"
                   >
-                    Política de Privacidade
-                  </Link>
-                  .
-                </span>
-              </label>
-              {errors.privacy_accepted && (
-                <p className="text-xs text-danger" role="alert">
-                  {errors.privacy_accepted.message}
-                </p>
-              )}
+                    Li e aceito a{" "}
+                    <Link
+                      href="/politica-de-privacidade"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        "font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 rounded-xs",
+                        isSubmitting && "pointer-events-none opacity-50",
+                      )}
+                      tabIndex={isSubmitting ? -1 : undefined}
+                    >
+                      Política de Privacidade
+                    </Link>
+                    .
+                  </label>
+                </div>
+                {errors.privacy_accepted && (
+                  <p
+                    id={privacyErrorId}
+                    className="mt-1 text-xs text-danger"
+                    role="alert"
+                  >
+                    {errors.privacy_accepted.message}
+                  </p>
+                )}
+              </div>
             </div>
 
             <Button
@@ -544,7 +594,11 @@ function RegisterForm() {
             Já possui uma conta?{" "}
             <Link
               href={loginHref}
-              className="font-semibold text-primary hover:text-primary-hover hover:underline"
+              className={cn(
+                "font-semibold text-primary hover:text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 rounded-xs",
+                isSubmitting && "pointer-events-none opacity-50",
+              )}
+              tabIndex={isSubmitting ? -1 : undefined}
             >
               Entrar
             </Link>
