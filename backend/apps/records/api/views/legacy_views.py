@@ -139,15 +139,13 @@ class EvolutionViewSet(AuditLogMixin, viewsets.ModelViewSet):
         patient_id = self.request.query_params.get("patient")
         from apps.patients.models import Patient
 
+        accessible_patients = Patient.objects.filter(patient_access_q(user))
+
         if not patient_id:
-            # Caso não informe o paciente, admin vê tudo (já filtrado por confidencialidade);
-            # terapeuta só vê as que ele tem acesso pelo vínculo com pacientes.
-            if user.is_admin_role:
-                return queryset
-            return queryset.filter(patient__in=Patient.objects.filter(patient_access_q(user)))
+            return queryset.filter(patient__in=accessible_patients)
 
         # Garante que o paciente existe e o usuário tem acesso a ele
-        patient = get_object_or_404(Patient.objects.filter(patient_access_q(user)), id=patient_id)
+        patient = get_object_or_404(accessible_patients, id=patient_id)
 
         return queryset.filter(patient=patient)
 

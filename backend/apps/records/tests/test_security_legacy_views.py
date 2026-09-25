@@ -2,6 +2,7 @@ import pytest
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from apps.organizations.models import Organization, OrganizationMembership
 from apps.patients.models import Patient, PatientProfessional
 from apps.records.models import Anamnesis, Evolution
 from apps.users.models import User
@@ -198,3 +199,128 @@ def test_anamnesis_put_cannot_reassign_patient(owner, patient):
 
     anamnesis.refresh_from_db()
     assert anamnesis.patient == patient
+
+
+@pytest.mark.django_db
+def test_evolution_viewset_unauthenticated_rejected():
+    """
+    Ensure unauthenticated requests to evolution endpoint are rejected.
+    """
+    client = APIClient()
+    response = client.get("/api/v1/records/evolutions/")
+    assert response.status_code == 401
+
+
+@pytest.mark.django_db
+def test_evolution_viewset_cross_tenant_admin_blocked():
+    """
+    Regression: An admin of org1 cannot list or retrieve evolutions of patients in org2.
+    """
+    admin1 = User.objects.create_user(
+        email="admin1@org1.test",
+        password="password",
+        full_name="Admin Org 1",
+        role=User.Role.ADMIN,
+    )
+    therapist2 = User.objects.create_user(
+        email="therapist2@org2.test",
+        password="password",
+        full_name="Therapist Org 2",
+        role=User.Role.THERAPIST,
+    )
+
+    org1 = Organization.objects.create(name="Org 1", slug="org-1", created_by=admin1)
+    org2 = Organization.objects.create(name="Org 2", slug="org-2", created_by=therapist2)
+
+    OrganizationMembership.objects.create(
+        organization=org1,
+        user=admin1,
+        role=OrganizationMembership.Role.ADMIN,
+        status=OrganizationMembership.Status.ACTIVE,
+    )
+    OrganizationMembership.objects.create(
+        organization=org2,
+        user=therapist2,
+        role=OrganizationMembership.Role.THERAPIST,
+        status=OrganizationMembership.Status.ACTIVE,
+    )
+
+    patient2 = Patient.objects.create(
+        organization=org2,
+        full_name="Patient Org 2",
+        therapist=therapist2,
+        status=Patient.Status.ACTIVE,
+    )
+    ev2 = Evolution.objects.create(
+        patient=patient2,
+        content="Note Org 2",
+        session_date=timezone.localdate(),
+        created_by=therapist2,
+    )
+
+    client = APIClient()
+    client.force_authenticate(admin1)
+
+    # List request without patient_id
+    response_list = client.get("/api/v1/records/evolutions/")
+    assert response_list.status_code == 200
+    results = response_list.data.get("results", response_list.data)
+    assert not any(item["id"] == ev2.id for item in results)
+
+    # Detail request
+    response_detail = client.get(f"/api/v1/records/evolutions/{ev2.id}/")
+    assert response_detail.status_code == 404
+
+
+@pytest.mark.django_db
+def test_evolution_viewset_same_tenant_admin_allowed():
+    """
+    An admin of org1 can list non-confidential evolutions of patients in org1.
+    """
+    admin1 = User.objects.create_user(
+        email="admin1_legit@org1.test",
+        password="password",
+        full_name="Admin Legitimate",
+        role=User.Role.ADMIN,
+    )
+    org1 = Organization.objects.create(name="Org 1", slug="org-1-legit", created_by=admin1)
+    OrganizationMembership.objects.create(
+        organization=org1,
+        user=admin1,
+        role=OrganizationMembership.Role.ADMIN,
+        status=OrganizationMembership.Status.ACTIVE,
+    )
+
+    therapist1 = User.objects.create_user(
+        email="therapist1@org1.test",
+        password="password",
+        full_name="Therapist Org 1",
+        role=User.Role.THERAPIST,
+    )
+    OrganizationMembership.objects.create(
+        organization=org1,
+        user=therapist1,
+        role=OrganizationMembership.Role.THERAPIST,
+        status=OrganizationMembership.Status.ACTIVE,
+    )
+
+    patient1 = Patient.objects.create(
+        organization=org1,
+        full_name="Patient Org 1",
+        therapist=therapist1,
+        status=Patient.Status.ACTIVE,
+    )
+    ev1 = Evolution.objects.create(
+        patient=patient1,
+        content="Note Org 1",
+        session_date=timezone.localdate(),
+        created_by=therapist1,
+    )
+
+    client = APIClient()
+    client.force_authenticate(admin1)
+
+    response_list = client.get("/api/v1/records/evolutions/")
+    assert response_list.status_code == 200
+    results = response_list.data.get("results", response_list.data)
+    assert any(item["id"] == ev1.id for item in results)
