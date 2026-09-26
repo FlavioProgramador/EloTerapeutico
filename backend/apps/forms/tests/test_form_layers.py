@@ -70,3 +70,33 @@ class FormsLayerTests(APITestCase):
                 },
             )
         self.assertFalse(FormSubmission.objects.exists())
+
+    def test_form_list_queries_optimized(self):
+        # Warm up request
+        self.client.get("/api/v1/forms/")
+
+        # Query count for 1 form
+        with self.assertNumQueries(5):
+            response = self.client.get("/api/v1/forms/")
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Create 4 additional forms with fields
+        for i in range(4):
+            form = TherapeuticForm.objects.create(
+                owner=self.owner,
+                name=f"Formulário {i}",
+                created_by=self.owner,
+                updated_by=self.owner,
+            )
+            FormField.objects.create(
+                form=form,
+                type=FieldType.SHORT_TEXT,
+                label=f"Pergunta {i}",
+                order=1,
+            )
+
+        # Query count for 5 forms must remain constant (5 queries)
+        with self.assertNumQueries(5):
+            response = self.client.get("/api/v1/forms/")
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(len(response.data["results"]), 5)
