@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import type { AgendaPagination, AppointmentStatus } from "../types";
 
 export const fieldClass =
-  "h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-60";
+  "h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60";
 
 export function Toolbar({ children }: { children: React.ReactNode }) {
   return (
@@ -26,13 +26,14 @@ export function SearchInput({
 }) {
   return (
     <div className="relative min-w-[220px] flex-1">
-      <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+      <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" aria-hidden="true" />
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
+        aria-label={placeholder}
         className={cn(
-          "h-9 w-full rounded-md border border-border bg-background pl-9 text-sm outline-none transition focus:border-primary",
+          "h-9 w-full rounded-md border border-border bg-background pl-9 text-sm outline-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           value ? "pr-9" : "pr-3",
         )}
       />
@@ -40,10 +41,10 @@ export function SearchInput({
         <button
           type="button"
           onClick={() => onChange("")}
-          className="absolute right-2 top-1.5 flex items-center justify-center rounded-md p-1 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+          className="absolute right-2 top-1.5 flex items-center justify-center rounded-md p-1 text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           aria-label="Limpar busca"
         >
-          <X className="size-3.5" />
+          <X className="size-3.5" aria-hidden="true" />
         </button>
       )}
     </div>
@@ -67,7 +68,7 @@ export function FilterSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-9 rounded-md border border-border bg-background px-3 text-xs font-medium"
+        className="h-9 rounded-md border border-border bg-background px-3 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         {children}
       </select>
@@ -79,14 +80,16 @@ export function Field({
   label,
   children,
   hint,
+  htmlFor,
 }: {
   label: string;
   children: React.ReactNode;
   hint?: string;
+  htmlFor?: string;
 }) {
   return (
-    <label className="block space-y-1.5">
-      <span className="text-xs font-semibold text-foreground">{label}</span>
+    <label htmlFor={htmlFor} className="block space-y-1.5">
+      <span className="block text-xs font-semibold text-foreground">{label}</span>
       {children}
       {hint && (
         <span className="block text-[11px] text-muted-foreground">{hint}</span>
@@ -108,14 +111,21 @@ export function Toggle({
   onChange,
   label,
   description,
+  disabled,
 }: {
   checked: boolean;
   onChange: (value: boolean) => void;
   label: string;
   description?: string;
+  disabled?: boolean;
 }) {
   return (
-    <label className="flex cursor-pointer items-start justify-between gap-4 rounded-lg border border-border bg-secondary/10 p-3">
+    <label
+      className={cn(
+        "flex cursor-pointer items-start justify-between gap-4 rounded-lg border border-border bg-secondary/10 p-3 transition",
+        disabled && "cursor-not-allowed opacity-60",
+      )}
+    >
       <span>
         <strong className="block text-sm font-medium">{label}</strong>
         {description && (
@@ -127,8 +137,9 @@ export function Toggle({
       <input
         type="checkbox"
         checked={checked}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
-        className="mt-1"
+        className="mt-1 accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed"
       />
     </label>
   );
