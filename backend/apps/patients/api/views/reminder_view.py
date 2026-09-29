@@ -6,31 +6,35 @@ from rest_framework.views import APIView
 
 from apps.audit.models import AuditLog
 from apps.audit.services import log_access
+from apps.organizations.permissions import require_capability
 from apps.organizations.services.tenant_context import ensure_request_organization
 from apps.patients.selectors.patients import patients_accessible_to
+from apps.patients.services.access_control import can_access_patient
 
 
 class PatientReminderView(APIView):
     permission_classes = [IsAuthenticated]
 
     def patch(self, request, pk):
-        user = request.user
-        if not (user.is_admin_role or user.is_therapist):
-            return Response(
-                {"detail": "Acesso negado."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         organization, membership = ensure_request_organization(
             request=request,
             required=True,
         )
+        require_capability(membership, "patients.update")
+
+        user = request.user
         queryset = patients_accessible_to(
             user,
             organization=organization,
             membership=membership,
         )
         patient = get_object_or_404(queryset, pk=pk)
+
+        if not can_access_patient(user, patient, membership=membership, allow_secretary=False):
+            return Response(
+                {"detail": "Acesso negado."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         enabled = request.data.get("enabled")
         if not isinstance(enabled, bool):
