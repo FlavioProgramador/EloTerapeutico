@@ -171,7 +171,7 @@ class OrganizationSettingsSerializer(serializers.ModelSerializer):
         target = target or self.instance
         cache_key = getattr(target, "pk", None) or id(target)
         if not hasattr(self, "_telemedicine_state_cache"):
-            self._telemedicine_state_cache = {}
+            self._telemedicine_state_cache: dict[int | str, tuple[bool, str]] = {}
         if cache_key in self._telemedicine_state_cache:
             return self._telemedicine_state_cache[cache_key]
 
