@@ -74,7 +74,10 @@ export default function LoginPage() {
         />
         <Link
           href="/"
-          className="absolute left-6 top-6 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary sm:left-10 sm:top-10"
+          tabIndex={isSubmitting ? -1 : undefined}
+          className={`absolute left-6 top-6 inline-flex items-center gap-2 rounded-sm text-sm text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 sm:left-10 sm:top-10 ${
+            isSubmitting ? "pointer-events-none opacity-50" : ""
+          }`}
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Voltar
@@ -108,6 +111,7 @@ export default function LoginPage() {
               type="email"
               autoComplete="email"
               variant="underline"
+              disabled={isSubmitting}
               error={errors.email?.message}
               leftIcon={
                 <Mail className="h-5 w-5" aria-hidden="true" />
@@ -123,6 +127,7 @@ export default function LoginPage() {
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 variant="underline"
+                disabled={isSubmitting}
                 error={errors.password?.message}
                 leftIcon={
                   <Lock className="h-5 w-5" aria-hidden="true" />
@@ -131,7 +136,8 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((current) => !current)}
-                    className="transition-colors hover:text-primary"
+                    disabled={isSubmitting}
+                    className="rounded-sm transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
                     aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   >
                     {showPassword ? (
@@ -146,7 +152,10 @@ export default function LoginPage() {
               <div className="mt-2 flex justify-end">
                 <Link
                   href="/forgot-password"
-                  className="text-xs font-semibold text-primary hover:text-primary-hover hover:underline"
+                  tabIndex={isSubmitting ? -1 : undefined}
+                  className={`rounded-sm text-xs font-semibold text-primary hover:text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 ${
+                    isSubmitting ? "pointer-events-none opacity-50" : ""
+                  }`}
                 >
                   Esqueci minha senha
                 </Link>
@@ -167,7 +176,10 @@ export default function LoginPage() {
             Ainda não possui acesso?{" "}
             <Link
               href="/register"
-              className="font-semibold text-primary hover:text-primary-hover hover:underline"
+              tabIndex={isSubmitting ? -1 : undefined}
+              className={`rounded-sm font-semibold text-primary hover:text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 ${
+                isSubmitting ? "pointer-events-none opacity-50" : ""
+              }`}
             >
               Cadastre-se
             </Link>
