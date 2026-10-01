@@ -8,6 +8,7 @@ from apps.organizations.models import OrganizationMembership
 
 
 class CommunicationTemplateSerializer(serializers.ModelSerializer):
+    _cached_membership: OrganizationMembership | None
     can_edit = serializers.SerializerMethodField()
 
     class Meta:
