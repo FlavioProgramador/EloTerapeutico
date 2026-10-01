@@ -419,3 +419,51 @@ def test_preference_is_unique_per_patient(therapist, patient):
     )
     assert created is False
     assert first.pk == second.pk
+
+
+@pytest.mark.django_db
+@override_settings(BILLING_REQUIRE_SUBSCRIPTION=False)
+def test_template_serializer_memoizes_membership_query(
+    authenticated_client, therapist, django_assert_num_queries
+):
+    organization = therapist.test_organization
+    from apps.communications.models import CommunicationTemplate
+    from apps.communications.serializers import CommunicationTemplateSerializer
+
+    templates = [
+        CommunicationTemplate.objects.create(
+            organization=organization,
+            owner=therapist,
+            name=f"Template {i}",
+            slug=f"template-{i}",
+            description="Descrição",
+            category="custom",
+            channel="email",
+            subject_template="Assunto",
+            body_template="Corpo {{patient_name}}",
+            created_by=therapist,
+            updated_by=therapist,
+        )
+        for i in range(5)
+    ]
+
+    membership = OrganizationMembership.objects.get(
+        user=therapist,
+        organization=organization,
+    )
+
+    request = authenticated_client.get("/api/v1/communications/templates/").wsgi_request
+    request.organization = organization
+    request.organization_membership = membership
+    request.user = therapist
+
+    serializer = CommunicationTemplateSerializer(
+        templates,
+        many=True,
+        context={"request": request},
+    )
+
+    with django_assert_num_queries(0):
+        data = serializer.data
+        assert len(data) == 5
+        assert all(item["can_edit"] is True for item in data)
