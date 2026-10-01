@@ -40,6 +40,9 @@ Versões devem ser atualizadas quando `requirements*.txt`, `package.json`, Docke
 | `django-filter` | `>=24.1,<24.2` | Filtros da API |
 | `django-environ` | `>=0.14.0,<0.15` | Leitura e tipagem de variáveis de ambiente |
 | `httpx` | `>=0.28,<0.29` | Clients HTTP, incluindo integrações |
+| `urllib3` | `>=2.8.0,<3.0` | Cliente HTTP e transporte de conexões |
+| `msgpack` | `>=1.2.1,<2.0` | Serialização binária eficiente para mensagens |
+| `setuptools` | `>=78.1.1` | Gerenciamento de empacotamento Python |
 | `python-dateutil` | `>=2.9,<3.0` | Datas, recorrências e utilitários |
 | `sqlparse` | `>=0.6.0,<0.7` | Parsing SQL usado pelo ecossistema Django |
 | `redis` | `>=5.0,<6.0` | Cliente Redis e integração Celery |
@@ -87,7 +90,7 @@ Elas suportam compilação de dependências, PostgreSQL e renderização do Weas
 | TypeScript | 6 | Tipagem estática |
 | Tailwind CSS | 4 | Design tokens e estilos utilitários |
 | TanStack Query | 5.101.2 | Estado remoto, cache e invalidação |
-| Axios | 1.18.1 | Cliente HTTP do BFF |
+| Axios | 1.20.0 | Cliente HTTP do BFF |
 | React Hook Form | 7.80.0 | Estado e validação de formulários |
 | Zod | 4.4.3 | Schemas e validação de dados |
 
