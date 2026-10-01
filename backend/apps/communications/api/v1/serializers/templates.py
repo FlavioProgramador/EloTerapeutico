@@ -37,15 +37,32 @@ class CommunicationTemplateSerializer(serializers.ModelSerializer):
         ]
 
     def _membership(self):
+        if hasattr(self, "_cached_membership"):
+            return self._cached_membership
+
         request = self.context.get("request")
         organization = getattr(request, "organization", None)
-        if request is None or organization is None:
+        if request is None or organization is None or not getattr(request, "user", None):
+            self._cached_membership = None
             return None
-        return OrganizationMembership.objects.filter(
+
+        membership = getattr(request, "organization_membership", None)
+        if (
+            membership
+            and membership.organization_id == organization.pk
+            and membership.user_id == request.user.pk
+            and membership.status == OrganizationMembership.Status.ACTIVE
+        ):
+            self._cached_membership = membership
+            return membership
+
+        membership = OrganizationMembership.objects.filter(
             user=request.user,
             organization=organization,
             status=OrganizationMembership.Status.ACTIVE,
         ).first()
+        self._cached_membership = membership
+        return membership
 
     def get_can_edit(self, obj):
         request = self.context.get("request")
