@@ -123,6 +123,11 @@ export function DocumentTemplateModal({
     });
   };
 
+  const handleClose = () => {
+    if (submitting) return;
+    onClose();
+  };
+
   const submit = async () => {
     if (!form.name.trim() || !form.category.trim() || !form.content.trim()) {
       setError("Preencha nome, categoria e conteúdo do template.");
@@ -132,15 +137,20 @@ export function DocumentTemplateModal({
     await onSubmit(form);
   };
 
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    void submit();
+  };
+
   return (
     <Modal
       isOpen={open}
-      onClose={onClose}
+      onClose={handleClose}
       title={initial ? "Editar template" : "Novo template"}
       description="Crie um modelo seguro com variáveis controladas para agilizar a emissão."
       className="max-w-4xl"
     >
-      <div className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <label htmlFor={nameId} className="block text-xs font-semibold text-foreground">
@@ -257,7 +267,7 @@ export function DocumentTemplateModal({
 
           <aside className="max-h-80 overflow-y-auto rounded-xl border border-border bg-secondary/30 p-3">
             <div className="mb-3 flex items-center gap-2 text-xs font-bold text-foreground">
-              <Braces className="h-4 w-4 text-primary" /> Variáveis disponíveis
+              <Braces className="h-4 w-4 text-primary" aria-hidden="true" /> Variáveis disponíveis
             </div>
             <div className="space-y-4">
               {Object.entries(grouped).map(([group, items]) => (
@@ -275,7 +285,7 @@ export function DocumentTemplateModal({
                         title={placeholder.description}
                         className="flex w-full items-center gap-2 rounded-md border border-transparent px-2 py-1.5 text-left text-[10px] text-muted-foreground transition hover:border-primary/20 hover:bg-primary/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-40"
                       >
-                        <Plus className="h-3 w-3 shrink-0 text-primary" />
+                        <Plus className="h-3 w-3 shrink-0 text-primary" aria-hidden="true" />
                         <span className="truncate">{placeholder.label}</span>
                       </button>
                     ))}
@@ -371,22 +381,22 @@ export function DocumentTemplateModal({
             type="button"
             variant="outline"
             size="sm"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={submitting}
           >
             Cancelar
           </Button>
           <Button
-            type="button"
+            type="submit"
             size="sm"
             isLoading={submitting}
-            leftIcon={<FileText className="h-4 w-4" />}
-            onClick={submit}
+            disabled={submitting}
+            leftIcon={<FileText className="h-4 w-4" aria-hidden="true" />}
           >
             {initial ? "Salvar alterações" : "Criar template"}
           </Button>
         </div>
-      </div>
+      </form>
     </Modal>
   );
 }
@@ -438,6 +448,11 @@ export function EvolutionTemplateModal({
     });
   }, [initial, open]);
 
+  const handleClose = () => {
+    if (submitting) return;
+    onClose();
+  };
+
   const submit = async () => {
     if (!form.name.trim() || !form.content.trim()) {
       setError("Preencha o nome e o conteúdo do template.");
@@ -447,17 +462,22 @@ export function EvolutionTemplateModal({
     await onSubmit(form);
   };
 
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    void submit();
+  };
+
   return (
     <Modal
       isOpen={open}
-      onClose={onClose}
+      onClose={handleClose}
       title={
         initial ? "Editar template de evolução" : "Novo template de evolução"
       }
       description="Crie um texto-base que poderá ser inserido sem apagar o que já foi digitado."
       className="max-w-2xl"
     >
-      <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <label htmlFor={nameId} className="block text-xs font-semibold text-foreground">
@@ -563,18 +583,19 @@ export function EvolutionTemplateModal({
         )}
         <div className="flex justify-end gap-2 border-t border-border pt-4">
           <Button
+            type="button"
             variant="outline"
             size="sm"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={submitting}
           >
             Cancelar
           </Button>
-          <Button size="sm" isLoading={submitting} onClick={submit}>
+          <Button type="submit" size="sm" isLoading={submitting} disabled={submitting}>
             {initial ? "Salvar alterações" : "Criar template"}
           </Button>
         </div>
-      </div>
+      </form>
     </Modal>
   );
 }
