@@ -91,3 +91,25 @@ def test_evolution_list_queries_optimized(client, therapist, patient):
         assert item['version_count'] == 1
         assert item['addenda_count'] == 1
         assert item['attached_documents_count'] == 1
+
+
+@pytest.mark.django_db
+def test_evolution_flow_serializer_attachments_prefetched_cache(therapist, patient):
+    from apps.records.api.serializers.evolution_flow_serializers import EvolutionFlowSerializer
+
+    create_evolutions(therapist, patient, 3)
+
+    # Fetch evolutions with standard prefetch_related("documents")
+    qs = list(Evolution.objects.filter(patient=patient).prefetch_related("documents"))
+
+    # Serializing should hit 0 queries for ClinicalDocument because documents are in _prefetched_objects_cache
+    with CaptureQueriesContext(connection) as queries:
+        serializer = EvolutionFlowSerializer(qs, many=True)
+        data = serializer.data
+        doc_queries = [q for q in queries if "records_clinicaldocument" in q["sql"]]
+        assert len(doc_queries) == 0
+
+    assert len(data) == 3
+    for item in data:
+        assert len(item["attachments"]) == 1
+        assert item["attachments"][0]["original_name"].endswith(".pdf")
