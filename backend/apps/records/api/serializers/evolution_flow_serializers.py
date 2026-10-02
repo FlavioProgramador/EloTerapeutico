@@ -313,6 +313,19 @@ class EvolutionFlowSerializer(serializers.ModelSerializer):
                 context=self.context,
             ).data
 
+        prefetched = getattr(obj, "_prefetched_objects_cache", {})
+        if "documents" in prefetched:
+            active_docs = [
+                doc
+                for doc in prefetched["documents"]
+                if doc.deleted_at is None and not doc.is_archived
+            ]
+            return EvolutionAttachmentSerializer(
+                active_docs,
+                many=True,
+                context=self.context,
+            ).data
+
         queryset = obj.documents.filter(
             deleted_at__isnull=True,
             is_archived=False,
