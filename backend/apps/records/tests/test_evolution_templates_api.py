@@ -93,3 +93,32 @@ def test_create_and_list_evolution_templates(client, therapist):
 def test_secretary_cannot_access_templates(secretary_client):
     response = secretary_client.get(reverse("clinical-evolution-templates"))
     assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+def test_therapist_can_mark_global_system_template_as_used(client, db):
+    from apps.records.models.templates import ClinicalEvolutionTemplate
+
+    system_template = ClinicalEvolutionTemplate.objects.create(
+        owner=None,
+        name="Template Global de Teste",
+        description="Descrição do template global",
+        category="general",
+        content="# Conteúdo Global",
+        usage_count=0,
+    )
+
+    url = reverse("clinical-evolution-template-detail", args=[system_template.id])
+
+    # Unauthenticated user is rejected
+    unauthenticated_client = APIClient()
+    unauth_response = unauthenticated_client.post(url, {"action": "mark_used"}, format="json")
+    assert unauth_response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    # Legitimate therapist can mark global template as used
+    response = client.post(url, {"action": "mark_used"}, format="json")
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["usage_count"] == 1
+
+    system_template.refresh_from_db()
+    assert system_template.usage_count == 1

@@ -117,7 +117,7 @@ class ClinicalEvolutionTemplateDetailView(APIView):
 
     def post(self, request, pk):
         action = request.data.get("action")
-        template = self.get_object(request, pk, write=action != "duplicate")
+        template = self.get_object(request, pk, write=action not in ("duplicate", "mark_used"))
         if action == "duplicate":
             copy = duplicate_clinical_template(actor=request.user, template=template)
             log_access(
