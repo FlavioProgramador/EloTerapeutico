@@ -11,7 +11,7 @@ import { useCreateScheduleBlock } from "../hooks/use-agenda";
 import { toDateInput } from "../lib/calendar.mjs";
 
 const fieldClass =
-  "h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15";
+  "h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 transition-colors";
 
 export function ScheduleBlockModal({
   open,
@@ -46,6 +46,11 @@ export function ScheduleBlockModal({
   const recurrenceId = `${baseId}-recurrence`;
   const notesId = `${baseId}-notes`;
   const confirmConflictsId = `${baseId}-confirmConflicts`;
+
+  const handleClose = () => {
+    if (createMutation.isPending) return;
+    onClose();
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -84,21 +89,21 @@ export function ScheduleBlockModal({
         recurrence_rule: form.recurrence,
         confirm_conflicts: form.confirmConflicts,
       },
-      { onSuccess: onClose },
+      { onSuccess: handleClose },
     );
   }
 
   return (
     <Modal
       isOpen={open}
-      onClose={onClose}
+      onClose={handleClose}
       title="Bloquear horário"
       description="Crie indisponibilidades sem cancelar consultas automaticamente."
       className="max-w-lg"
     >
       <form onSubmit={submit} className="space-y-4" noValidate>
         <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
-          <LockKeyhole className="size-4 text-primary" />
+          <LockKeyhole className="size-4 text-primary" aria-hidden="true" />
           Consultas existentes serão preservadas. O sistema pedirá confirmação
           quando houver impacto.
         </div>
@@ -114,6 +119,7 @@ export function ScheduleBlockModal({
                   therapist: event.target.value,
                 }))
               }
+              disabled={createMutation.isPending}
               className={fieldClass}
             >
               <option value="">Selecione</option>
@@ -134,6 +140,7 @@ export function ScheduleBlockModal({
             onChange={(event) =>
               setForm((current) => ({ ...current, date: event.target.value }))
             }
+            disabled={createMutation.isPending}
             className={fieldClass}
           />
         </Field>
@@ -150,6 +157,7 @@ export function ScheduleBlockModal({
                   start: event.target.value,
                 }))
               }
+              disabled={createMutation.isPending}
               className={fieldClass}
             />
           </Field>
@@ -161,6 +169,7 @@ export function ScheduleBlockModal({
               onChange={(event) =>
                 setForm((current) => ({ ...current, end: event.target.value }))
               }
+              disabled={createMutation.isPending}
               className={fieldClass}
             />
           </Field>
@@ -173,6 +182,7 @@ export function ScheduleBlockModal({
             onChange={(event) =>
               setForm((current) => ({ ...current, reason: event.target.value }))
             }
+            disabled={createMutation.isPending}
             className={fieldClass}
           >
             <option value="lunch">Almoço</option>
@@ -194,6 +204,7 @@ export function ScheduleBlockModal({
                 recurrence: event.target.value,
               }))
             }
+            disabled={createMutation.isPending}
             className={fieldClass}
           >
             <option value="">Não repetir</option>
@@ -209,6 +220,7 @@ export function ScheduleBlockModal({
             onChange={(event) =>
               setForm((current) => ({ ...current, notes: event.target.value }))
             }
+            disabled={createMutation.isPending}
             placeholder="Ex.: reunião de equipe, férias..."
             className={fieldClass}
           />
@@ -228,7 +240,8 @@ export function ScheduleBlockModal({
                 confirmConflicts: event.target.checked,
               }))
             }
-            className="mt-0.5"
+            disabled={createMutation.isPending}
+            className="mt-0.5 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
           />
           <span>
             Confirmo a criação mesmo que existam consultas no intervalo. Nenhuma
@@ -243,10 +256,19 @@ export function ScheduleBlockModal({
         )}
 
         <div className="flex justify-end gap-2 border-t border-border pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleClose}
+            disabled={createMutation.isPending}
+          >
             Cancelar
           </Button>
-          <Button type="submit" isLoading={createMutation.isPending}>
+          <Button
+            type="submit"
+            isLoading={createMutation.isPending}
+            disabled={createMutation.isPending}
+          >
             Bloquear
           </Button>
         </div>
