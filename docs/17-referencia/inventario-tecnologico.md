@@ -41,16 +41,17 @@ Versões devem ser atualizadas quando `requirements*.txt`, `package.json`, Docke
 | `django-environ` | `>=0.14.0,<0.15` | Leitura e tipagem de variáveis de ambiente |
 | `httpx` | `>=0.28,<0.29` | Clients HTTP, incluindo integrações |
 | `python-dateutil` | `>=2.9,<3.0` | Datas, recorrências e utilitários |
-| `sqlparse` | `>=0.5.5,<0.6` | Parsing SQL usado pelo ecossistema Django |
+| `urllib3` | `>=2.8.0,<3.0` | Cliente HTTP e transporte de conexões |
+| `sqlparse` | `>=0.6.0,<0.7` | Parsing SQL usado pelo ecossistema Django |
 | `redis` | `>=5.0,<6.0` | Cliente Redis e integração Celery |
 | `livekit-api` | `>=1.2.0,<1.3` | Salas, participantes, tokens e webhooks LiveKit |
 | `django-unfold` | `>=0.96,<0.97` | Backoffice e tema do Django Admin |
 | `djangorestframework-simplejwt` | `>=5.5.1,<6.0` | JWT, rotação e blacklist |
 | `psycopg2-binary` | `>=2.9,<3.0` | Driver PostgreSQL |
-| `cryptography` | `>=49.0.0,<50.0` | Criptografia de campos e tokens técnicos |
+| `cryptography` | `>=50.0.0,<51.0` | Criptografia de campos e tokens técnicos |
 | `drf-spectacular` | `>=0.29.0,<0.30` | Schema OpenAPI, Swagger e ReDoc |
 | `argon2-cffi` | `>=23.1,<23.2` | Password hashing Argon2 |
-| `weasyprint` | `>=69.0,<70.0` | PDFs de prontuário, documentos e recibos |
+| `weasyprint` | `>=70.0,<71.0` | PDFs de prontuário, documentos e recibos |
 | `azure-storage-blob` | `>=12.19,<12.20` | SDK de acesso ao Azure Blob |
 | `django-ratelimit` | `>=4.1,<4.2` | Rate limiting |
 
@@ -81,13 +82,13 @@ Elas suportam compilação de dependências, PostgreSQL e renderização do Weas
 | Tecnologia | Versão | Finalidade |
 | --- | --- | --- |
 | Node.js | 24 na imagem | Runtime de build e servidor Next.js |
-| Next.js | 16.2.11 | App Router, SSR, Route Handlers e BFF |
+| Next.js | 16.3.8 | App Router, SSR, Route Handlers e BFF |
 | React | 19.2.7 | Interface baseada em componentes |
 | React DOM | 19.2.4 | Renderização web |
 | TypeScript | 6 | Tipagem estática |
 | Tailwind CSS | 4 | Design tokens e estilos utilitários |
 | TanStack Query | 5.101.2 | Estado remoto, cache e invalidação |
-| Axios | 1.18.1 | Cliente HTTP do BFF |
+| Axios | 1.20.0 | Cliente HTTP do BFF |
 | React Hook Form | 7.80.0 | Estado e validação de formulários |
 | Zod | 4.4.3 | Schemas e validação de dados |
 
@@ -208,7 +209,7 @@ Redis não substitui o PostgreSQL como fonte oficial dos estados de negócio.
 | Ferramenta | Versão/faixa | Uso |
 | --- | --- | --- |
 | ESLint | `^9` | Lint |
-| eslint-config-next | `16.2.11` | Regras Next.js |
+| eslint-config-next | `16.3.8` | Regras Next.js |
 | TypeScript compiler | 6 | `tsc --noEmit` |
 | Node Test Runner | Node 24 | Testes `.mjs` e cobertura experimental |
 | Playwright | pacote isolado em `frontend/e2e` | Autenticação e gateway E2E |
