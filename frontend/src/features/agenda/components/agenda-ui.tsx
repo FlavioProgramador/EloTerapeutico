@@ -79,13 +79,15 @@ export function Field({
   label,
   children,
   hint,
+  htmlFor,
 }: {
   label: string;
   children: React.ReactNode;
   hint?: string;
+  htmlFor?: string;
 }) {
   return (
-    <label className="block space-y-1.5">
+    <label htmlFor={htmlFor} className="block space-y-1.5">
       <span className="text-xs font-semibold text-foreground">{label}</span>
       {children}
       {hint && (
@@ -108,14 +110,19 @@ export function Toggle({
   onChange,
   label,
   description,
+  disabled,
 }: {
   checked: boolean;
   onChange: (value: boolean) => void;
   label: string;
   description?: string;
+  disabled?: boolean;
 }) {
   return (
-    <label className="flex cursor-pointer items-start justify-between gap-4 rounded-lg border border-border bg-secondary/10 p-3">
+    <label className={cn(
+      "flex cursor-pointer items-start justify-between gap-4 rounded-lg border border-border bg-secondary/10 p-3",
+      disabled && "cursor-not-allowed opacity-60",
+    )}>
       <span>
         <strong className="block text-sm font-medium">{label}</strong>
         {description && (
@@ -129,6 +136,7 @@ export function Toggle({
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
         className="mt-1"
+        disabled={disabled}
       />
     </label>
   );
