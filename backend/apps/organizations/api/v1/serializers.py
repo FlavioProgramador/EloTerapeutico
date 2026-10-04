@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from rest_framework import serializers
 
 from apps.billing.models import Subscription
@@ -130,6 +132,9 @@ class InvitationAcceptSerializer(serializers.Serializer):
 
 
 class OrganizationSettingsSerializer(serializers.ModelSerializer):
+    _cached_billing_user: Any
+    _cached_telemedicine_state: tuple[bool, str]
+
     telemedicine_available = serializers.SerializerMethodField()
     telemedicine_unavailable_reason = serializers.SerializerMethodField()
 
