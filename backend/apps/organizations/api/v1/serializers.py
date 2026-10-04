@@ -145,6 +145,10 @@ class OrganizationSettingsSerializer(serializers.ModelSerializer):
         ]
 
     def _billing_user(self):
+        if hasattr(self, "_cached_billing_user"):
+            return self._cached_billing_user
+
+        user = None
         organization = getattr(self.instance, "organization", None)
         if organization is not None:
             membership = (
@@ -158,27 +162,37 @@ class OrganizationSettingsSerializer(serializers.ModelSerializer):
                 .first()
             )
             if membership:
-                return membership.user
+                user = membership.user
 
-        request = self.context.get("request")
-        request_user = getattr(request, "user", None)
-        if request_user is not None and request_user.is_authenticated:
-            return request_user
-        return None
+        if user is None:
+            request = self.context.get("request")
+            request_user = getattr(request, "user", None)
+            if request_user is not None and request_user.is_authenticated:
+                user = request_user
+
+        self._cached_billing_user = user
+        return user
 
     def _telemedicine_state(self) -> tuple[bool, str]:
+        if hasattr(self, "_cached_telemedicine_state"):
+            return self._cached_telemedicine_state
+
         config = get_telemedicine_config()
         if not config.enabled or not config.provider_configured:
-            return (
+            state = (
                 False,
                 "O atendimento online ainda não está disponível para esta organização.",
             )
+            self._cached_telemedicine_state = state
+            return state
 
         user = self._billing_user()
         if user is None:
             # Em serializers de escrita sem instance o service transacional realiza
             # a validação final usando a organização e o ator autenticado.
-            return True, ""
+            state = (True, "")
+            self._cached_telemedicine_state = state
+            return state
 
         subscription = (
             Subscription.objects.select_related("plan")
@@ -198,8 +212,13 @@ class OrganizationSettingsSerializer(serializers.ModelSerializer):
             and subscription.has_access
             and subscription.plan.has_telemedicine
         ):
-            return False, "O plano atual não inclui atendimento online."
-        return True, ""
+            state = (False, "O plano atual não inclui atendimento online.")
+            self._cached_telemedicine_state = state
+            return state
+
+        state = (True, "")
+        self._cached_telemedicine_state = state
+        return state
 
     def get_telemedicine_available(self, obj):
         del obj

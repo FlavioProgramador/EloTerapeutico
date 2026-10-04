@@ -167,6 +167,23 @@ def test_patient_selector_never_returns_another_tenant():
 
     assert list(queryset.values_list("pk", flat=True)) == [patient_a.pk]
 
+def test_organization_settings_serializer_memoizes_queries(django_assert_num_queries, monkeypatch):
+    from apps.organizations.api.v1.serializers import OrganizationSettingsSerializer
+    from apps.organizations.models import OrganizationSettings
+
+    monkeypatch.setenv("TELEMEDICINE_ENABLED", "true")
+    monkeypatch.setenv("TELEMEDICINE_PROVIDER", "fake")
+
+    owner = create_user("settings-perf@example.test")
+    organization, _ = create_organization(owner=owner, name="Tenant Settings Perf")
+    settings, _ = OrganizationSettings.objects.get_or_create(organization=organization)
+
+    serializer = OrganizationSettingsSerializer(settings)
+
+    with django_assert_num_queries(2):
+        _ = serializer.data
+
+
 def test_tenant_audit_accepts_intentional_global_templates():
     output = StringIO()
 
