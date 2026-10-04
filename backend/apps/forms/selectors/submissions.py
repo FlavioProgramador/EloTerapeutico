@@ -17,11 +17,18 @@ def _base_queryset():
     ).prefetch_related("answers", "answers__field")
 
 
-def submissions_for_form(*, form: TherapeuticForm) -> QuerySet[FormSubmission]:
-    return _base_queryset().filter(
+def submissions_for_form(*, form: TherapeuticForm, user=None) -> QuerySet[FormSubmission]:
+    queryset = _base_queryset().filter(
         form=form,
         organization=form.organization,
     )
+    if user is not None:
+        user_queryset = submissions_for_user(
+            user=user,
+            organization=form.organization,
+        )
+        return queryset.filter(id__in=user_queryset.values("id"))
+    return queryset
 
 
 def submissions_for_owner(*, owner, organization=None) -> QuerySet[FormSubmission]:
