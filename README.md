@@ -84,7 +84,7 @@ Leia a [arquitetura geral](docs/02-arquitetura/arquitetura-geral.md), o [process
 ### Frontend
 
 - Node.js 24;
-- Next.js 16.2.9;
+- Next.js 16.3.8;
 - React 19;
 - TypeScript 6;
 - Tailwind CSS 4;
