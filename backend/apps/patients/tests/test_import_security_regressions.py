@@ -3,9 +3,12 @@ from datetime import date
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
-from rest_framework.test import APIClient
+from rest_framework.parsers import MultiPartParser
+from rest_framework.request import Request
+from rest_framework.test import APIClient, APIRequestFactory
 
 from apps.organizations.models import Organization, OrganizationMembership, OrganizationSettings
+from apps.patients.actions.dashboard import PatientDashboardActions
 from apps.patients.models import Patient
 from apps.users.models import User
 
@@ -189,3 +192,52 @@ def test_same_tenant_import_csv_correctly_flags_duplicates(multi_tenant_setup):
     # Duplicate must be detected since it's the same organization
     assert len(response.data["duplicates"]) == 1
     assert response.data["duplicates"][0]["cpf"] == shared_cpf
+
+
+@pytest.mark.django_db
+def test_dashboard_actions_import_csv_enforces_tenant_isolation(multi_tenant_setup):
+    setup = multi_tenant_setup
+    shared_cpf = "39053344705"
+
+    # Create a patient in Tenant B
+    Patient.objects.create(
+        organization=setup["org_b"],
+        therapist=setup["user_b"],
+        full_name="Patient in Org B",
+        cpf=shared_cpf,
+        birth_date=date(1990, 1, 1),
+        status=Patient.Status.ACTIVE,
+    )
+
+    csv_content = (
+        "full_name,cpf,birth_date,email,phone,gender,status,modality,payer_type\n"
+        f"Paciente Importado A,{shared_cpf},1992-04-12,importado.a@example.com,,N,active,online,private\n"
+    )
+
+    preview_file = SimpleUploadedFile(
+        "pacientes.csv",
+        csv_content.encode("utf-8"),
+        content_type="text/csv",
+    )
+
+    factory = APIRequestFactory()
+    wsgi_req = factory.post(
+        "/api/v1/patients/import-csv/",
+        {"file": preview_file, "confirm": "false"},
+        format="multipart",
+    )
+    wsgi_req.user = setup["user_a"]
+    wsgi_req.organization = setup["org_a"]
+    wsgi_req.organization_membership = setup["org_a"].memberships.filter(user=setup["user_a"]).first()
+    wsgi_req.META["HTTP_X_ORGANIZATION_ID"] = str(setup["org_a"].pk)
+
+    request = Request(wsgi_req, parsers=[MultiPartParser()])
+    request._user = setup["user_a"]
+
+    action_instance = PatientDashboardActions()
+    action_instance.request = request
+
+    response = action_instance.import_csv(request)
+    assert response.status_code == 200, response.data
+    assert len(response.data["duplicates"]) == 0
+    assert response.data["valid"] == 1
