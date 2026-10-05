@@ -96,7 +96,11 @@ class ClinicalAnamnesisSerializer(serializers.Serializer):
         profile = getattr(instance, "profile", None)
         version_count = getattr(instance, "version_count", None)
         if version_count is None:
-            version_count = instance.versions.count()
+            prefetched = getattr(instance, "_prefetched_objects_cache", {})
+            if "versions" in prefetched:
+                version_count = len(prefetched["versions"])
+            else:
+                version_count = instance.versions.count()
         values = {
             "id": instance.id,
             "patient": instance.patient_id,
