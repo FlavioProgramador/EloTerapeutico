@@ -11,9 +11,11 @@ from rest_framework.response import Response
 
 from apps.audit.models import AuditLog
 from apps.audit.services import log_access
+from apps.organizations.services.tenant_context import ensure_request_organization
 from apps.patients.api.serializers.dashboard_serializers import PatientDashboardSerializer
 from apps.patients.api.serializers.form_serializers import PatientFormSerializer
 from apps.patients.api.serializers.legacy_serializers import PatientDetailSerializer
+from apps.patients.services.imports import PatientImportError, import_patients_from_csv
 
 from ..models import Patient
 from .forms import PatientFormActions
@@ -59,111 +61,39 @@ class PatientDashboardActions(PatientInviteActions, PatientFormActions):
     def import_csv(self, request):
         if not request.user.is_therapist:
             return Response(
-                {
-                    "detail": (
-                        "A importação em lote está disponível somente para terapeutas. "
-                        "Cadastros administrativos devem informar o profissional "
-                        "responsável individualmente."
-                    )
-                },
+                {"detail": "Operação permitida somente para terapeutas."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-
         uploaded = request.FILES.get("file")
-        confirm = str(request.data.get("confirm", "false")).lower() == "true"
-        if not uploaded:
-            return Response({"detail": "Envie um arquivo CSV."}, status=400)
-        if uploaded.size > 2 * 1024 * 1024:
-            return Response({"detail": "O arquivo deve possuir até 2 MB."}, status=400)
-
+        if uploaded is None:
+            return Response(
+                {"detail": "Envie um arquivo CSV."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        organization, _ = ensure_request_organization(
+            request=request,
+            required=True,
+        )
         try:
-            content = uploaded.read().decode("utf-8-sig")
-        except UnicodeDecodeError:
+            result = import_patients_from_csv(
+                uploaded_file=uploaded,
+                therapist=request.user,
+                organization=organization,
+                confirm=str(request.data.get("confirm", "false")).lower() == "true",
+            )
+        except PatientImportError as exc:
             return Response(
-                {"detail": "Utilize um CSV codificado em UTF-8."},
-                status=400,
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
             )
-
-        reader = csv.DictReader(StringIO(content))
-        required_columns = {"full_name", "cpf", "birth_date"}
-        fieldnames = set(reader.fieldnames or [])
-        if not required_columns.issubset(fieldnames):
-            return Response(
-                {"detail": ("O CSV deve conter as colunas full_name, cpf e birth_date.")},
-                status=400,
+        if result.imported:
+            log_access(
+                request,
+                AuditLog.Action.CREATE,
+                obj_repr=f"Importação de {result.imported} pacientes",
             )
-
-        rows = list(reader)
-        if not rows:
-            return Response(
-                {"detail": "O arquivo CSV não possui registros."},
-                status=400,
-            )
-        if len(rows) > 500:
-            return Response(
-                {"detail": "Importe no máximo 500 pacientes por vez."},
-                status=400,
-            )
-
-        valid_payloads = []
-        errors = []
-        duplicates = []
-        seen_cpfs = set()
-
-        for line, row in enumerate(rows, start=2):
-            raw_cpf = _csv_cell(row, "cpf")
-            clean_cpf = re.sub(r"\D", "", raw_cpf)
-            if clean_cpf and (clean_cpf in seen_cpfs or Patient.all_objects.filter(cpf=clean_cpf).exists()):
-                duplicates.append({"line": line, "cpf": raw_cpf})
-                continue
-            if clean_cpf:
-                seen_cpfs.add(clean_cpf)
-
-            payload = {
-                "full_name": _csv_cell(row, "full_name"),
-                "cpf": raw_cpf,
-                "birth_date": _csv_cell(row, "birth_date"),
-                "email": _csv_cell(row, "email"),
-                "phone": _csv_cell(row, "phone"),
-                "gender": _csv_cell(row, "gender", "N") or "N",
-                "status": _csv_cell(row, "status", "active") or "active",
-                "modality": (_csv_cell(row, "modality", "in_person") or "in_person"),
-                "payer_type": (_csv_cell(row, "payer_type", "private") or "private"),
-                "therapist": request.user.pk,
-            }
-
-            serializer = PatientFormSerializer(
-                data=payload,
-                context={"request": request},
-            )
-            if serializer.is_valid():
-                valid_payloads.append(serializer.validated_data)
-            else:
-                errors.append({"line": line, "errors": serializer.errors})
-
-        preview = {
-            "total": len(rows),
-            "valid": len(valid_payloads),
-            "duplicates": duplicates,
-            "errors": errors,
-            "ready": not errors and not duplicates,
-        }
-        if not confirm or errors or duplicates:
-            return Response(preview)
-
-        with transaction.atomic():
-            for payload in valid_payloads:
-                Patient.objects.create(**payload)
-
-        log_access(
-            request,
-            AuditLog.Action.CREATE,
-            obj_repr=f"Importação de {len(valid_payloads)} pacientes",
-        )
-        return Response(
-            {**preview, "imported": len(valid_payloads)},
-            status=status.HTTP_201_CREATED,
-        )
+        response_status = status.HTTP_201_CREATED if result.imported else status.HTTP_200_OK
+        return Response(result.as_dict(), status=response_status)
 
     @action(detail=True, methods=["get"], url_path="form")
     def form(self, request, pk=None):
