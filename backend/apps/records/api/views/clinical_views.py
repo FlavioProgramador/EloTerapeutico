@@ -119,7 +119,11 @@ class ClinicalPatientMixin:
         clinical_data = getattr(evolution, "clinical_data", None)
         version_count = getattr(evolution, "version_count", None)
         if version_count is None:
-            version_count = evolution.versions.count()
+            prefetched = getattr(evolution, "_prefetched_objects_cache", {})
+            if "versions" in prefetched:
+                version_count = len(prefetched["versions"])
+            else:
+                version_count = evolution.versions.count()
         data.update(
             {
                 "status": clinical_data.status if clinical_data else "draft",
