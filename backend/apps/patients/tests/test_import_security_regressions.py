@@ -3,9 +3,12 @@ from datetime import date
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
-from rest_framework.test import APIClient
+from rest_framework.parsers import MultiPartParser
+from rest_framework.request import Request
+from rest_framework.test import APIClient, APIRequestFactory
 
 from apps.organizations.models import Organization, OrganizationMembership, OrganizationSettings
+from apps.patients.actions.dashboard import PatientDashboardActions
 from apps.patients.models import Patient
 from apps.users.models import User
 
@@ -193,11 +196,6 @@ def test_same_tenant_import_csv_correctly_flags_duplicates(multi_tenant_setup):
 
 @pytest.mark.django_db
 def test_dashboard_actions_import_csv_enforces_tenant_isolation(multi_tenant_setup):
-    from apps.patients.actions.dashboard import PatientDashboardActions
-    from rest_framework.parsers import MultiPartParser
-    from rest_framework.request import Request
-    from rest_framework.test import APIRequestFactory
-
     setup = multi_tenant_setup
     shared_cpf = "39053344705"
 
