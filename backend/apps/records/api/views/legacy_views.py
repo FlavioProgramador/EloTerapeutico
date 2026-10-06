@@ -129,7 +129,7 @@ class EvolutionViewSet(AuditLogMixin, viewsets.ModelViewSet):
         if user.is_anonymous:
             return Evolution.objects.none()
 
-        queryset = Evolution.objects.all()
+        queryset = Evolution.objects.select_related("created_by").prefetch_related("addenda")
 
         # Filtro de confidencialidade global:
         # Se não tiver permissão especial, só vê se não for confidencial OU se for o autor.
