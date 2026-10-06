@@ -1,11 +1,11 @@
 from datetime import date
 
 import pytest
+from django.contrib.auth.models import Permission
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from django.contrib.auth.models import Permission
 from apps.patients.models import Patient
 from apps.records.models import Evolution
 from apps.users.models import User
