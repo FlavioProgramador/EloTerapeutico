@@ -91,3 +91,34 @@ def test_evolution_list_queries_optimized(client, therapist, patient):
         assert item['version_count'] == 1
         assert item['addenda_count'] == 1
         assert item['attached_documents_count'] == 1
+
+
+@pytest.mark.django_db
+def test_legacy_evolution_list_queries_optimized(client, therapist, patient):
+    # Warm up to avoid initial auth queries
+    client.get(f"/api/v1/records/evolutions/?patient={patient.id}")
+
+    # Setup 2 evolutions
+    create_evolutions(therapist, patient, 2)
+
+    with CaptureQueriesContext(connection) as queries_small:
+        response = client.get(f"/api/v1/records/evolutions/?patient={patient.id}")
+        assert response.status_code == 200
+        count_small = len(queries_small)
+
+    # Setup 3 more evolutions (total 5)
+    create_evolutions(therapist, patient, 3)
+
+    with CaptureQueriesContext(connection) as queries_large:
+        response = client.get(f"/api/v1/records/evolutions/?patient={patient.id}")
+        assert response.status_code == 200
+        count_large = len(queries_large)
+
+    # Query count should be constant regardless of the number of evolutions
+    assert count_large == count_small
+
+    data = response.data["results"] if isinstance(response.data, dict) and "results" in response.data else response.data
+    assert len(data) == 5
+    for item in data:
+        assert item["addenda_count"] == 1
+        assert item["created_by_name"] == therapist.full_name
