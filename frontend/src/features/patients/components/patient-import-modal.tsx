@@ -106,29 +106,25 @@ export function PatientImportModal({ open, onClose }: Props) {
           <p className="mt-1 text-xs text-muted-foreground">
             Colunas obrigatórias: full_name, cpf e birth_date.
           </p>
-          <input
-            ref={inputRef}
-            id={fileInputId}
-            type="file"
-            accept=".csv,text/csv"
-            aria-label="Upload de arquivo CSV"
-            className="sr-only"
-            disabled={loading}
-            onChange={(event) => {
-              setFile(event.target.files?.[0] ?? null);
-              setPreview(null);
-            }}
-          />
           <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => inputRef.current?.click()}
-              disabled={loading}
+            <label
+              htmlFor={fileInputId}
+              className="group relative inline-flex cursor-pointer select-none items-center justify-center font-semibold transition-all duration-150 ease-out border border-border bg-transparent text-foreground hover:bg-secondary hover:text-secondary-foreground h-9 gap-1.5 px-3 text-sm rounded-md focus-within:ring-2 focus-within:ring-primary-soft focus-within:ring-offset-2 focus-within:ring-offset-background has-[:disabled]:pointer-events-none has-[:disabled]:opacity-50 has-[:disabled]:cursor-not-allowed"
             >
-              Selecionar CSV
-            </Button>
+              <span>Selecionar CSV</span>
+              <input
+                ref={inputRef}
+                id={fileInputId}
+                type="file"
+                accept=".csv,text/csv"
+                className="sr-only"
+                disabled={loading}
+                onChange={(event) => {
+                  setFile(event.target.files?.[0] ?? null);
+                  setPreview(null);
+                }}
+              />
+            </label>
             <Button
               type="button"
               variant="ghost"
