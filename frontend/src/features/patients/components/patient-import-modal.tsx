@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { Download, UploadCloud } from "lucide-react";
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ interface Props {
 }
 
 export function PatientImportModal({ open, onClose }: Props) {
+  const fileInputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
@@ -98,41 +99,38 @@ export function PatientImportModal({ open, onClose }: Props) {
     >
       <div className="space-y-4">
         <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-6 text-center">
-          <UploadCloud className="mx-auto h-7 w-7 text-primary" />
+          <UploadCloud className="mx-auto h-7 w-7 text-primary" aria-hidden="true" />
           <p className="mt-3 text-sm font-semibold text-foreground">
             Arquivo CSV com até 500 pacientes
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             Colunas obrigatórias: full_name, cpf e birth_date.
           </p>
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".csv,text/csv"
-            aria-label="Upload de arquivo CSV"
-            className="sr-only"
-            disabled={loading}
-            onChange={(event) => {
-              setFile(event.target.files?.[0] ?? null);
-              setPreview(null);
-            }}
-          />
           <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => inputRef.current?.click()}
-              disabled={loading}
+            <label
+              htmlFor={fileInputId}
+              className="group relative inline-flex cursor-pointer select-none items-center justify-center font-semibold transition-all duration-150 ease-out border border-border bg-transparent text-foreground hover:bg-secondary hover:text-secondary-foreground h-9 gap-1.5 px-3 text-sm rounded-md focus-within:ring-2 focus-within:ring-primary-soft focus-within:ring-offset-2 focus-within:ring-offset-background has-[:disabled]:pointer-events-none has-[:disabled]:opacity-50 has-[:disabled]:cursor-not-allowed"
             >
-              Selecionar CSV
-            </Button>
+              <span>Selecionar CSV</span>
+              <input
+                ref={inputRef}
+                id={fileInputId}
+                type="file"
+                accept=".csv,text/csv"
+                className="sr-only"
+                disabled={loading}
+                onChange={(event) => {
+                  setFile(event.target.files?.[0] ?? null);
+                  setPreview(null);
+                }}
+              />
+            </label>
             <Button
               type="button"
               variant="ghost"
               size="sm"
               onClick={downloadTemplate}
-              leftIcon={<Download className="h-4 w-4" />}
+              leftIcon={<Download className="h-4 w-4" aria-hidden="true" />}
               disabled={loading}
             >
               Baixar modelo
