@@ -4,6 +4,7 @@ from datetime import timedelta
 from io import StringIO
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import action
@@ -186,7 +187,15 @@ class PatientDashboardActions(PatientInviteActions, PatientFormActions):
         latest_evolution = None
         documents = []
         if can_access_records:
-            latest_evolution = patient.evolutions.order_by(
+            evolutions_qs = patient.evolutions.all()
+            if not (
+                hasattr(request.user, "has_perm")
+                and request.user.has_perm("records.view_confidential_evolution")
+            ):
+                evolutions_qs = evolutions_qs.filter(
+                    Q(is_confidential=False) | Q(created_by=request.user)
+                )
+            latest_evolution = evolutions_qs.order_by(
                 "-session_date",
                 "-created_at",
             ).first()
