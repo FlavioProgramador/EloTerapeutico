@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useId, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FileSpreadsheet, Eye, Plus, Calendar, User, Search, AlertCircle, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,9 @@ const AVAILABLE_FORMS = [
 
 export function FormsTab({ patientId }: { patientId: number }) {
   const queryClient = useQueryClient();
+  const fillModalTitleId = useId();
+  const viewModalTitleId = useId();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [fillModalOpen, setFillModalOpen] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -89,6 +92,26 @@ export function FormsTab({ patientId }: { patientId: number }) {
     },
   });
 
+  // Fecha modais ao pressionar Escape
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        if (fillModalOpen && !submitMutation.isPending) {
+          setFillModalOpen(false);
+        } else if (viewModalOpen) {
+          setViewModalOpen(false);
+        }
+      }
+    };
+
+    if (fillModalOpen || viewModalOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [fillModalOpen, viewModalOpen, submitMutation.isPending]);
+
   const handleOpenFill = (formId: string) => {
     const form = AVAILABLE_FORMS.find((f) => f.id === formId);
     if (form) {
@@ -103,7 +126,7 @@ export function FormsTab({ patientId }: { patientId: number }) {
   };
 
   const handleSaveAnswers = () => {
-    if (!selectedForm) return;
+    if (!selectedForm || submitMutation.isPending) return;
 
     // Calcula a quantidade de respostas
     const answersCount = Object.keys(answers).length;
@@ -142,7 +165,7 @@ export function FormsTab({ patientId }: { patientId: number }) {
   if (isError) {
     return (
       <Card className="flex flex-col items-center justify-center p-8 text-center">
-        <AlertCircle className="h-8 w-8 text-destructive mb-2" />
+        <AlertCircle className="h-8 w-8 text-destructive mb-2" aria-hidden="true" />
         <h3 className="text-sm font-semibold text-foreground">Erro ao carregar formulários</h3>
         <p className="text-xs text-muted-foreground mt-1">Não foi possível buscar as respostas clínicas.</p>
         <Button size="sm" variant="outline" className="mt-4" onClick={() => refetch()}>
@@ -157,13 +180,14 @@ export function FormsTab({ patientId }: { patientId: number }) {
       {/* Barra de Filtros e Busca */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <input
             type="text"
             placeholder="Buscar formulários..."
+            aria-label="Buscar formulários"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-background pl-10 pr-4 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-9 w-full rounded-md border border-input bg-background pl-10 pr-4 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           />
         </div>
 
@@ -175,7 +199,7 @@ export function FormsTab({ patientId }: { patientId: number }) {
               size="sm"
               variant="outline"
               onClick={() => handleOpenFill(form.id)}
-              leftIcon={<Plus className="h-3 w-3" />}
+              leftIcon={<Plus className="h-3 w-3" aria-hidden="true" />}
               className="border-emerald-600/20 text-emerald-700 hover:bg-emerald-500/10 text-[10px]"
             >
               {form.id.toUpperCase()}
@@ -189,7 +213,7 @@ export function FormsTab({ patientId }: { patientId: number }) {
         {responses.length === 0 ? (
           <div className="py-12">
             <EmptyState
-              icon={<FileSpreadsheet className="h-6 w-6 text-muted-foreground" />}
+              icon={<FileSpreadsheet className="h-6 w-6 text-muted-foreground" aria-hidden="true" />}
               title="Nenhum formulário preenchido"
               description={
                 searchTerm
@@ -224,13 +248,13 @@ export function FormsTab({ patientId }: { patientId: number }) {
                       </TableCell>
                       <TableCell>
                         <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                          <Calendar className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
                           {dateObj.toLocaleDateString("pt-BR")}
                         </span>
                       </TableCell>
                       <TableCell>
                         <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <User className="h-3.5 w-3.5 text-muted-foreground" />
+                          <User className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
                           {resp.completed_by || "Paciente"}
                         </span>
                       </TableCell>
@@ -244,9 +268,10 @@ export function FormsTab({ patientId }: { patientId: number }) {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleOpenView(resp)}
-                          className="h-8 w-8 text-emerald-600 hover:bg-emerald-500/10"
+                          aria-label={`Visualizar respostas de ${resp.form_name}`}
+                          className="h-8 w-8 text-emerald-600 hover:bg-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -260,79 +285,115 @@ export function FormsTab({ patientId }: { patientId: number }) {
 
       {/* Modal para Responder Formulário */}
       {fillModalOpen && selectedForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={fillModalTitleId}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+        >
           <Card className="w-full max-w-lg overflow-hidden shadow-xl animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center justify-between border-b border-border bg-emerald-500/5 px-6 py-4">
-              <div>
-                <h3 className="text-sm font-bold text-foreground">{selectedForm.name}</h3>
-                <p className="text-[10px] text-muted-foreground">{selectedForm.category}</p>
-              </div>
-              <button
-                onClick={() => setFillModalOpen(false)}
-                className="rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="max-h-[60vh] overflow-y-auto p-6 space-y-6">
-              {selectedForm.questions.map((q) => (
-                <div key={q.id} className="space-y-3">
-                  <label className="text-xs font-semibold text-foreground">{q.label}</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {selectedForm.options.map((opt) => {
-                      const active = answers[q.id] === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: opt.value }))}
-                          className={`rounded-lg border px-3 py-2 text-[10px] font-medium transition-all ${
-                            active
-                              ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                              : "border-border hover:bg-accent text-muted-foreground"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSaveAnswers();
+              }}
+            >
+              <div className="flex items-center justify-between border-b border-border bg-emerald-500/5 px-6 py-4">
+                <div>
+                  <h3 id={fillModalTitleId} className="text-sm font-bold text-foreground">
+                    {selectedForm.name}
+                  </h3>
+                  <p className="text-[10px] text-muted-foreground">{selectedForm.category}</p>
                 </div>
-              ))}
-            </div>
+                <button
+                  type="button"
+                  onClick={() => setFillModalOpen(false)}
+                  disabled={submitMutation.isPending}
+                  aria-label="Fechar modal"
+                  className="rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
 
-            <div className="flex justify-end gap-2 border-t border-border px-6 py-4 bg-muted/40">
-              <Button size="sm" variant="ghost" onClick={() => setFillModalOpen(false)}>
-                Cancelar
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSaveAnswers}
-                isLoading={submitMutation.isPending}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white"
-              >
-                Salvar Formulário
-              </Button>
-            </div>
+              <div className="max-h-[60vh] overflow-y-auto p-6 space-y-6">
+                {selectedForm.questions.map((q) => (
+                  <div key={q.id} className="space-y-3">
+                    <span className="block text-xs font-semibold text-foreground">{q.label}</span>
+                    <div className="grid grid-cols-4 gap-2">
+                      {selectedForm.options.map((opt) => {
+                        const active = answers[q.id] === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            disabled={submitMutation.isPending}
+                            onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: opt.value }))}
+                            className={`rounded-lg border px-3 py-2 text-[10px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${
+                              active
+                                ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                : "border-border hover:bg-accent text-muted-foreground"
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-end gap-2 border-t border-border px-6 py-4 bg-muted/40">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  type="button"
+                  disabled={submitMutation.isPending}
+                  onClick={() => setFillModalOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  size="sm"
+                  type="submit"
+                  isLoading={submitMutation.isPending}
+                  disabled={submitMutation.isPending}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                >
+                  Salvar Formulário
+                </Button>
+              </div>
+            </form>
           </Card>
         </div>
       )}
 
       {/* Modal para Visualizar Respostas do Formulário */}
       {viewModalOpen && selectedResponse && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={viewModalTitleId}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+        >
           <Card className="w-full max-w-lg overflow-hidden shadow-xl animate-in fade-in zoom-in duration-200">
             <div className="flex items-center justify-between border-b border-border bg-emerald-500/5 px-6 py-4">
               <div>
-                <h3 className="text-sm font-bold text-foreground">{selectedResponse.form_name}</h3>
-                <p className="text-[10px] text-muted-foreground">Preenchido em {new Date(selectedResponse.completed_at).toLocaleDateString("pt-BR")}</p>
+                <h3 id={viewModalTitleId} className="text-sm font-bold text-foreground">
+                  {selectedResponse.form_name}
+                </h3>
+                <p className="text-[10px] text-muted-foreground">
+                  Preenchido em {new Date(selectedResponse.completed_at).toLocaleDateString("pt-BR")}
+                </p>
               </div>
               <button
+                type="button"
                 onClick={() => setViewModalOpen(false)}
-                className="rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                aria-label="Fechar modal"
+                className="rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
 
@@ -350,7 +411,7 @@ export function FormsTab({ patientId }: { patientId: number }) {
                     <div key={q.id} className="flex justify-between items-center border-b border-border/40 pb-2">
                       <span className="text-xs text-foreground font-medium">{q.label}</span>
                       <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
-                        <Check className="h-3 w-3" />
+                        <Check className="h-3 w-3" aria-hidden="true" />
                         {matchedOpt ? matchedOpt.label : `Opção ${val}`}
                       </span>
                     </div>
@@ -360,7 +421,12 @@ export function FormsTab({ patientId }: { patientId: number }) {
             </div>
 
             <div className="flex justify-end border-t border-border px-6 py-4 bg-muted/40">
-              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white" onClick={() => setViewModalOpen(false)}>
+              <Button
+                size="sm"
+                type="button"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                onClick={() => setViewModalOpen(false)}
+              >
                 Fechar
               </Button>
             </div>
