@@ -261,8 +261,10 @@ def test_transaction_detail_isolation(auth_client, other_therapist):
     assert auth_client.get(reverse("transaction-detail", args=[tx.id])).status_code == 404
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_export_csv_success(auth_client, therapist_user):
+    from apps.audit.models import AuditLog
+
     FinancialTransaction.objects.create(
         therapist=therapist_user,
         transaction_type="income",
@@ -277,6 +279,51 @@ def test_export_csv_success(auth_client, therapist_user):
     rows = list(csv.reader(csv_file, delimiter=";"))
     assert len(rows) == 2
     assert rows[1][9] == "'=Sessão clínica"
+
+    audit_entry = AuditLog.objects.filter(
+        user=therapist_user,
+        action=AuditLog.Action.EXPORT,
+    ).first()
+    assert audit_entry is not None
+    assert "Exportação de transações financeiras" in audit_entry.object_repr
+
+
+@pytest.mark.django_db
+def test_export_csv_unauthenticated_and_isolation(
+    api_client,
+    auth_client,
+    auth_other_client,
+    therapist_user,
+    other_therapist,
+):
+    # Unauthenticated rejected
+    res_unauth = api_client.get(reverse("transaction-export-csv"))
+    assert res_unauth.status_code in (400, 401, 403)
+
+    FinancialTransaction.objects.create(
+        therapist=therapist_user,
+        transaction_type="income",
+        amount=100.00,
+        payment_status="paid",
+    )
+    FinancialTransaction.objects.create(
+        therapist=other_therapist,
+        transaction_type="expense",
+        amount=200.00,
+        payment_status="paid",
+    )
+
+    res_user1 = auth_client.get(reverse("transaction-export-csv"))
+    assert res_user1.status_code == 200
+    rows1 = list(csv.reader(io.StringIO(res_user1.content.decode("utf-8-sig")), delimiter=";"))
+    assert len(rows1) == 2
+    assert rows1[1][3] == "100,00"
+
+    res_user2 = auth_other_client.get(reverse("transaction-export-csv"))
+    assert res_user2.status_code == 200
+    rows2 = list(csv.reader(io.StringIO(res_user2.content.decode("utf-8-sig")), delimiter=";"))
+    assert len(rows2) == 2
+    assert rows2[1][3] == "200,00"
 
 
 @pytest.mark.django_db
