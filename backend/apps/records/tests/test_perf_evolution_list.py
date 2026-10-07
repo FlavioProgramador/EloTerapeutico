@@ -91,3 +91,28 @@ def test_evolution_list_queries_optimized(client, therapist, patient):
         assert item['version_count'] == 1
         assert item['addenda_count'] == 1
         assert item['attached_documents_count'] == 1
+
+
+@pytest.mark.django_db
+def test_evolution_serializer_uses_prefetched_cache(therapist, patient):
+    create_evolutions(therapist, patient, 3)
+
+    from apps.records.api.evolution_serializers import EvolutionFlowSerializer
+
+    # Fetch evolutions with prefetched relations (and without count annotations)
+    evolutions = list(
+        Evolution.objects.filter(patient=patient).prefetch_related(
+            "addenda", "documents"
+        )
+    )
+
+    serializer = EvolutionFlowSerializer()
+    with CaptureQueriesContext(connection) as queries:
+        for evo in evolutions:
+            addenda_count = serializer.get_addenda_count(evo)
+            docs_count = serializer.get_attached_documents_count(evo)
+            assert addenda_count == 1
+            assert docs_count == 1
+
+        # Must execute ZERO queries because counts are evaluated in memory from prefetched cache
+        assert len(queries) == 0
