@@ -301,3 +301,28 @@ class TestPatientFiltering:
         results = response.data.get("results", [])
         assert len(results) == 1
         assert results[0]["id"] == p2.id
+
+
+@pytest.mark.django_db
+class TestPatientSerializerSecurity:
+    """Testes de segurança em serializers de pacientes."""
+
+    def test_serializer_does_not_log_validation_errors_to_stdout(self, capsys):
+        """
+        Garante que erros de validação do PatientCreateUpdateSerializer
+        não imprimem dados sensíveis (ex: CPF ou erros) no stdout/logs.
+        """
+        from apps.patients.api.serializers.legacy_serializers import PatientCreateUpdateSerializer
+
+        invalid_cpf = "123.456.789-00"
+        serializer = PatientCreateUpdateSerializer(
+            data={
+                "full_name": "Paciente Inválido",
+                "cpf": invalid_cpf,
+            }
+        )
+
+        assert serializer.is_valid() is False
+        captured = capsys.readouterr()
+        assert "VALIDATION ERRORS:" not in captured.out
+        assert invalid_cpf not in captured.out

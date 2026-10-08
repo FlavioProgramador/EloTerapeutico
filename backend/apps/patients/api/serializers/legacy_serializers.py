@@ -99,14 +99,6 @@ class PatientCreateUpdateSerializer(serializers.ModelSerializer):
     # Define address as a generic field so DRF doesn't crash trying to parse it as JSON before validate()
     address = FlexibleJSONField(required=False)
 
-    def is_valid(self, *, raise_exception=False):
-        valid = super().is_valid(raise_exception=False)
-        if not valid:
-            print("VALIDATION ERRORS:", self.errors)
-        if raise_exception and not valid:
-            raise serializers.ValidationError(self.errors)
-        return valid
-
     class Meta:
         model = Patient
         fields = [
