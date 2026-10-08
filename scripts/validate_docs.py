@@ -170,7 +170,7 @@ def parse_compose_services() -> set[str]:
     services: set[str] = set()
     in_services = False
     for raw_line in compose.read_text(encoding="utf-8").splitlines():
-        if raw_line.strip() == "services":
+        if raw_line.strip() in ("services:", "services"):
             in_services = True
             continue
         if in_services and raw_line and not raw_line.startswith(" "):

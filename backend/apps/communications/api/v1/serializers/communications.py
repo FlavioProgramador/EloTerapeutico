@@ -84,7 +84,12 @@ class CommunicationListSerializer(serializers.ModelSerializer):
         ]
 
     def get_recipient(self, obj):
-        recipient = next(iter(obj.recipients.all()), None)
+        prefetched = getattr(obj, "_prefetched_objects_cache", {})
+        if "recipients" in prefetched:
+            recipients = prefetched["recipients"]
+            recipient = recipients[0] if recipients else None
+        else:
+            recipient = obj.recipients.first()
         return recipient.destination_masked if recipient else ""
 
 
