@@ -47,13 +47,14 @@ export function RecordHeader({
         <button
           type="button"
           onClick={onBack}
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200"
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           title="Voltar para Pacientes"
+          aria-label="Voltar para Pacientes"
         >
-          <ChevronLeft className="h-5 w-5" />
+          <ChevronLeft className="h-5 w-5" aria-hidden="true" />
         </button>
         <div className="flex items-center gap-2">
-          <BookOpen className="h-6 w-6 text-primary" />
+          <BookOpen className="h-6 w-6 text-primary" aria-hidden="true" />
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Prontuário Clínico
@@ -87,19 +88,19 @@ export function RecordHeader({
 
               <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <User className="h-3.5 w-3.5 text-primary/60" />
+                  <User className="h-3.5 w-3.5 text-primary/60" aria-hidden="true" />
                   {patient.age ? `${patient.age} anos` : "Idade não informada"}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Phone className="h-3.5 w-3.5 text-primary/60" />
+                  <Phone className="h-3.5 w-3.5 text-primary/60" aria-hidden="true" />
                   {patient.phone || "Sem telefone"}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Mail className="h-3.5 w-3.5 text-primary/60" />
+                  <Mail className="h-3.5 w-3.5 text-primary/60" aria-hidden="true" />
                   {patient.email || "Sem e-mail"}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5 text-primary/60" />
+                  <Calendar className="h-3.5 w-3.5 text-primary/60" aria-hidden="true" />
                   Início: {new Date(summary.treatment_start).toLocaleDateString("pt-BR")}
                 </span>
               </div>
