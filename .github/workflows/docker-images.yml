@@ -127,7 +127,7 @@ jobs:
 
       - name: Upload vulnerability report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: trivy-${{ matrix.name }}-report
           path: trivy-${{ matrix.name }}.json
