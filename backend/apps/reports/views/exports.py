@@ -10,6 +10,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.audit.models import AuditLog
+from apps.audit.services import log_access
 from apps.organizations.services.tenant_context import ensure_request_organization
 from apps.reports.permissions import CanExportReports
 from apps.reports.services import (
@@ -69,6 +71,12 @@ class ReportExportView(APIView):
                 INVALID_PERIOD_RESPONSE,
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        log_access(
+            request,
+            AuditLog.Action.EXPORT,
+            obj_repr=f"Exportação de relatório ({report_type})",
+        )
 
         return self._csv_response(report_type, payload)
 
