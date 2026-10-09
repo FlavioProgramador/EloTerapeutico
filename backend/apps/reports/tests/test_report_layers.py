@@ -3,6 +3,7 @@ from datetime import date
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from apps.audit.models import AuditLog
 from apps.patients.models import Patient
 from apps.reports.selectors import patients_for_owner
 from apps.reports.services.periods import resolve_period
@@ -50,3 +51,20 @@ class ReportLayerTests(APITestCase):
         response = self.client.get("/api/v1/reports/export/", {"type": "unknown"})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data, {"detail": "Tipo de relatorio invalido."})
+
+    def test_unauthenticated_export_is_rejected(self):
+        self.client.logout()
+        response = self.client.get("/api/v1/reports/export/")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_successful_export_creates_audit_log(self):
+        response = self.client.get("/api/v1/reports/export/", {"type": "appointments"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response["Content-Type"], "text/csv; charset=utf-8")
+        self.assertTrue(
+            AuditLog.objects.filter(
+                user=self.owner,
+                action=AuditLog.Action.EXPORT,
+                object_repr="Exportação de relatório (appointments)",
+            ).exists()
+        )

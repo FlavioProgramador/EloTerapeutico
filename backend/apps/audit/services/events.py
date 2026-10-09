@@ -204,7 +204,7 @@ def log_access(
         metadata=metadata,
         reason=reason,
         source=source,
-        on_commit=normalized_action != AuditLog.Action.VIEW,
+        on_commit=normalized_action not in (AuditLog.Action.VIEW, AuditLog.Action.EXPORT),
     )
 
 
