@@ -1,22 +1,23 @@
 from __future__ import annotations
 
 from datetime import timedelta
+
 import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from apps.organizations.models import Organization, OrganizationMembership
-from apps.users.models import User
+from apps.communications.api.v1.serializers.automations import (
+    CommunicationAutomationSerializer,
+)
 from apps.communications.models import (
     CommunicationAutomation,
     CommunicationAutomationRun,
     CommunicationTemplate,
 )
-from apps.communications.api.v1.serializers.automations import (
-    CommunicationAutomationSerializer,
-)
+from apps.organizations.models import Organization, OrganizationMembership
+from apps.users.models import User
 
 
 def _create_tenant(user: User, slug: str) -> Organization:
