@@ -60,7 +60,7 @@ jobs:
           python manage.py check 2>&1 | tee django-check.log
       - name: Publicar diagnóstico do Django check
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: billing-django-check
           path: backend/django-check.log
