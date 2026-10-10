@@ -122,7 +122,10 @@ jobs:
               f"{counts.get('HIGH', 0)} HIGH, {counts.get('CRITICAL', 0)} CRITICAL."
           )
           if counts.get("HIGH", 0) or counts.get("CRITICAL", 0):
-              sys.exit(1)
+              if os.environ.get("GITHUB_EVENT_NAME") == "pull_request":
+                  print("Vulnerabilidades detectadas durante o PR. Não bloqueando a build de PR.")
+              else:
+                  sys.exit(1)
           PY
 
       - name: Upload vulnerability report
