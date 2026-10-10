@@ -419,3 +419,110 @@ def test_preference_is_unique_per_patient(therapist, patient):
     )
     assert created is False
     assert first.pk == second.pk
+
+
+@pytest.mark.django_db
+@override_settings(BILLING_REQUIRE_SUBSCRIPTION=False)
+def test_communication_dashboard_security_and_isolation(
+    authenticated_client,
+    therapist,
+    other_therapist,
+):
+    organization = therapist.test_organization
+    ensure_default_channels(therapist, organization=organization)
+
+    # Terapeuta 1 cria uma comunicação
+    create_communication(
+        organization=organization,
+        owner=therapist,
+        created_by=therapist,
+        channel=Communication.Channel.IN_APP,
+        category=Communication.Category.SYSTEM_NOTIFICATION,
+        subject="Comunicação T1",
+        body="Corpo T1",
+        idempotency_key="test:dash:t1",
+    )
+
+    # Adiciona outro terapeuta à mesma organização
+    colleague = User.objects.create_user(
+        email="communications.colleague@example.test",
+        password="SenhaForte123!",
+        full_name="Colega Terapeuta",
+        role=User.Role.THERAPIST,
+    )
+    OrganizationMembership.objects.create(
+        organization=organization,
+        user=colleague,
+        role=OrganizationMembership.Role.THERAPIST,
+        status=OrganizationMembership.Status.ACTIVE,
+    )
+    ensure_default_channels(colleague, organization=organization)
+
+    # Colega cria comunicação na mesma organização
+    create_communication(
+        organization=organization,
+        owner=colleague,
+        created_by=colleague,
+        channel=Communication.Channel.IN_APP,
+        category=Communication.Category.SYSTEM_NOTIFICATION,
+        subject="Comunicação T2",
+        body="Corpo T2",
+        idempotency_key="test:dash:t2",
+    )
+
+    # 1. Usuário não autenticado é rejeitado (401)
+    unauthenticated_client = APIClient()
+    response = unauthenticated_client.get(
+        "/api/v1/communications/dashboard/",
+        HTTP_X_ORGANIZATION_ID=str(organization.pk),
+    )
+    assert response.status_code == 401
+
+    # 2. Terapeuta 1 vê apenas suas próprias métricas na organização (total = 1)
+    response = authenticated_client.get(
+        "/api/v1/communications/dashboard/",
+        HTTP_X_ORGANIZATION_ID=str(organization.pk),
+    )
+    assert response.status_code == 200
+    assert response.data["metrics"]["total"] == 1
+
+    # 3. Admin da organização vê o total geral da organização (total = 2)
+    admin_user = User.objects.create_user(
+        email="communications.admin@example.test",
+        password="SenhaForte123!",
+        full_name="Admin Org",
+        role=User.Role.ADMIN,
+        onboarding_completed_at=timezone.now(),
+    )
+    _create_tenant(admin_user, "communications-admin-org")
+    # Torna o admin participante ativo da organização principal
+    OrganizationMembership.objects.create(
+        organization=organization,
+        user=admin_user,
+        role=OrganizationMembership.Role.ADMIN,
+        status=OrganizationMembership.Status.ACTIVE,
+    )
+    admin_client = APIClient()
+    admin_client.force_authenticate(admin_user)
+    admin_client.credentials(
+        HTTP_X_ORGANIZATION_ID=str(organization.pk)
+    )
+    response = admin_client.get(
+        "/api/v1/communications/dashboard/",
+        HTTP_X_ORGANIZATION_ID=str(organization.pk),
+    )
+    assert response.status_code == 200
+    assert response.data["metrics"]["total"] == 2
+
+    # 4. Usuário de outro tenant acessando esta org é rejeitado/vê 0/acesso negado
+    other_client = APIClient()
+    other_client.force_authenticate(other_therapist)
+    response = other_client.get(
+        "/api/v1/communications/dashboard/",
+        HTTP_X_ORGANIZATION_ID=str(organization.pk),
+    )
+    # OrganizationMembership não ativo para esta org => ensure_request_organization ou selector zera o resultado
+    if response.status_code == 200:
+        assert response.data["metrics"]["total"] == 0
+    else:
+        assert response.status_code in (403, 404)
