@@ -9,7 +9,7 @@ from rest_framework.test import APIClient
 from apps.patients.models import Patient
 from apps.records.extended_models import EvolutionClinicalData
 from apps.records.models import Evolution
-from apps.scheduling.models import Appointment
+from apps.scheduling.models import Appointment, AppointmentRecurrence
 from apps.users.models import User
 
 
@@ -76,3 +76,46 @@ def test_appointment_list_optimized_queries(
 
     assert response.status_code == status.HTTP_200_OK
     assert len(response.data["results"]) == num_appointments
+
+
+@pytest.mark.django_db
+def test_recurrence_list_query_count(
+    api_client,
+    therapist,
+    patient,
+    django_assert_num_queries,
+):
+    """Verifica que a listagem de recorrencias possui contagem de consultas constante (sem N+1)."""
+    num_recurrences = 5
+    for i in range(num_recurrences):
+        rec = AppointmentRecurrence.objects.create(
+            patient=patient,
+            therapist=therapist,
+            frequency=AppointmentRecurrence.Frequency.WEEKLY,
+            interval=1,
+            starts_on=timezone.now().date(),
+            start_time=timezone.now().time(),
+            duration_minutes=50,
+            session_value=100,
+            status=AppointmentRecurrence.Status.ACTIVE,
+        )
+        start = timezone.now() + timedelta(days=i)
+        Appointment.objects.create(
+            patient=patient,
+            therapist=therapist,
+            recurrence=rec,
+            start_time=start,
+            end_time=start + timedelta(minutes=50),
+            session_value=100,
+            status=Appointment.Status.SCHEDULED,
+        )
+
+    url = reverse("appointment-recurrence-list")
+
+    # Membership ativa + Count de paginacao + listagem principal + prefetch_related("appointments").
+    # O total de consultas deve permanecer 4, independentemente da quantidade de recorrências.
+    with django_assert_num_queries(4):
+        response = api_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.data["results"]) == num_recurrences
