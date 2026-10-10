@@ -7,6 +7,7 @@ from django.db.models.functions import TruncDate
 from django.utils import timezone
 
 from apps.communications.models import Communication
+from apps.organizations.models import OrganizationMembership
 
 
 def communication_dashboard(user, start_date=None, end_date=None, *, organization=None):
@@ -17,7 +18,17 @@ def communication_dashboard(user, start_date=None, end_date=None, *, organizatio
         created_at__lte=end,
     )
     if organization is not None:
-        queryset = queryset.filter(organization=organization)
+        membership = OrganizationMembership.objects.filter(
+            user=user,
+            organization=organization,
+            status=OrganizationMembership.Status.ACTIVE,
+        ).first()
+        if membership is None:
+            queryset = queryset.none()
+        elif membership.role == OrganizationMembership.Role.THERAPIST:
+            queryset = queryset.filter(organization=organization, owner=user)
+        else:
+            queryset = queryset.filter(organization=organization)
     else:
         queryset = queryset.filter(owner=user)
     total = queryset.count()
