@@ -1,20 +1,21 @@
 from __future__ import annotations
 
 import uuid
+
 import pytest
 from django.test import override_settings
 from django.utils import timezone
 
-from apps.organizations.models import Organization, OrganizationMembership
-from apps.users.models import User
+from apps.communications.api.v1.serializers.automations import (
+    CommunicationAutomationSerializer,
+)
 from apps.communications.models import (
     CommunicationAutomation,
     CommunicationAutomationRun,
     CommunicationTemplate,
 )
-from apps.communications.api.v1.serializers.automations import (
-    CommunicationAutomationSerializer,
-)
+from apps.organizations.models import Organization, OrganizationMembership
+from apps.users.models import User
 
 
 def _create_tenant(user: User, slug: str) -> Organization:
