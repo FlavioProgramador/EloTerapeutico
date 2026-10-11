@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Loader2, MessageCircle, RefreshCcw, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,8 +22,58 @@ export function CommunicationDrawer({
   id: string;
   onClose: () => void;
 }) {
+  const panelRef = useRef<HTMLDivElement>(null);
   const detail = useCommunication(id);
   const action = useCommunicationAction();
+
+  const isPendingRef = useRef(action.isPending);
+  useEffect(() => {
+    isPendingRef.current = action.isPending;
+  }, [action.isPending]);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !isPendingRef.current) {
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab" || !panelRef.current) return;
+      const items = panelRef.current.querySelectorAll<HTMLElement>(
+        "button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex]:not([tabindex='-1'])",
+      );
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    const focusTimer = window.setTimeout(
+      () =>
+        panelRef.current
+          ?.querySelector<HTMLElement>("button:not(:disabled)")
+          ?.focus(),
+      0,
+    );
+
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, [onClose]);
+
   async function run(
     type: "cancel" | "retry" | "mark-manually-sent" | "open-manual",
   ) {
@@ -37,37 +88,59 @@ export function CommunicationDrawer({
       toast.error("Não foi possível concluir esta ação.");
     }
   }
+
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-background/55 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-background/55 backdrop-blur-sm"
+      role="presentation"
+    >
       <button
         type="button"
         className="flex-1"
-        aria-label="Fechar detalhes"
-        onClick={onClose}
+        aria-label="Fechar detalhes da comunicação"
+        disabled={action.isPending}
+        onClick={() => {
+          if (!action.isPending) onClose();
+        }}
       />
-      <aside className="h-full w-full max-w-xl overflow-y-auto border-l border-border bg-card p-6 shadow-2xl">
+      <aside
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="communication-drawer-title"
+        aria-describedby="communication-drawer-description"
+        className="h-full w-full max-w-xl overflow-y-auto border-l border-border bg-card p-6 shadow-2xl"
+      >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-bold">Detalhes da comunicação</h2>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <h2 id="communication-drawer-title" className="text-lg font-bold">
+              Detalhes da comunicação
+            </h2>
+            <p
+              id="communication-drawer-description"
+              className="mt-1 text-xs text-muted-foreground"
+            >
               Histórico imutável, tentativas e destinatário mascarado.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 hover:bg-secondary"
+            disabled={action.isPending}
+            className="rounded-lg p-2 text-muted-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="Fechar detalhes"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
         {detail.isLoading && (
           <div className="mt-10 flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />{" "}
+            Carregando...
           </div>
         )}
         {detail.isError && (
-          <p className="mt-10 text-sm text-danger">
+          <p className="mt-10 text-sm text-danger" role="alert">
             Não foi possível carregar o histórico.
           </p>
         )}
@@ -154,8 +227,18 @@ export function CommunicationDrawer({
                 detail.data.status,
                 String(detail.data.metadata?.manual_url || ""),
               ) && (
-                <Button onClick={() => run("open-manual")}>
-                  <MessageCircle className="mr-2 h-4 w-4" />
+                <Button
+                  disabled={action.isPending}
+                  onClick={() => run("open-manual")}
+                >
+                  {action.isPending ? (
+                    <Loader2
+                      className="mr-2 h-4 w-4 animate-spin"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <MessageCircle className="mr-2 h-4 w-4" aria-hidden="true" />
+                  )}
                   Abrir WhatsApp
                 </Button>
               )}
@@ -167,19 +250,46 @@ export function CommunicationDrawer({
                 Boolean(detail.data.metadata?.manual_opened_at) && (
                   <Button
                     variant="outline"
+                    disabled={action.isPending}
                     onClick={() => run("mark-manually-sent")}
                   >
+                    {action.isPending && (
+                      <Loader2
+                        className="mr-2 h-4 w-4 animate-spin"
+                        aria-hidden="true"
+                      />
+                    )}
                     Confirmar envio manual
                   </Button>
                 )}
               {canRetryCommunication(detail.data.status) && (
-                <Button onClick={() => run("retry")}>
-                  <RefreshCcw className="mr-2 h-4 w-4" />
+                <Button
+                  disabled={action.isPending}
+                  onClick={() => run("retry")}
+                >
+                  {action.isPending ? (
+                    <Loader2
+                      className="mr-2 h-4 w-4 animate-spin"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <RefreshCcw className="mr-2 h-4 w-4" aria-hidden="true" />
+                  )}
                   Tentar novamente
                 </Button>
               )}
               {canCancelCommunication(detail.data.status) && (
-                <Button variant="outline" onClick={() => run("cancel")}>
+                <Button
+                  variant="outline"
+                  disabled={action.isPending}
+                  onClick={() => run("cancel")}
+                >
+                  {action.isPending && (
+                    <Loader2
+                      className="mr-2 h-4 w-4 animate-spin"
+                      aria-hidden="true"
+                    />
+                  )}
                   Cancelar
                 </Button>
               )}
