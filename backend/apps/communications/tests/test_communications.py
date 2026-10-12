@@ -423,13 +423,13 @@ def test_preference_is_unique_per_patient(therapist, patient):
 
 @pytest.mark.django_db
 def test_automation_serializer_prefetched_runs_avoids_queries(therapist_user, django_assert_num_queries):
-    from conftest import _ensure_test_organization
     from apps.communications.api.v1.serializers import CommunicationAutomationSerializer
     from apps.communications.models import (
         CommunicationAutomation,
         CommunicationAutomationRun,
         CommunicationTemplate,
     )
+    from conftest import _ensure_test_organization
 
     organization = _ensure_test_organization(therapist_user)
     template = CommunicationTemplate.objects.create(
