@@ -96,8 +96,8 @@ export default function ForgotPasswordPage() {
               <Link href="/login" className="block w-full">
                 <Button
                   variant="outline"
-                  className="w-full font-semibold"
-                  leftIcon={<ArrowLeft className="h-4 w-4" />}
+                  className="w-full font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+                  leftIcon={<ArrowLeft className="h-4 w-4" aria-hidden="true" />}
                 >
                   Voltar para o login
                 </Button>
@@ -128,6 +128,7 @@ export default function ForgotPasswordPage() {
                   placeholder="seuemail@exemplo.com"
                   type="email"
                   autoComplete="email"
+                  disabled={isSubmitting}
                   leftIcon={
                     <Mail
                       className="h-4.5 w-4.5 text-muted-foreground"
@@ -141,7 +142,7 @@ export default function ForgotPasswordPage() {
                 <Button
                   id="forgot-submit"
                   type="submit"
-                  className="mt-2 w-full font-semibold"
+                  className="mt-2 w-full font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                   isLoading={isSubmitting}
                 >
                   Enviar link de recuperação
@@ -150,7 +151,10 @@ export default function ForgotPasswordPage() {
                 <div className="flex justify-center pt-2">
                   <Link
                     href="/login"
-                    className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                    tabIndex={isSubmitting ? -1 : undefined}
+                    className={`flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 rounded-xs ${
+                      isSubmitting ? "pointer-events-none opacity-50" : ""
+                    }`}
                   >
                     <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
                     Voltar para o login
