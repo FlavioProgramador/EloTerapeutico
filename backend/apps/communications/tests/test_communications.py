@@ -419,3 +419,58 @@ def test_preference_is_unique_per_patient(therapist, patient):
     )
     assert created is False
     assert first.pk == second.pk
+
+
+@pytest.mark.django_db
+def test_automation_serializer_prefetched_runs_avoids_queries(therapist_user, django_assert_num_queries):
+    from conftest import _ensure_test_organization
+    from apps.communications.api.v1.serializers import CommunicationAutomationSerializer
+    from apps.communications.models import (
+        CommunicationAutomation,
+        CommunicationAutomationRun,
+        CommunicationTemplate,
+    )
+
+    organization = _ensure_test_organization(therapist_user)
+    template = CommunicationTemplate.objects.create(
+        organization=organization,
+        owner=therapist_user,
+        created_by=therapist_user,
+        updated_by=therapist_user,
+        name="Template Teste",
+        channel="email",
+        subject_template="Assunto",
+        body_template="Corpo {{patient_name}}",
+        is_system_template=False,
+    )
+    automation = CommunicationAutomation.objects.create(
+        organization=organization,
+        owner=therapist_user,
+        created_by=therapist_user,
+        updated_by=therapist_user,
+        name="Automação Teste",
+        channel="email",
+        template=template,
+        event_type="appointment_scheduled",
+    )
+    now = timezone.now()
+    CommunicationAutomationRun.objects.create(
+        automation=automation,
+        idempotency_key="test-run-1",
+        started_at=now - timedelta(minutes=10),
+        status=CommunicationAutomationRun.Status.CREATED,
+    )
+    CommunicationAutomationRun.objects.create(
+        automation=automation,
+        idempotency_key="test-run-2",
+        started_at=now,
+        status=CommunicationAutomationRun.Status.FAILED,
+    )
+
+    qs = CommunicationAutomation.objects.filter(pk=automation.pk).select_related("template").prefetch_related("runs")
+    obj = list(qs)[0]
+
+    with django_assert_num_queries(0):
+        data = CommunicationAutomationSerializer(obj).data
+        assert data["failures"] == 1
+        assert data["last_run_at"] is not None
