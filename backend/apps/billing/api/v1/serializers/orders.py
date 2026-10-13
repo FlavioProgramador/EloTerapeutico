@@ -32,12 +32,34 @@ class BillingOrderSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def _get_prefetched_payments(self, obj):
+        prefetched = getattr(obj, "_prefetched_objects_cache", {})
+        return prefetched.get("payments")
+
     def get_paid_installments(self, obj):
+        payments = self._get_prefetched_payments(obj)
+        if payments is not None:
+            return sum(
+                1
+                for p in payments
+                if p.status in (Payment.Status.CONFIRMED, Payment.Status.RECEIVED)
+            )
         return obj.payments.filter(
             status__in=[Payment.Status.CONFIRMED, Payment.Status.RECEIVED]
         ).count()
 
     def get_next_due_date(self, obj):
+        payments = self._get_prefetched_payments(obj)
+        if payments is not None:
+            pending = [
+                p
+                for p in payments
+                if p.status in (Payment.Status.PENDING, Payment.Status.OVERDUE)
+                and p.due_date is not None
+            ]
+            if pending:
+                return min(pending, key=lambda p: p.due_date).due_date
+            return None
         payment = (
             obj.payments.filter(
                 status__in=[Payment.Status.PENDING, Payment.Status.OVERDUE]
