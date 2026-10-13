@@ -295,3 +295,46 @@ class BillingAPITests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["results"]), 1)
         self.assertEqual(response.data["results"][0]["id"], own.id)
+
+    def test_list_orders_avoids_nplus1_queries(self):
+        self.authenticate()
+        subscription = Subscription.objects.create(
+            user=self.user, plan=self.plan, gateway_subscription_id="sub_perf_01"
+        )
+        for i in range(3):
+            order = BillingOrder.objects.create(
+                user=self.user,
+                plan=self.plan,
+                plan_price=self.monthly,
+                status=BillingOrder.Status.PAID,
+                billing_model=PlanPrice.BillingModel.RECURRING,
+                billing_interval=PlanPrice.BillingInterval.MONTHLY,
+                total_amount=Decimal("99.90"),
+                currency="BRL",
+                gateway_subscription_id=f"sub_perf_{i}",
+                external_reference=f"ext_ref_{i}",
+                idempotency_key=f"idem_key_{i}",
+            )
+            Payment.objects.create(
+                billing_order=order,
+                subscription=subscription,
+                user=self.user,
+                amount=Decimal("99.90"),
+                status=Payment.Status.CONFIRMED,
+                gateway_payment_id=f"pay_perf_{i}_1",
+            )
+            Payment.objects.create(
+                billing_order=order,
+                subscription=subscription,
+                user=self.user,
+                amount=Decimal("99.90"),
+                status=Payment.Status.PENDING,
+                gateway_payment_id=f"pay_perf_{i}_2",
+            )
+
+        with self.assertNumQueries(3):
+            response = self.client.get("/api/v1/billing/orders/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data["results"]), 3)
+        self.assertEqual(response.data["results"][0]["paid_installments"], 1)
