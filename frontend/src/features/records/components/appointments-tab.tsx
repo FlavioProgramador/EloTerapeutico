@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Calendar,
   Clock,
-  Video,
   User,
   FileEdit,
   Eye,
@@ -125,7 +124,7 @@ export function AppointmentsTab({
   if (isError) {
     return (
       <Card className="flex flex-col items-center justify-center p-8 text-center">
-        <AlertCircle className="h-8 w-8 text-destructive mb-2" />
+        <AlertCircle className="h-8 w-8 text-destructive mb-2" aria-hidden="true" />
         <h3 className="text-sm font-semibold text-foreground">
           Erro ao carregar consultas
         </h3>
@@ -149,7 +148,7 @@ export function AppointmentsTab({
       {appointments.length === 0 ? (
         <div className="py-12">
           <EmptyState
-            icon={<Calendar className="h-6 w-6 text-muted-foreground" />}
+            icon={<Calendar className="h-6 w-6 text-muted-foreground" aria-hidden="true" />}
             title="Nenhuma consulta registrada"
             description="Não há consultas agendadas ou realizadas para este paciente no histórico."
           />
@@ -177,11 +176,11 @@ export function AppointmentsTab({
                     <TableCell className="font-medium text-foreground">
                       <div className="flex flex-col">
                         <span className="flex items-center gap-1.5 font-semibold text-foreground">
-                          <Calendar className="h-3.5 w-3.5 text-emerald-600/70" />
+                          <Calendar className="h-3.5 w-3.5 text-emerald-600/70" aria-hidden="true" />
                           {dateObj.toLocaleDateString("pt-BR")}
                         </span>
                         <span className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                          <Clock className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
                           {dateObj.toLocaleTimeString("pt-BR", {
                             hour: "2-digit",
                             minute: "2-digit",
@@ -191,7 +190,7 @@ export function AppointmentsTab({
                     </TableCell>
                     <TableCell>
                       <span className="flex items-center gap-1.5 text-xs font-medium text-foreground">
-                        <User className="h-3.5 w-3.5 text-slate-400" />
+                        <User className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
                         {appointment.therapist_name || "Profissional"}
                       </span>
                     </TableCell>
@@ -206,9 +205,10 @@ export function AppointmentsTab({
                             onViewEvolution(appointment.evolution_id!)
                           }
                           title="Visualizar evolução vinculada"
-                          className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
+                          aria-label="Visualizar evolução vinculada"
+                          className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       ) : isCompleted ? (
                         <Button
@@ -216,9 +216,10 @@ export function AppointmentsTab({
                           size="icon"
                           onClick={() => onNewEvolution(appointment.id)}
                           title="Evoluir consulta realizada"
-                          className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
+                          aria-label="Evoluir consulta realizada"
+                          className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                         >
-                          <FileEdit className="h-4 w-4" />
+                          <FileEdit className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       ) : (
                         <span className="text-xs text-muted-foreground">
