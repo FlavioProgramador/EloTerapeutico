@@ -419,3 +419,89 @@ def test_preference_is_unique_per_patient(therapist, patient):
     )
     assert created is False
     assert first.pk == second.pk
+
+
+@pytest.mark.django_db
+@override_settings(BILLING_REQUIRE_SUBSCRIPTION=False)
+def test_communication_preferences_isolation_and_authorization(
+    authenticated_client,
+    therapist,
+    other_therapist,
+    patient,
+):
+    own_organization = therapist.test_organization
+    pref_own = CommunicationPreference.objects.create(
+        organization=own_organization,
+        patient=patient,
+        owner=therapist,
+    )
+
+    # Terapeuta 2 no mesmo tenant (sem vinculo com patient)
+    therapist_2 = User.objects.create_user(
+        email="therapist2.tenant@example.test",
+        password="SenhaForte123!",
+        full_name="Segundo Terapeuta Mesma Org",
+        role=User.Role.THERAPIST,
+    )
+    OrganizationMembership.objects.create(
+        organization=own_organization,
+        user=therapist_2,
+        role=OrganizationMembership.Role.THERAPIST,
+        status=OrganizationMembership.Status.ACTIVE,
+    )
+
+    # 1. Usuário não autenticado é rejeitado
+    anon_client = APIClient()
+    unauth_response = anon_client.get("/api/v1/communications/preferences/")
+    assert unauth_response.status_code == 401
+
+    # 2. Terapeuta legítimo vê suas próprias preferências
+    response = authenticated_client.get("/api/v1/communications/preferences/")
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data[0]["patient"] == patient.pk
+
+    # 3. Terapeuta de outro tenant é rejeitado ou recebe lista vazia
+    other_client = APIClient()
+    other_client.force_authenticate(other_therapist)
+    other_client.credentials(
+        HTTP_X_ORGANIZATION_ID=str(other_therapist.test_organization.pk)
+    )
+    other_response = other_client.get("/api/v1/communications/preferences/")
+    assert other_response.status_code == 200
+    assert len(other_response.data) == 0
+
+    # 4. Terapeuta no mesmo tenant sem vínculo com paciente recebe lista vazia ao listar
+    t2_client = APIClient()
+    t2_client.force_authenticate(therapist_2)
+    t2_client.credentials(HTTP_X_ORGANIZATION_ID=str(own_organization.pk))
+    t2_response = t2_client.get("/api/v1/communications/preferences/")
+    assert t2_response.status_code == 200
+    assert len(t2_response.data) == 0
+
+    # 5. Terapeuta no mesmo tenant sem vínculo não acessa preferências de outro paciente por ID
+    t2_patient_pref = t2_client.get(
+        f"/api/v1/communications/preferences/patients/{patient.pk}/"
+    )
+    assert t2_patient_pref.status_code == 404
+
+    # 6. Admin / Owner do mesmo tenant possui acesso legítimo
+    admin_user = User.objects.create_user(
+        email="admin.tenant@example.test",
+        password="SenhaForte123!",
+        full_name="Admin da Org",
+        role=User.Role.ADMIN,
+    )
+    OrganizationMembership.objects.create(
+        organization=own_organization,
+        user=admin_user,
+        role=OrganizationMembership.Role.OWNER,
+        status=OrganizationMembership.Status.ACTIVE,
+    )
+    admin_client = APIClient()
+    admin_client.force_authenticate(admin_user)
+    admin_client.credentials(HTTP_X_ORGANIZATION_ID=str(own_organization.pk))
+    admin_response = admin_client.get("/api/v1/communications/preferences/")
+    assert admin_response.status_code == 200
+    assert len(admin_response.data) == 1
+    assert admin_response.data[0]["patient"] == patient.pk
