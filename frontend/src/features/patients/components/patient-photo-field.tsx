@@ -57,20 +57,23 @@ export function PatientPhotoField(props: Props) {
               className="h-full w-full object-cover"
             />
           ) : (
-            <UserRound className="h-10 w-10 text-muted-foreground/60" />
+            <UserRound
+              className="h-10 w-10 text-muted-foreground/60"
+              aria-hidden="true"
+            />
           )}
         </div>
         <label
           htmlFor={props.id}
-          className="absolute bottom-0 right-0 grid h-6 w-6 cursor-pointer place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition hover:bg-primary/95"
+          className="absolute bottom-0 right-0 grid h-6 w-6 cursor-pointer place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition hover:bg-primary/95 focus-within:outline-none focus-within:ring-2 focus-within:ring-primary/40 focus-within:ring-offset-2"
         >
-          <Camera className="h-3.5 w-3.5" />
+          <Camera className="h-3.5 w-3.5" aria-hidden="true" />
           <span className="sr-only">Selecionar foto</span>
           <input
             id={props.id}
             type="file"
             accept="image/jpeg,image/png"
-            className="sr-only"
+            className="sr-only focus:outline-none"
             aria-describedby={props.error ? errorId : undefined}
             aria-invalid={!!props.error}
             onChange={props.onChange}
@@ -88,9 +91,9 @@ export function PatientPhotoField(props: Props) {
           <button
             type="button"
             onClick={props.onRemove}
-            className="mt-2 inline-flex items-center gap-1 text-[11px] text-destructive hover:underline"
+            className="mt-2 inline-flex items-center gap-1 rounded-sm text-[11px] text-destructive hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
-            <X className="h-3 w-3" /> Remover foto
+            <X className="h-3 w-3" aria-hidden="true" /> Remover foto
           </button>
         )}
         {props.error && (
