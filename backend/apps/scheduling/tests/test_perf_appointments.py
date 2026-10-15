@@ -76,3 +76,48 @@ def test_appointment_list_optimized_queries(
 
     assert response.status_code == status.HTTP_200_OK
     assert len(response.data["results"]) == num_appointments
+
+
+@pytest.mark.django_db
+def test_recurrence_list_optimized_queries(
+    api_client,
+    therapist,
+    patient,
+    django_assert_num_queries,
+):
+    """Verifica ausência de N+1 ao listar recorrências com compromissos associados."""
+    from apps.scheduling.models import AppointmentRecurrence
+
+    num_recurrences = 5
+    today = timezone.localdate()
+    for i in range(num_recurrences):
+        rec = AppointmentRecurrence.objects.create(
+            patient=patient,
+            therapist=therapist,
+            frequency=AppointmentRecurrence.Frequency.WEEKLY,
+            starts_on=today,
+            start_time=timezone.now().time(),
+            duration_minutes=50,
+            session_value=100,
+            created_by=therapist,
+        )
+        start = timezone.now() + timedelta(days=i + 1)
+        Appointment.objects.create(
+            patient=patient,
+            therapist=therapist,
+            recurrence=rec,
+            start_time=start,
+            end_time=start + timedelta(minutes=50),
+            session_value=100,
+            status=Appointment.Status.SCHEDULED,
+        )
+
+    url = reverse("appointment-recurrence-list")
+
+    # Membership ativa + Count + listagem principal + prefetch_related("appointments").
+    # O total de consultas permanece constante independente do número de recorrências.
+    with django_assert_num_queries(4):
+        response = api_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.data["results"]) == num_recurrences
