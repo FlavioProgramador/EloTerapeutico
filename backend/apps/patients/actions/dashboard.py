@@ -14,6 +14,7 @@ from apps.audit.services import log_access
 from apps.patients.api.serializers.dashboard_serializers import PatientDashboardSerializer
 from apps.patients.api.serializers.form_serializers import PatientFormSerializer
 from apps.patients.api.serializers.legacy_serializers import PatientDetailSerializer
+from apps.patients.selectors.dashboard import patient_metrics
 
 from ..models import Patient
 from .forms import PatientFormActions
@@ -30,30 +31,7 @@ def _csv_cell(row, key, default=""):
 class PatientDashboardActions(PatientInviteActions, PatientFormActions):
     @action(detail=False, methods=["get"], url_path="dashboard-metrics")
     def dashboard_metrics(self, request):
-        queryset = self.get_queryset()
-        today = timezone.localdate()
-        current_month = today.replace(day=1)
-        previous_month_end = current_month - timedelta(days=1)
-        previous_month = previous_month_end.replace(day=1)
-        total = queryset.count()
-        active = queryset.filter(status="active").count()
-        discharged = queryset.filter(status__in=["discharged", "inactive"]).count()
-        new_current = queryset.filter(created_at__date__gte=current_month).count()
-        new_previous = queryset.filter(
-            created_at__date__gte=previous_month,
-            created_at__date__lte=previous_month_end,
-        ).count()
-        return Response(
-            {
-                "total": total,
-                "active": active,
-                "active_percentage": round(active / total * 100) if total else 0,
-                "discharged": discharged,
-                "discharged_percentage": round(discharged / total * 100) if total else 0,
-                "new_current_month": new_current,
-                "new_previous_month": new_previous,
-            }
-        )
+        return Response(patient_metrics(self.get_queryset()))
 
     @action(detail=False, methods=["post"], url_path="import-csv")
     def import_csv(self, request):
