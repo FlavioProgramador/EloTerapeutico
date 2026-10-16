@@ -70,3 +70,30 @@ class FormsLayerTests(APITestCase):
                 },
             )
         self.assertFalse(FormSubmission.objects.exists())
+
+    def test_form_submissions_list_rejects_unauthenticated(self):
+        self.client.logout()
+        response = self.client.get(f"/api/v1/forms/{self.form.pk}/submissions/")
+        self.assertIn(response.status_code, (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN))
+
+    def test_form_submissions_list_filters_by_user_permissions(self):
+        submission_owner = FormSubmission.objects.create(
+            form=self.form,
+            patient=self.patient,
+            professional=self.owner,
+            owner=self.owner,
+            submitted_by=self.owner,
+        )
+        submission_other = FormSubmission.objects.create(
+            form=self.form,
+            patient=self.patient,
+            professional=self.other_owner,
+            owner=self.other_owner,
+            submitted_by=self.other_owner,
+        )
+
+        response = self.client.get(f"/api/v1/forms/{self.form.pk}/submissions/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        returned_ids = [item["id"] for item in response.data["results"]]
+        self.assertIn(submission_owner.pk, returned_ids)
+        self.assertNotIn(submission_other.pk, returned_ids)
