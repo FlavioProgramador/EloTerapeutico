@@ -209,7 +209,7 @@ export function DocumentsTab({
           <Button
             size="sm"
             onClick={() => setUploadOpen(true)}
-            leftIcon={<Paperclip className="h-4 w-4" />}
+            leftIcon={<Paperclip className="h-4 w-4" aria-hidden="true" />}
             className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
           >
             Anexar documento
@@ -219,7 +219,7 @@ export function DocumentsTab({
             variant="outline"
             disabled
             title="A geração por modelos ainda não está configurada."
-            leftIcon={<FilePlus2 className="h-4 w-4" />}
+            leftIcon={<FilePlus2 className="h-4 w-4" aria-hidden="true" />}
           >
             Gerar documento
           </Button>
@@ -231,18 +231,18 @@ export function DocumentsTab({
           <div className="flex flex-col gap-2 border-b border-border p-3 sm:flex-row">
             <label className="relative min-w-0 flex-1">
               <span className="sr-only">Buscar documentos</span>
-              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Buscar documentos..."
-                className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-xs text-foreground outline-none focus:border-emerald-400/50"
+                className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
               />
             </label>
             <select
               value={categoryFilter}
               onChange={(event) => setCategoryFilter(event.target.value)}
-              className="h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground sm:w-52"
+              className="h-9 rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 sm:w-52"
               aria-label="Filtrar por categoria"
             >
               {categories.map(([value, label]) => (
@@ -257,13 +257,13 @@ export function DocumentsTab({
               title="Filtros aplicados por nome e categoria"
               aria-label="Filtros adicionais"
             >
-              <Filter className="h-3.5 w-3.5" />
+              <Filter className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           </div>
 
           {documents.length === 0 ? (
             <div className="px-6 py-16 text-center">
-              <FileText className="mx-auto h-7 w-7 text-emerald-300" />
+              <FileText className="mx-auto h-7 w-7 text-emerald-300" aria-hidden="true" />
               <h4 className="mt-4 text-sm font-bold text-foreground">
                 Nenhum documento anexado
               </h4>
@@ -280,7 +280,7 @@ export function DocumentsTab({
             </div>
           ) : filteredDocuments.length === 0 ? (
             <div className="px-6 py-16 text-center">
-              <Search className="mx-auto h-6 w-6 text-muted-foreground" />
+              <Search className="mx-auto h-6 w-6 text-muted-foreground" aria-hidden="true" />
               <p className="mt-3 text-xs font-semibold text-foreground">
                 Nenhum documento encontrado
               </p>
@@ -290,7 +290,7 @@ export function DocumentsTab({
                   setSearch("");
                   setCategoryFilter("all");
                 }}
-                className="mt-2 text-[10px] font-semibold text-emerald-300 hover:underline"
+                className="mt-2 text-[10px] font-semibold text-emerald-300 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
               >
                 Limpar filtros
               </button>
@@ -328,7 +328,7 @@ export function DocumentsTab({
                           <td className="px-4 py-3">
                             <div className="flex min-w-0 items-center gap-3">
                               <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-rose-500/10 text-rose-300">
-                                <Icon className="h-4 w-4" />
+                                <Icon className="h-4 w-4" aria-hidden="true" />
                               </span>
                               <div className="min-w-0">
                                 <strong className="block max-w-xs truncate text-[10px] text-foreground">
@@ -367,7 +367,7 @@ export function DocumentsTab({
                                 className="rounded-md p-1.5 text-sky-300 hover:bg-sky-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                                 aria-label={`Baixar documento ${document.original_name}`}
                               >
-                                <Download className="h-3.5 w-3.5" />
+                                <Download className="h-3.5 w-3.5" aria-hidden="true" />
                               </button>
                               <button
                                 type="button"
@@ -378,14 +378,14 @@ export function DocumentsTab({
                                 className="rounded-md p-1.5 text-emerald-300 hover:bg-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                                 aria-label={`Editar dados do documento ${document.original_name}`}
                               >
-                                <Pencil className="h-3.5 w-3.5" />
+                                <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                               </button>
                               <button
                                 type="button"
                                 className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                                 aria-label={`Mais ações para ${document.original_name}`}
                               >
-                                <MoreHorizontal className="h-3.5 w-3.5" />
+                                <MoreHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
                               </button>
                             </div>
                           </td>
@@ -412,7 +412,7 @@ export function DocumentsTab({
                     className="grid h-7 w-7 place-items-center rounded-md border border-border disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                     aria-label="Página anterior"
                   >
-                    <ChevronLeft className="h-3.5 w-3.5" />
+                    <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>
                   <span className="grid h-7 min-w-7 place-items-center rounded-md border border-emerald-400/30 bg-emerald-500/10 px-2 font-bold text-emerald-300">
                     {page}
@@ -426,7 +426,7 @@ export function DocumentsTab({
                     className="grid h-7 w-7 place-items-center rounded-md border border-border disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                     aria-label="Próxima página"
                   >
-                    <ChevronRight className="h-3.5 w-3.5" />
+                    <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>
                 </div>
               </footer>
@@ -440,7 +440,7 @@ export function DocumentsTab({
               <header className="border-b border-border p-4">
                 <div className="flex items-start gap-3">
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-rose-500/10 text-rose-300">
-                    <FileText className="h-5 w-5" />
+                    <FileText className="h-5 w-5" aria-hidden="true" />
                   </span>
                   <div className="min-w-0">
                     <h3 className="break-words text-xs font-bold text-foreground">
@@ -514,7 +514,7 @@ export function DocumentsTab({
                   onClick={() =>
                     recordWorkspaceService.downloadDocument(selectedDocument)
                   }
-                  leftIcon={<Eye className="h-3.5 w-3.5" />}
+                  leftIcon={<Eye className="h-3.5 w-3.5" aria-hidden="true" />}
                   className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
                 >
                   Visualizar ou baixar
@@ -523,7 +523,7 @@ export function DocumentsTab({
                   size="sm"
                   variant="outline"
                   onClick={() => openMetadataEditor(selectedDocument)}
-                  leftIcon={<FilePenLine className="h-3.5 w-3.5" />}
+                  leftIcon={<FilePenLine className="h-3.5 w-3.5" aria-hidden="true" />}
                 >
                   Editar detalhes
                 </Button>
@@ -534,7 +534,7 @@ export function DocumentsTab({
                     window.confirm("Arquivar este documento?") &&
                     onArchive(selectedDocument.id)
                   }
-                  leftIcon={<Archive className="h-3.5 w-3.5" />}
+                  leftIcon={<Archive className="h-3.5 w-3.5" aria-hidden="true" />}
                   className="text-amber-300 hover:bg-amber-500/10"
                 >
                   Arquivar
@@ -543,7 +543,7 @@ export function DocumentsTab({
             </>
           ) : (
             <div className="px-5 py-16 text-center">
-              <FileText className="mx-auto h-6 w-6 text-muted-foreground" />
+              <FileText className="mx-auto h-6 w-6 text-muted-foreground" aria-hidden="true" />
               <p className="mt-3 text-xs font-semibold">
                 Selecione um documento
               </p>
@@ -557,183 +557,220 @@ export function DocumentsTab({
 
       <Modal
         isOpen={uploadOpen}
-        onClose={() => setUploadOpen(false)}
+        onClose={() => {
+          if (!uploading) setUploadOpen(false);
+        }}
         title="Anexar documento"
         description="Os arquivos são validados e permanecem acessíveis somente por rotas autenticadas."
         className="max-w-xl"
       >
-        <div
-          onDragEnter={(event) => {
+        <form
+          onSubmit={(event) => {
             event.preventDefault();
-            setDragging(true);
+            upload();
           }}
-          onDragOver={(event) => event.preventDefault()}
-          onDragLeave={() => setDragging(false)}
-          onDrop={onDrop}
-          className={cn(
-            "rounded-xl border border-dashed p-7 text-center transition",
-            dragging
-              ? "border-emerald-400 bg-emerald-500/10"
-              : "border-emerald-400/30 bg-emerald-500/5",
-          )}
         >
-          <UploadCloud className="mx-auto h-7 w-7 text-emerald-300" />
-          <p className="mt-3 text-xs font-semibold text-foreground">
-            Arraste arquivos ou clique para selecionar
-          </p>
-          <p className="mt-1 text-[10px] text-muted-foreground">
-            PDF, JPG, PNG, TXT ou DOCX com até 10 MB por arquivo.
-          </p>
-          <input
-            ref={inputRef}
-            type="file"
-            multiple
-            accept=".pdf,.jpg,.jpeg,.png,.txt,.docx"
-            className="sr-only"
-            onChange={(event) =>
-              validateFiles(Array.from(event.target.files ?? []))
-            }
-          />
-          <Button
-            size="sm"
-            variant="outline"
-            className="mt-4"
-            onClick={() => inputRef.current?.click()}
+          <div
+            onDragEnter={(event) => {
+              event.preventDefault();
+              setDragging(true);
+            }}
+            onDragOver={(event) => event.preventDefault()}
+            onDragLeave={() => setDragging(false)}
+            onDrop={onDrop}
+            className={cn(
+              "rounded-xl border border-dashed p-7 text-center transition",
+              dragging
+                ? "border-emerald-400 bg-emerald-500/10"
+                : "border-emerald-400/30 bg-emerald-500/5",
+            )}
           >
-            Selecionar arquivos
-          </Button>
-        </div>
-
-        {files.length > 0 && (
-          <div className="mt-3 space-y-2">
-            {files.map((file) => (
-              <div
-                key={`${file.name}-${file.size}`}
-                className="flex items-center gap-3 rounded-lg border border-border p-3"
-              >
-                <FileText className="h-4 w-4 text-emerald-300" />
-                <div className="min-w-0 flex-1">
-                  <strong className="block truncate text-[10px] text-foreground">
-                    {file.name}
-                  </strong>
-                  <small className="text-[9px] text-muted-foreground">
-                    {formatSize(file.size)}
-                  </small>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setFiles((current) =>
-                      current.filter((item) => item !== file),
-                    )
-                  }
-                  className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
-                  aria-label={`Remover ${file.name}`}
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1">
-            <label htmlFor={uploadCategoryId} className="text-xs font-semibold text-muted-foreground block">
-              Categoria
-            </label>
-            <select
-              id={uploadCategoryId}
-              value={category}
-              onChange={(event) => setCategory(event.target.value)}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
-            >
-              {categories.slice(1).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label htmlFor={uploadDescriptionId} className="text-xs font-semibold text-muted-foreground block">
-              Descrição
-            </label>
+            <UploadCloud className="mx-auto h-7 w-7 text-emerald-300" aria-hidden="true" />
+            <p className="mt-3 text-xs font-semibold text-foreground">
+              Arraste arquivos ou clique para selecionar
+            </p>
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              PDF, JPG, PNG, TXT ou DOCX com até 10 MB por arquivo.
+            </p>
             <input
-              id={uploadDescriptionId}
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              placeholder="Descrição opcional"
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+              ref={inputRef}
+              type="file"
+              multiple
+              disabled={uploading}
+              accept=".pdf,.jpg,.jpeg,.png,.txt,.docx"
+              className="sr-only"
+              onChange={(event) =>
+                validateFiles(Array.from(event.target.files ?? []))
+              }
             />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={uploading}
+              className="mt-4"
+              onClick={() => inputRef.current?.click()}
+            >
+              Selecionar arquivos
+            </Button>
           </div>
-        </div>
 
-        <div className="mt-5 flex justify-end gap-2 border-t border-border pt-4">
-          <Button variant="ghost" onClick={() => setUploadOpen(false)}>
-            Cancelar
-          </Button>
-          <Button
-            isLoading={uploading}
-            disabled={files.length === 0}
-            onClick={upload}
-            className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
-          >
-            Anexar {files.length > 1 ? `${files.length} arquivos` : "arquivo"}
-          </Button>
-        </div>
+          {files.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {files.map((file) => (
+                <div
+                  key={`${file.name}-${file.size}`}
+                  className="flex items-center gap-3 rounded-lg border border-border p-3"
+                >
+                  <FileText className="h-4 w-4 text-emerald-300" aria-hidden="true" />
+                  <div className="min-w-0 flex-1">
+                    <strong className="block truncate text-[10px] text-foreground">
+                      {file.name}
+                    </strong>
+                    <small className="text-[9px] text-muted-foreground">
+                      {formatSize(file.size)}
+                    </small>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={uploading}
+                    onClick={() =>
+                      setFiles((current) =>
+                        current.filter((item) => item !== file),
+                      )
+                    }
+                    className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+                    aria-label={`Remover ${file.name}`}
+                  >
+                    <X className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <label htmlFor={uploadCategoryId} className="text-xs font-semibold text-muted-foreground block">
+                Categoria
+              </label>
+              <select
+                id={uploadCategoryId}
+                disabled={uploading}
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {categories.slice(1).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label htmlFor={uploadDescriptionId} className="text-xs font-semibold text-muted-foreground block">
+                Descrição
+              </label>
+              <input
+                id={uploadDescriptionId}
+                disabled={uploading}
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                placeholder="Descrição opcional"
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              />
+            </div>
+          </div>
+
+          <div className="mt-5 flex justify-end gap-2 border-t border-border pt-4">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={uploading}
+              onClick={() => setUploadOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              isLoading={uploading}
+              disabled={files.length === 0 || uploading}
+              className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
+            >
+              Anexar {files.length > 1 ? `${files.length} arquivos` : "arquivo"}
+            </Button>
+          </div>
+        </form>
       </Modal>
 
       <Modal
         isOpen={Boolean(editingDocument)}
-        onClose={() => setEditingDocument(null)}
+        onClose={() => {
+          if (!updating) setEditingDocument(null);
+        }}
         title="Editar detalhes do documento"
         description="Atualize apenas os metadados. O arquivo original permanece preservado."
         className="max-w-lg"
       >
-        <div className="space-y-4">
-          <div className="space-y-1">
-            <label htmlFor={editCategoryId} className="text-xs font-semibold text-muted-foreground block">
-              Categoria
-            </label>
-            <select
-              id={editCategoryId}
-              value={editCategory}
-              onChange={(event) => setEditCategory(event.target.value)}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            saveMetadata();
+          }}
+        >
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <label htmlFor={editCategoryId} className="text-xs font-semibold text-muted-foreground block">
+                Categoria
+              </label>
+              <select
+                id={editCategoryId}
+                disabled={updating}
+                value={editCategory}
+                onChange={(event) => setEditCategory(event.target.value)}
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {categories.slice(1).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label htmlFor={editDescriptionId} className="text-xs font-semibold text-muted-foreground block">
+                Descrição
+              </label>
+              <textarea
+                id={editDescriptionId}
+                disabled={updating}
+                rows={4}
+                value={editDescription}
+                onChange={(event) => setEditDescription(event.target.value)}
+                className="w-full rounded-md border border-border bg-background p-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              />
+            </div>
+          </div>
+          <div className="mt-5 flex justify-end gap-2 border-t border-border pt-4">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={updating}
+              onClick={() => setEditingDocument(null)}
             >
-              {categories.slice(1).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              isLoading={updating}
+              disabled={updating}
+              className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
+            >
+              Salvar alterações
+            </Button>
           </div>
-          <div className="space-y-1">
-            <label htmlFor={editDescriptionId} className="text-xs font-semibold text-muted-foreground block">
-              Descrição
-            </label>
-            <textarea
-              id={editDescriptionId}
-              rows={4}
-              value={editDescription}
-              onChange={(event) => setEditDescription(event.target.value)}
-              className="w-full rounded-md border border-border bg-background p-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
-            />
-          </div>
-        </div>
-        <div className="mt-5 flex justify-end gap-2 border-t border-border pt-4">
-          <Button variant="ghost" onClick={() => setEditingDocument(null)}>
-            Cancelar
-          </Button>
-          <Button
-            isLoading={updating}
-            onClick={saveMetadata}
-            className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
-          >
-            Salvar alterações
-          </Button>
-        </div>
+        </form>
       </Modal>
     </div>
   );
