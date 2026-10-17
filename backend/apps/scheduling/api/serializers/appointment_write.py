@@ -109,7 +109,7 @@ class AppointmentValidationMixin(TenantRelationQuerysetMixin):
         active = [labels[key] for key, value in conflicts.items() if value]
         raise serializers.ValidationError({"start_time": f"Conflito de horário com: {', '.join(active)}."})
 
-    def _check_conflicts(self, *, therapist, patient, participants, start, end, room, exclude_id=None):
+    def _check_conflicts(self, *, therapist, patient, participants, start, end, room, exclude_id=None, practice=None):
         if not start or not end:
             return
         conflicts = Appointment.conflict_details(
@@ -121,7 +121,8 @@ class AppointmentValidationMixin(TenantRelationQuerysetMixin):
             participants=participants,
             exclude_id=exclude_id,
         )
-        practice = PracticeSettings.objects.filter(user=therapist).first()
+        if practice is None:
+            practice = PracticeSettings.objects.filter(user=therapist).first()
         if practice and practice.allow_overbooking:
             conflicts["therapist"] = False
         self._raise_conflict_error(conflicts)
@@ -188,6 +189,7 @@ class AppointmentValidationMixin(TenantRelationQuerysetMixin):
                 end=end,
                 room=room,
                 exclude_id=getattr(self.instance, "pk", None),
+                practice=practice,
             )
             self._validate_working_hours(therapist, start, end)
         return attrs
