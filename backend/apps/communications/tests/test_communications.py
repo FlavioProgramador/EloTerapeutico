@@ -419,3 +419,82 @@ def test_preference_is_unique_per_patient(therapist, patient):
     )
     assert created is False
     assert first.pk == second.pk
+
+
+@pytest.mark.django_db
+@override_settings(BILLING_REQUIRE_SUBSCRIPTION=False)
+def test_communication_preference_security_and_isolation(therapist, other_therapist, patient):
+    client = APIClient()
+
+    # 1. Unauthenticated requests rejected (401)
+    res = client.get("/api/v1/communications/preferences/")
+    assert res.status_code == 401
+    res = client.get(f"/api/v1/communications/preferences/patient/{patient.pk}/")
+    assert res.status_code == 401
+
+    # Setup another therapist in the SAME tenant
+    same_tenant_other_therapist = User.objects.create_user(
+        email="same.tenant.therapist@example.test",
+        password="SenhaForte123!",
+        full_name="Therapist 2 Same Tenant",
+        role=User.Role.THERAPIST,
+        onboarding_completed_at=timezone.now(),
+    )
+    OrganizationMembership.objects.create(
+        organization=therapist.test_organization,
+        user=same_tenant_other_therapist,
+        role=OrganizationMembership.Role.THERAPIST,
+        status=OrganizationMembership.Status.ACTIVE,
+    )
+
+    # Patient belonging to same_tenant_other_therapist
+    other_patient = Patient.objects.create(
+        organization=therapist.test_organization,
+        therapist=same_tenant_other_therapist,
+        full_name="Paciente de Outro Terapeuta",
+        status=Patient.Status.ACTIVE,
+        is_active=True,
+    )
+
+    # Legitimate therapist accesses own patient's preference
+    auth_client = APIClient()
+    auth_client.force_authenticate(therapist)
+    auth_client.credentials(HTTP_X_ORGANIZATION_ID=str(therapist.test_organization.pk))
+
+    res = auth_client.get(f"/api/v1/communications/preferences/patient/{patient.pk}/")
+    assert res.status_code == 200
+
+    # Patch own patient preference
+    res = auth_client.patch(
+        f"/api/v1/communications/preferences/patient/{patient.pk}/",
+        {"allow_whatsapp": True},
+        format="json",
+    )
+    assert res.status_code == 200
+    assert res.data["allow_whatsapp"] is True
+
+    # Same-tenant other therapist tries to access therapist's patient -> 404 (IDOR prevented)
+    res = auth_client.get(f"/api/v1/communications/preferences/patient/{other_patient.pk}/")
+    assert res.status_code == 404
+
+    res = auth_client.patch(
+        f"/api/v1/communications/preferences/patient/{other_patient.pk}/",
+        {"allow_whatsapp": False},
+        format="json",
+    )
+    assert res.status_code == 404
+
+    # Other tenant therapist tries to access therapist's patient -> 404
+    other_client = APIClient()
+    other_client.force_authenticate(other_therapist)
+    other_client.credentials(HTTP_X_ORGANIZATION_ID=str(other_therapist.test_organization.pk))
+
+    res = other_client.get(f"/api/v1/communications/preferences/patient/{patient.pk}/")
+    assert res.status_code == 404
+
+    # List endpoint does not leak preferences of other therapists' patients
+    res = auth_client.get("/api/v1/communications/preferences/")
+    assert res.status_code == 200
+    returned_patients = [item["patient"] for item in res.data]
+    assert patient.pk in returned_patients
+    assert other_patient.pk not in returned_patients
