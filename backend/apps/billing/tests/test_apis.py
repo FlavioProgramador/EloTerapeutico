@@ -295,3 +295,39 @@ class BillingAPITests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["results"]), 1)
         self.assertEqual(response.data["results"][0]["id"], own.id)
+
+    def test_orders_list_does_not_trigger_n_plus_one_queries(self):
+        self.authenticate()
+        for index in range(5):
+            order = BillingOrder.objects.create(
+                user=self.user,
+                plan=self.plan,
+                plan_price=self.monthly,
+                billing_model=PlanPrice.BillingModel.RECURRING,
+                billing_interval=PlanPrice.BillingInterval.MONTHLY,
+                total_amount=Decimal("99.90"),
+                idempotency_key=f"nplusone-order-{index}",
+                external_reference=f"ext-ref-{index}",
+            )
+            Payment.objects.create(
+                billing_order=order,
+                user=self.user,
+                status=Payment.Status.CONFIRMED,
+                amount=Decimal("99.90"),
+                due_date=timezone.localdate(),
+                gateway_payment_id=f"pay-conf-{index}",
+            )
+            Payment.objects.create(
+                billing_order=order,
+                user=self.user,
+                status=Payment.Status.PENDING,
+                amount=Decimal("99.90"),
+                due_date=timezone.localdate() + timedelta(days=30),
+                gateway_payment_id=f"pay-pend-{index}",
+            )
+
+        with self.assertNumQueries(3):
+            response = self.client.get("/api/v1/billing/orders/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data["results"]), 5)
