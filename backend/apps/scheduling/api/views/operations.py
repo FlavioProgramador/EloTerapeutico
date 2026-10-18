@@ -91,12 +91,11 @@ class PatientPackageViewSet(ScopedAgendaMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="add-session")
     def add_session(self, request, pk=None):
         package = self.get_object()
-        payload = {
-            **request.data,
-            "patient": package.patient_id,
-            "therapist": package.therapist_id,
-            "package": package.id,
-        }
+        payload = dict(request.data or {})
+        payload["patient"] = package.patient_id
+        payload["therapist"] = package.therapist_id
+        payload["package"] = package.id
+
         serializer = AppointmentCreateSerializer(
             data=payload,
             context={"request": request},
