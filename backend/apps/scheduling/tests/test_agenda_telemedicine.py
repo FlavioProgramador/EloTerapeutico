@@ -332,3 +332,34 @@ def test_fake_webhook_is_idempotent_and_tracks_presence():
         left_at__isnull=True,
     ).count() == 1
     assert TelemedicineConsent.objects.filter(room=room).count() == 1
+
+
+def test_telemedicine_room_list_active_participants_prefetched_no_extra_queries(django_assert_num_queries):
+    therapist, organization, _, _, room = create_context(suffix="perf")
+    client = authenticated_client(therapist=therapist, organization=organization)
+
+    TelemedicineParticipantSession.objects.create(
+        organization=organization,
+        room=room,
+        role=TelemedicineParticipantSession.Role.PATIENT,
+        provider_participant_identity="p_1",
+    )
+    TelemedicineParticipantSession.objects.create(
+        organization=organization,
+        room=room,
+        role=TelemedicineParticipantSession.Role.PATIENT,
+        provider_participant_identity="p_old",
+        left_at=timezone.now(),
+    )
+
+    url = reverse("telemedicine-list")
+
+    # Garante que a listagem das salas não executa consultas N+1 durante a serialização das sessões ativas
+    with django_assert_num_queries(5):
+        response = client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.data["results"]) == 1
+    participants = response.data["results"][0]["active_participants"]
+    assert len(participants) == 1
+    assert participants[0]["provider_participant_identity"] == "p_1"
