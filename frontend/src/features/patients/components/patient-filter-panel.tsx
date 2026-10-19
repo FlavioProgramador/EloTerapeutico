@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ export function PatientFilterPanel({
   onClear,
   onClose,
 }: Props) {
+  const baseId = useId();
   const update = <K extends keyof PatientListFilters>(
     key: K,
     value: PatientListFilters[K],
@@ -52,76 +54,94 @@ export function PatientFilterPanel({
         <button
           type="button"
           onClick={onClose}
-          className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+          className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           aria-label="Fechar filtros"
         >
-          <X className="h-4 w-4" />
+          <X className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {PATIENT_FILTER_SELECTS.map(({ key, label, options }) => (
-          <label
-            key={key}
-            className="space-y-1 text-[10px] font-semibold text-muted-foreground"
-          >
-            {label}
-            <select
-              value={String(filters[key])}
-              onChange={(event) =>
-                update(
-                  key,
-                  event.target.value as PatientListFilters[typeof key],
-                )
-              }
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs font-normal text-foreground"
+        {PATIENT_FILTER_SELECTS.map(({ key, label, options }) => {
+          const id = `${baseId}-select-${key}`;
+          return (
+            <label
+              key={key}
+              htmlFor={id}
+              className="block space-y-1 text-[10px] font-semibold text-muted-foreground"
             >
-              {options.map(([value, text]) => (
-                <option key={value} value={value}>
-                  {text}
-                </option>
-              ))}
-            </select>
-          </label>
-        ))}
+              {label}
+              <select
+                id={id}
+                value={String(filters[key])}
+                onChange={(event) =>
+                  update(
+                    key,
+                    event.target.value as PatientListFilters[typeof key],
+                  )
+                }
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs font-normal text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+              >
+                {options.map(([value, text]) => (
+                  <option key={value} value={value}>
+                    {text}
+                  </option>
+                ))}
+              </select>
+            </label>
+          );
+        })}
 
         {userRole !== "therapist" && (
-          <label className="space-y-1 text-[10px] font-semibold text-muted-foreground">
+          <label
+            htmlFor={`${baseId}-therapist`}
+            className="block space-y-1 text-[10px] font-semibold text-muted-foreground"
+          >
             Profissional (ID)
             <input
+              id={`${baseId}-therapist`}
               inputMode="numeric"
               value={filters.therapist}
               onChange={(event) =>
                 update("therapist", event.target.value.replace(/\D/g, ""))
               }
               placeholder="ID do profissional"
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs font-normal text-foreground"
+              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs font-normal text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             />
           </label>
         )}
 
-        {INPUTS.map(([key, label, placeholder, type]) => (
-          <label
-            key={key}
-            className="space-y-1 text-[10px] font-semibold text-muted-foreground"
-          >
-            {label}
-            <input
-              type={type}
-              value={String(filters[key])}
-              onChange={(event) => update(key, event.target.value)}
-              placeholder={placeholder}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs font-normal text-foreground"
-            />
-          </label>
-        ))}
+        {INPUTS.map(([key, label, placeholder, type]) => {
+          const id = `${baseId}-input-${key}`;
+          return (
+            <label
+              key={key}
+              htmlFor={id}
+              className="block space-y-1 text-[10px] font-semibold text-muted-foreground"
+            >
+              {label}
+              <input
+                id={id}
+                type={type}
+                value={String(filters[key])}
+                onChange={(event) => update(key, event.target.value)}
+                placeholder={placeholder}
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs font-normal text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+              />
+            </label>
+          );
+        })}
 
-        <label className="flex h-10 items-center gap-2 self-end rounded-md border border-border bg-background px-3 text-xs text-foreground">
+        <label
+          htmlFor={`${baseId}-noNextSession`}
+          className="flex h-10 cursor-pointer items-center gap-2 self-end rounded-md border border-border bg-background px-3 text-xs text-foreground focus-within:ring-2 focus-within:ring-primary/40 focus-within:ring-offset-2"
+        >
           <input
+            id={`${baseId}-noNextSession`}
             type="checkbox"
             checked={filters.noNextSession}
             onChange={(event) => update("noNextSession", event.target.checked)}
-            className="accent-primary"
+            className="accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           />
           Sem próxima sessão
         </label>
