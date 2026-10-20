@@ -4,6 +4,7 @@ from rest_framework.test import APIClient
 
 from apps.organizations.models import Organization, OrganizationMembership
 from apps.patients.models import Patient
+from apps.records.treatment_models import ClinicalFormResponse
 from apps.users.models import User
 
 pytestmark = pytest.mark.django_db
@@ -106,3 +107,47 @@ def test_legitimate_owner_can_access_their_own_patient():
     response = client.get(anamnesis_url)
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.data["detail"] == "Anamnese não encontrada para este paciente."
+
+
+def test_clinical_form_response_detail_idor_isolation():
+    # Usuário A e Org A
+    user_a = create_user("therapist_a_form@test.com", "Therapist A Form")
+    org_a, _ = create_organization(user_a, "Tenant A Form")
+
+    # Usuário B e Org B
+    user_b = create_user("therapist_b_form@test.com", "Therapist B Form")
+    org_b, _ = create_organization(user_b, "Tenant B Form")
+
+    # Paciente A pertence à Org A e terapeuta A
+    patient_a = Patient.objects.create(
+        organization=org_a,
+        therapist=user_a,
+        full_name="Patient A Form",
+    )
+
+    # Resposta de formulário do Paciente A (Tenant A)
+    form_response_a = ClinicalFormResponse.objects.create(
+        organization=org_a,
+        patient=patient_a,
+        therapist=user_a,
+        form_name="Anamnese Adulto",
+        category="Anamnese",
+    )
+
+    client = APIClient()
+
+    # 1. Usuário não autenticado é rejeitado (401)
+    detail_url = f"/api/v1/records/forms/{form_response_a.pk}/"
+    response = client.get(detail_url)
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    # 2. Usuário de outro tenant/terapeuta é rejeitado (404)
+    client.force_authenticate(user_b)
+    response = client.get(detail_url)
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    # 3. Proprietário legítimo continua autorizado (200)
+    client.force_authenticate(user_a)
+    response = client.get(detail_url)
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["id"] == form_response_a.pk
