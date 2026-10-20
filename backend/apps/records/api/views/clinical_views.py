@@ -793,7 +793,14 @@ class ClinicalFormResponseListCreateView(ClinicalPatientMixin, APIView):
 
 class ClinicalFormResponseDetailView(ClinicalPatientMixin, APIView):
     def get(self, request, pk):
-        response_obj = get_object_or_404(ClinicalFormResponse, pk=pk)
+        from apps.patients.services.access_control import patient_access_q
+
+        accessible_patients = Patient.objects.filter(patient_access_q(request.user))
+        response_obj = get_object_or_404(
+            ClinicalFormResponse,
+            pk=pk,
+            patient__in=accessible_patients,
+        )
         self.get_patient(response_obj.patient_id)
         serializer = ClinicalFormResponseSerializer(response_obj)
         log_access(
