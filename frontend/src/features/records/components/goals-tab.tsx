@@ -85,6 +85,8 @@ export function GoalsTab({
   const [editing, setEditing] = useState<TreatmentGoal | null>(null);
   const [draft, setDraft] = useState<Partial<TreatmentGoal>>(emptyGoal);
 
+  const isSubmitting = creating || updating;
+
   const baseId = useId();
   const titleId = `${baseId}-title`;
   const descriptionId = `${baseId}-description`;
@@ -127,7 +129,9 @@ export function GoalsTab({
     setModalOpen(true);
   };
 
-  const save = async () => {
+  const save = async (event?: React.FormEvent) => {
+    if (event) event.preventDefault();
+    if (isSubmitting) return;
     if (!draft.title?.trim()) return;
     if (editing) await onUpdate(editing.id, draft);
     else await onCreate(draft);
@@ -162,7 +166,7 @@ export function GoalsTab({
         <section className="rounded-xl border border-emerald-400/20 bg-gradient-to-br from-emerald-500/10 via-card to-card p-4">
           <div className="flex items-start gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-emerald-500/15 text-emerald-300">
-              <Target className="h-5 w-5" />
+              <Target className="h-5 w-5" aria-hidden="true" />
             </span>
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
@@ -188,7 +192,7 @@ export function GoalsTab({
 
         <section className="rounded-xl border border-sky-400/20 bg-sky-500/5 p-4">
           <div className="flex items-center gap-2 text-sky-300">
-            <CalendarClock className="h-4 w-4" />
+            <CalendarClock className="h-4 w-4" aria-hidden="true" />
             <h3 className="text-xs font-bold text-foreground">Próxima revisão</h3>
           </div>
           {summary.next_session ? (
@@ -224,7 +228,7 @@ export function GoalsTab({
             <Button
               size="sm"
               onClick={openCreate}
-              leftIcon={<Plus className="h-4 w-4" />}
+              leftIcon={<Plus className="h-4 w-4" aria-hidden="true" />}
               className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
             >
               Nova meta
@@ -233,7 +237,7 @@ export function GoalsTab({
 
           {visibleGoals.length === 0 ? (
             <div className="px-6 py-14 text-center">
-              <Target className="mx-auto h-7 w-7 text-emerald-300" />
+              <Target className="mx-auto h-7 w-7 text-emerald-300" aria-hidden="true" />
               <h4 className="mt-4 text-sm font-bold text-foreground">
                 Nenhuma meta terapêutica
               </h4>
@@ -251,9 +255,9 @@ export function GoalsTab({
                   <div className="flex items-start gap-3">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-500/10 text-emerald-300">
                       {goal.status === "completed" ? (
-                        <ShieldCheck className="h-4 w-4" />
+                        <ShieldCheck className="h-4 w-4" aria-hidden="true" />
                       ) : (
-                        <Target className="h-4 w-4" />
+                        <Target className="h-4 w-4" aria-hidden="true" />
                       )}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -302,7 +306,7 @@ export function GoalsTab({
                         className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                         aria-label="Mover meta para cima"
                       >
-                        <ArrowUp className="h-3.5 w-3.5" />
+                        <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>
                       <button
                         type="button"
@@ -311,7 +315,7 @@ export function GoalsTab({
                         className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                         aria-label="Mover meta para baixo"
                       >
-                        <ArrowDown className="h-3.5 w-3.5" />
+                        <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>
                       <button
                         type="button"
@@ -319,7 +323,7 @@ export function GoalsTab({
                         className="rounded-md p-1.5 text-emerald-300 hover:bg-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                         aria-label={`Editar ${goal.title}`}
                       >
-                        <Pencil className="h-3.5 w-3.5" />
+                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>
                     </div>
                   </div>
@@ -330,7 +334,7 @@ export function GoalsTab({
                         size="sm"
                         variant="outline"
                         onClick={() => onUpdate(goal.id, { status: "completed", progress: 100 })}
-                        leftIcon={<CheckCircle2 className="h-3.5 w-3.5" />}
+                        leftIcon={<CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />}
                         className="border-emerald-400/20 text-emerald-200 hover:bg-emerald-500/10"
                       >
                         Concluir
@@ -341,7 +345,7 @@ export function GoalsTab({
                         size="sm"
                         variant="ghost"
                         onClick={() => onUpdate(goal.id, { status: "paused" })}
-                        leftIcon={<CirclePause className="h-3.5 w-3.5" />}
+                        leftIcon={<CirclePause className="h-3.5 w-3.5" aria-hidden="true" />}
                       >
                         Pausar
                       </Button>
@@ -351,7 +355,7 @@ export function GoalsTab({
                         size="sm"
                         variant="ghost"
                         onClick={() => onUpdate(goal.id, { status: "active" })}
-                        leftIcon={<RotateCcw className="h-3.5 w-3.5" />}
+                        leftIcon={<RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />}
                       >
                         Reabrir
                       </Button>
@@ -362,7 +366,7 @@ export function GoalsTab({
                       onClick={() =>
                         window.confirm("Arquivar esta meta terapêutica?") && onArchive(goal.id)
                       }
-                      leftIcon={<Archive className="h-3.5 w-3.5" />}
+                      leftIcon={<Archive className="h-3.5 w-3.5" aria-hidden="true" />}
                     >
                       Arquivar
                     </Button>
@@ -403,7 +407,7 @@ export function GoalsTab({
               size="sm"
               variant="outline"
               className="mt-3 w-full"
-              leftIcon={<Eye className="h-3.5 w-3.5" />}
+              leftIcon={<Eye className="h-3.5 w-3.5" aria-hidden="true" />}
               onClick={() => window.print()}
             >
               Visualizar evolução
@@ -456,7 +460,7 @@ export function GoalsTab({
                       className="rounded-md p-1.5 text-emerald-300 hover:bg-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                       aria-label={`Editar intervenção de ${goal.title}`}
                     >
-                      <Pencil className="h-3.5 w-3.5" />
+                      <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
                   </td>
                 </tr>
@@ -475,164 +479,184 @@ export function GoalsTab({
 
       <Modal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          if (!isSubmitting) setModalOpen(false);
+        }}
         title={editing ? "Editar meta terapêutica" : "Nova meta terapêutica"}
         description="Defina um objetivo observável, prazo, progresso e estratégias clínicas."
         className="max-w-2xl"
       >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5 sm:col-span-2">
-            <label htmlFor={titleId} className="text-xs font-semibold text-muted-foreground">
-              Título
-            </label>
-            <input
-              id={titleId}
-              value={draft.title ?? ""}
-              onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            />
+        <form onSubmit={save}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5 sm:col-span-2">
+              <label htmlFor={titleId} className="text-xs font-semibold text-muted-foreground">
+                Título
+              </label>
+              <input
+                id={titleId}
+                disabled={isSubmitting}
+                value={draft.title ?? ""}
+                onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <label htmlFor={descriptionId} className="text-xs font-semibold text-muted-foreground">
+                Descrição
+              </label>
+              <textarea
+                id={descriptionId}
+                disabled={isSubmitting}
+                value={draft.description ?? ""}
+                onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
+                rows={3}
+                className="w-full rounded-md border border-border bg-background p-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor={categoryId} className="text-xs font-semibold text-muted-foreground">
+                Categoria
+              </label>
+              <input
+                id={categoryId}
+                disabled={isSubmitting}
+                value={draft.category ?? ""}
+                onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))}
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor={priorityId} className="text-xs font-semibold text-muted-foreground">
+                Prioridade
+              </label>
+              <select
+                id={priorityId}
+                disabled={isSubmitting}
+                value={draft.priority ?? "medium"}
+                onChange={(event) => setDraft((current) => ({ ...current, priority: event.target.value as GoalPriority }))}
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="low">Baixa</option>
+                <option value="medium">Média</option>
+                <option value="high">Alta</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor={startDateId} className="text-xs font-semibold text-muted-foreground">
+                Data de início
+              </label>
+              <input
+                id={startDateId}
+                type="date"
+                disabled={isSubmitting}
+                value={draft.start_date ?? ""}
+                onChange={(event) => setDraft((current) => ({ ...current, start_date: event.target.value }))}
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor={targetDateId} className="text-xs font-semibold text-muted-foreground">
+                Prazo estimado
+              </label>
+              <input
+                id={targetDateId}
+                type="date"
+                disabled={isSubmitting}
+                value={draft.target_date ?? ""}
+                onChange={(event) => setDraft((current) => ({ ...current, target_date: event.target.value || null }))}
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor={statusId} className="text-xs font-semibold text-muted-foreground">
+                Status
+              </label>
+              <select
+                id={statusId}
+                disabled={isSubmitting}
+                value={draft.status ?? "active"}
+                onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value as GoalStatus }))}
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="active">Em andamento</option>
+                <option value="paused">Pausada</option>
+                <option value="completed">Concluída</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor={progressId} className="text-xs font-semibold text-muted-foreground">
+                Progresso ({draft.progress ?? 0}%)
+              </label>
+              <input
+                id={progressId}
+                type="range"
+                min={0}
+                max={100}
+                disabled={isSubmitting}
+                value={draft.progress ?? 0}
+                onChange={(event) => setDraft((current) => ({ ...current, progress: Number(event.target.value) }))}
+                className="h-10 w-full accent-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <label htmlFor={strategiesId} className="text-xs font-semibold text-muted-foreground">
+                Estratégias e intervenções
+              </label>
+              <textarea
+                id={strategiesId}
+                disabled={isSubmitting}
+                value={draft.strategies ?? ""}
+                onChange={(event) => setDraft((current) => ({ ...current, strategies: event.target.value }))}
+                rows={3}
+                className="w-full rounded-md border border-border bg-background p-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <label htmlFor={evaluationCriteriaId} className="text-xs font-semibold text-muted-foreground">
+                Critérios de avaliação
+              </label>
+              <textarea
+                id={evaluationCriteriaId}
+                disabled={isSubmitting}
+                value={draft.evaluation_criteria ?? ""}
+                onChange={(event) => setDraft((current) => ({ ...current, evaluation_criteria: event.target.value }))}
+                rows={3}
+                className="w-full rounded-md border border-border bg-background p-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <label htmlFor={observationsId} className="text-xs font-semibold text-muted-foreground">
+                Observações
+              </label>
+              <textarea
+                id={observationsId}
+                disabled={isSubmitting}
+                value={draft.observations ?? ""}
+                onChange={(event) => setDraft((current) => ({ ...current, observations: event.target.value }))}
+                rows={2}
+                className="w-full rounded-md border border-border bg-background p-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
           </div>
-          <div className="space-y-1.5 sm:col-span-2">
-            <label htmlFor={descriptionId} className="text-xs font-semibold text-muted-foreground">
-              Descrição
-            </label>
-            <textarea
-              id={descriptionId}
-              value={draft.description ?? ""}
-              onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
-              rows={3}
-              className="w-full rounded-md border border-border bg-background p-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={categoryId} className="text-xs font-semibold text-muted-foreground">
-              Categoria
-            </label>
-            <input
-              id={categoryId}
-              value={draft.category ?? ""}
-              onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={priorityId} className="text-xs font-semibold text-muted-foreground">
-              Prioridade
-            </label>
-            <select
-              id={priorityId}
-              value={draft.priority ?? "medium"}
-              onChange={(event) => setDraft((current) => ({ ...current, priority: event.target.value as GoalPriority }))}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          <div className="mt-5 flex justify-end gap-2 border-t border-border pt-4">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={isSubmitting}
+              onClick={() => setModalOpen(false)}
             >
-              <option value="low">Baixa</option>
-              <option value="medium">Média</option>
-              <option value="high">Alta</option>
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={startDateId} className="text-xs font-semibold text-muted-foreground">
-              Data de início
-            </label>
-            <input
-              id={startDateId}
-              type="date"
-              value={draft.start_date ?? ""}
-              onChange={(event) => setDraft((current) => ({ ...current, start_date: event.target.value }))}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={targetDateId} className="text-xs font-semibold text-muted-foreground">
-              Prazo estimado
-            </label>
-            <input
-              id={targetDateId}
-              type="date"
-              value={draft.target_date ?? ""}
-              onChange={(event) => setDraft((current) => ({ ...current, target_date: event.target.value || null }))}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={statusId} className="text-xs font-semibold text-muted-foreground">
-              Status
-            </label>
-            <select
-              id={statusId}
-              value={draft.status ?? "active"}
-              onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value as GoalStatus }))}
-              className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              isLoading={isSubmitting}
+              disabled={!draft.title?.trim() || isSubmitting}
+              className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
             >
-              <option value="active">Em andamento</option>
-              <option value="paused">Pausada</option>
-              <option value="completed">Concluída</option>
-            </select>
+              Salvar meta
+            </Button>
           </div>
-          <div className="space-y-1.5">
-            <label htmlFor={progressId} className="text-xs font-semibold text-muted-foreground">
-              Progresso ({draft.progress ?? 0}%)
-            </label>
-            <input
-              id={progressId}
-              type="range"
-              min={0}
-              max={100}
-              value={draft.progress ?? 0}
-              onChange={(event) => setDraft((current) => ({ ...current, progress: Number(event.target.value) }))}
-              className="h-10 w-full accent-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            />
-          </div>
-          <div className="space-y-1.5 sm:col-span-2">
-            <label htmlFor={strategiesId} className="text-xs font-semibold text-muted-foreground">
-              Estratégias e intervenções
-            </label>
-            <textarea
-              id={strategiesId}
-              value={draft.strategies ?? ""}
-              onChange={(event) => setDraft((current) => ({ ...current, strategies: event.target.value }))}
-              rows={3}
-              className="w-full rounded-md border border-border bg-background p-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            />
-          </div>
-          <div className="space-y-1.5 sm:col-span-2">
-            <label htmlFor={evaluationCriteriaId} className="text-xs font-semibold text-muted-foreground">
-              Critérios de avaliação
-            </label>
-            <textarea
-              id={evaluationCriteriaId}
-              value={draft.evaluation_criteria ?? ""}
-              onChange={(event) => setDraft((current) => ({ ...current, evaluation_criteria: event.target.value }))}
-              rows={3}
-              className="w-full rounded-md border border-border bg-background p-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            />
-          </div>
-          <div className="space-y-1.5 sm:col-span-2">
-            <label htmlFor={observationsId} className="text-xs font-semibold text-muted-foreground">
-              Observações
-            </label>
-            <textarea
-              id={observationsId}
-              value={draft.observations ?? ""}
-              onChange={(event) => setDraft((current) => ({ ...current, observations: event.target.value }))}
-              rows={2}
-              className="w-full rounded-md border border-border bg-background p-3 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            />
-          </div>
-        </div>
-        <div className="mt-5 flex justify-end gap-2 border-t border-border pt-4">
-          <Button variant="ghost" onClick={() => setModalOpen(false)}>
-            Cancelar
-          </Button>
-          <Button
-            isLoading={creating || updating}
-            disabled={!draft.title?.trim()}
-            onClick={save}
-            className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
-          >
-            Salvar meta
-          </Button>
-        </div>
+        </form>
       </Modal>
     </div>
   );
