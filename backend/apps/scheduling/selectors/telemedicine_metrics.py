@@ -24,6 +24,7 @@ def get_telemedicine_operational_metrics(
     since = now - timedelta(hours=METRICS_WINDOW_HOURS)
     room_ids = rooms.order_by().values("pk")
     status_rows = rooms.order_by().values("status").annotate(total=Count("pk"))
+    by_status = {row["status"]: row["total"] for row in status_rows}
 
     participant_sessions = TelemedicineParticipantSession.objects.filter(
         room_id__in=room_ids
@@ -35,12 +36,9 @@ def get_telemedicine_operational_metrics(
         "generated_at": now,
         "window_hours": METRICS_WINDOW_HOURS,
         "rooms": {
-            "total": rooms.count(),
-            "by_status": {
-                row["status"]: row["total"]
-                for row in status_rows
-            },
-            "failed": rooms.filter(status=TelemedicineRoom.Status.FAILED).count(),
+            "total": sum(by_status.values()),
+            "by_status": by_status,
+            "failed": by_status.get(TelemedicineRoom.Status.FAILED, 0),
         },
         "participants": {
             "active": participant_sessions.filter(left_at__isnull=True).count(),
