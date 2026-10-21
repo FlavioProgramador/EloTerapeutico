@@ -26,13 +26,13 @@ export function SearchInput({
 }) {
   return (
     <div className="relative min-w-[220px] flex-1">
-      <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+      <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" aria-hidden="true" />
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         className={cn(
-          "h-9 w-full rounded-md border border-border bg-background pl-9 text-sm outline-none transition focus:border-primary",
+          "h-9 w-full rounded-md border border-border bg-background pl-9 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/40 focus:ring-offset-2",
           value ? "pr-9" : "pr-3",
         )}
       />
@@ -40,10 +40,10 @@ export function SearchInput({
         <button
           type="button"
           onClick={() => onChange("")}
-          className="absolute right-2 top-1.5 flex items-center justify-center rounded-md p-1 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+          className="absolute right-2 top-1.5 flex items-center justify-center rounded-md p-1 text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           aria-label="Limpar busca"
         >
-          <X className="size-3.5" />
+          <X className="size-3.5" aria-hidden="true" />
         </button>
       )}
     </div>
@@ -79,13 +79,15 @@ export function Field({
   label,
   children,
   hint,
+  htmlFor,
 }: {
   label: string;
   children: React.ReactNode;
   hint?: string;
+  htmlFor?: string;
 }) {
   return (
-    <label className="block space-y-1.5">
+    <label htmlFor={htmlFor} className="block space-y-1.5">
       <span className="text-xs font-semibold text-foreground">{label}</span>
       {children}
       {hint && (
