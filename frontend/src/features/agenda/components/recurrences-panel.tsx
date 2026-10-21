@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useState } from "react";
+import { useDeferredValue, useId, useState } from "react";
 import { Edit3, Pause, Play, Square } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -128,43 +128,46 @@ export function RecurrencesPanel() {
                       size="icon"
                       variant="ghost"
                       onClick={() => setEditing(row)}
-                      aria-label="Editar recorrência"
+                      aria-label={`Editar recorrência de ${row.patient_name}`}
                     >
-                      <Edit3 className="size-4" />
+                      <Edit3 className="size-4" aria-hidden="true" />
                     </Button>
                     {row.status === "active" ? (
                       <Button
                         size="icon"
                         variant="ghost"
+                        disabled={action.isPending}
                         onClick={() =>
                           action.mutate({ id: row.id, action: "pause" })
                         }
-                        aria-label="Pausar"
+                        aria-label={`Pausar recorrência de ${row.patient_name}`}
                       >
-                        <Pause className="size-4" />
+                        <Pause className="size-4" aria-hidden="true" />
                       </Button>
                     ) : row.status === "paused" ? (
                       <Button
                         size="icon"
                         variant="ghost"
+                        disabled={action.isPending}
                         onClick={() =>
                           action.mutate({ id: row.id, action: "reactivate" })
                         }
-                        aria-label="Reativar"
+                        aria-label={`Reativar recorrência de ${row.patient_name}`}
                       >
-                        <Play className="size-4" />
+                        <Play className="size-4" aria-hidden="true" />
                       </Button>
                     ) : null}
                     {row.status !== "ended" && (
                       <Button
                         size="icon"
                         variant="ghost"
+                        disabled={action.isPending}
                         onClick={() =>
                           action.mutate({ id: row.id, action: "end" })
                         }
-                        aria-label="Encerrar"
+                        aria-label={`Encerrar recorrência de ${row.patient_name}`}
                       >
-                        <Square className="size-4 text-destructive" />
+                        <Square className="size-4 text-destructive" aria-hidden="true" />
                       </Button>
                     )}
                   </div>
@@ -190,6 +193,12 @@ function RecurrenceEditModal({
   item?: AppointmentRecurrence;
   onClose: () => void;
 }) {
+  const baseId = useId();
+  const scopeRadioName = `${baseId}-scope`;
+  const timeId = `${baseId}-time`;
+  const durationId = `${baseId}-duration`;
+  const modalityId = `${baseId}-modality`;
+
   const queryClient = useQueryClient();
   const [scope, setScope] = useState<"occurrence" | "following" | "all">(
     "following",
@@ -223,15 +232,27 @@ function RecurrenceEditModal({
   });
 
   if (!item) return null;
+
+  const handleClose = () => {
+    if (mutation.isPending) return;
+    onClose();
+  };
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!item.next_occurrence_id || mutation.isPending) return;
+    mutation.mutate();
+  };
+
   return (
     <Modal
       isOpen
-      onClose={onClose}
+      onClose={handleClose}
       title="Editar recorrência"
       description={`${item.patient_name} · ${item.frequency_display}`}
       className="max-w-lg"
     >
-      <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <Field label="Aplicar alteração em">
           <div className="space-y-2 rounded-lg border border-border p-3 text-sm">
             {[
@@ -239,11 +260,14 @@ function RecurrenceEditModal({
               ["following", "Este e os seguintes"],
               ["all", "Todos da recorrência"],
             ].map(([value, label]) => (
-              <label key={value} className="flex items-center gap-2">
+              <label key={value} className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
+                  name={scopeRadioName}
                   checked={scope === value}
+                  disabled={mutation.isPending}
                   onChange={() => setScope(value as typeof scope)}
+                  className="disabled:cursor-not-allowed"
                 />
                 {label}
               </label>
@@ -251,17 +275,21 @@ function RecurrenceEditModal({
           </div>
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Horário">
+          <Field label="Horário" htmlFor={timeId}>
             <input
+              id={timeId}
               type="time"
               value={time}
+              disabled={mutation.isPending}
               onChange={(event) => setTime(event.target.value)}
               className={fieldClass}
             />
           </Field>
-          <Field label="Duração">
+          <Field label="Duração" htmlFor={durationId}>
             <select
+              id={durationId}
               value={duration}
+              disabled={mutation.isPending}
               onChange={(event) => setDuration(event.target.value)}
               className={fieldClass}
             >
@@ -273,9 +301,11 @@ function RecurrenceEditModal({
             </select>
           </Field>
         </div>
-        <Field label="Modalidade">
+        <Field label="Modalidade" htmlFor={modalityId}>
           <select
+            id={modalityId}
             value={modality}
+            disabled={mutation.isPending}
             onChange={(event) =>
               setModality(
                 event.target.value as AppointmentRecurrence["modality"],
@@ -289,18 +319,23 @@ function RecurrenceEditModal({
           </select>
         </Field>
         <div className="flex justify-end gap-2 border-t border-border pt-4">
-          <Button variant="outline" onClick={onClose}>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={mutation.isPending}
+            onClick={handleClose}
+          >
             Cancelar
           </Button>
           <Button
-            onClick={() => mutation.mutate()}
+            type="submit"
             isLoading={mutation.isPending}
-            disabled={!item.next_occurrence_id}
+            disabled={!item.next_occurrence_id || mutation.isPending}
           >
             Salvar
           </Button>
         </div>
-      </div>
+      </form>
     </Modal>
   );
 }
