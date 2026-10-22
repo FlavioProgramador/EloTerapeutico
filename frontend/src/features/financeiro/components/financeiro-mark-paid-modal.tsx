@@ -30,6 +30,7 @@ export function FinanceiroMarkPaidModal({
   >("");
 
   const baseId = useId();
+  const paidAtInputId = `${baseId}-paid-at`;
   const paymentMethodSelectId = `${baseId}-payment-method`;
 
   useEffect(() => {
@@ -41,18 +42,38 @@ export function FinanceiroMarkPaidModal({
 
   if (!transaction) return null;
 
+  const handleClose = () => {
+    if (!isPending) {
+      onClose();
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (isPending) return;
+
+    onConfirm({
+      id: transaction.id,
+      paymentMethod: (paymentMethod ||
+        "uninformed") as FinancialPaymentMethod,
+      paidAt,
+    });
+  };
+
   return (
-    <Modal isOpen={!!transaction} onClose={onClose} title="Confirmar Pagamento">
-      <div className="space-y-4 pt-2">
+    <Modal isOpen={!!transaction} onClose={handleClose} title="Confirmar Pagamento">
+      <form onSubmit={handleSubmit} className="space-y-4 pt-2">
         <Input
+          id={paidAtInputId}
           label="Data do pagamento"
           type="date"
           value={paidAt}
           onChange={(e) => setPaidAt(e.target.value)}
+          disabled={isPending}
         />
 
         <div className="space-y-1.5">
-          <label htmlFor={paymentMethodSelectId} className="text-sm font-semibold">
+          <label htmlFor={paymentMethodSelectId} className="text-sm font-semibold text-foreground">
             Meio de pagamento
           </label>
           <select
@@ -61,7 +82,8 @@ export function FinanceiroMarkPaidModal({
             onChange={(e) =>
               setPaymentMethod(e.target.value as FinancialPaymentMethod)
             }
-            className="flex h-10 w-full rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isPending}
+            className="flex h-10 w-full rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <option value="uninformed">Selecionar (opcional)</option>
             <option value="pix">PIX</option>
@@ -74,27 +96,21 @@ export function FinanceiroMarkPaidModal({
             <option value="other">Outro</option>
           </select>
         </div>
-      </div>
 
-      <div className="mt-6 flex justify-end gap-2">
-        <Button variant="outline" onClick={onClose} disabled={isPending}>
-          Cancelar
-        </Button>
-        <Button
-          className="bg-blue-500 hover:bg-blue-600 text-white"
-          onClick={() =>
-            onConfirm({
-              id: transaction.id,
-              paymentMethod: (paymentMethod ||
-                "uninformed") as FinancialPaymentMethod,
-              paidAt,
-            })
-          }
-          isLoading={isPending}
-        >
-          Confirmar
-        </Button>
-      </div>
+        <div className="mt-6 flex justify-end gap-2 pt-2">
+          <Button type="button" variant="outline" onClick={handleClose} disabled={isPending}>
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            className="bg-blue-500 hover:bg-blue-600 text-white"
+            disabled={isPending}
+            isLoading={isPending}
+          >
+            Confirmar
+          </Button>
+        </div>
+      </form>
     </Modal>
   );
 }
