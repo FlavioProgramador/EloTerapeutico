@@ -30,6 +30,7 @@ from ..providers import (
     ProviderResult,
     RetryableProviderError,
 )
+from ..selectors import communication_dashboard
 from ..services import (
     CommunicationLimitExceeded,
     create_communication,
@@ -419,3 +420,62 @@ def test_preference_is_unique_per_patient(therapist, patient):
     )
     assert created is False
     assert first.pk == second.pk
+
+
+@pytest.mark.django_db
+@override_settings(BILLING_REQUIRE_SUBSCRIPTION=False)
+def test_communication_dashboard_metrics_and_num_queries(
+    therapist,
+    django_assert_num_queries,
+):
+    organization = therapist.test_organization
+    ensure_default_channels(therapist, organization=organization)
+
+    create_communication(
+        organization=organization,
+        owner=therapist,
+        created_by=therapist,
+        channel=Communication.Channel.IN_APP,
+        category=Communication.Category.SYSTEM_NOTIFICATION,
+        subject="Aviso 1",
+        body="Body",
+        idempotency_key="test:dash:1",
+        draft=True,
+    )
+    c2 = create_communication(
+        organization=organization,
+        owner=therapist,
+        created_by=therapist,
+        channel=Communication.Channel.IN_APP,
+        category=Communication.Category.SYSTEM_NOTIFICATION,
+        subject="Aviso 2",
+        body="Body",
+        idempotency_key="test:dash:2",
+    )
+    c2.status = Communication.Status.DELIVERED
+    c2.save(update_fields=["status"])
+
+    c3 = create_communication(
+        organization=organization,
+        owner=therapist,
+        created_by=therapist,
+        channel=Communication.Channel.IN_APP,
+        category=Communication.Category.SYSTEM_NOTIFICATION,
+        subject="Aviso 3",
+        body="Body",
+        idempotency_key="test:dash:3",
+    )
+    c3.status = Communication.Status.FAILED
+    c3.save(update_fields=["status"])
+
+    with django_assert_num_queries(5):
+        result = communication_dashboard(
+            user=therapist,
+            organization=organization,
+        )
+
+    assert result["metrics"]["total"] == 3
+    assert result["metrics"]["scheduled"] == 0
+    assert result["metrics"]["delivered"] == 1
+    assert result["metrics"]["failed"] == 1
+    assert result["metrics"]["success_rate"] == 33.33
