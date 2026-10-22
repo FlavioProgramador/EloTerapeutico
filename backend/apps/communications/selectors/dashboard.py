@@ -7,6 +7,7 @@ from django.db.models.functions import TruncDate
 from django.utils import timezone
 
 from apps.communications.models import Communication
+from apps.organizations.models import OrganizationMembership
 
 
 def communication_dashboard(user, start_date=None, end_date=None, *, organization=None):
@@ -17,23 +18,35 @@ def communication_dashboard(user, start_date=None, end_date=None, *, organizatio
         created_at__lte=end,
     )
     if organization is not None:
-        queryset = queryset.filter(organization=organization)
+        membership = OrganizationMembership.objects.filter(
+            user=user,
+            organization=organization,
+            status=OrganizationMembership.Status.ACTIVE,
+        ).first()
+        if membership is None:
+            queryset = queryset.none()
+        else:
+            queryset = queryset.filter(organization=organization)
+            if membership.role == OrganizationMembership.Role.THERAPIST:
+                queryset = queryset.filter(owner=user)
     else:
         queryset = queryset.filter(owner=user)
-    total = queryset.count()
-    sent_like = queryset.filter(
-        status__in=[
-            Communication.Status.SENT,
-            Communication.Status.DELIVERED,
-            Communication.Status.READ,
-            Communication.Status.RESPONDED,
-        ]
-    ).count()
-    by_channel = list(
-        queryset.values("channel").annotate(total=Count("id")).order_by("channel")
-    )
+
     by_status = list(
         queryset.values("status").annotate(total=Count("id")).order_by("status")
+    )
+    status_counts = {item["status"]: item["total"] for item in by_status}
+    total = sum(status_counts.values())
+
+    delivered = (
+        status_counts.get(Communication.Status.DELIVERED, 0)
+        + status_counts.get(Communication.Status.READ, 0)
+        + status_counts.get(Communication.Status.RESPONDED, 0)
+    )
+    sent_like = status_counts.get(Communication.Status.SENT, 0) + delivered
+
+    by_channel = list(
+        queryset.values("channel").annotate(total=Count("id")).order_by("channel")
     )
     daily = list(
         queryset.annotate(day=TruncDate("created_at"))
@@ -45,17 +58,9 @@ def communication_dashboard(user, start_date=None, end_date=None, *, organizatio
         "period": {"start": start, "end": end},
         "metrics": {
             "total": total,
-            "scheduled": queryset.filter(
-                status=Communication.Status.SCHEDULED
-            ).count(),
-            "delivered": queryset.filter(
-                status__in=[
-                    Communication.Status.DELIVERED,
-                    Communication.Status.READ,
-                    Communication.Status.RESPONDED,
-                ]
-            ).count(),
-            "failed": queryset.filter(status=Communication.Status.FAILED).count(),
+            "scheduled": status_counts.get(Communication.Status.SCHEDULED, 0),
+            "delivered": delivered,
+            "failed": status_counts.get(Communication.Status.FAILED, 0),
             "appointment_confirmations": queryset.filter(
                 category=Communication.Category.APPOINTMENT_CONFIRMATION,
                 status__in=[
