@@ -332,3 +332,26 @@ def test_fake_webhook_is_idempotent_and_tracks_presence():
         left_at__isnull=True,
     ).count() == 1
     assert TelemedicineConsent.objects.filter(room=room).count() == 1
+
+
+def test_telemedicine_room_serializer_prefetched_performance(django_assert_num_queries):
+    therapist, _, _, _, room = create_context(suffix="perf")
+    TelemedicineParticipantSession.objects.create(
+        organization=room.organization,
+        room=room,
+        role=TelemedicineParticipantSession.Role.PATIENT,
+        provider_participant_identity="patient-perf-1",
+        joined_at=timezone.now(),
+    )
+
+    from apps.scheduling.selectors.resources import telemedicine_rooms_queryset
+    from apps.scheduling.api.v1.serializers import TelemedicineRoomSerializer
+
+    queryset = telemedicine_rooms_queryset().filter(pk=room.pk)
+    prefetched_room = list(queryset)[0]
+
+    # Serializing a room with prefetched participant_sessions should require 0 database queries for get_active_participants
+    with django_assert_num_queries(0):
+        data = TelemedicineRoomSerializer(prefetched_room).data
+        assert len(data["active_participants"]) == 1
+        assert data["active_participants"][0]["provider_participant_identity"] == "patient-perf-1"
