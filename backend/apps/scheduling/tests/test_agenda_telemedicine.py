@@ -344,8 +344,8 @@ def test_telemedicine_room_serializer_prefetched_performance(django_assert_num_q
         joined_at=timezone.now(),
     )
 
-    from apps.scheduling.selectors.resources import telemedicine_rooms_queryset
     from apps.scheduling.api.v1.serializers import TelemedicineRoomSerializer
+    from apps.scheduling.selectors.resources import telemedicine_rooms_queryset
 
     queryset = telemedicine_rooms_queryset().filter(pk=room.pk)
     prefetched_room = list(queryset)[0]
