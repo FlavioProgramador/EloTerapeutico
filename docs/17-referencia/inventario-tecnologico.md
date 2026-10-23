@@ -26,7 +26,7 @@ Versões devem ser atualizadas quando `requirements*.txt`, `package.json`, Docke
 | --- | --- | --- | --- |
 | Python | 3.12 | Runtime do backend e workers | Todos |
 | Django | `>=6.0.7,<6.1` | Framework web, ORM, Admin e configurações | Todos |
-| Django REST Framework | `>=3.17.1,<3.18` | API REST, serializers, permissions e paginação | Todos |
+| Django REST Framework | `>=3.18.2,<3.19` | API REST, serializers, permissions e paginação | Todos |
 | PostgreSQL | 15 no Compose/CI | Persistência transacional | Todos |
 | Redis | 7 no Compose | Broker, resultados, cache e rate limit | Dev/prod |
 | Celery | `>=5.4,<5.6` | Processamento assíncrono e tarefas periódicas | Dev/prod |
@@ -50,7 +50,7 @@ Versões devem ser atualizadas quando `requirements*.txt`, `package.json`, Docke
 | `cryptography` | `>=49.0.0,<50.0` | Criptografia de campos e tokens técnicos |
 | `drf-spectacular` | `>=0.29.0,<0.30` | Schema OpenAPI, Swagger e ReDoc |
 | `argon2-cffi` | `>=23.1,<23.2` | Password hashing Argon2 |
-| `weasyprint` | `>=69.0,<70.0` | PDFs de prontuário, documentos e recibos |
+| `weasyprint` | `>=70.0,<71.0` | PDFs de prontuário, documentos e recibos |
 | `azure-storage-blob` | `>=12.19,<12.20` | SDK de acesso ao Azure Blob |
 | `django-ratelimit` | `>=4.1,<4.2` | Rate limiting |
 
@@ -81,7 +81,7 @@ Elas suportam compilação de dependências, PostgreSQL e renderização do Weas
 | Tecnologia | Versão | Finalidade |
 | --- | --- | --- |
 | Node.js | 24 na imagem | Runtime de build e servidor Next.js |
-| Next.js | 16.2.11 | App Router, SSR, Route Handlers e BFF |
+| Next.js | 16.4.2 | App Router, SSR, Route Handlers e BFF |
 | React | 19.2.7 | Interface baseada em componentes |
 | React DOM | 19.2.4 | Renderização web |
 | TypeScript | 6 | Tipagem estática |
@@ -208,7 +208,7 @@ Redis não substitui o PostgreSQL como fonte oficial dos estados de negócio.
 | Ferramenta | Versão/faixa | Uso |
 | --- | --- | --- |
 | ESLint | `^9` | Lint |
-| eslint-config-next | `16.2.11` | Regras Next.js |
+| eslint-config-next | `16.4.2` | Regras Next.js |
 | TypeScript compiler | 6 | `tsc --noEmit` |
 | Node Test Runner | Node 24 | Testes `.mjs` e cobertura experimental |
 | Playwright | pacote isolado em `frontend/e2e` | Autenticação e gateway E2E |
