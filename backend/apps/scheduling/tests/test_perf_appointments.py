@@ -133,4 +133,4 @@ def test_appointment_serializer_memoizes_cached_relations(therapist, patient):
     data_2 = list_serializer_2.data
     assert data_2["evolution_id"] == evo.id
     assert data_2["evolution_status"] == "finalized"
-    assert getattr(appt_with_evo, "_cached_evolution") == evo
+    assert appt_with_evo._cached_evolution == evo
