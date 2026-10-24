@@ -50,21 +50,36 @@ class AppointmentListSerializer(serializers.ModelSerializer):
             "evolution_status",
         ]
 
+    def _get_evolution(self, obj):
+        if not hasattr(obj, "_cached_evolution"):
+            try:
+                obj._cached_evolution = obj.evolution
+            except Exception:
+                obj._cached_evolution = None
+        return obj._cached_evolution
+
+    def _get_telemedicine_room(self, obj):
+        if not hasattr(obj, "_cached_telemedicine_room"):
+            try:
+                obj._cached_telemedicine_room = obj.telemedicine_room
+            except TelemedicineRoom.DoesNotExist:
+                obj._cached_telemedicine_room = None
+        return obj._cached_telemedicine_room
+
     def get_telemedicine_status(self, obj):
-        try:
-            return obj.telemedicine_room.status
-        except TelemedicineRoom.DoesNotExist:
-            return None
+        room = self._get_telemedicine_room(obj)
+        return room.status if room else None
 
     def get_evolution_id(self, obj):
-        try:
-            return obj.evolution.id
-        except Exception:
-            return None
+        evolution = self._get_evolution(obj)
+        return evolution.id if evolution else None
 
     def get_evolution_status(self, obj):
+        evolution = self._get_evolution(obj)
+        if not evolution:
+            return None
         try:
-            return obj.evolution.clinical_data.status
+            return evolution.clinical_data.status
         except Exception:
             return None
 
@@ -92,7 +107,7 @@ class AppointmentDetailSerializer(AppointmentListSerializer):
         ]
 
     def get_telemedicine(self, obj):
-        try:
-            return TelemedicineRoomSerializer(obj.telemedicine_room, context=self.context).data
-        except TelemedicineRoom.DoesNotExist:
+        room = self._get_telemedicine_room(obj)
+        if not room:
             return None
+        return TelemedicineRoomSerializer(room, context=self.context).data

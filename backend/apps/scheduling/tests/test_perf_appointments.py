@@ -76,3 +76,61 @@ def test_appointment_list_optimized_queries(
 
     assert response.status_code == status.HTTP_200_OK
     assert len(response.data["results"]) == num_appointments
+
+
+@pytest.mark.django_db
+def test_appointment_serializer_memoizes_cached_relations(therapist, patient):
+    """Garante que a serialização memoize relacionamentos evitando reavaliações."""
+    from apps.scheduling.api.serializers.appointment_read import (
+        AppointmentDetailSerializer,
+        AppointmentListSerializer,
+    )
+
+    start = timezone.now()
+    appt_without_evo = Appointment.objects.create(
+        patient=patient,
+        therapist=therapist,
+        start_time=start,
+        end_time=start + timedelta(minutes=50),
+        session_value=100,
+    )
+
+    list_serializer = AppointmentListSerializer(appt_without_evo)
+    data = list_serializer.data
+
+    assert data["evolution_id"] is None
+    assert data["evolution_status"] is None
+    assert data["telemedicine_status"] is None
+    assert getattr(appt_without_evo, "_cached_evolution", "MISSING") is None
+    assert getattr(appt_without_evo, "_cached_telemedicine_room", "MISSING") is None
+
+    detail_serializer = AppointmentDetailSerializer(appt_without_evo)
+    detail_data = detail_serializer.data
+    assert detail_data["telemedicine"] is None
+
+    # Com evolução
+    appt_with_evo = Appointment.objects.create(
+        patient=patient,
+        therapist=therapist,
+        start_time=start + timedelta(days=1),
+        end_time=start + timedelta(days=1, minutes=50),
+        session_value=100,
+    )
+    evo = Evolution.objects.create(
+        patient=patient,
+        appointment=appt_with_evo,
+        session_date=(start + timedelta(days=1)).date(),
+        created_by=therapist,
+        content="Evolution test",
+    )
+    EvolutionClinicalData.objects.create(
+        evolution=evo,
+        status="finalized",
+        updated_by=therapist,
+    )
+
+    list_serializer_2 = AppointmentListSerializer(appt_with_evo)
+    data_2 = list_serializer_2.data
+    assert data_2["evolution_id"] == evo.id
+    assert data_2["evolution_status"] == "finalized"
+    assert getattr(appt_with_evo, "_cached_evolution") == evo
