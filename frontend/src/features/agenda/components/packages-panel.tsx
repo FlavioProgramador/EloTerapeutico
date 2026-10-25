@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useState } from "react";
+import { useDeferredValue, useId, useState } from "react";
 import { Edit3, PackagePlus, Plus, Trash2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -71,7 +71,7 @@ export function PackagesPanel() {
         <Button
           className="ml-auto"
           size="sm"
-          leftIcon={<PackagePlus className="size-4" />}
+          leftIcon={<PackagePlus className="size-4" aria-hidden="true" />}
           onClick={() => setCreating(true)}
         >
           Novo pacote
@@ -162,9 +162,9 @@ export function PackagesPanel() {
                       size="icon"
                       variant="ghost"
                       onClick={() => setEditing(row)}
-                      aria-label="Editar sessões"
+                      aria-label={`Editar sessões do pacote ${row.name} de ${row.patient_name}`}
                     >
-                      <Edit3 className="size-4" />
+                      <Edit3 className="size-4" aria-hidden="true" />
                     </Button>
                   </td>
                 </tr>
@@ -198,6 +198,25 @@ function CreatePackageModal({
   });
   const { data: professionals = [] } = usePatientProfessionals();
   const { data: rooms = [] } = useRooms();
+
+  const patientId = useId();
+  const therapistId = useId();
+  const nameId = useId();
+  const sessionsId = useId();
+  const totalValueId = useId();
+  const unitValueId = useId();
+  const descriptionId = useId();
+  const autoScheduleId = useId();
+  const firstDateId = useId();
+  const timeId = useId();
+  const frequencyId = useId();
+  const durationId = useId();
+  const modalityId = useId();
+  const roomId = useId();
+  const reminderId = useId();
+  const generateChargeId = useId();
+  const sendChargeId = useId();
+
   const [form, setForm] = useState({
     patient: "",
     therapist: String(user?.id || ""),
@@ -221,6 +240,12 @@ function CreatePackageModal({
     Number(form.sessions) > 0
       ? Number(form.totalValue || 0) / Number(form.sessions)
       : 0;
+
+  function handleClose() {
+    if (!mutation.isPending) {
+      onClose();
+    }
+  }
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -249,7 +274,7 @@ function CreatePackageModal({
   return (
     <Modal
       isOpen={open}
-      onClose={onClose}
+      onClose={handleClose}
       title="Novo pacote de atendimentos"
       description="Crie o pacote e gere as sessões automaticamente."
       className="max-w-2xl"
@@ -258,8 +283,9 @@ function CreatePackageModal({
         <section className="space-y-3">
           <SectionLabel>Paciente e profissional</SectionLabel>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Paciente *">
+            <Field label="Paciente *" htmlFor={patientId}>
               <select
+                id={patientId}
                 value={form.patient}
                 onChange={(event) =>
                   setForm((current) => ({
@@ -268,6 +294,7 @@ function CreatePackageModal({
                   }))
                 }
                 className={fieldClass}
+                disabled={mutation.isPending}
                 required
               >
                 <option value="">Selecione</option>
@@ -278,8 +305,9 @@ function CreatePackageModal({
                 ))}
               </select>
             </Field>
-            <Field label="Profissional *">
+            <Field label="Profissional *" htmlFor={therapistId}>
               <select
+                id={therapistId}
                 value={form.therapist}
                 onChange={(event) =>
                   setForm((current) => ({
@@ -288,7 +316,7 @@ function CreatePackageModal({
                   }))
                 }
                 className={fieldClass}
-                disabled={user?.role === "therapist"}
+                disabled={user?.role === "therapist" || mutation.isPending}
                 required
               >
                 <option value="">Selecione</option>
@@ -300,14 +328,16 @@ function CreatePackageModal({
               </select>
             </Field>
           </div>
-          <Field label="Nome do pacote *">
+          <Field label="Nome do pacote *" htmlFor={nameId}>
             <input
+              id={nameId}
               value={form.name}
               onChange={(event) =>
                 setForm((current) => ({ ...current, name: event.target.value }))
               }
               placeholder="Ex.: Pacote 10 sessões"
               className={fieldClass}
+              disabled={mutation.isPending}
               required
             />
           </Field>
@@ -316,8 +346,9 @@ function CreatePackageModal({
         <section className="space-y-3 border-t border-border pt-4">
           <SectionLabel>Sessões e valor</SectionLabel>
           <div className="grid grid-cols-3 gap-3">
-            <Field label="Quantidade">
+            <Field label="Quantidade" htmlFor={sessionsId}>
               <input
+                id={sessionsId}
                 type="number"
                 min={1}
                 value={form.sessions}
@@ -328,10 +359,12 @@ function CreatePackageModal({
                   }))
                 }
                 className={fieldClass}
+                disabled={mutation.isPending}
               />
             </Field>
-            <Field label="Valor total">
+            <Field label="Valor total" htmlFor={totalValueId}>
               <input
+                id={totalValueId}
                 inputMode="decimal"
                 value={form.totalValue}
                 onChange={(event) =>
@@ -341,10 +374,12 @@ function CreatePackageModal({
                   }))
                 }
                 className={fieldClass}
+                disabled={mutation.isPending}
               />
             </Field>
-            <Field label="Por sessão">
+            <Field label="Por sessão" htmlFor={unitValueId}>
               <input
+                id={unitValueId}
                 value={unitValue.toLocaleString("pt-BR", {
                   style: "currency",
                   currency: "BRL",
@@ -354,8 +389,9 @@ function CreatePackageModal({
               />
             </Field>
           </div>
-          <Field label="Descrição">
+          <Field label="Descrição" htmlFor={descriptionId}>
             <textarea
+              id={descriptionId}
               value={form.description}
               onChange={(event) =>
                 setForm((current) => ({
@@ -364,14 +400,17 @@ function CreatePackageModal({
                 }))
               }
               rows={3}
-              className="w-full rounded-md border border-border bg-background p-3 text-sm"
+              disabled={mutation.isPending}
+              className="w-full rounded-md border border-border bg-background p-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             />
           </Field>
         </section>
 
         <section className="space-y-3 border-t border-border pt-4">
           <Toggle
+            id={autoScheduleId}
             checked={form.autoSchedule}
+            disabled={mutation.isPending}
             onChange={(value) =>
               setForm((current) => ({ ...current, autoSchedule: value }))
             }
@@ -379,8 +418,9 @@ function CreatePackageModal({
           />
           {form.autoSchedule && (
             <div className="grid gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4 sm:grid-cols-2">
-              <Field label="Primeiro atendimento">
+              <Field label="Primeiro atendimento" htmlFor={firstDateId}>
                 <input
+                  id={firstDateId}
                   type="date"
                   value={form.firstDate}
                   onChange={(event) =>
@@ -390,10 +430,12 @@ function CreatePackageModal({
                     }))
                   }
                   className={fieldClass}
+                  disabled={mutation.isPending}
                 />
               </Field>
-              <Field label="Horário">
+              <Field label="Horário" htmlFor={timeId}>
                 <input
+                  id={timeId}
                   type="time"
                   value={form.time}
                   onChange={(event) =>
@@ -403,10 +445,12 @@ function CreatePackageModal({
                     }))
                   }
                   className={fieldClass}
+                  disabled={mutation.isPending}
                 />
               </Field>
-              <Field label="Frequência">
+              <Field label="Frequência" htmlFor={frequencyId}>
                 <select
+                  id={frequencyId}
                   value={form.frequency}
                   onChange={(event) =>
                     setForm((current) => ({
@@ -415,14 +459,16 @@ function CreatePackageModal({
                     }))
                   }
                   className={fieldClass}
+                  disabled={mutation.isPending}
                 >
                   <option value="weekly">Semanal</option>
                   <option value="biweekly">Quinzenal</option>
                   <option value="monthly">Mensal</option>
                 </select>
               </Field>
-              <Field label="Duração">
+              <Field label="Duração" htmlFor={durationId}>
                 <select
+                  id={durationId}
                   value={form.duration}
                   onChange={(event) =>
                     setForm((current) => ({
@@ -431,6 +477,7 @@ function CreatePackageModal({
                     }))
                   }
                   className={fieldClass}
+                  disabled={mutation.isPending}
                 >
                   {[30, 45, 50, 60, 90].map((value) => (
                     <option key={value} value={value}>
@@ -439,8 +486,9 @@ function CreatePackageModal({
                   ))}
                 </select>
               </Field>
-              <Field label="Modalidade">
+              <Field label="Modalidade" htmlFor={modalityId}>
                 <select
+                  id={modalityId}
                   value={form.modality}
                   onChange={(event) =>
                     setForm((current) => ({
@@ -450,14 +498,16 @@ function CreatePackageModal({
                     }))
                   }
                   className={fieldClass}
+                  disabled={mutation.isPending}
                 >
                   <option value="in_person">Presencial</option>
                   <option value="online">Online</option>
                   <option value="hybrid">Híbrida</option>
                 </select>
               </Field>
-              <Field label="Sala">
+              <Field label="Sala" htmlFor={roomId}>
                 <select
+                  id={roomId}
                   value={form.room}
                   onChange={(event) =>
                     setForm((current) => ({
@@ -465,7 +515,7 @@ function CreatePackageModal({
                       room: event.target.value,
                     }))
                   }
-                  disabled={form.modality === "online"}
+                  disabled={form.modality === "online" || mutation.isPending}
                   className={fieldClass}
                 >
                   <option value="">Sem sala</option>
@@ -479,21 +529,27 @@ function CreatePackageModal({
             </div>
           )}
           <Toggle
+            id={reminderId}
             checked={form.reminder}
+            disabled={mutation.isPending}
             onChange={(value) =>
               setForm((current) => ({ ...current, reminder: value }))
             }
             label="Enviar lembretes automáticos"
           />
           <Toggle
+            id={generateChargeId}
             checked={form.generateCharge}
+            disabled={mutation.isPending}
             onChange={(value) =>
               setForm((current) => ({ ...current, generateCharge: value }))
             }
             label="Gerar cobrança no financeiro"
           />
           <Toggle
+            id={sendChargeId}
             checked={form.sendCharge}
+            disabled={mutation.isPending}
             onChange={(value) =>
               setForm((current) => ({ ...current, sendCharge: value }))
             }
@@ -502,7 +558,12 @@ function CreatePackageModal({
         </section>
 
         <div className="flex justify-end gap-2 border-t border-border pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleClose}
+            disabled={mutation.isPending}
+          >
             Cancelar
           </Button>
           <Button type="submit" isLoading={mutation.isPending}>
@@ -525,6 +586,10 @@ function PackageSessionsModal({
   const [adding, setAdding] = useState(false);
   const [date, setDate] = useState(toDateInput(new Date()));
   const [time, setTime] = useState("09:00");
+
+  const addDateId = useId();
+  const addTimeId = useId();
+
   const removeMutation = useMutation({
     mutationFn: agendaService.packages.removeSession,
     onSuccess: async () => {
@@ -564,10 +629,18 @@ function PackageSessionsModal({
     },
   });
 
+  const isBusy = addMutation.isPending || removeMutation.isPending;
+
+  function handleClose() {
+    if (!isBusy) {
+      onClose();
+    }
+  }
+
   return (
     <Modal
       isOpen={Boolean(packageItem)}
-      onClose={onClose}
+      onClose={handleClose}
       title={
         packageItem ? `Editar sessões – ${packageItem.name}` : "Editar sessões"
       }
@@ -601,11 +674,11 @@ function PackageSessionsModal({
               <Button
                 size="icon"
                 variant="ghost"
-                aria-label="Remover sessão"
-                disabled={session.status === "completed"}
+                aria-label={`Remover sessão ${index + 1} do dia ${formatDate(session.scheduled_for)}`}
+                disabled={session.status === "completed" || isBusy}
                 onClick={() => removeMutation.mutate(session.id)}
               >
-                <Trash2 className="size-4" />
+                <Trash2 className="size-4" aria-hidden="true" />
               </Button>
             </div>
           ))}
@@ -618,26 +691,31 @@ function PackageSessionsModal({
 
         {adding ? (
           <div className="grid grid-cols-2 gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
-            <Field label="Data">
+            <Field label="Data" htmlFor={addDateId}>
               <input
+                id={addDateId}
                 type="date"
                 value={date}
                 onChange={(event) => setDate(event.target.value)}
                 className={fieldClass}
+                disabled={isBusy}
               />
             </Field>
-            <Field label="Horário">
+            <Field label="Horário" htmlFor={addTimeId}>
               <input
+                id={addTimeId}
                 type="time"
                 value={time}
                 onChange={(event) => setTime(event.target.value)}
                 className={fieldClass}
+                disabled={isBusy}
               />
             </Field>
             <div className="col-span-2 flex justify-end gap-2">
               <Button
                 size="sm"
                 variant="outline"
+                disabled={isBusy}
                 onClick={() => setAdding(false)}
               >
                 Cancelar
@@ -645,6 +723,7 @@ function PackageSessionsModal({
               <Button
                 size="sm"
                 isLoading={addMutation.isPending}
+                disabled={isBusy}
                 onClick={() => addMutation.mutate()}
               >
                 Adicionar
@@ -655,15 +734,15 @@ function PackageSessionsModal({
           <Button
             variant="outline"
             className="w-full border-dashed"
-            leftIcon={<Plus className="size-4" />}
+            leftIcon={<Plus className="size-4" aria-hidden="true" />}
             onClick={() => setAdding(true)}
-            disabled={!packageItem?.remaining_sessions}
+            disabled={!packageItem?.remaining_sessions || isBusy}
           >
             Adicionar sessão
           </Button>
         )}
         <div className="flex justify-end border-t border-border pt-4">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={handleClose} disabled={isBusy}>
             Fechar
           </Button>
         </div>

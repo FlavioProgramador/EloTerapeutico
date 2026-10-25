@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import type { AgendaPagination, AppointmentStatus } from "../types";
 
 export const fieldClass =
-  "h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-60";
+  "h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
 
 export function Toolbar({ children }: { children: React.ReactNode }) {
   return (
@@ -79,13 +79,15 @@ export function Field({
   label,
   children,
   hint,
+  htmlFor,
 }: {
   label: string;
   children: React.ReactNode;
   hint?: string;
+  htmlFor?: string;
 }) {
   return (
-    <label className="block space-y-1.5">
+    <label htmlFor={htmlFor} className="block space-y-1.5">
       <span className="text-xs font-semibold text-foreground">{label}</span>
       {children}
       {hint && (
@@ -108,14 +110,26 @@ export function Toggle({
   onChange,
   label,
   description,
+  id,
+  htmlFor,
+  disabled,
 }: {
   checked: boolean;
   onChange: (value: boolean) => void;
   label: string;
   description?: string;
+  id?: string;
+  htmlFor?: string;
+  disabled?: boolean;
 }) {
   return (
-    <label className="flex cursor-pointer items-start justify-between gap-4 rounded-lg border border-border bg-secondary/10 p-3">
+    <label
+      htmlFor={htmlFor ?? id}
+      className={cn(
+        "flex cursor-pointer items-start justify-between gap-4 rounded-lg border border-border bg-secondary/10 p-3 transition-opacity",
+        disabled && "cursor-not-allowed opacity-60",
+      )}
+    >
       <span>
         <strong className="block text-sm font-medium">{label}</strong>
         {description && (
@@ -125,10 +139,12 @@ export function Toggle({
         )}
       </span>
       <input
+        id={id}
         type="checkbox"
         checked={checked}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
-        className="mt-1"
+        className="mt-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
       />
     </label>
   );
