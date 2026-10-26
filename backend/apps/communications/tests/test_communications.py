@@ -419,3 +419,68 @@ def test_preference_is_unique_per_patient(therapist, patient):
     )
     assert created is False
     assert first.pk == second.pk
+
+
+@pytest.mark.django_db
+@override_settings(BILLING_REQUIRE_SUBSCRIPTION=False)
+def test_communication_automation_serializer_uses_prefetched_runs(therapist, django_assert_num_queries):
+    from apps.communications.api.v1.serializers.automations import CommunicationAutomationSerializer
+    from apps.communications.models import (
+        CommunicationAutomation,
+        CommunicationAutomationRun,
+        CommunicationTemplate,
+    )
+
+    organization = therapist.test_organization
+    template = CommunicationTemplate.objects.create(
+        organization=organization,
+        owner=therapist,
+        name="Template Teste",
+        slug="template-teste",
+        category="patient_message",
+        channel="email",
+        body_template="Body",
+        is_active=True,
+    )
+    automation = CommunicationAutomation.objects.create(
+        organization=organization,
+        owner=therapist,
+        name="Automação Teste",
+        event_type="appointment.created",
+        channel="email",
+        template=template,
+        is_active=True,
+    )
+    CommunicationAutomationRun.objects.create(
+        automation=automation,
+        source_event="appointment.created",
+        status=CommunicationAutomationRun.Status.FAILED,
+        idempotency_key="run1",
+        started_at=timezone.now() - timedelta(minutes=10),
+    )
+    CommunicationAutomationRun.objects.create(
+        automation=automation,
+        source_event="appointment.created",
+        status=CommunicationAutomationRun.Status.CREATED,
+        idempotency_key="run2",
+        started_at=timezone.now(),
+    )
+
+    # Without prefetch, accessing serializer data queries for template name, last_run_at and failures
+    obj_unprefetched = CommunicationAutomation.objects.get(pk=automation.pk)
+    with django_assert_num_queries(3):
+        data_unprefetched = CommunicationAutomationSerializer(obj_unprefetched).data
+        assert data_unprefetched["failures"] == 1
+        assert data_unprefetched["last_run_at"] is not None
+
+    # With select_related("template") and prefetch_related("runs"), no additional database queries are executed during serialization
+    obj_prefetched = (
+        CommunicationAutomation.objects.filter(pk=automation.pk)
+        .select_related("template")
+        .prefetch_related("runs")
+        .get()
+    )
+    with django_assert_num_queries(0):
+        data_prefetched = CommunicationAutomationSerializer(obj_prefetched).data
+        assert data_prefetched["failures"] == 1
+        assert data_prefetched["last_run_at"] is not None
