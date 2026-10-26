@@ -123,11 +123,11 @@ export function PatientDesktopRow(props: RowProps) {
       </td>
       <td className="max-w-64 px-3 py-3">
         <p className="flex items-center gap-2 truncate text-sm text-foreground">
-          <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
           {patient.email || "E-mail não informado"}
         </p>
         <p className="mt-1 flex items-center gap-2 truncate text-xs text-muted-foreground">
-          <Phone className="h-3.5 w-3.5 shrink-0" />
+          <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           {patient.phone || "Telefone não informado"}
         </p>
       </td>

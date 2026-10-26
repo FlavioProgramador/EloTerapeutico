@@ -131,7 +131,7 @@ export function PatientTable({
             id="patients-page-size"
             value={pageSize}
             onChange={(event) => onPageSizeChange(Number(event.target.value))}
-            className="h-9 rounded-md border border-border bg-background px-2 text-sm text-foreground"
+            className="h-9 rounded-md border border-border bg-background px-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
             {[10, 25, 50].map((size) => (
               <option key={size}>{size}</option>
@@ -151,7 +151,7 @@ export function PatientTable({
             onClick={() => onPageChange(Math.max(1, page - 1))}
             aria-label="Página anterior"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           </Button>
           <span className="min-w-24 text-center">
             Página {pagination?.current_page ?? page} de{" "}
@@ -165,7 +165,7 @@ export function PatientTable({
             onClick={() => onPageChange(page + 1)}
             aria-label="Próxima página"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
       </footer>
