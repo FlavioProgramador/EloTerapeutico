@@ -4,6 +4,7 @@ from rest_framework.test import APITestCase
 from apps.forms.exceptions import InvalidFormAnswerError
 from apps.forms.models import FieldType, FormField, FormSubmission, TherapeuticForm
 from apps.forms.selectors import forms_for_owner
+from apps.organizations.models import Organization, OrganizationMembership
 from apps.forms.services import create_submission, duplicate_form
 from apps.patients.models import Patient
 from apps.users.models import User
@@ -70,3 +71,51 @@ class FormsLayerTests(APITestCase):
                 },
             )
         self.assertFalse(FormSubmission.objects.exists())
+
+    def test_form_submissions_list_unauthenticated_rejected(self):
+        self.client.logout()
+        response = self.client.get(f"/api/v1/forms/{self.form.pk}/submissions/")
+        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+    def test_form_submissions_list_filters_by_authenticated_therapist(self):
+        owner_membership = OrganizationMembership.objects.get(user=self.owner)
+        org = owner_membership.organization
+        OrganizationMembership.objects.filter(user=self.other_owner).update(organization=org)
+
+        org_form = TherapeuticForm.objects.create(
+            organization=org,
+            owner=self.owner,
+            name="Formulário da Organização",
+            created_by=self.owner,
+            updated_by=self.owner,
+        )
+
+        patient1 = Patient.objects.create(full_name="Paciente do Terapeuta 1", therapist=self.owner, organization=org)
+        patient2 = Patient.objects.create(full_name="Paciente do Terapeuta 2", therapist=self.other_owner, organization=org)
+
+        sub_owner = FormSubmission.objects.create(
+            organization=org,
+            form=org_form,
+            patient=patient1,
+            professional=self.owner,
+            owner=self.owner,
+        )
+        sub_other = FormSubmission.objects.create(
+            organization=org,
+            form=org_form,
+            patient=patient2,
+            professional=self.other_owner,
+            owner=self.other_owner,
+        )
+
+        self.client.force_authenticate(self.owner)
+        self.client.credentials(HTTP_X_ORGANIZATION_ID=str(org.pk))
+        response = self.client.get(
+            f"/api/v1/forms/{org_form.pk}/submissions/",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data["results"] if "results" in response.data else response.data
+        returned_ids = [item["id"] for item in results]
+
+        self.assertIn(sub_owner.pk, returned_ids)
+        self.assertNotIn(sub_other.pk, returned_ids)
