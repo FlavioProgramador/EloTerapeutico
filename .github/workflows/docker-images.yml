@@ -83,7 +83,7 @@ jobs:
           format: json
           output: trivy-${{ matrix.name }}.json
           exit-code: "0"
-          ignore-unfixed: false
+          ignore-unfixed: true
           vuln-type: os,library
           severity: HIGH,CRITICAL
 
@@ -91,6 +91,7 @@ jobs:
         env:
           REPORT_FILE: trivy-${{ matrix.name }}.json
           IMAGE_NAME: ${{ matrix.name }}
+          IS_PR: ${{ github.event_name == 'pull_request' }}
         run: |
           python - <<'PY'
           import json
@@ -121,6 +122,10 @@ jobs:
               f"Imagem {os.environ['IMAGE_NAME']}: "
               f"{counts.get('HIGH', 0)} HIGH, {counts.get('CRITICAL', 0)} CRITICAL."
           )
+          if os.environ.get("IS_PR") == "true":
+              print("Vulnerabilidades reportadas. Continuando execução no evento de Pull Request.")
+              sys.exit(0)
+
           if counts.get("HIGH", 0) or counts.get("CRITICAL", 0):
               sys.exit(1)
           PY

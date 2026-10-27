@@ -25,9 +25,9 @@ const documentTypes: Array<{
 ];
 
 const inputClass =
-  "h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20";
+  "h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60";
 const textareaClass =
-  "w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 text-sm leading-6 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20";
+  "w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 text-sm leading-6 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60";
 
 interface DocumentTemplateModalProps {
   open: boolean;
@@ -72,6 +72,12 @@ export function DocumentTemplateModal({
   const contentId = `${baseId}-content`;
   const headerContentId = `${baseId}-header-content`;
   const footerContentId = `${baseId}-footer-content`;
+
+  const handleClose = () => {
+    if (!submitting) {
+      onClose();
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -135,12 +141,18 @@ export function DocumentTemplateModal({
   return (
     <Modal
       isOpen={open}
-      onClose={onClose}
+      onClose={handleClose}
       title={initial ? "Editar template" : "Novo template"}
       description="Crie um modelo seguro com variáveis controladas para agilizar a emissão."
       className="max-w-4xl"
     >
-      <div className="space-y-5">
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          void submit();
+        }}
+        className="space-y-5"
+      >
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <label htmlFor={nameId} className="block text-xs font-semibold text-foreground">
@@ -257,7 +269,7 @@ export function DocumentTemplateModal({
 
           <aside className="max-h-80 overflow-y-auto rounded-xl border border-border bg-secondary/30 p-3">
             <div className="mb-3 flex items-center gap-2 text-xs font-bold text-foreground">
-              <Braces className="h-4 w-4 text-primary" /> Variáveis disponíveis
+              <Braces className="h-4 w-4 text-primary" aria-hidden="true" /> Variáveis disponíveis
             </div>
             <div className="space-y-4">
               {Object.entries(grouped).map(([group, items]) => (
@@ -273,9 +285,10 @@ export function DocumentTemplateModal({
                         disabled={submitting}
                         onClick={() => insertPlaceholder(placeholder.token)}
                         title={placeholder.description}
-                        className="flex w-full items-center gap-2 rounded-md border border-transparent px-2 py-1.5 text-left text-[10px] text-muted-foreground transition hover:border-primary/20 hover:bg-primary/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-40"
+                        aria-label={`Inserir variável ${placeholder.label}`}
+                        className="flex w-full items-center gap-2 rounded-md border border-transparent px-2 py-1.5 text-left text-[10px] text-muted-foreground transition hover:border-primary/20 hover:bg-primary/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        <Plus className="h-3 w-3 shrink-0 text-primary" />
+                        <Plus className="h-3 w-3 shrink-0 text-primary" aria-hidden="true" />
                         <span className="truncate">{placeholder.label}</span>
                       </button>
                     ))}
@@ -287,7 +300,7 @@ export function DocumentTemplateModal({
         </div>
 
         <details className="rounded-xl border border-border bg-secondary/20 p-4">
-          <summary className="cursor-pointer text-xs font-bold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 rounded px-1">
+          <summary className="cursor-pointer rounded px-1 text-xs font-bold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2">
             Cabeçalho, rodapé e identificação
           </summary>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -338,7 +351,10 @@ export function DocumentTemplateModal({
                 `${baseId}-requires-signature`,
               ],
             ].map(([key, label, id]) => (
-              <div key={key} className="flex items-center gap-2">
+              <div
+                key={key}
+                className={`flex items-center gap-2 ${submitting ? "cursor-not-allowed opacity-60" : ""}`}
+              >
                 <input
                   id={id}
                   type="checkbox"
@@ -347,9 +363,12 @@ export function DocumentTemplateModal({
                   onChange={(event) =>
                     setForm({ ...form, [key]: event.target.checked })
                   }
-                  className="rounded border-border text-primary focus:ring-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+                  className="rounded border-border text-primary focus:ring-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
                 />
-                <label htmlFor={id} className="cursor-pointer">
+                <label
+                  htmlFor={id}
+                  className={submitting ? "cursor-not-allowed" : "cursor-pointer"}
+                >
                   {label}
                 </label>
               </div>
@@ -371,22 +390,21 @@ export function DocumentTemplateModal({
             type="button"
             variant="outline"
             size="sm"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={submitting}
           >
             Cancelar
           </Button>
           <Button
-            type="button"
+            type="submit"
             size="sm"
             isLoading={submitting}
-            leftIcon={<FileText className="h-4 w-4" />}
-            onClick={submit}
+            leftIcon={<FileText className="h-4 w-4" aria-hidden="true" />}
           >
             {initial ? "Salvar alterações" : "Criar template"}
           </Button>
         </div>
-      </div>
+      </form>
     </Modal>
   );
 }
@@ -424,6 +442,12 @@ export function EvolutionTemplateModal({
   const contentId = `${baseId}-content`;
   const isActiveId = `${baseId}-is-active`;
 
+  const handleClose = () => {
+    if (!submitting) {
+      onClose();
+    }
+  };
+
   useEffect(() => {
     if (!open) return;
     setError("");
@@ -450,14 +474,20 @@ export function EvolutionTemplateModal({
   return (
     <Modal
       isOpen={open}
-      onClose={onClose}
+      onClose={handleClose}
       title={
         initial ? "Editar template de evolução" : "Novo template de evolução"
       }
       description="Crie um texto-base que poderá ser inserido sem apagar o que já foi digitado."
       className="max-w-2xl"
     >
-      <div className="space-y-4">
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          void submit();
+        }}
+        className="space-y-4"
+      >
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <label htmlFor={nameId} className="block text-xs font-semibold text-foreground">
@@ -538,7 +568,9 @@ export function EvolutionTemplateModal({
             placeholder="Digite o texto-base da evolução em Markdown."
           />
         </div>
-        <div className="flex items-center gap-2 text-xs text-foreground">
+        <div
+          className={`flex items-center gap-2 text-xs text-foreground ${submitting ? "cursor-not-allowed opacity-60" : ""}`}
+        >
           <input
             id={isActiveId}
             disabled={submitting}
@@ -547,9 +579,12 @@ export function EvolutionTemplateModal({
             onChange={(event) =>
               setForm({ ...form, is_active: event.target.checked })
             }
-            className="rounded border-border text-primary focus:ring-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+            className="rounded border-border text-primary focus:ring-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
           />
-          <label htmlFor={isActiveId} className="cursor-pointer">
+          <label
+            htmlFor={isActiveId}
+            className={submitting ? "cursor-not-allowed" : "cursor-pointer"}
+          >
             Template ativo
           </label>
         </div>
@@ -563,18 +598,19 @@ export function EvolutionTemplateModal({
         )}
         <div className="flex justify-end gap-2 border-t border-border pt-4">
           <Button
+            type="button"
             variant="outline"
             size="sm"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={submitting}
           >
             Cancelar
           </Button>
-          <Button size="sm" isLoading={submitting} onClick={submit}>
+          <Button type="submit" size="sm" isLoading={submitting}>
             {initial ? "Salvar alterações" : "Criar template"}
           </Button>
         </div>
-      </div>
+      </form>
     </Modal>
   );
 }
