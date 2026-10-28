@@ -72,11 +72,16 @@ class CommunicationChannelConfigSerializer(serializers.ModelSerializer):
     def get_available_providers(self, obj):
         return cast(dict[str, Any], get_channel_catalog(obj.channel))["providers"]
 
+    def _get_missing_fields(self, obj):
+        if not hasattr(obj, "_cached_missing_fields"):
+            obj._cached_missing_fields = get_missing_configuration_fields(obj)
+        return obj._cached_missing_fields
+
     def get_missing_fields(self, obj):
-        return get_missing_configuration_fields(obj)
+        return self._get_missing_fields(obj)
 
     def get_configuration_complete(self, obj):
-        return not get_missing_configuration_fields(obj)
+        return not self._get_missing_fields(obj)
 
     def get_operational_status(self, obj):
         if obj.connection_status in {
