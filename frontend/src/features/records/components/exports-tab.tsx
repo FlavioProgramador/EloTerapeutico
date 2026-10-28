@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useId } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   FileDown,
@@ -33,6 +33,8 @@ interface ExportsTabProps {
 
 export function ExportsTab({ patientId }: ExportsTabProps) {
   const queryClient = useQueryClient();
+  const typeSelectId = useId();
+  const periodSelectId = useId();
   const [selectedType, setSelectedType] = useState("Completo");
   const [selectedPeriod, setSelectedPeriod] = useState("Todo o período");
 
@@ -127,7 +129,7 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
       case "PROCESSING":
         return (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
-            <RefreshCw className="h-2.5 w-2.5 animate-spin text-blue-600" />
+            <RefreshCw className="h-2.5 w-2.5 animate-spin text-blue-600" aria-hidden="true" />
             Processando
           </span>
         );
@@ -177,7 +179,7 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
   if (isError) {
     return (
       <Card className="flex flex-col items-center justify-center p-8 text-center">
-        <AlertCircle className="h-8 w-8 text-destructive mb-2" />
+        <AlertCircle className="h-8 w-8 text-destructive mb-2" aria-hidden="true" />
         <h3 className="text-sm font-semibold text-foreground">
           Erro ao carregar exportações
         </h3>
@@ -203,13 +205,18 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
         <div className="flex flex-col gap-4 md:flex-row md:items-end justify-between">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 flex-1 max-w-xl">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <label
+                htmlFor={typeSelectId}
+                className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+              >
                 Tipo de Exportação
               </label>
               <select
+                id={typeSelectId}
                 value={selectedType}
+                disabled={createMutation.isPending}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <option value="Completo">
                   Prontuário Completo (Evoluções + Fichas)
@@ -224,13 +231,18 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <label
+                htmlFor={periodSelectId}
+                className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+              >
                 Período
               </label>
               <select
+                id={periodSelectId}
                 value={selectedPeriod}
+                disabled={createMutation.isPending}
                 onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <option value="Todo o período">Todo o período clínico</option>
                 <option value="Últimos 30 dias">Últimos 30 dias</option>
@@ -244,8 +256,9 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
             size="md"
             onClick={() => createMutation.mutate()}
             isLoading={createMutation.isPending}
-            leftIcon={<Play className="h-4 w-4" />}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white"
+            disabled={createMutation.isPending}
+            leftIcon={<Play className="h-4 w-4" aria-hidden="true" />}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
             Iniciar Exportação
           </Button>
@@ -257,7 +270,7 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
         {exports.length === 0 ? (
           <div className="py-12">
             <EmptyState
-              icon={<FileDown className="h-6 w-6 text-muted-foreground" />}
+              icon={<FileDown className="h-6 w-6 text-muted-foreground" aria-hidden="true" />}
               title="Nenhuma exportação solicitada"
               description="Você pode gerar relatórios em PDF do prontuário e baixá-los a qualquer momento."
             />
@@ -286,7 +299,7 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
                     <TableRow key={job.id}>
                       <TableCell className="font-semibold text-foreground max-w-xs truncate">
                         <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-emerald-600/70 shrink-0" />
+                          <FileText className="h-4 w-4 text-emerald-600/70 shrink-0" aria-hidden="true" />
                           <span className="truncate" title={job.filename}>
                             {job.filename}
                           </span>
@@ -298,11 +311,11 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
                       <TableCell>
                         <div className="flex flex-col text-xs text-muted-foreground">
                           <span className="flex items-center gap-1 font-medium text-foreground">
-                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                            <Calendar className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
                             {dateObj.toLocaleDateString("pt-BR")}
                           </span>
                           <span className="flex items-center gap-1 mt-0.5">
-                            <User className="h-3 w-3 text-muted-foreground" />
+                            <User className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
                             {job.created_by_name || "Sistema"}
                           </span>
                         </div>
@@ -317,10 +330,11 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleDownload(job)}
-                            className="h-8 w-8 text-emerald-600 hover:bg-emerald-500/10"
+                            className="h-8 w-8 text-emerald-600 hover:bg-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                             title="Fazer download do arquivo PDF"
+                            aria-label={`Baixar arquivo PDF ${job.filename}`}
                           >
-                            <Download className="h-4 w-4" />
+                            <Download className="h-4 w-4" aria-hidden="true" />
                           </Button>
                         ) : isFailedOrExpired ? (
                           <Button
@@ -328,10 +342,12 @@ export function ExportsTab({ patientId }: ExportsTabProps) {
                             size="icon"
                             onClick={() => retryMutation.mutate(job.id)}
                             isLoading={retryMutation.isPending}
-                            className="h-8 w-8 text-amber-600 hover:bg-amber-500/10"
+                            disabled={retryMutation.isPending}
+                            className="h-8 w-8 text-amber-600 hover:bg-amber-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                             title="Tentar reprocessar exportação"
+                            aria-label={`Reprocessar exportação ${job.filename}`}
                           >
-                            <RefreshCw className="h-4 w-4" />
+                            <RefreshCw className="h-4 w-4" aria-hidden="true" />
                           </Button>
                         ) : (
                           <span className="text-xs text-muted-foreground">
