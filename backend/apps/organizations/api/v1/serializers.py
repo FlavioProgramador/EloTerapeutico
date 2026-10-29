@@ -167,6 +167,11 @@ class OrganizationSettingsSerializer(serializers.ModelSerializer):
         return None
 
     def _telemedicine_state(self) -> tuple[bool, str]:
+        if not hasattr(self, "_cached_telemedicine_state"):
+            self._cached_telemedicine_state = self._compute_telemedicine_state()
+        return self._cached_telemedicine_state
+
+    def _compute_telemedicine_state(self) -> tuple[bool, str]:
         config = get_telemedicine_config()
         if not config.enabled or not config.provider_configured:
             return (
