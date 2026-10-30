@@ -4,6 +4,7 @@ from rest_framework.test import APITestCase
 from apps.forms.exceptions import InvalidFormAnswerError
 from apps.forms.models import FieldType, FormField, FormSubmission, TherapeuticForm
 from apps.forms.selectors import forms_for_owner
+from apps.forms.serializers import TherapeuticFormSerializer
 from apps.forms.services import create_submission, duplicate_form
 from apps.patients.models import Patient
 from apps.users.models import User
@@ -70,3 +71,30 @@ class FormsLayerTests(APITestCase):
                 },
             )
         self.assertFalse(FormSubmission.objects.exists())
+
+    def test_therapeutic_form_serializer_fields_count_uses_prefetched_cache(self):
+        form_2 = TherapeuticForm.objects.create(
+            owner=self.owner,
+            name="Formulário 2",
+            created_by=self.owner,
+            updated_by=self.owner,
+        )
+        FormField.objects.create(
+            form=form_2,
+            type=FieldType.SHORT_TEXT,
+            label="Campo A",
+            order=1,
+        )
+        FormField.objects.create(
+            form=form_2,
+            type=FieldType.LONG_TEXT,
+            label="Campo B",
+            order=2,
+        )
+        qs = forms_for_owner(owner=self.owner)
+        forms_list = list(qs)
+        with self.assertNumQueries(0):
+            serialized = TherapeuticFormSerializer(forms_list, many=True).data
+
+        self.assertEqual(serialized[0]["fields_count"], 1)
+        self.assertEqual(serialized[1]["fields_count"], 2)
