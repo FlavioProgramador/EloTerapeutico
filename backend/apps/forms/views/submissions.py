@@ -17,7 +17,13 @@ class FormSubmissionListCreateView(UserFormMixin, APIView):
 
     def get(self, request, form_id):
         form = self.get_form(form_id)
-        queryset = submissions_for_form(form=form)
+        user_submissions = submissions_for_user(
+            user=request.user,
+            organization=self.get_organization(),
+        )
+        queryset = submissions_for_form(form=form).filter(
+            pk__in=user_submissions.values("pk")
+        )
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(queryset, request)
         return paginator.get_paginated_response(

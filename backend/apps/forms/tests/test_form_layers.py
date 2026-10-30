@@ -1,10 +1,11 @@
 from rest_framework import status
-from rest_framework.test import APITestCase
+from rest_framework.test import APIClient, APITestCase
 
 from apps.forms.exceptions import InvalidFormAnswerError
 from apps.forms.models import FieldType, FormField, FormSubmission, TherapeuticForm
 from apps.forms.selectors import forms_for_owner
 from apps.forms.services import create_submission, duplicate_form
+from apps.organizations.models import Organization, OrganizationMembership
 from apps.patients.models import Patient
 from apps.users.models import User
 
@@ -70,3 +71,118 @@ class FormsLayerTests(APITestCase):
                 },
             )
         self.assertFalse(FormSubmission.objects.exists())
+
+
+class FormSubmissionSecurityTests(APITestCase):
+    def setUp(self):
+        self.user_a = User.objects.create_user(
+            email="therapist.a@example.test",
+            password="strong-password",
+            full_name="Therapist A",
+            role=User.Role.THERAPIST,
+        )
+        self.org_a = Organization.objects.create(
+            name="Org A",
+            slug="org-a",
+            organization_type=Organization.Type.CLINIC,
+            status=Organization.Status.ACTIVE,
+            created_by=self.user_a,
+        )
+        OrganizationMembership.objects.create(
+            organization=self.org_a,
+            user=self.user_a,
+            role=OrganizationMembership.Role.THERAPIST,
+            status=OrganizationMembership.Status.ACTIVE,
+        )
+
+        self.user_b = User.objects.create_user(
+            email="therapist.b@example.test",
+            password="strong-password",
+            full_name="Therapist B",
+            role=User.Role.THERAPIST,
+        )
+        OrganizationMembership.objects.create(
+            organization=self.org_a,
+            user=self.user_b,
+            role=OrganizationMembership.Role.THERAPIST,
+            status=OrganizationMembership.Status.ACTIVE,
+        )
+
+        self.user_c = User.objects.create_user(
+            email="therapist.c@example.test",
+            password="strong-password",
+            full_name="Therapist C",
+            role=User.Role.THERAPIST,
+        )
+        self.org_c = Organization.objects.create(
+            name="Org C",
+            slug="org-c",
+            organization_type=Organization.Type.CLINIC,
+            status=Organization.Status.ACTIVE,
+            created_by=self.user_c,
+        )
+        OrganizationMembership.objects.create(
+            organization=self.org_c,
+            user=self.user_c,
+            role=OrganizationMembership.Role.OWNER,
+            status=OrganizationMembership.Status.ACTIVE,
+        )
+
+        self.patient_a = Patient.objects.create(
+            organization=self.org_a,
+            therapist=self.user_a,
+            full_name="Patient A",
+        )
+        self.patient_b = Patient.objects.create(
+            organization=self.org_a,
+            therapist=self.user_b,
+            full_name="Patient B",
+        )
+        self.form_a = TherapeuticForm.objects.create(
+            organization=self.org_a,
+            owner=self.user_a,
+            name="Formulário Avaliação Org A",
+            created_by=self.user_a,
+            updated_by=self.user_a,
+        )
+
+        self.sub_a = FormSubmission.objects.create(
+            organization=self.org_a,
+            form=self.form_a,
+            patient=self.patient_a,
+            professional=self.user_a,
+            owner=self.user_a,
+            status=FormSubmission.Status.SUBMITTED,
+        )
+        self.sub_b = FormSubmission.objects.create(
+            organization=self.org_a,
+            form=self.form_a,
+            patient=self.patient_b,
+            professional=self.user_b,
+            owner=self.user_b,
+            status=FormSubmission.Status.SUBMITTED,
+        )
+
+        self.client_a = APIClient()
+        self.client_a.force_authenticate(self.user_a)
+        self.client_a.credentials(HTTP_X_ORGANIZATION_ID=str(self.org_a.pk))
+
+        self.client_c = APIClient()
+        self.client_c.force_authenticate(self.user_c)
+        self.client_c.credentials(HTTP_X_ORGANIZATION_ID=str(self.org_c.pk))
+
+    def test_unauthenticated_user_cannot_list_submissions(self):
+        client = APIClient()
+        response = client.get(f"/api/v1/forms/{self.form_a.pk}/submissions/")
+        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+    def test_other_tenant_user_cannot_access_form_submissions(self):
+        response = self.client_c.get(f"/api/v1/forms/{self.form_a.pk}/submissions/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_therapist_cannot_see_other_therapist_form_submissions(self):
+        response = self.client_a.get(f"/api/v1/forms/{self.form_a.pk}/submissions/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        submission_ids = [item["id"] for item in response.data["results"]]
+        self.assertIn(self.sub_a.pk, submission_ids)
+        self.assertNotIn(self.sub_b.pk, submission_ids)
